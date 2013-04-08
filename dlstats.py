@@ -10,15 +10,6 @@ from io import BytesIO, StringIO, TextIOWrapper
 import zipfile
 import urllib.request
 
-def annu_pct_change(self):
-	"""Compute the annualized growth rate from a DataFrame"""
-	if self.index.freqstr == 'Q-DEC':
-		return ((self.pct_change(1)+1)**4-1)
-	else:
-		raise NotImplementedError("Please, send me a pull request.")
-pandas.core.frame.DataFrame.annu_pct_change = annu_pct_change
-pandas.core.series.TimeSeries.annu_pct_change = annu_pct_change
-
 def INSEE(INSEE_id,name):
 	INSEE_id = INSEE_id
 	"""INSEE identifier on the BDM (www.insee.fr)"""
