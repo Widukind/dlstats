@@ -10,6 +10,18 @@ import os
 from io import BytesIO, StringIO, TextIOWrapper
 import urllib.request, http.cookiejar
 import re
+import logging
+
+lgr = logging.getLogger('monitoring')
+lgr.setLevel(logging.DEBUG)
+
+fh = logging.FileHandler('INE.log')
+fh.setLevel(logging.WARNING)
+
+frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(frmt)
+
+lgr.addHandler(fh)
 
 def open_url(url):
     response = urllib.request.urlopen(url)
@@ -64,7 +76,7 @@ class INE(object):
                                 l3values.append(make_url_absolute(match.string)) 
                         l4values = {}
                         for l3value in l3values:
-                            print(l3value)
+                            lgr.debug('l3value : %s', l3value)
                             webpage_ = open_url(l3value)
                             for table_ in webpage_.iterfind(".//table"):
                                 if table_.get("class") == "MENUJAXI":
@@ -72,12 +84,12 @@ class INE(object):
                                         if anchor_.get("class") == "sinsubrayar":
                                             if not regex4.search(anchor_.get("href")):
                                                 l4values[anchor_.text.strip()] = make_url_absolute(anchor_.get("href"))
-                        print(l4values)
+                        lgr.debug('l4value : %s', l4value)
                # self.categories[l1category][l2category][l3category] = l3value
                 
         
 
-print("1")
+lgr.debug('i : %s', i)
 cookie = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
 response2 = opener.open("http://www.ine.es/jaxi/tabla.do?path=/t38/bme2/t30/p149/l1/&file=0907001.px&type=pcaxis&L=1")
@@ -93,7 +105,8 @@ for form in webpage.iterfind(".//form"):
             POST_request.append((select.get("name"), option.get("value")))
 # By default the INE presents data in rows. We (and pandas) don't like that and
 # permutate the POST variables.
-print("2")
+lgr.debug('2')
+cookie = http.cookiejar.CookieJar()
 rows = []
 columns = []
 i = 0
@@ -114,6 +127,7 @@ POST_request = POST_request.encode("ISO-8859-15")
 response3 = opener.open("http://www.ine.es/jaxiBD/tabla.do", POST_request)
 webpage = response3.read()
 webpage = webpage.decode("ISO-8859-15")
+lgr.debug('webpage : %s', webpage)
 webpage = lxml.html.fromstring(webpage)
 POST_request = []
 for form in webpage.iterfind(".//form"):
