@@ -16,12 +16,14 @@ lgr = logging.getLogger('monitoring')
 lgr.setLevel(logging.DEBUG)
 
 fh = logging.FileHandler('INE.log')
-fh.setLevel(logging.WARNING)
+fh.setLevel(logging.DEBUG)
 
 frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(frmt)
 
 lgr.addHandler(fh)
+
+lgr.debug('DEBUG')
 
 def open_url(url):
     response = urllib.request.urlopen(url)
@@ -95,6 +97,7 @@ opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
 response2 = opener.open("http://www.ine.es/jaxi/tabla.do?path=/t38/bme2/t30/p149/l1/&file=0907001.px&type=pcaxis&L=1")
 webpage = response2.read()
 webpage = webpage.decode("ISO-8859-15")
+lgr.debug('webpage for choosing rows and cols : %s', webpage)
 webpage = lxml.html.fromstring(webpage)
 POST_request = []
 for form in webpage.iterfind(".//form"):
@@ -122,12 +125,13 @@ for item in columns:
     POST_request.append(('rows',item))
 for item in rows:
     POST_request.append(('columns',item))
+lgr.debug('POST request : %s', POST_request)
 POST_request = urllib.parse.urlencode(POST_request)
 POST_request = POST_request.encode("ISO-8859-15")
 response3 = opener.open("http://www.ine.es/jaxiBD/tabla.do", POST_request)
 webpage = response3.read()
 webpage = webpage.decode("ISO-8859-15")
-lgr.debug('webpage : %s', webpage)
+lgr.debug('webpage with the time series : %s', webpage)
 webpage = lxml.html.fromstring(webpage)
 POST_request = []
 for form in webpage.iterfind(".//form"):
@@ -144,4 +148,7 @@ response4 = opener.open("http://www.ine.es/jaxiBD/download.do?"+POST_request)
 webpage = response4.read()
 webpage = webpage.decode("ISO-8859-15")
 csv = StringIO(webpage)
-output = pandas.read_csv(csv,header=7, sep=',', skip_footer=11, skiprows=[0,1,2,3,4,5,6,8], parse_dates=True, index_col=0)
+#Retrieves the capital loaned nicely (one stupid trailing col)
+#output = pandas.read_csv(csv,header=7, sep=',', skip_footer=11, skiprows=[0,1,2,3,4,5,6,8], parse_dates=True, index_col=0)
+lgr.debug('csv : %s', csv.getvalue())
+output = pandas.read_csv(csv,header=7, sep=',', skip_footer=11, skiprows=[0], parse_dates=True, index_col=0)
