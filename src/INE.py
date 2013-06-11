@@ -89,7 +89,7 @@ class INE(object):
                 
         
 
-lgr.debug('i : %s', i)
+lgr.debug('1')
 cookie = http.cookiejar.CookieJar()
 opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookie))
 response2 = opener.open("http://www.ine.es/jaxi/tabla.do?path=/t38/bme2/t30/p149/l1/&file=0907001.px&type=pcaxis&L=1")
