@@ -30,6 +30,9 @@ class INSEE(object):
         self._categories = []
         self.client = pymongo.MongoClient()
         self.db = self.client.INSEE
+        # MongoDB creates databases and collections lazily, when the first
+        # document is inserted. We don't want that so we forces the process.
+        # self.db._foobar = {'foo': 'bar'}
 
     def retrieve_identifier(self,post_request):
         webpage = functions.urlopen(
@@ -45,7 +48,6 @@ class INSEE(object):
     def set_categories(self):
         lgr.debug('Retrieving categories')
         lgr.debug('set_categories() got called')
-        self.db.categories = {}
         lgr.debug('Retrieving http://www.bdm.insee.fr/bdm2/index.action')
         webpage = functions.urlopen('http://www.bdm.insee.fr/bdm2/index.action')
         div = webpage.get_element_by_id("col-centre")
@@ -53,40 +55,43 @@ class INSEE(object):
             for anchor in liste.iterfind(".//a"):
                 _url = "http://www.bdm.insee.fr"+anchor.get("href")
                 _name = anchor.text
-                if self.db.categories.find_one({'name': _name}):
+                _category_document = self.db.categories.find_one({'name': _name})
+                if _category_document is not None:
+                    __id_categories = _category_document['_id']
                     lgr.warning(
                         'Category %s already in the database. Not updating.',
                         _name)
                 else:
                     __id_categories = self.db.categories.insert({
-                    name:_name,
-                    url: _url})
-                    lgr.debug('Inserted main category {name: %s, url: %s}',
-                              (_name, _url))
+                    'name':_name,
+                    'url': _url})
+                    lgr.debug('Inserted main category {name: %s, url: %s}'
+                              % (_name, _url))
                 webpage1 = functions.urlopen(_url)
                 ul = webpage1.get_element_by_id("racine")
                 for anchor in ul.iterfind(".//a"):
                     _url = "http://www.bdm.insee.fr"+anchor.get("href")
                     _name = anchor.text
-                    if self.db.subcategories.find_one({'name': _name}):
+                    _subcategory_document = self.db.categories.find_one({'name': _name})
+                    if _subcategory_document is not None:
+                        __id_subcategories = _subcategory_document['_id']
                         lgr.warning(
-                            'Subategory %s already in the database. Not updating.',
+                            'Subcategory %s already in the database. Not updating.',
                             _name)
                     else:
                         __id_subcategories = self.db.subcategories.insert({
-                            name:anchor.text,
-                            url: _url})
+                            'name':anchor.text,
+                            'url': _url})
                         self.db.subcategories_blgs_to_category.insert({
-                            _id_categories: __id_categories,
-                            _id_subcategories: __id_subcategories})
-                        lgr.debug('Inserted subcategory {name: %s, url: %s}',
-                                  (_name, _url))
+                            '_id_categories': __id_categories,
+                            '_id_subcategories': __id_subcategories})
+                        lgr.debug('Inserted subcategory {name: %s, url: %s}'
+                                  % (_name, _url))
 
         lgr.debug('Extracting POST requests from subcategories')
         #TODO revoir à partir de la ligne 108 où ma compréhension de liste me met les valeurs avec les textes. J'ai besoin de retester le produit cartésien de la ligne 114 pour voir s'il fonctionne avec ce genre de liste de liste.
         POST_requests = []
-        subcategories = self.db.subcategories.find()
-        for subcategory in subcategories:
+        for subcategory in self.db.subcategories.find():
             lgr.debug('Opening : %s', subcategory['url'])
             webpage2 = functions.urlopen(subcategory['url'])
             code_groupe_input = webpage2.get_element_by_id("listeSeries_codeGroupe")
@@ -105,7 +110,7 @@ class INSEE(object):
                     select = webpage2.get_element_by_id(
                         re.search('liste.+', str(myinput.get("id"))).group(0)
                         )
-                    options = [(option.value, option.text) for option in select.iterfind(".//option")]
+                    options = [(option.get('value'), option.text) for option in select.iterfind(".//option")]
                     all_idcriteria.append(idcriteria_number)
                     all_options.append(options)
                     lgr.debug('Updated all_idcriteria : %s', all_idcriteria)
