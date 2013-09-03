@@ -45,50 +45,47 @@ class INSEE(object):
         except:
             return("lxml failed to parse the request"+str(post_request))
 
+    def _category_job(self,anchor):
+        _url = "http://www.bdm.insee.fr"+anchor.get("href")
+        _name = anchor.text
+        _category = {'name':_name, 'url': _url}
+        lgr.debug('Explored category {name: %s, url: %s}' % (_name, _url))
+        webpage1 = functions.urlopen(_url)
+        ul = webpage1.get_element_by_id("racine")
+        _subcategories = []
+        for anchor in ul.iterfind(".//a"):
+            _url = "http://www.bdm.insee.fr"+anchor.get("href")
+            _name = anchor.text
+            _subcategories.append({'name':_name,'url': _url}))
+            lgr.debug('Explored subcategory {name: %s, url: %s}'
+                      % (_name, _url))
+        return _category
+
     def set_categories(self):
         lgr.debug('Retrieving categories')
         lgr.debug('set_categories() got called')
         lgr.debug('Retrieving http://www.bdm.insee.fr/bdm2/index.action')
         webpage = functions.urlopen('http://www.bdm.insee.fr/bdm2/index.action')
         div = webpage.get_element_by_id("col-centre")
-        for liste in div.iterfind(".//li"):
-            for anchor in liste.iterfind(".//a"):
-                _url = "http://www.bdm.insee.fr"+anchor.get("href")
-                _name = anchor.text
-                _category_document = self.db.categories.find_one({'name': _name})
-                if _category_document is not None:
-                    __id_categories = _category_document['_id']
-                    lgr.warning(
-                        'Category %s already in the database. Not updating.',
-                        _name)
-                else:
-                    __id_categories = self.db.categories.insert({
-                    'name':_name,
-                    'url': _url})
-                    lgr.debug('Inserted main category {name: %s, url: %s}'
-                              % (_name, _url))
-                webpage1 = functions.urlopen(_url)
-                ul = webpage1.get_element_by_id("racine")
-                for anchor in ul.iterfind(".//a"):
-                    _url = "http://www.bdm.insee.fr"+anchor.get("href")
-                    _name = anchor.text
-                    _subcategory_document = self.db.categories.find_one({'name': _name})
-                    if _subcategory_document is not None:
-                        __id_subcategories = _subcategory_document['_id']
-                        lgr.warning(
-                            'Subcategory %s already in the database. Not updating.',
-                            _name)
-                    else:
-                        __id_subcategories = self.db.subcategories.insert({
-                            'name':anchor.text,
-                            'url': _url})
-                        self.db.subcategories_blgs_to_category.insert({
-                            '_id_categories': __id_categories,
-                            '_id_subcategories': __id_subcategories})
-                        lgr.debug('Inserted subcategory {name: %s, url: %s}'
-                                  % (_name, _url))
+        pool = Pool()
+        categories = []
+        for categories in pool.map(self._category_job,[anchor for anchor in [liste.iterfind(".//a") for liste in div.iterfind(".//li")]]):
+            categories.append(categories)
+        pool.close()
+        pool.join()
+        for category in categories:
+            category_document = self.db.subcategories.find_one({'name': category.name})
+            if category_document['name'] is not None:
+                _id_categories = _category_document['_id']
+                lgr.warning(
+                    'Category %s already in the database. Not inserting.',
+                    category.name)
+            else:
+                _id_categories = self.db.categories.insert(category)
+                lgr.debug('Inserted main category %s}', category.name
 
         lgr.debug('Extracting POST requests from subcategories')
+        #TODO À revoir intégralement avec le nouveau schéma
         #TODO revoir à partir de la ligne 108 où ma compréhension de liste me met les valeurs avec les textes. J'ai besoin de retester le produit cartésien de la ligne 114 pour voir s'il fonctionne avec ce genre de liste de liste.
         POST_requests = []
         for subcategory in self.db.subcategories.find():

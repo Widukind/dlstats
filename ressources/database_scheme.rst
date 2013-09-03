@@ -2,6 +2,7 @@ pymongo automatically adds an _id field to any document inserted into the databa
 A timestamp is built-in to the default MongoDB ObjectId. It serves as a field giving us the fetching date.
 A MongoDate translates transparently in a DateTime in python.
 
+Databases can have different schemas for practical purposes. In the end, we want each object to provide the same attributes as INSSE at the application level.
 
 INSEE
 =====
@@ -13,19 +14,13 @@ A subcategory is different from a category in only one way : it contains INSEE i
     _id: int,
     name: string,
     url: string
+    subcategories = {
+      _id: int,
+      name: string,
+      url: string
+    }
   }
 
-  subcategories = {
-    _id: int,
-    name: string,
-    url: string
-  }
-
-  subcategories_belongs_to_category = {
-    _id: int,
-    _id_categories: int,
-    _id_subcategories: int
-  }
 
   series = {
     _id: int,
@@ -33,17 +28,10 @@ A subcategory is different from a category in only one way : it contains INSEE i
     name: string,
     POST_request: string,
     options: (string)
-  }
-
-  values = {
-    _id: int,
-    values: int,
-    date: MongoDate,
-    release_date: MongoDate,
-  }
-
-  values_belongs_to_series = {
-    _id: int,
-    _id_values: int,
-    _id_series
+    values = {
+      _id: int,
+      values: int,
+      date: MongoDate,
+      release_date: MongoDate,
+    }
   }
