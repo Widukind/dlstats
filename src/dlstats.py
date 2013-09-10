@@ -16,6 +16,8 @@ import itertools
 from multiprocessing import Pool
 import pymongo
 
+# TODO : Faire des upsert à chaque fois.
+
 lgr = logging.getLogger('dlstats')
 lgr.setLevel(logging.DEBUG)
 fh = logging.FileHandler('dlstats.log')
@@ -24,15 +26,70 @@ frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(frmt)
 lgr.addHandler(fh)
 
+# This is defined at top-level because it has to be pickled in order to use
+# the multiprocessing module. That's bad design but I don't see how to avoid 
+# that.
+def _category_job(anchor):
+    _name = anchor[0]
+    _url = anchor[1]
+    _category = {'name':_name, 'url': _url}
+    lgr.info('Explored category {name: %s, url: %s}' % (_name, _url))
+    webpage1 = functions.urlopen(_url)
+    ul = webpage1.get_element_by_id("racine")
+    _subcategories = []
+    for anchor in ul.iterfind(".//a"):
+        _url = "http://www.bdm.insee.fr"+anchor.get("href")
+        _name = anchor.text
+        _subcategories.append({'name':_name,'url': _url})
+        lgr.info('Explored subcategory {name: %s, url: %s}'
+               % (_name, _url))
+        lgr.info('Looking for POST requests in %s', _name)
+        webpage2 = functions.urlopen(_url)
+        code_groupe_input = webpage2.get_element_by_id("listeSeries_codeGroupe")
+        code_groupe = code_groupe_input.get("value")
+        lgr.debug('Got code_groupe : %s', code_groupe)
+
+        lgr.info('Looking for series.')
+        all_idcriteria = []
+        all_options = []
+        for myinput in webpage2.iterfind(".//input"):
+            lgr.info('Looking for series.')
+            if re.search("_multiselect_liste", str(myinput.get("id"))):
+                idcriteria_number = webpage2.get_element_by_id(
+                    re.search('liste.+', str(myinput.get("id"))).group(0)
+                    ).name
+                select = webpage2.get_element_by_id(
+                    re.search('liste.+', str(myinput.get("id"))).group(0)
+                    )
+                options = [(option.get('value'), option.text) for option in select.iterfind(".//option")]
+                all_idcriteria.append(idcriteria_number)
+                all_options.append(options)
+                lgr.info('Updated all_idcriteria : %s', all_idcriteria)
+        i = 0
+        i = 0
+        combinations = list(itertools.product(*all_options))
+        POST_requests = []
+        while i < len(combinations):
+        	j=0
+        	values = combinations[i]
+        	POST_request = {}
+        	while j < len(values):
+        		POST_request[str(all_idcriteria[j])] = values[j]
+        		POST_request["__multiselect_"+str(all_idcriteria[j])] = ""
+        		POST_request["nombreCriteres"]=str(len(values))
+        		POST_request["codeGroupe"]=str(code_groupe)
+        		POST_requests.append(POST_request) 
+        		j+=1
+        	i+=1
+        _category['POST_requests'] = POST_requests
+    return _category
+
 class INSEE(object):
     def __init__(self):
         self.last_update = None
         self._categories = []
         self.client = pymongo.MongoClient()
         self.db = self.client.INSEE
-        # MongoDB creates databases and collections lazily, when the first
-        # document is inserted. We don't want that so we forces the process.
-        # self.db._foobar = {'foo': 'bar'}
 
     def retrieve_identifier(self,post_request):
         webpage = functions.urlopen(
@@ -45,88 +102,31 @@ class INSEE(object):
         except:
             return("lxml failed to parse the request"+str(post_request))
 
-    def _category_job(self,anchor):
-        _url = "http://www.bdm.insee.fr"+anchor.get("href")
-        _name = anchor.text
-        _category = {'name':_name, 'url': _url}
-        lgr.debug('Explored category {name: %s, url: %s}' % (_name, _url))
-        webpage1 = functions.urlopen(_url)
-        ul = webpage1.get_element_by_id("racine")
-        _subcategories = []
-        for anchor in ul.iterfind(".//a"):
-            _url = "http://www.bdm.insee.fr"+anchor.get("href")
-            _name = anchor.text
-            _subcategories.append({'name':_name,'url': _url}))
-            lgr.debug('Explored subcategory {name: %s, url: %s}'
-                      % (_name, _url))
-        return _category
-
     def set_categories(self):
-        lgr.debug('Retrieving categories')
-        lgr.debug('set_categories() got called')
-        lgr.debug('Retrieving http://www.bdm.insee.fr/bdm2/index.action')
+        lgr.info('Retrieving categories')
+        lgr.info('set_categories() got called')
+        lgr.info('Retrieving http://www.bdm.insee.fr/bdm2/index.action')
         webpage = functions.urlopen('http://www.bdm.insee.fr/bdm2/index.action')
         div = webpage.get_element_by_id("col-centre")
         pool = Pool()
+        anchors = [(anchor.text, "http://www.bdm.insee.fr"+anchor.get("href")) for liste in div.iterfind(".//li") for anchor in liste.iterfind(".//a")]
         categories = []
-        for categories in pool.map(self._category_job,[anchor for anchor in [liste.iterfind(".//a") for liste in div.iterfind(".//li")]]):
-            categories.append(categories)
+        for _categories in pool.map(_category_job,anchors):
+            categories.append(_categories)
         pool.close()
         pool.join()
         for category in categories:
-            category_document = self.db.subcategories.find_one({'name': category.name})
-            if category_document['name'] is not None:
-                _id_categories = _category_document['_id']
+            category_document = self.db.categories.find_one({'name': category['name']})
+            if category_document is not None:
+                _id_categories = category_document['_id']
                 lgr.warning(
                     'Category %s already in the database. Not inserting.',
-                    category.name)
+                    category)
             else:
                 _id_categories = self.db.categories.insert(category)
-                lgr.debug('Inserted main category %s}', category.name
+                lgr.info('Inserted main category %s}', category)
 
-        lgr.debug('Extracting POST requests from subcategories')
-        #TODO À revoir intégralement avec le nouveau schéma
-        #TODO revoir à partir de la ligne 108 où ma compréhension de liste me met les valeurs avec les textes. J'ai besoin de retester le produit cartésien de la ligne 114 pour voir s'il fonctionne avec ce genre de liste de liste.
-        POST_requests = []
-        for subcategory in self.db.subcategories.find():
-            lgr.debug('Opening : %s', subcategory['url'])
-            webpage2 = functions.urlopen(subcategory['url'])
-            code_groupe_input = webpage2.get_element_by_id("listeSeries_codeGroupe")
-            code_groupe = code_groupe_input.get("value")
-            lgr.debug('Got code_groupe : %s', code_groupe)
-
-            lgr.debug('Looking for series.')
-            all_idcriteria = []
-            all_options = []
-            for myinput in webpage2.iterfind(".//input"):
-                lgr.debug('Looking for series.')
-                if re.search("_multiselect_liste", str(myinput.get("id"))):
-                    idcriteria_number = webpage2.get_element_by_id(
-                        re.search('liste.+', str(myinput.get("id"))).group(0)
-                        ).name
-                    select = webpage2.get_element_by_id(
-                        re.search('liste.+', str(myinput.get("id"))).group(0)
-                        )
-                    options = [(option.get('value'), option.text) for option in select.iterfind(".//option")]
-                    all_idcriteria.append(idcriteria_number)
-                    all_options.append(options)
-                    lgr.debug('Updated all_idcriteria : %s', all_idcriteria)
-            i = 0
-            i = 0
-            combinations = list(itertools.product(*all_options))
-            while i < len(combinations):
-                j=0
-                values = combinations[i]
-                POST_request = {}
-                while j < len(values):
-                    POST_request[str(all_idcriteria[j])] = values[j]
-                    POST_request["__multiselect_"+str(all_idcriteria[j])] = ""
-                    POST_request["nombreCriteres"]=str(len(values))
-                    POST_request["codeGroupe"]=str(code_groupe)
-                    POST_requests.append(POST_request) 
-                    j+=1
-                i+=1
-
+# Dernier bout de code à revoir! ENFIN!
         pool = Pool(process_count)
         job_count = 0
         jobs = []
