@@ -30,6 +30,12 @@ lgr.addHandler(fh)
 # the multiprocessing module. That's bad design but I don't see how to avoid 
 # that.
 def _category_job(anchor):
+    """Retrieve the tree structure of the INSEE database
+
+    :param anchor: the first element is the name of the category, the second
+    element is the url of that category.
+    :type anchor list
+    """
     _name = anchor[0]
     _url = anchor[1]
     _category = {'name':_name, 'url': _url}
@@ -61,7 +67,8 @@ def _category_job(anchor):
                 select = webpage2.get_element_by_id(
                     re.search('liste.+', str(myinput.get("id"))).group(0)
                     )
-                options = [(option.get('value'), option.text) for option in select.iterfind(".//option")]
+                options = [(option.get('value'), option.text) 
+                           for option in select.iterfind(".//option")]
                 all_idcriteria.append(idcriteria_number)
                 all_options.append(options)
                 lgr.info('Updated all_idcriteria : %s', all_idcriteria)
@@ -85,13 +92,28 @@ def _category_job(anchor):
     return _category
 
 class INSEE(object):
+    """Main INSEE retrieving object
+
+    :param object
+    :type type
+    """
     def __init__(self):
+    """Intitializer
+
+    :param self
+    :type INSEE
+    """
         self.last_update = None
         self._categories = []
         self.client = pymongo.MongoClient()
         self.db = self.client.INSEE
 
     def retrieve_identifier(self,post_request):
+        """Fetch the zipfile containing the time series
+
+        :param self
+        :type INSEE
+        """
         webpage = functions.urlopen(
                 'http://www.bdm.insee.fr/bdm2/listeSeries.action', post_request)
         try:
@@ -103,6 +125,12 @@ class INSEE(object):
             return("lxml failed to parse the request"+str(post_request))
 
     def set_categories(self):
+        """Paralelization method
+
+        :param self
+        :type INSEE
+        """
+
         lgr.info('Retrieving categories')
         lgr.info('set_categories() got called')
         lgr.info('Retrieving http://www.bdm.insee.fr/bdm2/index.action')
