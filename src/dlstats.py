@@ -98,11 +98,11 @@ class INSEE(object):
     :type type
     """
     def __init__(self):
-    """Intitializer
+        """Intitializer
 
-    :param self
-    :type INSEE
-    """
+        :param self
+        :type INSEE
+        """
         self.last_update = None
         self._categories = []
         self.client = pymongo.MongoClient()
