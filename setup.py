@@ -6,7 +6,12 @@ setup(name='dlstats',
     author_email='dev@michaelmalter.fr',
     package_dir={'': 'src'},
     packages=[''],
+    data_files=[('/etc/init.d','init/dlstats'),
+                ('/usr/local/bin','init/dlstats.py')],
     install_requires=[
         'pandas>=0.11'
       ]
 	)
+
+os.chmod('/etc/init.d/dlstats', 0755)
+os.chmod('/usr/local/bin/dlstats.py', 0755)

@@ -15,6 +15,7 @@ import re
 import itertools
 from multiprocessing import Pool
 import pymongo
+from skeleton import Skeleton
 
 # TODO : Faire des upsert à chaque fois.
 
@@ -134,7 +135,7 @@ def _category_job(anchor):
     documents.pop()
     return documents
 
-class INSEE(object):
+class INSEE(Skeleton):
     """Main INSEE retrieving object
 
     :param object
