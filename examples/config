@@ -1,0 +1,6 @@
+[INSEE] # Name of the class
+update_categories_db = 0 #That method is never called
+update_series_db = 1 #That method has one entry with the score 1 in the batch queue
+get_series = 2 # That method has two entries in the batch queue one with the score 1, the other with the score 2
+
+
