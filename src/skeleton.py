@@ -1,6 +1,8 @@
+import pymongo
+
 class Skeleton(object):
     def __init__(self):
-        pass
+        self.client = pymongo.MongoClient()
     def update_categories_db(self):
         """Update the categories in MongoDB
         """

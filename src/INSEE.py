@@ -153,7 +153,6 @@ class INSEE(Skeleton):
 
         self.last_update = None
         self._categories = []
-        self.client = pymongo.MongoClient()
         self.db = self.client.INSEE
 
 
