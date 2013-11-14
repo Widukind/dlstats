@@ -20,7 +20,7 @@ class Eurostat(Skeleton):
                         if title.attrib.values()[0] == 'en':
                             _categories=[title.text]
                             node={'name': title.text}
-                            _id = self.db.categories.insert(node)
+                            _id = self.db.categories3.insert(node)
                             self.db.categories.update({'_id': parent_id}, {'$push': {'children': _id}})
                     walktree(branch, title.text,_id)
                 for leaf in children.iterchildren('{urn:eu.europa.ec.eurostat.navtree}leaf'):
@@ -28,15 +28,21 @@ class Eurostat(Skeleton):
                         if title.attrib.values()[0] == 'en':
                             _categories=[title.text]
                             node={'name': title.text}
-                            _id = self.db.categories.insert(node)
+                            _id = self.db.categories3.insert(node)
+                            print(title.text)
                             self.db.categories.update({'_id': parent_id}, {'$push': {'children': _id}})
+                    for downloadLink in leaf.iterchildren('{urn:eu.europa.ec.eurostat.navtree}downloadLink'):
+                        if downloadLink.attrib.values()[0] == 'sdmx':
+                            _url=downloadLink.text                       
+                            print(_url)  
+                            self.db.categories3.update({'_id': _id}, {'$push': {'url': _url }})
 
         root=self.table_of_contents.iterfind('{urn:eu.europa.ec.eurostat.navtree}branch')
         for branch in root:
             for title in branch.iterchildren('{urn:eu.europa.ec.eurostat.navtree}title'):
                 if title.attrib.values()[0] == 'en':
                     node={'name': title.text}
-                    _id = self.db.categories.insert(node)
+                    _id = self.db.categories3.insert(node)
             walktree(branch, title.text,_id)
     def update_series_db(self):
         """Update the series in MongoDB
