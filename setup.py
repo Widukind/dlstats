@@ -1,4 +1,6 @@
 from distutils.core import setup
+import os
+
 setup(name='dlstats',
 	version='0.1',
     description='A python module that provides an interface between statistics providers and pandas.',

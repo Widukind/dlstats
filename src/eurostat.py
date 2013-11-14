@@ -3,7 +3,7 @@ import lxml
 import urllib
 import misc_func
 
-class eurostat(skeleton):
+class Eurostat(Skeleton):
     def __init__(self):
         self.db = self.client.eurostat
         table_of_contents = urllib.request.urlopen('http://www.epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=table_of_contents.xml', timeout=7)
