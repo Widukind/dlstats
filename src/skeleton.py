@@ -2,7 +2,10 @@ import pymongo
 
 class Skeleton(object):
     def __init__(self):
-        self.client = pymongo.MongoClient()
+        try:
+            self.client = pymongo.MongoClient()
+        except:
+            raise Exception("Please launch the mongodb service")
     def update_categories_db(self):
         """Update the categories in MongoDB
         """
