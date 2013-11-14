@@ -7,7 +7,7 @@ class Eurostat(Skeleton):
     def __init__(self):
         super(Eurostat, self).__init__()
         self.db = self.client.eurostat
-        table_of_contents = urllib.request.urlopen('http://www.epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=table_of_contents.xml', timeout=7)
+        webpage = urllib.request.urlopen('http://www.epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=table_of_contents.xml', timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
     def update_categories_db(self):
