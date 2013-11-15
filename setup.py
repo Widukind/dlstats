@@ -8,8 +8,8 @@ setup(name='dlstats',
     author_email='dev@michaelmalter.fr',
     package_dir={'': 'src'},
     packages=[''],
-    data_files=[('/etc/init.d','init/dlstats'),
-                ('/usr/local/bin','init/dlstats.py')],
+    data_files=[('/etc/init.d',['init/dlstats']),
+                ('/usr/local/bin',['init/dlstats.py'])],
     install_requires=[
         'pandas>=0.11'
       ]
@@ -17,12 +17,12 @@ setup(name='dlstats',
 
 try:
 	with open('/etc/init.d/dlstats'):
-		pass
-	except IOError:
-		os.chmod('/etc/init.d/dlstats', 0755)
+		os.chmod('/etc/init.d/dlstats', 0o755)
+except IOError:
+	pass
 
 try:
 	with open('/usr/local/bin/dlstats.py'):
-		pass
-	except IOError:
-		os.chmod('/usr/local/bin/dlstats.py', 0755)
+		os.chmod('/usr/local/bin/dlstats.py', 0o755)
+except IOError:
+	pass
