@@ -15,5 +15,14 @@ setup(name='dlstats',
       ]
 	)
 
-os.chmod('/etc/init.d/dlstats', 0755)
-os.chmod('/usr/local/bin/dlstats.py', 0755)
+try:
+	with open('/etc/init.d/dlstats'):
+		pass
+	except IOError:
+		os.chmod('/etc/init.d/dlstats', 0755)
+
+try:
+	with open('/usr/local/bin/dlstats.py'):
+		pass
+	except IOError:
+		os.chmod('/usr/local/bin/dlstats.py', 0755)
