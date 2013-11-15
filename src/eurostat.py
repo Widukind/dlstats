@@ -2,6 +2,7 @@ from skeleton import Skeleton
 import lxml
 import urllib
 import misc_func
+import datetime
 
 class Eurostat(Skeleton):
     def __init__(self):
@@ -13,13 +14,14 @@ class Eurostat(Skeleton):
     def update_categories_db(self):
         """Update the categories in MongoDB
         """
+		id_journal = self.db.journal.insert({'name': 'categories'})
         def walktree(branch,category_name,parent_id ): 
             for children in branch.iterchildren('{urn:eu.europa.ec.eurostat.navtree}children'):
                 for branch in children.iterchildren('{urn:eu.europa.ec.eurostat.navtree}branch'):
                     for title in branch.iterchildren('{urn:eu.europa.ec.eurostat.navtree}title'):
                         if title.attrib.values()[0] == 'en':
                             _categories=[title.text]
-                            node={'name': title.text}
+							node={'name': title.text, 'id_journal': id_journal}
                             _id = self.db.categories.insert(node)
                             self.db.categories.update({'_id': parent_id}, {'$push': {'children': _id}})
                     walktree(branch, title.text,_id)
@@ -27,21 +29,19 @@ class Eurostat(Skeleton):
                     for title in leaf.iterchildren('{urn:eu.europa.ec.eurostat.navtree}title'):
                         if title.attrib.values()[0] == 'en':
                             _categories=[title.text]
-                            node={'name': title.text}
+                            node={'name': title.text, 'id_journal': id_journal}
                             _id = self.db.categories.insert(node)
-                            print(title.text)
                             self.db.categories.update({'_id': parent_id}, {'$push': {'children': _id}})
                     for downloadLink in leaf.iterchildren('{urn:eu.europa.ec.eurostat.navtree}downloadLink'):
-                        if downloadLink.attrib.values()[0] == 'sdmx':
+                        if downloadLink.attrib.values()[0] == 'tsv':
                             _url=downloadLink.text                       
-                            print(_url)  
                             self.db.categories.update({'_id': _id}, {'$push': {'url': _url }})
 
         root=self.table_of_contents.iterfind('{urn:eu.europa.ec.eurostat.navtree}branch')
         for branch in root:
             for title in branch.iterchildren('{urn:eu.europa.ec.eurostat.navtree}title'):
                 if title.attrib.values()[0] == 'en':
-                    node={'name': title.text}
+                    node={'name': title.text, 'id_journal': id_journal}
                     _id = self.db.categories.insert(node)
             walktree(branch, title.text,_id)
     def update_series_db(self):
