@@ -22,7 +22,7 @@ except IOError:
 	pass
 
 try:
-	with open('/usr/local/bin/dlstats.py'):
-		os.chmod('/usr/local/bin/dlstats.py', 0o755)
+	with open('/usr/local/bin/dlstats-daemon.py'):
+		os.chmod('/usr/local/bin/dlstats-daemon.py', 0o755)
 except IOError:
 	pass
