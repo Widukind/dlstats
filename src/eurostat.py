@@ -2,6 +2,11 @@
 from skeleton import Skeleton
 import lxml
 import urllib
+from pandas.tseries.offsets import *
+import pandas
+from io import BytesIO, StringIO, TextIOWrapper
+import urllib.request
+import gzip
 
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
@@ -70,6 +75,17 @@ class Eurostat(Skeleton):
                     node = {'name': title.text, 'id_journal': id_journal}
                     _id = self.db.categories.insert(node)
             walktree(branch, _id)
+
+
+
+    def download_data(self,url)
+        response = urllib.request.urlopen(url)
+        memzip = BytesIO(response.read())
+        archive= gzip.open(memzip,'rb')
+        tsv = TextIOWrapper(archive)
+        data = pandas.read_csv(tsv,encoding='utf-8', delimiter="[,\t]", header=0, index_col=[0,1,2,3], na_values= ':', decimal='.')
+        return data
+
 
     def update_series_db(self):
         """Update the series in MongoDB
