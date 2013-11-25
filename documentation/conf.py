@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'widukind'
+project = u'dlstats'
 copyright = u'2013, Michaël Malter'
 
 # The version info for the project you're documenting, acts as replacement for

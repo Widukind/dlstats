@@ -79,7 +79,7 @@ class Eurostat(Skeleton):
 
 
     def download_data(self,url)
-        """download a panda dataframe from the Url
+        """Returns a pandas DataFrame
         """
         response = urllib.request.urlopen(url)
         memzip = BytesIO(response.read())
