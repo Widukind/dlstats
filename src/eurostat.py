@@ -1,12 +1,14 @@
 """Retrieving data from Eurostat"""
 from skeleton import Skeleton
-import lxml
+import lxml.etree
 import urllib
 from pandas.tseries.offsets import *
 import pandas
+import datetime
 from io import BytesIO, StringIO, TextIOWrapper
 import urllib.request
 import gzip
+import uuid
 
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
@@ -76,18 +78,36 @@ class Eurostat(Skeleton):
                     _id = self.db.categories.insert(node)
             walktree(branch, _id)
 
-
-
-    def download_data(self,url)
-        """Returns a pandas DataFrame
-        """
-        response = urllib.request.urlopen(url)
+    def leaf_to_pandas(self, url_leaf):
+        """Download series contained in a leaf and returns a list of pandas
+        DataFrame"""
+        def _monthly_data_parser(year_and_month):
+            return datetime.datetime.strptime(year_and_month, '%YM%m')
+        response = urllib.request.urlopen(url_leaf)
         memzip = BytesIO(response.read())
-        archive= gzip.open(memzip,'rb')
-        tsv = TextIOWrapper(archive)
-        data = pandas.read_csv(tsv,encoding='utf-8', delimiter="[,\t]", header=0, index_col=[0,1,2,3], na_values= ':', decimal='.')
-        return data
-
+        archive = gzip.open(memzip,'rb')
+        tsv = TextIOWrapper(archive, encoding='utf-8', newline='')
+        split_tsv = [line.strip() for line in tsv]
+        header = split_tsv[0].split()
+        cols_labels = header[0].split(',')
+        dates = [_monthly_data_parser(date_string) 
+                 for date_string in header[1:]]
+        series_from_leaf = []
+        for line in split_tsv[1:]:
+            metadata = {}
+            i = 0
+            for label in cols_labels:
+                value = line.split(',')[i].split('\t')[0]
+                label = label.split('\\')
+                metadata[label[0]] = value
+                i += 1
+            identifier = uuid.uuid4()
+            metadata['identifier'] = identifier
+            values = line.split('\t')[1:]
+            values = [value.strip() for value in values]
+            series = pandas.DataFrame({identifier: values}, index=dates).replace(':', pandas.np.nan).replace(': ', pandas.np.nan).astype('float')
+            series_from_leaf.append([metadata, series])
+        return series_from_leaf
 
     def update_series_db(self):
         """Update the series in MongoDB
