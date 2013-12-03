@@ -9,11 +9,21 @@ from io import BytesIO, StringIO, TextIOWrapper
 import urllib.request
 import gzip
 import uuid
+import re
+import pymongo
+import logging
 
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
     def __init__(self):
         super(Eurostat, self).__init__()
+        self.lgr = logging.getLogger('Eurostat')
+        self.lgr.setLevel(logging.DEBUG)
+        self.fh = logging.FileHandler('Eurostat.log')
+        self.fh.setLevel(logging.DEBUG)
+        self.frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.fh.setFormatter(self.frmt)
+        self.lgr.addHandler(self.fh)
         self.db = self.client.eurostat
         webpage = urllib.request.urlopen(
             'http://www.epp.eurostat.ec.europa.eu/'
@@ -21,6 +31,7 @@ class Eurostat(Skeleton):
             '?sort=1&file=table_of_contents.xml', timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+        self.store_path = '/mnt/data/dlstats/'
     def update_categories_db(self):
         """Update the categories in MongoDB
         """
@@ -81,8 +92,15 @@ class Eurostat(Skeleton):
     def leaf_to_pandas(self, url_leaf):
         """Download series contained in a leaf and returns a list of pandas
         DataFrame"""
-        def _monthly_data_parser(year_and_month):
-            return datetime.datetime.strptime(year_and_month, '%YM%m')
+        def _date_parser(date):
+            regex_quarterly = re.compile('[0-9]{4}Q[1-4]')
+            regex_monthly = re.compile('[0-9]{4}M[0-9]{2}')
+            if re.search(regex_quarterly, date):
+                date = date.split('Q')
+                date = str(int(date[1])*3) + date[0]
+                return datetime.datetime.strptime(date, '%m%Y')
+            if re.search(regex_monthly, date):
+                return datetime.datetime.strptime(date, '%YM%m')
         response = urllib.request.urlopen(url_leaf)
         memzip = BytesIO(response.read())
         archive = gzip.open(memzip,'rb')
@@ -90,7 +108,7 @@ class Eurostat(Skeleton):
         split_tsv = [line.strip() for line in tsv]
         header = split_tsv[0].split()
         cols_labels = header[0].split(',')
-        dates = [_monthly_data_parser(date_string) 
+        dates = [_date_parser(date_string) 
                  for date_string in header[1:]]
         series_from_leaf = []
         for line in split_tsv[1:]:
@@ -101,16 +119,35 @@ class Eurostat(Skeleton):
                 label = label.split('\\')
                 metadata[label[0]] = value
                 i += 1
-            identifier = uuid.uuid4()
-            metadata['identifier'] = identifier
+            identifier = 'id'+str(uuid.uuid4()).replace('-','')
             values = line.split('\t')[1:]
-            values = [value.strip() for value in values]
-            series = pandas.DataFrame({identifier: values}, index=dates).replace(':', pandas.np.nan).replace(': ', pandas.np.nan).astype('float')
-            series_from_leaf.append([metadata, series])
+            values = [re.sub(r'[a-z]','',value).strip() for value in values]
+            series = pandas.DataFrame(
+                {identifier: values}, index=dates).replace(
+                    ':', pandas.np.nan).replace(
+                        ': ', pandas.np.nan).astype('float')
+            series_from_leaf.append([identifier, metadata, series])
         return series_from_leaf
 
     def update_series_db(self):
         """Update the series in MongoDB
         """
-        raise NotImplementedError("All the methods from the Skeleton class must"
-                                  "be implemented.")
+        id_journal = self.db.journal.insert({'name': 'series'})
+        file_identifier = id_journal.__repr__().split('\'')[1]
+        store = pandas.HDFStore(
+            self.store_path + 'eurostat' + file_identifier + '.h5',
+            complevel=9, complib='zlib')
+        last_update_categories = list(self.db.journal.find(
+            {'name': 'categories'}).sort([('_id',-1)]).limit(1))
+        leaves = list(self.db.categories.find({
+            'id_journal': last_update_categories[0]['_id'],
+            'url': {'$exists': 'true'}}))
+        series = []
+        for leaf in leaves:
+            series = self.leaf_to_pandas(leaf['url'][0])
+            for a_series in series:
+                a_series[1]['hdfpath'] = 'id'+str(uuid.uuid4()).replace('-','')
+                self.db.series.insert({'uuid': a_series[0],'metadata': a_series[1]})
+                store[a_series[1]['hdfpath']+'/'+a_series[0]] = a_series[2]
+        store.close()
+
