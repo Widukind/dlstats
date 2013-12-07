@@ -8,14 +8,72 @@ import datetime
 from io import BytesIO, StringIO, TextIOWrapper
 import urllib.request
 import gzip
-import uuid
 import re
 import pymongo
 import logging
+from multiprocessing import Pool
+
+def insert_series(leaf):
+    try:
+        client = pymongo.MongoClient()
+        db = client.eurostat
+        def _date_parser(date):
+            regex_annually = re.compile('[0-9]{4}')
+            regex_quarterly = re.compile('[0-9]{4}Q[1-4]')
+            regex_monthly = re.compile('[0-9]{4}M[0-9]{2}')
+            if re.search(regex_quarterly, date):
+                date = date.split('Q')
+                date = str(int(date[1])*3) + date[0]
+                return datetime.datetime.strptime(date, '%m%Y')
+            if re.search(regex_monthly, date):
+                return datetime.datetime.strptime(date, '%YM%m')
+            if re.search(regex_annually, date):
+                return datetime.datetime.strptime(date, '%Y')
+        response = urllib.request.urlopen(leaf['url'][0])
+        memzip = BytesIO(response.read())
+        archive = gzip.open(memzip,'rb')
+        tsv = TextIOWrapper(archive, encoding='utf-8', newline='')
+        split_tsv = [line.strip() for line in tsv]
+        header = split_tsv[0].split()
+        cols_labels = header[0].split(',')
+        if cols_labels[-1] == 'time\\geo':
+            return False
+        dates = [_date_parser(date_string) 
+                 for date_string in header[1:]]
+        if type(dates[0]) is not datetime.datetime:
+            return False
+        series_from_leaf = []
+        for line in split_tsv[1:]:
+            metadata = {}
+            i = 0
+            for label in cols_labels:
+                value = line.split(',')[i].split('\t')[0]
+                label = label.split('\\')
+                metadata[label[0]] = value
+                i += 1
+            values = line.split('\t')[1:]
+            values = [re.sub(r'[a-z]','',value).strip() for value in values]
+            series = pandas.DataFrame(values, index=dates).replace(
+                    ':', pandas.np.nan).replace(
+                        ': ', pandas.np.nan).astype('float')
+            series_from_leaf.append([metadata,
+                                     [value[0] for value in series.values],
+                                     [value for value in series.index.astype(object)]])
+        for a_series in series_from_leaf:
+            id_series = db.series.insert({'metadata': a_series[0],
+                                  'data': {'value': a_series[1],
+                                            'date': a_series[2]}})
+            db.categories.update({'_id': leaf['_id']},
+                                  {'$push': {'id_series': id_series}})
+
+        return True
+    except:
+        return False
 
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
     def __init__(self):
+        self.client = pymongo.MongoClient()
         super(Eurostat, self).__init__()
         self.lgr = logging.getLogger('Eurostat')
         self.lgr.setLevel(logging.DEBUG)
@@ -89,65 +147,24 @@ class Eurostat(Skeleton):
                     _id = self.db.categories.insert(node)
             walktree(branch, _id)
 
-    def leaf_to_pandas(self, url_leaf):
-        """Download series contained in a leaf and returns a list of pandas
-        DataFrame"""
-        def _date_parser(date):
-            regex_quarterly = re.compile('[0-9]{4}Q[1-4]')
-            regex_monthly = re.compile('[0-9]{4}M[0-9]{2}')
-            if re.search(regex_quarterly, date):
-                date = date.split('Q')
-                date = str(int(date[1])*3) + date[0]
-                return datetime.datetime.strptime(date, '%m%Y')
-            if re.search(regex_monthly, date):
-                return datetime.datetime.strptime(date, '%YM%m')
-        response = urllib.request.urlopen(url_leaf)
-        memzip = BytesIO(response.read())
-        archive = gzip.open(memzip,'rb')
-        tsv = TextIOWrapper(archive, encoding='utf-8', newline='')
-        split_tsv = [line.strip() for line in tsv]
-        header = split_tsv[0].split()
-        cols_labels = header[0].split(',')
-        dates = [_date_parser(date_string) 
-                 for date_string in header[1:]]
-        series_from_leaf = []
-        for line in split_tsv[1:]:
-            metadata = {}
-            i = 0
-            for label in cols_labels:
-                value = line.split(',')[i].split('\t')[0]
-                label = label.split('\\')
-                metadata[label[0]] = value
-                i += 1
-            identifier = 'id'+str(uuid.uuid4()).replace('-','')
-            values = line.split('\t')[1:]
-            values = [re.sub(r'[a-z]','',value).strip() for value in values]
-            series = pandas.DataFrame(
-                {identifier: values}, index=dates).replace(
-                    ':', pandas.np.nan).replace(
-                        ': ', pandas.np.nan).astype('float')
-            series_from_leaf.append([identifier, metadata, series])
-        return series_from_leaf
 
     def update_series_db(self):
         """Update the series in MongoDB
         """
         id_journal = self.db.journal.insert({'name': 'series'})
-        file_identifier = id_journal.__repr__().split('\'')[1]
-        store = pandas.HDFStore(
-            self.store_path + 'eurostat' + file_identifier + '.h5',
-            complevel=9, complib='zlib')
         last_update_categories = list(self.db.journal.find(
             {'name': 'categories'}).sort([('_id',-1)]).limit(1))
         leaves = list(self.db.categories.find({
             'id_journal': last_update_categories[0]['_id'],
             'url': {'$exists': 'true'}}))
         series = []
-        for leaf in leaves:
-            series = self.leaf_to_pandas(leaf['url'][0])
-            for a_series in series:
-                a_series[1]['hdfpath'] = 'id'+str(uuid.uuid4()).replace('-','')
-                self.db.series.insert({'uuid': a_series[0],'metadata': a_series[1]})
-                store[a_series[1]['hdfpath']+'/'+a_series[0]] = a_series[2]
-        store.close()
-
+        pool = Pool(8)
+        i=0
+        validation = []
+        for dummy in pool.map(insert_series,leaves):
+            i+=1
+            validation.append(dummy)
+            self.lgr.info(str(i)+'/'+str(len(leaves)))
+        print(str(sum(validation)) + ' groups of series retrieved over a total of ' + str(len(validation)))
+        pool.close()
+        pool.join()
