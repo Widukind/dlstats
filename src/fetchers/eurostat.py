@@ -1,5 +1,5 @@
 """Retrieving data from Eurostat"""
-from skeleton import Skeleton
+from dlstats.fetchers.skeleton import Skeleton
 import lxml.etree
 import urllib
 from pandas.tseries.offsets import *

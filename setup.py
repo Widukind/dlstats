@@ -7,11 +7,11 @@ setup(name='dlstats',
     author='Michaël Malter',
     author_email='dev@michaelmalter.fr',
     package_dir={'': 'src'},
-    packages=[''],
+    packages=['gunicorn', 'fetchers'],
     data_files=[('/etc/init.d',['init/dlstats']),
                 ('/usr/local/bin',['init/dlstats.py'])],
     install_requires=[
-        'pandas>=0.11'
+        'pandas>=0.12'
       ]
 	)
 
