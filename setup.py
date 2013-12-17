@@ -9,7 +9,7 @@ setup(name='dlstats',
     package_dir={'': 'src'},
     packages=['gunicorn', 'fetchers'],
     data_files=[('/etc/init.d',['init/dlstats']),
-                ('/usr/local/bin',['init/dlstats.py'])],
+                ('/usr/local/bin',['init/dlstats-daemon.py'])],
     install_requires=[
         'pandas>=0.12'
       ]
