@@ -75,8 +75,8 @@ def insert_series(leaf):
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
     def __init__(self):
+        super().__init__()
         self.client = pymongo.MongoClient()
-        super(Eurostat, self).__init__()
         self.lgr = logging.getLogger('Eurostat')
         self.lgr.setLevel(logging.DEBUG)
         self.fh = logging.FileHandler('Eurostat.log')
