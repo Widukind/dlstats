@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
 """Retrieving data from Eurostat"""
 from dlstats.fetchers.skeleton import Skeleton
 import lxml.etree
