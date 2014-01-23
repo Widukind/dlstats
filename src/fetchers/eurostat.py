@@ -159,6 +159,7 @@ class Eurostat(Skeleton):
         leaves = list(self.db.categories.find({
             'id_journal': last_update_categories[0]['_id'],
             'url': {'$exists': 'true'}}))
+        leaves = leaves[1:10]
         series = []
         pool = Pool(8)
         i=0
