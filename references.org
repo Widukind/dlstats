@@ -1,38 +1,65 @@
+#-*- mode: org -*-
+#+TODO: TODO IN-PROGRESS WAITING DONE
 * Standards
-** SDMX
+** TODO SDMX
+   - standards for the exchange of statistical information
+   - raw data : SDMX-ML(XML),SDMX-EDI(EDIFACT)
+   - Sponsor: BIS, the ECB, Eurostat, the IMF, the OECD, the UN and the World Bank  
    - http://sdmx.org
+** TODO Others  
+*** TODO RDF 
+    - Resource Description Framework respresentation :  metadata data model.
+    General method for conceptual description or modeling of information that is implemented in web resources,
+    using a variety of syntax notations and data serialization formats.
+*** TODO XLST
+    -  eXtensible Stylesheet Transformation of XML
+*** TODO SAX
+    -  Simple API for XML (Faster and less memory than DOM)
 * Sources
-** African Development Bank
+** IN-PROGRESS African Development Bank
 - http://dataportal.afdb.org didn't work on 12/28/2013
-** Asian Development Bank
+- xls,pdf?
+** IN-PROGRESS Asian Development Bank
 - files download at https://sdbs.adb.org/sdbs/index.jsp. Yearly
-  data. PDF file. 
+  data. CSV.  PDF file? 
 - files download at http://aric.adb.org/macroindicators, monthly quaterly
   yearly indicators. HTML or Excel files. 
 ** Bank of International Settlements
+- CSV, Excel, SDMX-ML, URL of favorties queries
 *** URLs
 - http://www.bis.org/statistics/biswebstats_help.htm
 ** Bank of Japan
 - no API? Only files?
 ** Brazil
-*** Intituto Brasileiro de Geographia e Estatistica
-- http://downloads.ibge.gov.br/downloads_estatisticas.htm 
-- http://servicodados.ibge.gov.br/Download/Download.ashx?u=ftp.ibge.gov.br/Contas_Nacionais/Contas_Nacionais_Trimestrais/Tabelas_Completas/Tab_Compl_CNT.zip
-** ECB SDW
-** EUROSTAT
-** ILO
+*** IN-PROGRESS Intituto Brasileiro de Geographia e Estatistica
+- XLS http://downloads.ibge.gov.br/downloads_estatisticas.htm 
+- XLS http://servicodados.ibge.gov.br/Download/Download.ashx?u=ftp.ibge.gov.br/Contas_Nacionais/Contas_Nacionais_Trimestrais/Tabelas_Completas/Tab_Compl_CNT.zip
+** IN-PROGRESS ECB SDW
+- http://sdw.ecb.europa.eu/
+- SDMX ML, CSV
+- https://www.ecb.europa.eu/stats/services/sdmx/html/tutorial.en.html
+** TODO EUROSTAT
+ - SDMX(REST,SOAP),TSV, DFT
+ - DSD: Data Structure Definition
+ - New and Modified element in online search 
+** IN-PROGRESS ILO
 - no API, download files
--
+- old database: laborstat, CSV, http://laborsta.ilo.org/
+- new database: ilostat, CSV (, TAB ;)
   http://www.ilo.org/ilostat/faces/home/statisticaldata/bulk-download?_adf.ctrl-state=hlizkfzwc_98&clean=true&_afrLoop=368699868737048
 - the interface will be hard to automatize
-- old database: laborstat
-- new database: ilostat
-** IMF
+** IN-PROGRESS IMF
 - the data in eLibrary don't seem to be free 
-** ISTAT
-- SDMX is not working
+- http://www.imf.org/external/data.htm
+- World Economic Outlook database:  (Tab Delimited Values format)  http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/download.aspx
+** IN-PROGRESS ISTAT
+-  SDMX ML, CSV, excel, beta version: http://dati.istat.it/  
+- EUROSTAT SODI initiativefor SDMX :private logging http://sodi.istat.it/progettosodiDW/
+- SDMX is not working?
 ** National Bureau of Statistics of China
 - no API? Only web page?
+- XLS, until 2011 : http://www.stats.gov.cn/tjsj/ndsj/2012/html/
+- XLS, until 2012 :  http://www.stats.gov.cn/tjsj/ndsj/2013/html/  
 ** OECD
 *** OpenDataAPI
 - http://stats.oecd.org/OpenDataAPI/OData.html
@@ -46,15 +73,26 @@
 - API in Japanese only
   http://www.stat.go.jp/english/info/news/1957.htm
 ** United Nations
-*** National accounts (Excel files)
+*** IN-PROGRESS National accounts (Excel files)
 -  http://unstats.un.org/unsd/snaama/dnlList.asp. Easy to download
-  with wget type tool
+  with wget type tool https://www.gnu.org/software/wget/
 *** Monthly Bulletin of Statistics Online (MBS)
-- API: http://unstats.un.org/unsd/mbs/api/wsMbsServices.asmx
+- API SOAP : http://unstats.un.org/unsd/mbs/api/wsMbsServices.asmx
 ** World Bank
-*** General information on API
+*** IN-PROGRESS General information on API
 - http://data.worldbank.org/node/9
+- RESTful interfaces 
+- Indicators (or time series data): API, XML and JSON
+- Projects (or data on the World Bank’s operations) : Atom representation
+- the World Bank financial data (World Bank Finances API):API, XML, JSON and RDF
 * Related projects
-- Datahub http://datahub.io
-- Linked dataspaces http://270a.info
+** TODO links
+- Datahub http://datahub.io : free access to many of CKAN's core features
+- Linked dataspaces http://270a.info , http://csarven.ca/linked-sdmx-data
 - Quandl http://www.quandl.com
+- OpenRefine (ex Google refine) https://github.com/OpenRefine, data cleaning, transforming, extending with web services
+- Eurostat linked data: http://eurostat.linked-statistics.org/
+** TODO standard
+- CKAN:data management system. It is used by national and local governments,
+ research institutions, and other organisations which collect a lot of data
+  
