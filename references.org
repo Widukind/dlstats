@@ -1,0 +1,60 @@
+* Standards
+** SDMX
+   - http://sdmx.org
+* Sources
+** African Development Bank
+- http://dataportal.afdb.org didn't work on 12/28/2013
+** Asian Development Bank
+- files download at https://sdbs.adb.org/sdbs/index.jsp. Yearly
+  data. PDF file. 
+- files download at http://aric.adb.org/macroindicators, monthly quaterly
+  yearly indicators. HTML or Excel files. 
+** Bank of International Settlements
+*** URLs
+- http://www.bis.org/statistics/biswebstats_help.htm
+** Bank of Japan
+- no API? Only files?
+** Brazil
+*** Intituto Brasileiro de Geographia e Estatistica
+- http://downloads.ibge.gov.br/downloads_estatisticas.htm 
+- http://servicodados.ibge.gov.br/Download/Download.ashx?u=ftp.ibge.gov.br/Contas_Nacionais/Contas_Nacionais_Trimestrais/Tabelas_Completas/Tab_Compl_CNT.zip
+** ECB SDW
+** EUROSTAT
+** ILO
+- no API, download files
+-
+  http://www.ilo.org/ilostat/faces/home/statisticaldata/bulk-download?_adf.ctrl-state=hlizkfzwc_98&clean=true&_afrLoop=368699868737048
+- the interface will be hard to automatize
+- old database: laborstat
+- new database: ilostat
+** IMF
+- the data in eLibrary don't seem to be free 
+** ISTAT
+- SDMX is not working
+** National Bureau of Statistics of China
+- no API? Only web page?
+** OECD
+*** OpenDataAPI
+- http://stats.oecd.org/OpenDataAPI/OData.html
+- not all datasets seems to be available with this API
+*** SDMX-JSON API
+- http://stats.oecd.org/OpenDataAPI/Json.htm
+- SDMX-JSON API is easier and more concise than OData. Data and
+  metadata are obtained in a single call
+- The list of datasets must be obtained with OData
+** Statistics of Japan
+- API in Japanese only
+  http://www.stat.go.jp/english/info/news/1957.htm
+** United Nations
+*** National accounts (Excel files)
+-  http://unstats.un.org/unsd/snaama/dnlList.asp. Easy to download
+  with wget type tool
+*** Monthly Bulletin of Statistics Online (MBS)
+- API: http://unstats.un.org/unsd/mbs/api/wsMbsServices.asmx
+** World Bank
+*** General information on API
+- http://data.worldbank.org/node/9
+* Related projects
+- Datahub http://datahub.io
+- Linked dataspaces http://270a.info
+- Quandl http://www.quandl.com
