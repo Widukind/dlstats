@@ -2,19 +2,29 @@
 #+TODO: TODO IN-PROGRESS WAITING DONE
 * Standards
 ** TODO SDMX
-   - standards for the exchange of statistical information
-   - raw data : SDMX-ML(XML),SDMX-EDI(EDIFACT)
-   - Sponsor: BIS, the ECB, Eurostat, the IMF, the OECD, the UN and the World Bank  
+   - Standards for the exchange of statistical information
+   - Raw data : SDMX-ML(XML),SDMX-EDI(EDIFACT)
+   - DSD: Data Structure Definition, logical container for specific data with specific format
+   - Dimension/attribute, identifier, attachement level, code list
+   - statical concepts : Dimension(time,country,frequency,topic), Attributes(observation statsus:estimated or provisional), Measures(observation values)
+   - SDMX Compact, Query
+   - Ex: Eurostat provision agreement of delivering data in specific DSD at certain period
+   - SDMX registry: how the data can be found
+   - Preparation;SDMX compliance with DSD standard; implementation(installed); production
+   - Sponsor: BIS, ECB, Eurostat, IMF, OECD, UN and World Bank  
    - http://sdmx.org
+   - https://webgate.ec.europa.eu/fpfis/mwikis/sdmx/index.php/Main_Page
 ** TODO Others  
 *** TODO RDF 
     - Resource Description Framework respresentation :  metadata data model.
     General method for conceptual description or modeling of information that is implemented in web resources,
     using a variety of syntax notations and data serialization formats.
-*** TODO XLST
-    -  eXtensible Stylesheet Transformation of XML
 *** TODO SAX
     -  Simple API for XML (Faster and less memory than DOM)
+*** TODO XLST
+    -  eXtensible Stylesheet Transformation of XML
+*** IN-PROGRESS RSS
+- Really Simple Syndication: RSS feeds enable publishers to syndicate data automatically 
 * Sources
 ** IN-PROGRESS African Development Bank
 - http://dataportal.afdb.org didn't work on 12/28/2013
@@ -34,14 +44,18 @@
 *** IN-PROGRESS Intituto Brasileiro de Geographia e Estatistica
 - XLS http://downloads.ibge.gov.br/downloads_estatisticas.htm 
 - XLS http://servicodados.ibge.gov.br/Download/Download.ashx?u=ftp.ibge.gov.br/Contas_Nacionais/Contas_Nacionais_Trimestrais/Tabelas_Completas/Tab_Compl_CNT.zip
+** IN-PROGRESS CIRCAB
+- Communication and Information Resource Centre for Administrations, Businesses and Citizens.
+- https://circabc.europa.eu/faces/jsp/extension/wai/navigation/container.jsp 
+- http://ec.europa.eu/idabc/en/document/7400.html
+- forge.osor.eu/projects/circabc
 ** IN-PROGRESS ECB SDW
 - http://sdw.ecb.europa.eu/
 - SDMX ML, CSV
 - https://www.ecb.europa.eu/stats/services/sdmx/html/tutorial.en.html
-** TODO EUROSTAT
- - SDMX(REST,SOAP),TSV, DFT
- - DSD: Data Structure Definition
- - New and Modified element in online search 
+** IN-PROGRESS EUROSTAT
+ - SDMX(REST,SOAP with ZIP),TSV, DFT with GZ
+ - Html explorator online search with New (data and DSD) and Modified online search
 ** IN-PROGRESS ILO
 - no API, download files
 - old database: laborstat, CSV, http://laborsta.ilo.org/
@@ -52,9 +66,15 @@
 - the data in eLibrary don't seem to be free 
 - http://www.imf.org/external/data.htm
 - World Economic Outlook database:  (Tab Delimited Values format)  http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/download.aspx
+- User Query Test Interface : http://sdmxws.imf.org/Gateway/Home.aspx 
+- IMF Balance of Payments Pilot SDMX Data Dissemination Site with DSD in XML or excel: http://sdmx.imf.org/bop/
+** IN-PROGRESS INSEE
+- Banque de données macro-économiques (BDM)(server unavailable?): consult and  download more than 170.000 series and index over all economics and social area
 ** IN-PROGRESS ISTAT
--  SDMX ML, CSV, excel, beta version: http://dati.istat.it/  
-- EUROSTAT SODI initiativefor SDMX :private logging http://sodi.istat.it/progettosodiDW/
+- Equivalent of INSEE: old version  before 2012 Con.ISAT  short term indicator time-series database :prices, industry, services, wages and salaries, employment and labour indicators, foreign trade, national accounts )
+- SDMX ML, CSV, excel, beta version,open and free, online API: http://dati.istat.it/  
+- EUROSTAT SODI (SDMX Open Data Interchange) for exchanging PEEIs (Principal Economical European Indicators) :
+- private logging http://sodi.istat.it/progettosodiDW/ or http://bms.istat.it/sodidownload/download.aspx
 - SDMX is not working?
 ** National Bureau of Statistics of China
 - no API? Only web page?
@@ -86,12 +106,16 @@
 - Projects (or data on the World Bank’s operations) : Atom representation
 - the World Bank financial data (World Bank Finances API):API, XML, JSON and RDF
 * Related projects
-** TODO links
+** IN-PROGRESS Links
+- Haver Analytics(Matlab; STATA, SAS, EVIEWs, RATS): the provider of time series data for the global strategy and research community. Containes more than 200+ databases from over 1200 government and private sources.
+- Bloomberg:
+- Datastream(Pro):The industry's largest and most trusted set of macro-time series data. Containing up to 50 years of history on many series, over 3.5 million global financial instruments and indicators, more than 10,000 different fields, and more than 75,000 active (and 30,000 inactive) securities. Together they cover 175 countries in 60 global markets totaling over 140 million time series.
 - Datahub http://datahub.io : free access to many of CKAN's core features
-- Linked dataspaces http://270a.info , http://csarven.ca/linked-sdmx-data
-- Quandl http://www.quandl.com
-- OpenRefine (ex Google refine) https://github.com/OpenRefine, data cleaning, transforming, extending with web services
 - Eurostat linked data: http://eurostat.linked-statistics.org/
+- Linked dataspaces http://270a.info , http://csarven.ca/linked-sdmx-data
+- OpenRefine (ex Google refine) https://github.com/OpenRefine, data cleaning, transforming, extending with web services
+- Opendatafoundation : Adoption of global metadata standards  http://www.opendatafoundation.org
+- Quandl http://www.quandl.com
 ** TODO standard
 - CKAN:data management system. It is used by national and local governments,
  research institutions, and other organisations which collect a lot of data
