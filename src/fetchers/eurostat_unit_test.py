@@ -33,23 +33,26 @@ class TestEurostat(unittest.TestCase):
         dataname=[]
         dataname=[r.get("name", "Missing: name") for r in data]
         rootid=self.toto.db.categories.find_one({"name": "Database by themes"})["_id"]
-        rootchildid=self.toto.db.categories.find_one({"_id": rootid})
+        rootchildid=self.toto.db.categories.find_one({"_id": rootid}) 
         testrootid=[r.get("_id", "Missing: _id") for r in data if r.get("name", "Missing: name")=='Database by themes']
-        print('testrootid',testrootid)
         def testtree(idparent,testidparent):
             parentname=self.toto.db.categories.find_one({"_id": idparent})["name"]
             testparentname=[r.get("name", "Missing: name") for r in data if r.get("_id", "Missing: _id")==testidparent[0]][0]
+            print('testidparent',testidparent)  
             self.assertTrue(testparentname==parentname)
             try:
                 childid=self.toto.db.categories.find_one({"_id": idparent})["children"]
-                testchildid=[r.get("children", "Missing: children")[0] for r in data if r.get("_id", "Missing: _id")==testidparent[0]]
-                print('testchildid:',testchildid)     
-                for children in childid:
-                    testtree(children,testchildid)
-            except Exception:
+                testchildid=[r.get("children", "Missing: children") for r in data if r.get("_id", "Missing: _id")==testidparent[0]][0]
+                dictchild={}
+                for i in range(len(childid)):
+                    dictchild[childid[i]] = [testchildid[i]]
+                for children, testchildren in dict.items(dictchild):
+                    testtree(children,testchildren)
+            except Exception as e:
+                print(e)
                 pass
         
-        testtree(rootid,testrootid)            
+        testtree(rootid,testrootid)     
 
     def test_Nbelement(self):
         mongo_NBm=self.toto.db.categories.find().count()    
