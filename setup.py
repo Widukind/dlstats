@@ -1,6 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 import os
 
 setup(name='dlstats',
@@ -8,6 +11,7 @@ setup(name='dlstats',
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Michaël Malter',
     author_email='dev@michaelmalter.fr',
+    url='http://.com' 
     package_dir={'dlstats': 'src'},
     packages=['dlstats', 'dlstats.gunicorn', 'dlstats.fetchers'],
     data_files=[('/etc/init.d',['init/dlstats']),
