@@ -31,7 +31,7 @@ Time series are organized in a tree of categories. Each node stores a reference 
 
 Codes
 -----
-We call codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the code, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
+We name codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the code, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
 Codes are not shared across categories. For example, it is certain that the FR code would contain a very large number of series. Nonetheless, each category containing series should have its own FR code.
 
 .. code:: javascript
