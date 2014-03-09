@@ -133,11 +133,11 @@ class Eurostat(Skeleton):
                                 {'$push': {'children': _id}})
                     for download_link in leaf.iterchildren(
                         '{urn:eu.europa.ec.eurostat.navtree}downloadLink'):
-                        if download_link.attrib.values()[0] == 'tsv':
+                            format =  download_link.attrib.values()[0]:
                             _url = download_link.text
                             self.db.categories.update(
                                 {'_id': _id},
-                                {'$push': {'url': _url }})
+                                {'$push': {'url_'+format: _url }})
 
         root = self.table_of_contents.iterfind(
             '{urn:eu.europa.ec.eurostat.navtree}branch')
