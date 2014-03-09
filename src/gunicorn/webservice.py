@@ -9,41 +9,41 @@ import bson
 from bson import json_util
 from bson.json_util import dumps
 
-#application instance
-App = flask.Flask(__name__)
+__all__ = ['spawn_webservice']
 
-# our api instance
-api=Api(App)
+def spawn_webservice():
+    application = flask.Flask(__name__)
 
-client = pymongo.MongoClient()
+    api=Api(application)
 
-class list_dbs(flask.ext.restful.Resource):
-    def get(self):
-        return client.database_names()
+    client = pymongo.MongoClient()
 
-class list_cat(flask.ext.restful.Resource):
-    def get(self):
-        #return client.INSEE.collection_names()
-        return client.eurostat.collection_names()
+    class list_databases(flask.ext.restful.Resource):
+        def get(self):
+            return client.database_names()
 
-class cat_eurostat(flask.ext.restful.Resource):
-    def get(self):
-        #item = client.eurostat.categories3.find_one({"name2" : "Database by themes"})
-        item = client.eurostat.categories.find()
-        return dumps(item)
+    class list_categories(flask.ext.restful.Resource):
+        def get(self):
+            #return client.INSEE.collection_names()
+            return client.eurostat.collection_names()
 
-api.add_resource(list_dbs, '/list_dbs')
-api.add_resource(list_cat, '/list_cat')
-api.add_resource(cat_eurostat, '/cat_eurostat')
+    class category_eurostat(flask.ext.restful.Resource):
+        def get(self):
+            #item = client.eurostat.categories3.find_one({"name2" : "Database by themes"})
+            item = client.eurostat.categories.find()
+            return dumps(item)
 
-@App.route('/')
-def index():
-    return "test index!"
+    api.add_resource(list_databases, '/list_databases')
+    api.add_resource(list_categories, '/list_categories')
+    api.add_resource(category_eurostat, '/category_eurostat')
 
-App.wsgi_app = ProxyFix(App.wsgi_app)
+    @application.route('/')
+    def index():
+        return "test index!"
 
-if __name__ == '__main__':
-    App.run(debug=True)
+    application.wsgi_app = ProxyFix(application.wsgi_app)
+
+    application.run(debug=True)
 
 #gunicorn --bind=127.0.0.1:8001 webservice:App 
 #curl -i http://127.0.0.1:8001/cat_eurostat

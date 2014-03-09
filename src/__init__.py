@@ -1,4 +1,3 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-import dlstats.fetchers
-import dlstats.gunicorn
+from . import fetchers, gunicorn
