@@ -1,17 +1,14 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from distutils.core import setup
 import os
 
 setup(name='dlstats',
 	version='0.1',
     description='A python module that provides an interface between statistics providers and pandas.',
-    author='Michaël Malter',
+    author='Widukind team',
     author_email='dev@michaelmalter.fr',
-    url='http://.com' 
+    url='https://github.com/Widukind', 
     package_dir={'dlstats': 'src'},
     packages=['dlstats', 'dlstats.gunicorn', 'dlstats.fetchers'],
     data_files=[('/etc/init.d',['init/dlstats']),
