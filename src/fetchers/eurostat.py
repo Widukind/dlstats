@@ -131,6 +131,11 @@ class Eurostat(Skeleton):
                             self.db.categories.update(
                                 {'_id': parent_id},
                                 {'$push': {'children': _id}})
+                    for key in leaf.iterchildren(
+                        '{urn:eu.europa.ec.eurostat.navtree}code'):
+                            self.db.categories.update(
+                                {'_id': parent_id},
+                                {'$push': {'flowRef': key.text}})
                     for download_link in leaf.iterchildren(
                         '{urn:eu.europa.ec.eurostat.navtree}downloadLink'):
                             format =  download_link.attrib.values()[0]:
