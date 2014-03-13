@@ -19,7 +19,7 @@ On top of MongoDB internal journaling mechanics, we keep a reference of all oper
 .. code:: javascript
 
  journal : {
-               _id : MongoID
+               _id : MongoID,
                method : str,
                arguments : []
               }
