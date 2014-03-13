@@ -12,6 +12,19 @@ Structure
 
 The database structure is described in bson[1]_.
 
+Journal
+_______
+On top of MongoDB internal journaling mechanics, we keep a reference of all operations impacting the database. The method field stores the name of the method from dlstats.
+
+.. code:: javascript
+
+ journal : {
+               _id : MongoID
+               method : str,
+               arguments : []
+              }
+
+
 Categories
 __________
 Generic schema
@@ -21,11 +34,12 @@ Time series are organized in a tree of categories. Each node stores a reference 
 .. code:: javascript
 
  categories : {
-               _id : MongoID
+               _id : MongoID,
+               _id_journal : MongoID,
                name : str,
                children_id : MongoID,
                codes_id : [MongoID],
-               series_id : [MongoID],
+               series_id : [MongoID]
               }
 
 .. [1] http://www.bsonspec.org
@@ -42,7 +56,8 @@ For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx fil
 .. code:: javascript
 
  categories : {
-               _id : MongoID
+               _id : MongoID,
+               _id_journal : MongoID,
                name : str,
                children_id : MongoID,
                codes_id : [MongoID],
@@ -64,6 +79,7 @@ Codes are not shared across categories. For example, it is certain that the FR c
 
  codes : {
           _id : MongoID
+          _id_journal : MongoID,
           name : str,
           values : {
                     _id : MongoID,
@@ -81,6 +97,7 @@ A time series stores the codes restrictions it enforces, the categories it belon
 
  series : {
            _id : MongoID,
+           _id_journal : MongoID,
            name : str,
            data : {
                    _id : MongoID,
