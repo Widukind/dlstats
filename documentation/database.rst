@@ -51,7 +51,7 @@ The metadata differs across statistical providers. We add the corresponding fiel
 
 Eurostat
 ~~~~~~~~
-For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx files. Also, there is field for the flowRef identifying the dataflow[3]_.
+For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx files. Also, there is a field for the flowRef identifying the dataflow[3]_.
 
 .. code:: javascript
 
@@ -72,13 +72,13 @@ For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx fil
 
 Codes
 _____
-We name codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the code, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
-Codes are not shared across categories. For example, it is certain that the FR code would contain a very large number of series. Nonetheless, each category containing series should have its own FR code.
+We name codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the program, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
+Codes are not shared across categories. For example, it is certain that the FR code would contain a very large number of series. Nonetheless, each category containing series should have its own FR code. We don't store the huge list of series associated with FR.
 
 .. code:: javascript
 
  codes : {
-          _id : MongoID
+          _id : MongoID,
           _id_journal : MongoID,
           name : str,
           values : {
@@ -91,7 +91,7 @@ Codes are not shared across categories. For example, it is certain that the FR c
 Time series
 ___________
 
-A time series stores the codes restrictions it enforces, the categories it belongs to and the actual numerical data. The time series itself is a subcollection called data. It stores date/value pairs along with their revisions (if needed).
+A time series stores the codes restrictions it enforces, the categories it belongs to and the actual numerical data. The time series itself is a subcollection called data. It stores date/value pairs along with their revisions (if needed). Some data may be stored in two different places, depending on the statistical provider. For example, the frequency may also be found in the codes.
 
 .. code:: javascript
 
@@ -99,15 +99,15 @@ A time series stores the codes restrictions it enforces, the categories it belon
            _id : MongoID,
            _id_journal : MongoID,
            name : str,
-           data : {
-                   _id : MongoID,
-                   date : timestamp,
-                   value : int,
-                   revisions : {
-                                _id : MongoID,
-                                value : int
-                               }
-                  }
+           start_date : timestamp,
+           end_date : timestamp,
+           values : [float64],
+           frequency : str
+           revisions : {
+                        _id : MongoID,
+                        value : float64,
+                        position : int
+                       },
            codes_id : [MongoID],
            categories_id : [MongoID]
           }
