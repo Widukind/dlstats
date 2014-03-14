@@ -16,7 +16,6 @@ import logging
 from multiprocessing import Pool
 import pysdmx
 
-                                {'$push': {'children': _id}})
 
 def insert_series(leaf):
     try:
