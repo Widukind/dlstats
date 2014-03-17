@@ -100,15 +100,14 @@ A time series stores the codes restrictions it enforces, the categories it belon
            name : str,
            start_date : timestamp,
            end_date : timestamp,
-           release_start_date : date,
-           release_end_date : date,
+           release_date : timestamp,
            values : [float64],
            frequency : str,
            revisions : {
                         _id : MongoID,
                         value : float64,
                         position : int,
-                        release_date : date
+                        release_date : timestamp
                        },
            codes_id : [MongoID],
            categories_id : [MongoID]
