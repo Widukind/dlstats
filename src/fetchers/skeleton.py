@@ -10,6 +10,11 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
+    def create_series_db(self):
+        """Create the series in MongoDB
+        """
+        raise NotImplementedError("This method from the Skeleton class must"
+                                  "be implemented.")
     def update_series_db(self):
         """Update the series in MongoDB
         """
