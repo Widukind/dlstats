@@ -22,24 +22,25 @@ def insert_series(leaf):
         client = pymongo.MongoClient()
         db = client.eurostat
         key = '....'
-        series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'],key)
-        for series in [series_[key] for key in series_.time_series.keys()]:
+        series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
+        for series in [series_.time_series[key] for key in series_.time_series.keys()]:
             name = leaf['name']
             dates = leaf
             start_date = series[1].index[0]
             end_date = series[1].index[-1]
-			values = series[1].values
-			frequency = series[0]['FREQ']
+            values = series[1].values.tolist()
+            frequency = series[0]['FREQ']
             codes = series[0]
+            categories_id = leaf['_id']
             series_id = db.series.insert({'name':name,
-                'start_date':start_date, 'end_date':end_date, 'values':values,
-                'frequency':frequency, 'categories_id':categories_id})
+                                          'start_date':start_date, 'end_date':end_date, 'values':values,
+                                          'frequency':frequency, 'categories_id':categories_id})
             for code_name, code_value in codes.items():
-                db.codes.insert({'name':code_name,'values':{'value':code_value},
-					'$push': {'series_id': series_id}})
-        return True
+                db.codes.insert({'name':code_name,'values':{'value':code_value}},
+                                 {'$push': {'series_id': series_id}})
+        return (True,'flowRef : '+leaf['flowRef'][0])
     except:
-        return False
+        return (False,'flowRef : '+leaf['flowRef'][0])
 
 class Eurostat(Skeleton):
     """Eurostat statistical provider"""
@@ -137,12 +138,10 @@ class Eurostat(Skeleton):
         leaves = leaves[1:10]
         series = []
         pool = Pool(8)
-        i=0
-        validation = []
-        for dummy in pool.map(insert_series,leaves):
-            i+=1
-            validation.append(dummy)
-            self.lgr.info(str(i)+'/'+str(len(leaves)))
-        print(str(sum(validation)) + ' groups of series retrieved over a total of ' + str(len(validation)))
+        for exit_status in pool.map(insert_series,leaves):
+            if exit_status[0] is True:
+                self.lgr.info('Successfully inserted '+exit_status[1])
+            else:
+                self.lgr.error('Insertion failed '+exit_status[1])
         pool.close()
         pool.join()
