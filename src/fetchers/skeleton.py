@@ -5,6 +5,11 @@ import pymongo
 class Skeleton(object):
     def __init__(self):
         self.client = pymongo.MongoClient()
+    def create_categories_db(self):
+        """Create the categories in MongoDB
+        """
+        raise NotImplementedError("This method from the Skeleton class must"
+                                  "be implemented.")
     def update_categories_db(self):
         """Update the categories in MongoDB
         """
