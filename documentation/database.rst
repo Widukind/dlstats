@@ -56,7 +56,7 @@ For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx fil
 
  categories : {
                _id : MongoID,
-               _id_journal : MongoID,
+               _id_journal : [MongoID],
                name : str,
                children_id : MongoID,
                codes_id : [MongoID],
@@ -90,7 +90,7 @@ Codes are not shared across categories. For example, it is certain that the FR c
 Time series
 ___________
 
-A time series stores the codes restrictions it enforces, the categories it belongs to and the actual numerical data. The time series itself is a subcollection called data. It stores date/value pairs along with their revisions (if needed). Some data may be stored in two different places, depending on the statistical provider. For example, the frequency may also be found in the codes.
+The values are in a list. The position field in the revisions subcollection relates to the index of that list.
 
 .. code:: javascript
 
@@ -107,7 +107,7 @@ A time series stores the codes restrictions it enforces, the categories it belon
                         _id : MongoID,
                         value : float64,
                         position : int,
-                        release_date : timestamp
+                        release_date : timestamp [not implemented and urgent]
                        },
            codes_id : [MongoID],
            categories_id : [MongoID]

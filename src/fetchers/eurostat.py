@@ -17,8 +17,10 @@ from multiprocessing import Pool
 import pysdmx
 
 
-def insert_series(leaf):
+#Those two functions should not exist and should be in create_series_db. I have to define those function outside of a class so that multiprocessing can use pickle.
+def create_series(leaf):
     try:
+        id_journal = self.db.journal.insert({'method': 'create_series'})
         client = pymongo.MongoClient()
         db = client.eurostat
         key = '....'
@@ -34,10 +36,50 @@ def insert_series(leaf):
             categories_id = leaf['_id']
             series_id = db.series.insert({'name':name,
                                           'start_date':start_date, 'end_date':end_date, 'values':values,
-                                          'frequency':frequency, 'categories_id':categories_id})
+                                          'frequency':frequency, 'categories_id':categories_id,'id_journal':id_journal})
             for code_name, code_value in codes.items():
-                db.codes.insert({'name':code_name,'values':{'value':code_value}},
+                code_id = db.codes.insert({'name':code_name,'values':{'value':code_value}},
                                  {'$push': {'series_id': series_id}})
+                db.series.update({'_id':series_id},{'$push':{'codes_id':code_id}},upsert=True)
+        return (True,'flowRef : '+leaf['flowRef'][0])
+    except:
+        return (False,'flowRef : '+leaf['flowRef'][0])
+
+def update_series(leaf):
+    try:
+        id_journal = self.db.journal.insert({'method': 'update_series'})
+        client = pymongo.MongoClient()
+        db = client.eurostat
+        key = '....'
+        series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
+        for series in [series_.time_series[key] for key in series_.time_series.keys()]:
+            name = leaf['name']
+            dates = leaf
+            start_date = series[1].index[0]
+            end_date = series[1].index[-1]
+            values = series[1].values.tolist()
+            frequency = series[0]['FREQ']
+            codes = series[0]
+            categories_id = leaf['_id']
+            previous_series = db.series.find({'flowRef':leaf['flowRef'][0],'name':name,{'values':1}})
+            series_id = db.series.update({'flowRef':leaf['flowRef'][0],'name':name},
+                                         {'name':name,
+                                          'start_date':start_date, 'end_date':end_date, 'values':values,
+                                          'frequency':frequency, 'categories_id':categories_id},
+                                          {'$push':{'_id_journal':id_journal}},
+                                        upsert=True)
+            i = 0
+            for old_value in previous_series[0]['values']:
+                if old_value != values[i]:
+                    db.series.update({'flowRef':leaf['flowRef'][0],'name':name},
+                                     {'revisions': {'value': old_value, 'position':i}},upsert=True)
+                    i += 1
+
+            if previous_series != []:
+                for code_name, code_value in codes.items():
+                    code_id = db.codes.insert({'name':code_name,'values':{'value':code_value}},
+                                     {'$push': {'series_id': series_id}})
+                    db.series.update({'_id':series_id},{'$push':{'codes_id':code_id,upsert=True}})
         return (True,'flowRef : '+leaf['flowRef'][0])
     except:
         return (False,'flowRef : '+leaf['flowRef'][0])
@@ -62,11 +104,11 @@ class Eurostat(Skeleton):
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
         self.store_path = '/mnt/data/dlstats/'
-    def update_categories_db(self):
-        """Update the categories in MongoDB
+    def create_categories_db(self):
+        """Create the categories in MongoDB
         """
 
-        id_journal = self.db.journal.insert({'name': 'categories'})
+        id_journal = self.db.journal.insert({'method': 'insert_categories_db'})
         def walktree(branch, parent_id):
             """Recursive function for parsing table_of_contents.xml
 
@@ -125,10 +167,25 @@ class Eurostat(Skeleton):
             walktree(branch, _id)
 
 
-    def update_series_db(self):
+    def update_categories_db(self):
+        """Update the categories in MongoDB
+        """
+        id_journal = self.db.journal.insert({'method': 'update_categories_db'})
+        self.create_categories_db()
+        id_and_names = [name[0] for name in db.categories.find({}, {'_id':0,'_name':1})]
+        dupes = [dupe for dupe, number_of_occurences 
+                 in collections.Counter(id_and_names).items() 
+                 if number of occurences > 1]
+        for dupe in dupes:
+            candidates = db.categories.find({'name':dupe}).sort('_id')
+            if candidates[0]['flowRef'] == candidates[1]['flowRef']:
+                self.db.categories.remove({'_id':candidates[1]['_id']})
+
+
+    def create_series_db(self):
         """Update the series in MongoDB
         """
-        id_journal = self.db.journal.insert({'name': 'series'})
+        id_journal = self.db.journal.insert({'method': 'create_series_db'})
         last_update_categories = list(self.db.journal.find(
             {'name': 'categories'}).sort([('_id',-1)]).limit(1))
         leaves = list(self.db.categories.find({
@@ -138,7 +195,28 @@ class Eurostat(Skeleton):
         leaves = leaves[1:10]
         series = []
         pool = Pool(8)
-        for exit_status in pool.map(insert_series,leaves):
+        for exit_status in pool.map(create_series,leaves):
+            if exit_status[0] is True:
+                self.lgr.info('Successfully inserted '+exit_status[1])
+            else:
+                self.lgr.error('Insertion failed '+exit_status[1])
+        pool.close()
+        pool.join()
+
+    def update_series_db(self):
+        """Update the series in MongoDB
+        """
+        id_journal = self.db.journal.insert({'method': 'update_series_db'})
+        last_update_categories = list(self.db.journal.find(
+            {'name': 'categories'}).sort([('_id',-1)]).limit(1))
+        leaves = list(self.db.categories.find({
+            'id_journal': last_update_categories[0]['_id'],
+            'flowRef': {'$exists': 'true'}}))
+#The next line is for testing purposes.
+        leaves = leaves[1:10]
+        series = []
+        pool = Pool(8)
+        for exit_status in pool.map(create_series,leaves):
             if exit_status[0] is True:
                 self.lgr.info('Successfully inserted '+exit_status[1])
             else:
