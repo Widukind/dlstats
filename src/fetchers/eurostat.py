@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Retrieving data from Eurostat"""
+import collections
 from dlstats.fetchers.skeleton import Skeleton
 import lxml.etree
 import urllib
@@ -61,7 +62,7 @@ def update_series(leaf):
             frequency = series[0]['FREQ']
             codes = series[0]
             categories_id = leaf['_id']
-            previous_series = db.series.find({'flowRef':leaf['flowRef'][0],'name':name,{'values':1}})
+            previous_series = db.series.find({'flowRef':leaf['flowRef'][0],'name':name}, fields={'values':1})
             series_id = db.series.update({'flowRef':leaf['flowRef'][0],'name':name},
                                          {'name':name,
                                           'start_date':start_date, 'end_date':end_date, 'values':values,
@@ -79,7 +80,7 @@ def update_series(leaf):
                 for code_name, code_value in codes.items():
                     code_id = db.codes.insert({'name':code_name,'values':{'value':code_value}},
                                      {'$push': {'series_id': series_id}})
-                    db.series.update({'_id':series_id},{'$push':{'codes_id':code_id,upsert=True}})
+                    db.series.update({'_id':series_id},{'$push':{'codes_id':code_id}},upsert=True)
         return (True,'flowRef : '+leaf['flowRef'][0])
     except:
         return (False,'flowRef : '+leaf['flowRef'][0])
@@ -172,14 +173,14 @@ class Eurostat(Skeleton):
         """
         id_journal = self.db.journal.insert({'method': 'update_categories_db'})
         self.create_categories_db()
-        id_and_names = [name[0] for name in db.categories.find({}, {'_id':0,'_name':1})]
+        id_and_names = [name['name'] for name in self.db.categories.find({}, fields = {'_id':0,'name':1})]
         dupes = [dupe for dupe, number_of_occurences 
                  in collections.Counter(id_and_names).items() 
-                 if number of occurences > 1]
+                 if number_of_occurences > 1]
         for dupe in dupes:
-            candidates = db.categories.find({'name':dupe}).sort('_id')
-            if candidates[0]['flowRef'] == candidates[1]['flowRef']:
-                self.db.categories.remove({'_id':candidates[1]['_id']})
+            candidates = self.db.categories.find({'name':dupe}).sort('_id')
+            candidates = [candidate for candidate in candidates]
+            self.db.categories.remove({'_id':candidates[1]['_id']})
 
 
     def create_series_db(self):
