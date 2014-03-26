@@ -37,7 +37,7 @@ Time series are organized in a tree of categories. Each node stores a reference 
                _id : MongoID,
                _id_journal : MongoID,
                name : str,
-               children_id : MongoID,
+               children_id : [MongoID],
                series_id : [MongoID]
               }
 
@@ -82,7 +82,8 @@ Codes are not shared across categories. For example, it is certain that the FR c
           name : str,
           values : {
                     _id : MongoID,
-                    value : str,
+                    key : str,
+                    description : str,
                     series_id : [MongoID]
                    }
          }
