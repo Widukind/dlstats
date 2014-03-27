@@ -101,7 +101,7 @@ The values are in a list. The position field in the revisions subcollection rela
            name : str,
            start_date : timestamp,
            end_date : timestamp,
-           release_date : timestamp,
+           release_dates : [timestamp],
            values : [float64],
            frequency : str,
            revisions : {
