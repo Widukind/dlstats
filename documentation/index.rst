@@ -16,7 +16,7 @@ Contents:
 API reference
 =============
 
-.. automodule:: insee
+.. automodule:: eurostat
     :members:
 
 Indices and tables
