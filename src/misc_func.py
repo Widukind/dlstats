@@ -22,15 +22,6 @@ def print_in_place(i):
 	sys.stdout.write('\b' * len(s))
 	sys.stdout.flush()
 
-def get_config():
-    #Linux and Mac code:
-    config_adress = os.path.expanduser("~") + os.sep + ".dlstats" + os.sep + "config"
-    config = configparser.ConfigParser()
-    return config.read(config_adress)
-
-    #Windows code, make that thing portable one day
-    #os.path.join(os.getenv("APPDATA"), "dlstats")
-
 def retry(tries):
 	"""Retry calling the decorated function
 
