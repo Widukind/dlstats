@@ -3,6 +3,7 @@
 import pymongo
 
 class Skeleton(object):
+    """Basic structure for statistical providers implementations."""
     def __init__(self):
         self.client = pymongo.MongoClient()
     def create_categories_db(self):

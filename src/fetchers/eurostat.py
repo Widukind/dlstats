@@ -1,6 +1,13 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Retrieving data from Eurostat"""
+"""
+.. module:: eurostat
+    :platform: Unix
+    :synopsis: Populate a MongoDB database with data from Eurostat
+
+.. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
+"""
+
 import collections
 from dlstats.fetchers.skeleton import Skeleton
 import lxml.etree
@@ -18,10 +25,13 @@ from multiprocessing import Pool
 import pysdmx
 
 
-#Those two functions should not exist and should be in create_series_db. I have to define those function outside of a class so that multiprocessing can use pickle.
-def create_series(leaf):
+def _create_series(leaf):
+    """Create time series documents in MongoDB. This function is defined outside of Eurostat() so that the multiprocessing module can use :mod:`pickle`.
+    :param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
+    :type lxml.etree.ElementTree 
+    :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
     try:
-        id_journal = self.db.journal.insert({'method': 'create_series'})
+        id_journal = self.db.journal.insert({'method': '_create_series'})
         client = pymongo.MongoClient()
         db = client.eurostat
         key = '....'
@@ -47,6 +57,10 @@ def create_series(leaf):
         return (False,'flowRef : '+leaf['flowRef'][0])
 
 def update_series(leaf):
+    """Update the time series documents in MongoDB. This function is defined outside of Eurostat() so that the multiprocessing module can use :mod:`pickle`.
+    :param: leaf (): A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
+    :type: lxml.etree.ElementTree
+    :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
     try:
         id_journal = self.db.journal.insert({'method': 'update_series'})
         client = pymongo.MongoClient()
@@ -86,7 +100,7 @@ def update_series(leaf):
         return (False,'flowRef : '+leaf['flowRef'][0])
 
 class Eurostat(Skeleton):
-    """Eurostat statistical provider"""
+    """Class for managing the SDMX endpoint from eurostat in dlstats."""
     def __init__(self):
         super().__init__()
         self.client = pymongo.MongoClient()
@@ -115,9 +129,9 @@ class Eurostat(Skeleton):
 
             :param branch: The current branch explored. The function
             is going top to bottom.
-            :type branch ElementTree
+            :type branch: ElementTree
             :param parent_id: The id of the previous branch
-            :type branch MongoObject(Id)
+            :type parent_id: MongoObject(Id)
             """
             for children in branch.iterchildren(
                 '{urn:eu.europa.ec.eurostat.navtree}children'):
@@ -184,11 +198,12 @@ class Eurostat(Skeleton):
 
 
     def create_series_db(self):
-        """Update the series in MongoDB
+        """Create the series in MongoDB
         """
         id_journal = self.db.journal.insert({'method': 'create_series_db'})
         last_update_categories = list(self.db.journal.find(
-            {'name': 'categories'}).sort([('_id',-1)]).limit(1))
+            {'method': 'insert_categories_db'}).sort([('_id',-1)]).limit(1))
+        #print(last_update_categories)
         leaves = list(self.db.categories.find({
             'id_journal': last_update_categories[0]['_id'],
             'flowRef': {'$exists': 'true'}}))
@@ -196,7 +211,7 @@ class Eurostat(Skeleton):
         leaves = leaves[1:10]
         series = []
         pool = Pool(8)
-        for exit_status in pool.map(create_series,leaves):
+        for exit_status in pool.map(_create_series,leaves):
             if exit_status[0] is True:
                 self.lgr.info('Successfully inserted '+exit_status[1])
             else:
@@ -217,7 +232,7 @@ class Eurostat(Skeleton):
         leaves = leaves[1:10]
         series = []
         pool = Pool(8)
-        for exit_status in pool.map(create_series,leaves):
+        for exit_status in pool.map(update_series,leaves):
             if exit_status[0] is True:
                 self.lgr.info('Successfully inserted '+exit_status[1])
             else:
