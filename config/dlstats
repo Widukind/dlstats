@@ -7,4 +7,4 @@ connectTimeoutMS=20000
 waitQueueTimoutMS=None
 waitQueueMultiple=None
 auto_start_request=False
-use_greenlets=
+use_greenlets=True
