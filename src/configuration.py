@@ -25,5 +25,5 @@ def get_filename():
 
 filename = get_filename()
 
-config = configparser.ConfigParser()
-config.read(filename)
+configuration = configparser.ConfigParser()
+configuration.read(filename)
