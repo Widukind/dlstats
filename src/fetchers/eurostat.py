@@ -8,8 +8,8 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-import collections
 from dlstats.fetchers.skeleton import Skeleton
+import collections
 import lxml.etree
 import urllib
 from pandas.tseries.offsets import *
