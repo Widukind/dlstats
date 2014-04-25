@@ -74,7 +74,6 @@ class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     def __init__(self):
         super().__init__()
-        self.client = pymongo.MongoClient()
         self.lgr = logging.getLogger('Eurostat')
         self.lgr.setLevel(logging.DEBUG)
         self.fh = logging.FileHandler('Eurostat.log')
@@ -172,11 +171,9 @@ class Eurostat(Skeleton):
 		:param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
 		:type lxml.etree.ElementTree 
 		:returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
-		def create_a_series(leaf)
+		def create_a_series(db,leaf)
 			try:
-				id_journal = self.db.journal.insert({'method': '_create_series'})
-				client = pymongo.MongoClient()
-				db = client.eurostat
+				id_journal = db.journal.insert({'method': '_create_series'})
 				key = '....'
 				series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
 				for series in [series_.time_series[key] for key in series_.time_series.keys()]:
@@ -214,7 +211,7 @@ class Eurostat(Skeleton):
 		leaves = leaves[1:10]
 		series = []
 		for leaf in leaves:
-			exit_status = threading.Thread(target=create_a_series,args=(leaf))
+			exit_status = threading.Thread(target=create_a_series,args=(self.db,leaf))
 
     def update_series_db(self):
         """Update the series in MongoDB
