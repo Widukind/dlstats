@@ -1,5 +1,5 @@
-from . import fetchers, gunicorn, misc_func
-import configparser
+import configobj
+import validate
 import os
 
 def _get_filename():
@@ -19,6 +19,23 @@ def _get_filename():
     else:
         raise UnsupportedOSError(os.name)
 
-_filename = _get_filename()
+configuration_filename = _get_filename()
 
-configuration = configobj.ConfigObj(filename)
+_configspec = """
+[MongoDB]
+host = ip_addr()
+port = integer()
+max_pool_size = integer()
+socketTimeoutMS = integer()
+connectTimeoutMS = integer()
+waitQueueTimeout = integer()
+waitQueueMultiple = integer()
+auto_start_request = boolean()
+use_greenlets = boolean()"""
+configuration = configobj.ConfigObj(configuration_filename,
+                                    configspec=_configspec.split('\n'))
+validator = validate.Validator()
+configuration.validate(validator, copy=True)
+configuration = configuration.dict()
+
+from . import fetchers, gunicorn, misc_func

@@ -2,9 +2,9 @@
 host=127.0.0.1
 port=27017
 max_pool_size=100
-socketTimeoutMS=0
+socketTimeoutMS=999999999
 connectTimeoutMS=20000
-waitQueueTimeoutMS=0
+waitQueueTimeoutMS=999999999
 waitQueueMultiple=0
 auto_start_request=False
-use_greenlets=True
+use_greenlets=False
