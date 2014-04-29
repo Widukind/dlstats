@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pymongo
-from dlstats.configuration import configuration
+from dlstats import configuration
 
 class Skeleton(object):
     """Basic structure for statistical providers implementations."""

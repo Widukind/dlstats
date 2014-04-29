@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 from . import fetchers, gunicorn, misc_func
 import configparser
 import os
@@ -23,5 +21,4 @@ def _get_filename():
 
 _filename = _get_filename()
 
-config = configparser.ConfigParser()
-config.read(_filename)
+configuration = configobj.ConfigObj(filename)
