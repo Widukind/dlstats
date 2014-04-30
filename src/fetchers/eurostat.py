@@ -25,6 +25,8 @@ import pymongo
 import logging
 from multiprocessing import Pool
 import pysdmx
+import datetime
+import time
 
 
 def update_series(leaf):
@@ -42,7 +44,6 @@ def update_series(leaf):
                        for key
                        in series_.time_series.keys()]:
             name = leaf['name']
-            dates = leaf
             start_date = series[1].index[0]
             end_date = series[1].index[-1]
             values = series[1].values.tolist()
@@ -185,7 +186,7 @@ class Eurostat(Skeleton):
             candidates = [candidate for candidate in candidates]
             self.db.categories.remove({'_id':candidates[1]['_id']})
 
-    def create_series_db(self,leaf):
+    def create_series_db(self):
         """Create time series documents in MongoDB. 
         :param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
         :type lxml.etree.ElementTree 
@@ -193,6 +194,21 @@ class Eurostat(Skeleton):
         def create_a_series(db,leaf):
             try:
                 id_journal = db.journal.insert({'method': '_create_series'})
+                webpage = urllib.request.urlopen(leaf['url_dft'][0], timeout=7)
+                buffer = BytesIO(webpage.read())
+                dft_file = gzip.GzipFile(fileobj=buffer, mode="rb")
+                dft_file = TextIOWrapper(dft_file, encoding='utf-8', newline='')
+                split_dft = [line.strip() for line in dft_file]
+                i=0
+                lastup_regex = re.compile('LASTUP')
+                for line in split_dft:
+                    if i == 1:
+                        last_update = line.title()
+                        last_update = datetime.datetime.strptime(last_update,
+                                                                 '%a %d %b %Y %X')
+                        break
+                    if re.search(lastup_regex, line):
+                        i=1
                 key = '....'
                 series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],
                                                           key)
@@ -232,11 +248,13 @@ class Eurostat(Skeleton):
             'id_journal': last_update_categories[0]['_id'],
             'flowRef': {'$exists': 'true'}}))
 #The next line is for testing purposes.
-        leaves = leaves[1:10]
+        leaves = leaves[0:9]
         series = []
         for leaf in leaves:
-            exit_status = threading.Thread(target=create_a_series,
-                                           args=(self.db,leaf))
+            thread = threading.Thread(target=create_a_series,
+                                      args=(self.db,leaf))
+            thread.start()
+            time.sleep(1)
 
     def update_series_db(self):
         """Update the series in MongoDB
