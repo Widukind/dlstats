@@ -27,6 +27,7 @@ from multiprocessing import Pool
 import pysdmx
 import datetime
 import time
+import math
 
 
 def update_series(leaf):
@@ -191,7 +192,7 @@ class Eurostat(Skeleton):
         :param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
         :type lxml.etree.ElementTree 
         :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
-        def create_a_series(db,leaf):
+        def create_a_series(lgr,db,leaf):
             try:
                 id_journal = db.journal.insert({'method': '_create_series'})
                 webpage = urllib.request.urlopen(leaf['url_dft'][0], timeout=7)
@@ -210,37 +211,32 @@ class Eurostat(Skeleton):
                     if re.search(lastup_regex, line):
                         i=1
                 key = '....'
-                series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],
+                series__ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],
                                                           key)
-                for series in [series_.time_series[key]
+                series = []
+                print(series__.time_series.keys(),leaf['flowRef'][0],key)
+                for series_ in [series__.time_series[key]
                                for key
-                               in series_.time_series.keys()]:
-                    name = leaf['name']
-                    dates = leaf
-                    start_date = series[1].index[0]
-                    end_date = series[1].index[-1]
-                    values = series[1].values.tolist()
-                    frequency = series[0]['FREQ']
-                    codes = series[0]
-                    categories_id = leaf['_id']
-                    series_id = db.series.insert(
-                                            {'name':name,
-                                             'start_date':start_date, 
-                                             'end_date':end_date, 
-                                             'values':values,
-                                             'frequency':frequency, 
-                                             'categories_id':categories_id,
-                                             'id_journal':id_journal})
-                    for code_name, code_value in codes.items():
-                        code_id = db.codes.insert({'name':code_name,
-                            'values':{'value':code_value}},
-                            {'$push': {'series_id': series_id}})
-                        db.series.update({'_id':series_id},
-                                {'$push':{'codes_id':code_id}},
-                                upsert=True)
-                self.lgr.info('Successfully inserted '+leaf['flowRef'][0])
+                               in series__.time_series.keys()]:
+                    values = series_[1].values.tolist()
+                    release_dates = [last_update for i in range(len(values))]
+                    codes_ = series_[0]
+                    codes = [{'name': name, 'value': value} 
+                             for name, value in codes_.items()]
+                    series.append({'name': leaf['name'],
+                                   'start_date':series_[1].index[0], 
+                                   'end_date':series_[1].index[-1], 
+                                   'values':values,
+                                   'release_dates':release_dates,
+                                   'frequency':series_[0]['FREQ'], 
+                                   'categories_id':leaf['_id'],
+                                   'id_journal':id_journal,
+                                   'codes': codes})
+                ids_series = db.series.insert(series)
+                lgr.info('Successfully inserted '+leaf['flowRef'][0])
             except:
-                self.lgr.info('Insertion failed '+leaf['flowRef'][0])
+                lgr.info('Insertion failed '+leaf['flowRef'][0])
+
         id_journal = self.db.journal.insert({'method': 'create_series_db'})
         last_update_categories = list(self.db.journal.find(
             {'method': 'insert_categories_db'}).sort([('_id',-1)]).limit(1))
@@ -249,12 +245,13 @@ class Eurostat(Skeleton):
             'flowRef': {'$exists': 'true'}}))
 #The next line is for testing purposes.
         leaves = leaves[0:9]
-        series = []
+        i=1
         for leaf in leaves:
             thread = threading.Thread(target=create_a_series,
-                                      args=(self.db,leaf))
+                                      args=(self.lgr,self.db,leaf))
             thread.start()
-            time.sleep(1)
+            time.sleep(math.log(i)+4)
+            i += 1
 
     def update_series_db(self):
         """Update the series in MongoDB

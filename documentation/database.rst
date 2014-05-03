@@ -51,6 +51,8 @@ The metadata differs across statistical providers. We add the corresponding fiel
 Eurostat
 ~~~~~~~~
 For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx files. Also, there is a field for the flowRef identifying the dataflow[3]_.
+We name codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the program, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
+We keep a pointer to the time series for better performances.
 
 .. code:: javascript
 
@@ -59,34 +61,24 @@ For eurostat, we add a number of URLs for accessing the raw tsv, dft or sdmx fil
                _id_journal : [MongoID],
                name : str,
                children_id : MongoID,
-               codes_id : [MongoID],
-               series_id : [MongoID],
                url_tsv : str,
                url_dft : str,
                url_sdmx : str,
-               flowRef : str
+               flowRef : str,
+               codes : {
+                        _id : MongoID,
+                        _id_journal : MongoID,
+                        name : str,
+                        values : {
+                                  _id : MongoID,
+                                  key : str,
+                                  description : str,
+                                  series_id : [MongoID]
+                                 }
+                       }
               }
 
 .. [3] http://epp.eurostat.ec.europa.eu/portal/page/portal/sdmx_web_services/getting_started/rest_sdmx_2.1
-
-Codes
-_____
-We name codes the nomenclature of attributes that defines atomically the time series. Those codes are only provided for exploration of the database. In the program, a time series is of course identified by its unique id. A document from the codes collection contains all the series related to this code. Consequently, it is possible to query for time series using a set of constraint on codes; at the application level, the client would differentiate all the series_id sets to only get the relevant time series.
-Codes are not shared across categories. For example, it is certain that the FR code would contain a very large number of series. Nonetheless, each category containing series should have its own FR code. We don't store the huge list of series associated with FR.
-
-.. code:: javascript
-
- codes : {
-          _id : MongoID,
-          _id_journal : MongoID,
-          name : str,
-          values : {
-                    _id : MongoID,
-                    key : str,
-                    description : str,
-                    series_id : [MongoID]
-                   }
-         }
 
 Time series
 ___________
@@ -108,9 +100,13 @@ The values are in a list. The position field in the revisions subcollection rela
                         _id : MongoID,
                         value : float64,
                         position : int,
-                        release_date : timestamp [not implemented and urgent]
+                        release_date : timestamp
                        },
-           codes_id : [MongoID],
+           codes : {
+                    _id : MongoID,
+                    name : str,
+                    value : str
+                   },
            categories_id : [MongoID]
           }
 
@@ -133,6 +129,7 @@ Cons
 ----
 - immature (mongodb 1.x was scary, 2.x is stable)
 - complex configuration, lot of fine-tuning required
+- slow map/reduce
 
 Impact on the structure
 -----------------------
