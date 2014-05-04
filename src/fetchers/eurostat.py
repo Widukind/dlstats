@@ -191,7 +191,7 @@ class Eurostat(Skeleton):
         """Create time series documents in MongoDB. 
         :param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
         :type lxml.etree.ElementTree 
-        :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
+        :returns: None"""
         def create_a_series(lgr,db,leaf):
             try:
                 id_journal = db.journal.insert({'method': '_create_series'})
