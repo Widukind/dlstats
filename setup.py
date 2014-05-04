@@ -15,8 +15,6 @@ setup(name='dlstats',
                 ('/usr/local/bin',['init/dlstats-daemon.py'])],
     install_requires=[
         'pandas>=0.12',
-        'flask-restful',
-        'flask'
       ]
 	)
 
