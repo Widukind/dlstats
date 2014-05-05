@@ -214,7 +214,6 @@ class Eurostat(Skeleton):
                 series__ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],
                                                           key)
                 series = []
-                print(series__.time_series.keys(),leaf['flowRef'][0],key)
                 for series_ in [series__.time_series[key]
                                for key
                                in series__.time_series.keys()]:
@@ -245,13 +244,20 @@ class Eurostat(Skeleton):
             'flowRef': {'$exists': 'true'}}))
 #The next line is for testing purposes.
         leaves = leaves[0:9]
-        i=1
+        threads = []
         for leaf in leaves:
-            thread = threading.Thread(target=create_a_series,
-                                      args=(self.lgr,self.db,leaf))
+            threads.append(threading.Thread(target=create_a_series,
+                                            args=(self.lgr,self.db,leaf)))
+        i=1
+        for thread in threads:
             thread.start()
             time.sleep(math.log(i)+4)
             i += 1
+            if i > 70:
+                thread[i-70].join()
+        for thread in threads[i-70:]:
+            thread.join()
+        self.lgr.info('create_series_db() done')
 
     def update_series_db(self):
         """Update the series in MongoDB
