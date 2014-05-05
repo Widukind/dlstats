@@ -107,7 +107,7 @@ The values are in a list. The position field in the revisions subcollection rela
                     name : str,
                     value : str
                    },
-           categories_id : [MongoID]
+           categories_id : MongoID
           }
 
 
