@@ -38,4 +38,4 @@ validator = validate.Validator()
 configuration.validate(validator, copy=True)
 configuration = configuration.dict()
 
-from . import fetchers, gunicorn, misc_func
+from . import fetchers, misc_func
