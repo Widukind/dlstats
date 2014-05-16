@@ -6,7 +6,8 @@ from dlstats import configuration
 class Skeleton(object):
     """Basic structure for statistical providers implementations."""
     def __init__(self):
-        self.client = pymongo.MongoClient(**configuration['MongoDB'])
+        self.configuration = configuration
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
     def create_categories_db(self):
         """Create the categories in MongoDB
         """
