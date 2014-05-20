@@ -221,7 +221,7 @@ class Eurostat(Skeleton):
                     codes_ = series_[0]
                     codes = [{'name': name, 'value': value} 
                              for name, value in codes_.items()]
-                    series.append({'name': leaf['name'],
+                    series_id = db.series.insert({'name': leaf['name'],
                                    'start_date':series_[1].index[0], 
                                    'end_date':series_[1].index[-1], 
                                    'values':values,
@@ -230,7 +230,37 @@ class Eurostat(Skeleton):
                                    'categories_id':leaf['_id'],
                                    'id_journal':id_journal,
                                    'codes': codes})
-                ids_series = db.series.insert(series)
+                    for code in codes:
+                        #This is very ugly because of https://jira.mongodb.org/browse/SERVER-831
+                        #This is also a terrible race condition. We need to fix that...
+                        #We may want to implement an ugly locking mechanism (there is
+                        #no clean way of doing this in mongodb)
+                        category = db.categories.find_one({'_id':leaf['_id']})
+                        sentinel_code = False
+                        codes_ = []
+                        for code_ in category['codes']:
+                            if code_['name'] == code['name']:
+                                sentinel_code = True
+                                sentinel_value = False
+                                values_ = []
+                                for value in code_['name']['values']:
+                                    if value['key'] == code['value']:
+                                        sentinel_value = True
+                                        if series_id not in value['series_id']:
+                                            value['series_id'].append(series_id)
+                                    else:
+                                        values_.append(value)
+                                if sentinel_value = False:
+                                    values_.append({'key':code['value'],'series_id':[series_id]})
+                                code_['values'] = values_
+                                codes_.append(code_)
+                            else:
+                                codes_.append(code_)
+                            if sentinel_code == False:
+                                codes_.append({'name':code['name'],
+                                               'values':{'key':code['value'], 'series_id':[series_id]}})
+                        category['codes'] = codes_
+                        db.categories.update({'_id':leaf['_id']},category)
                 lgr.info('Successfully inserted '+leaf['flowRef'][0])
             except:
                 lgr.info('Insertion failed '+leaf['flowRef'][0])
