@@ -66,11 +66,9 @@ We keep a pointer to the time series for better performances.
                url_sdmx : str,
                flowRef : str,
                codes : {
-                        _id : MongoID,
                         _id_journal : MongoID,
                         name : str,
                         values : {
-                                  _id : MongoID,
                                   key : str,
                                   description : str,
                                   series_id : [MongoID]
@@ -97,13 +95,11 @@ The values are in a list. The position field in the revisions subcollection rela
            values : [float64],
            frequency : str,
            revisions : {
-                        _id : MongoID,
                         value : float64,
                         position : int,
                         release_date : timestamp
                        },
            codes : {
-                    _id : MongoID,
                     name : str,
                     value : str
                    },
