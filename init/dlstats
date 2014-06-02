@@ -8,7 +8,7 @@
 # Default-Start:  3 5
 # Default-Stop:   0 1 2 6
 # Short-Description: dlstats daemon
-# Description:    Update the mongoDB collections for dlstats
+# Description:    Main dlstats event boucle
 ### END INIT INFO
 
 case "$1" in
