@@ -22,6 +22,9 @@ def _get_filename():
 configuration_filename = _get_filename()
 
 _configspec = """
+[General]
+logging_directory = string()
+socket_directory = string()
 [MongoDB]
 host = ip_addr()
 port = integer()

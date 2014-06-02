@@ -9,10 +9,9 @@ setup(name='dlstats',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
     url='https://github.com/Widukind', 
-      package_dir={'dlstats': 'src', 'dlstats.fetchers': 'src/fetchers'},
+      package_dir={'dlstats': 'package', 'dlstats.fetchers': 'package/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
-    data_files=[('/etc/init.d',['init/dlstats']),
-                ('/usr/local/bin',['init/dlstats_daemon.py'])],
+    data_files=[('/usr/local/bin',['server/dlstats_server.py'])],
     install_requires=[
         'pandas>=0.12',
       ]
