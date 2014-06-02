@@ -12,20 +12,14 @@ setup(name='dlstats',
       package_dir={'dlstats': 'src', 'dlstats.fetchers': 'src/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
     data_files=[('/etc/init.d',['init/dlstats']),
-                ('/usr/local/bin',['init/dlstats-daemon.py'])],
+                ('/usr/local/bin',['init/dlstats_daemon.py'])],
     install_requires=[
         'pandas>=0.12',
       ]
 	)
 
-try:
-	with open('/etc/init.d/dlstats'):
-		os.chmod('/etc/init.d/dlstats', 0o755)
-except IOError:
-	pass
+with open('/etc/init.d/dlstats'):
+        os.chmod('/etc/init.d/dlstats', 0o755)
 
-try:
-	with open('/usr/local/bin/dlstats-daemon.py'):
-		os.chmod('/usr/local/bin/dlstats-daemon.py', 0o755)
-except IOError:
-	pass
+with open('/usr/local/bin/dlstats_daemon.py'):
+        os.chmod('/usr/local/bin/dlstats_daemon.py', 0o755)
