@@ -1,0 +1,8 @@
+[Unit]
+Description=dlstats service
+
+[Service]
+ExecStart=/usr/local/bin/dlstats_server.py
+
+[Install]
+WantedBy=multi-user.target
