@@ -101,7 +101,7 @@ class Eurostat(Skeleton):
         self.lgr.addHandler(self.fh)
         self.db = self.client.eurostat
         webpage = urllib.request.urlopen(
-            self.configuration['fetchers']['Eurostat']['url_table_of_contents'],
+            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)

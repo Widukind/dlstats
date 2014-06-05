@@ -8,7 +8,7 @@ import time
 def get_logger(configuration):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
-    file_handler = logging.FileHandler(os.path.normpath(configuration['logging_directory']) 'dlstats.log')
+    file_handler = logging.FileHandler(os.path.normpath(configuration['General']['logging_directory']) 'dlstats.log')
     file_handler.setLevel(logging.DEBUG)
     frmt = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -20,7 +20,7 @@ logger = get_logger(configuration)
 
 def event_loop(configuration):
     logger.info('Spawning event loop.')
-    socket_path = os.path.normpath(configuration.['socket_directory'] 'dlstats.socket'):
+    socket_path = os.path.normpath(configuration['General']['socket_directory'] 'dlstats.socket'):
     if os.path.exists( socket_path ):
           os.remove( socket_path )
     server = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )

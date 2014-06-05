@@ -34,7 +34,10 @@ connectTimeoutMS = integer()
 waitQueueTimeout = integer()
 waitQueueMultiple = integer()
 auto_start_request = boolean()
-use_greenlets = boolean()"""
+use_greenlets = boolean()
+[[Fetchers]]
+[Eurostat]
+url_table_of_contents = string()"""
 configuration = configobj.ConfigObj(configuration_filename,
                                     configspec=_configspec.split('\n'))
 validator = validate.Validator()
