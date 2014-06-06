@@ -11,8 +11,8 @@ setup(name='dlstats',
     url='https://github.com/Widukind', 
       package_dir={'dlstats': 'package', 'dlstats.fetchers': 'package/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
-    data_files=[('/usr/local/bin',['server/dlstats_server.py']),
-                ('/etc/systemd/system',['server/dlstats.service'])],
+    data_files=[('/usr/local/bin',['dlstats/server.py']),
+                ('/etc/systemd/system',['os_specific/dlstats.service'])],
     install_requires=[
         'pandas>=0.12',
       ]
