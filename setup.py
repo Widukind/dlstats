@@ -1,20 +1,22 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 from setuptools import setup
+from dlstats import version
 import os
 
 setup(name='dlstats',
-	version='0.1',
+	version=version.version,
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
     url='https://github.com/Widukind', 
-      package_dir={'dlstats': 'package', 'dlstats.fetchers': 'package/fetchers'},
+      package_dir={'dlstats': 'dlstats', 'dlstats.fetchers': 'dlstats/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
     data_files=[('/usr/local/bin',['dlstats/server.py']),
                 ('/etc/systemd/system',['os_specific/dlstats.service'])],
     install_requires=[
         'pandas>=0.12',
+        'docopt>=0.6.0'
       ]
 	)
 
