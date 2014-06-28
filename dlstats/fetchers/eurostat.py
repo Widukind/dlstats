@@ -250,7 +250,7 @@ class Eurostat(Skeleton):
                                             value['series_id'].append(series_id)
                                     else:
                                         values_.append(value)
-                                if sentinel_value = False:
+                                if sentinel_value == False:
                                     values_.append({'key':code['value'],'series_id':[series_id]})
                                 code_['values'] = values_
                                 codes_.append(code_)
