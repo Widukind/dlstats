@@ -298,7 +298,7 @@ class Eurostat(Skeleton):
             'id_journal': last_update_categories[0]['_id'],
             'flowRef': {'$exists': 'true'}}))
 #The next line is for testing purposes.
-        leaves = leaves[1:10]
+        leaves = leaves[0:9]
         series = []
         pool = Pool(8)
         for exit_status in pool.map(update_series,leaves):
