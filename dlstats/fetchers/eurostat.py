@@ -30,62 +30,6 @@ import time
 import math
 
 
-def update_series(leaf):
-    """Update the time series documents in MongoDB. This function is defined outside of Eurostat() so that the multiprocessing module can use :mod:`pickle`.
-    :param: leaf (): A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
-    :type: lxml.etree.ElementTree
-    :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
-    try:
-        id_journal = self.db.journal.insert({'method': 'update_series'})
-        client = pymongo.MongoClient()
-        db = client.eurostat
-        key = '....'
-        series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
-        for series in [series_.time_series[key]
-                       for key
-                       in series_.time_series.keys()]:
-            name = leaf['name']
-            start_date = series[1].index[0]
-            end_date = series[1].index[-1]
-            values = series[1].values.tolist()
-            frequency = series[0]['FREQ']
-            codes = series[0]
-            categories_id = leaf['_id']
-            previous_series = db.series.find({'flowRef':leaf['flowRef'][0],
-                                              'name':name},
-                                             fields={'values':1})
-            series_id = db.series.update({'flowRef':leaf['flowRef'][0],
-                                          'name':name},
-                                         {'name':name,
-                                          'start_date':start_date,
-                                          'end_date':end_date,
-                                          'values':values,
-                                          'frequency':frequency,
-                                          'categories_id':categories_id},
-                                         {'$push':{'_id_journal':id_journal}},
-                                        upsert=True)
-            i = 0
-            for old_value in previous_series[0]['values']:
-                if old_value != values[i]:
-                    db.series.update(
-                        {'flowRef':leaf['flowRef'][0],'name':name},
-                        {'revisions': {'value': old_value,
-                                       'position':i}},
-                        upsert=True)
-                    i += 1
-
-            if previous_series != []:
-                for code_name, code_value in codes.items():
-                    code_id = db.codes.insert(
-                        {'name':code_name,
-                         'values':{'value':code_value}},
-                        {'$push': {'series_id': series_id}})
-                    db.series.update({'_id':series_id},
-                                     {'$push':{'codes_id':code_id}},
-                                     upsert=True)
-        return (True,'flowRef : '+leaf['flowRef'][0])
-    except:
-        return (False,'flowRef : '+leaf['flowRef'][0])
 
 class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
@@ -193,7 +137,7 @@ class Eurostat(Skeleton):
         :returns: None"""
         def create_a_series(lgr,db,leaf):
             try:
-                id_journal = db.journal.insert({'method': '_create_series'})
+                id_journal = db.journal.insert({'method': 'create_a_series'})
                 webpage = urllib.request.urlopen(leaf['url_dft'][0], timeout=7)
                 buffer = BytesIO(webpage.read())
                 dft_file = gzip.GzipFile(fileobj=buffer, mode="rb")
@@ -291,20 +235,91 @@ class Eurostat(Skeleton):
     def update_series_db(self):
         """Update the series in MongoDB
         """
+        def update_a_series(leaf):
+            """Update the time series documents in MongoDB.
+            :param: leaf (): A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
+            :type: lxml.etree.ElementTree
+            :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
+            try:
+                id_journal = self.db.journal.insert({'method': 'update_a_series'})
+                key = '....'
+                series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
+                for series in [series_.time_series[key]
+                               for key
+                               in series_.time_series.keys()]:
+                    name = leaf['name']
+                    start_date = series[1].index[0]
+                    end_date = series[1].index[-1]
+                    values = series[1].values.tolist()
+                    frequency = series[0]['FREQ']
+                    codes = series[0]
+                    categories_id = leaf['_id']
+                    previous_series = db.series.find({'flowRef':leaf['flowRef'][0],
+                                                      'name':name},
+                                                     fields={'values':1})
+                    series_id = db.series.update({'flowRef':leaf['flowRef'][0],
+                                                  'name':name},
+                                                 {'name':name,
+                                                  'start_date':start_date,
+                                                  'end_date':end_date,
+                                                  'values':values,
+                                                  'frequency':frequency,
+                                                  'categories_id':categories_id},
+                                                 {'$push':{'_id_journal':id_journal}},
+                                                upsert=True)
+                    i = 0
+                    for old_value in previous_series[0]['values']:
+                        if old_value != values[i]:
+                            db.series.update(
+                                {'flowRef':leaf['flowRef'][0],'name':name},
+                                {'revisions': {'value': old_value,
+                                               'position':i}},
+                                upsert=True)
+                            i += 1
+
+                    if previous_series != []:
+                        for code_name, code_value in codes.items():
+                            code_id = db.codes.insert(
+                                {'name':code_name,
+                                 'values':{'value':code_value}},
+                                {'$push': {'series_id': series_id}})
+                            db.series.update({'_id':series_id},
+                                             {'$push':{'codes_id':code_id}},
+                                             upsert=True)
+                return (True,'flowRef : '+leaf['flowRef'][0])
+            except:
+                return (False,'flowRef : '+leaf['flowRef'][0])
+        last_create_series_db = list(self.db.journal.find(
+            {'name': 'create_series_db'}).sort([('_id',-1)]).limit(1))
+        last_update_series_db = list(self.db.journal.find(
+            {'name': 'update_series_db'}).sort([('_id',-1)]).limit(1))
+        if last_update_series_db == []:
+            last_update_series_db = last_create_series_db
+        date_infimum = last_update_series_db[0]['_id'].generation_time
         id_journal = self.db.journal.insert({'method': 'update_series_db'})
+
         last_update_categories = list(self.db.journal.find(
-            {'name': 'categories'}).sort([('_id',-1)]).limit(1))
+            {'method': 'insert_categories_db'}).sort([('_id',-1)]).limit(1))
         leaves = list(self.db.categories.find({
             'id_journal': last_update_categories[0]['_id'],
             'flowRef': {'$exists': 'true'}}))
-#The next line is for testing purposes.
         leaves = leaves[0:9]
-        series = []
-        pool = Pool(8)
-        for exit_status in pool.map(update_series,leaves):
-            if exit_status[0] is True:
-                self.lgr.info('Successfully inserted '+exit_status[1])
-            else:
-                self.lgr.error('Insertion failed '+exit_status[1])
-        pool.close()
-        pool.join()
+        threads = []
+        for leaf in leaves:
+            threads.append(threading.Thread(target=update_a_series,
+                                            args=(self.lgr,self.db,leaf)))
+        i=1
+        for thread in threads:
+            thread.start()
+            time.sleep(math.log(i)+4)
+            i += 1
+            if i > 70:
+                thread[i-70].join()
+        for thread in threads[i-70:]:
+            thread.join()
+        self.lgr.info('update_series_db() done')
+
+
+
+
+
