@@ -66,6 +66,10 @@
 - https://circabc.europa.eu/faces/jsp/extension/wai/navigation/container.jsp 
 - http://ec.europa.eu/idabc/en/document/7400.html
 - forge.osor.eu/projects/circabc
+** CME groupe
+   - http://www.cmegroup.com
+   - data on future and option market
+   - proprietary data, can't be used on our web site
 ** IN-PROGRESS ECB SDW
 - http://sdw.ecb.europa.eu/
 - SDMX(ML/query), CSV (excel and )
