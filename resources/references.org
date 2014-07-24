@@ -60,7 +60,12 @@
 - pdf, ods, xls
 ** IN-PROGRESS Canada
 - Statistique Canada
-- http://www.statcan.gc.ca/concepts/index-fra.htm?MM 
+- http://www.statcan.gc.ca/concepts/index-fra.htm?MM
+** IN-PROGRESS China
+*** IN-PROGRESS National Bureau of Statistics of China
+- no API? Only web page?
+- XLS, until 2011 : http://www.stats.gov.cn/tjsj/ndsj/2012/html/
+- XLS, until 2012 : http://www.stats.gov.cn/tjsj/ndsj/2013/html/
 ** IN-PROGRESS CIRCAB
 - Communication and Information Resource Centre for Administrations, Businesses and Citizens.
 - https://circabc.europa.eu/faces/jsp/extension/wai/navigation/container.jsp 
