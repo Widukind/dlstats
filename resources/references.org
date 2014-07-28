@@ -170,7 +170,7 @@
 - old database: laborstat, CSV, http://laborsta.ilo.org/
 - new database: ilostat, CSV (, TAB ;)
   http://www.ilo.org/ilostat/faces/home/statisticaldata/bulk-download?_adf.ctrl-state=hlizkfzwc_98&clean=true&_afrLoop=368699868737048
-- the interface will be hard to automatize
+- SDMX http://www.ilo.org/ilostat/sdmx/ws/rest/
 *** IN-PROGRESS INE
 - http://www.ine.es/en/inebmenu/indice_en.htm#2
 - CSV, excel, or PC-Axis program :   http://www.ine.es/ss/Satellite?c=Page&p=1254735116596&pagename=ProductosYServicios%2FPYSLayout&cid=1254735116596&L=1
