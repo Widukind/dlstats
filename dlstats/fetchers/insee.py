@@ -153,7 +153,7 @@ class Insee(Skeleton):
             for s in series:
                 self.series_update(self.db.series,s,'key')
         dataset.update(dp.get_dataset())
-        self.bson_update(self.db.datasets,dataset,'dataset_code')
+        self.bson_update(self.db.datasets,dataset,'datasetCode')
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
@@ -471,7 +471,7 @@ class dataset_page(Insee):
         
         Needs to be called last because lastUpdate is updated through the iterations."""
         
-        dataset = {'dataset_code': self.dataset_code,
+        dataset = {'datasetCode': self.dataset_code,
                    'doc_href': "http://www.bdm/insee.fr/bdm2/documentationGroupe/codeGroupe=" + self.dataset_code,
                    'name': self.dataset_name,
                    'codes': self.codes_desc,
