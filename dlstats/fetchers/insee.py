@@ -120,7 +120,9 @@ class Insee(Skeleton):
         """Get dataset for a given code"""
 
         dataset = dict()
-        dataset['codes'] = set()
+        dataset['attribute_list'] = dict()
+        flags_list = dict()
+        dimension_list = collections.defaultdict(set)
         dp = dataset_page(code)
         series = []
         for keys in dp:
@@ -139,42 +141,53 @@ class Insee(Skeleton):
             #            fh = urllib.request.urlopen("http://localhost:8800/insee/A.zip")
             buffer = BytesIO(fh.read())
             file = zipfile.ZipFile(buffer)
-            (codes,series,s_offset) = self.get_charact_csv(file,code)
+            (dimensions_desc,series,s_offset) = self.get_charact_csv(file,code)
             (f,s,v) = self.get_values_csv(file,series,s_offset)
             for i in range(len(v)):
                 series[i]['datasetCode'] = code
                 series[i]['values'] = v[i]
-                series[i]['status'] = f[i]
+                series[i]['attributes'] = dict()
+                series[i]['attributes'] = {'flags': f[i]}
                 series[i]['releaseDates'] = [series[i]['releaseDates'] for j in v[i]]
                 series[i]['revisions'] = []
-            # identical codes['status'] are recorded at each iteration ...
-            codes['status'] = s
-            dataset['codes'].update(codes)
+            for k in dimensions_desc:
+                dimension_list[k].update(dimensions_desc[k])
+            flags_list.update(s)
             for s in series:
                 self.series_update(self.db.series,s,'key')
         dataset.update(dp.get_dataset())
+        dataset['dimension_list'] = dict()
+        for k in dimension_list:
+            dataset['dimension_list'][k] = [d for d in dimension_list[k]]
+        dataset['attribute_list']['flags'] = flags_list
         self.bson_update(self.db.datasets,dataset,'datasetCode')
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
         
         series = []
+        dimensions_desc = collections.defaultdict(set)
         buffer = file.read('Charact.csv').decode(encoding='UTF-8')
         lines = buffer.split('\r\n')
-        codes = collections.defaultdict(set)
         m = 0
         for line in lines:
             fields = re.split(r"[;](?![ ])",line)
-            if m == 0:
+            if fields[0] == 'Heading':
                 for i in range(len(fields)-1):
                     series += [{'name': fields[i+1]}]
-            elif m == 1:
+                    name_parts = fields[i+1].split(' - ')
+                    dims = {}
+                    for j in range(len(name_parts)):
+                        dims['code'+str(j+1)] = name_parts[j]
+                        dimensions_desc['code'+str(j+1)].add(name_parts[j])
+                    series[i]['dimensions'] = dims
+            elif fields[0] == 'IdBank':
                 for i in range(len(fields)-1):
                     series[i]['key'] = "{}.{}".format(datasetCode,fields[i+1])
-            elif m == 2:
+            elif fields[0] == 'Last update':
                 for i in range(len(fields)-1):
                     series[i]['releaseDates'] = datetime.datetime.strptime(fields[i+1],'%B %d, %Y')
-            elif m == 6: 
+            elif fields[0] == 'Periodicity': 
                 for i in range(len(fields)-1):
                     if fields[i+1] == 'Annual':
                         series[i]['frequency'] = 'A'
@@ -192,7 +205,7 @@ class Insee(Skeleton):
                         datefmt = '%B %Y'
                         # column offset in Values.zip
                         s_offset = 2
-            elif m == 7:
+            elif fields[0] == 'Beginning date':
                 for i in range(len(fields)-1):
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
@@ -201,7 +214,7 @@ class Insee(Skeleton):
                         series[i]['startDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
                     else:
                         series[i]['startDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
-            elif m == 8:
+            elif fields[0] == 'Ending date':
                 for i in range(len(fields)-1):
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
@@ -210,21 +223,12 @@ class Insee(Skeleton):
                         series[i]['endDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
                     else:
                         series[i]['endDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
-            elif m == 3:
-                for i in range(len(fields)-1):
-                    series[i]['codes'] = {}
-                    series[i]['codes'][fields[0]] = fields[i+1]
-                    codes[fields[0]].add(fields[i+1])
             else:
                 for i in range(len(fields)-1):
-                    series[i]['codes'][fields[0]] = fields[i+1]
-                    codes[fields[0]].add(fields[i+1])
+                    series[i]['dimensions'][fields[0]] = fields[i+1]
+                    dimensions_desc[fields[0]].add(fields[i+1])
             m += 1
-        # convert code set to list of identical pairs
-        # Insee codes don't have short form
-        for k in codes.keys():
-            codes[k] = [(k1,k1) for k1 in codes[k]]
-        return (codes,series,s_offset)
+        return (dimensions_desc,series,s_offset)
 
     def get_values_csv(self,file,series,s_offset):
         """Parse and store values in Values.csv"""
@@ -233,7 +237,7 @@ class Insee(Skeleton):
         lines = buffer.split('\r\n')
         v = []
         f = []
-        s = []
+        s = dict()
         m = 0;
         for line in lines:
             fields = re.split(r"[;](?![ ])",line)
@@ -259,10 +263,10 @@ class Insee(Skeleton):
                     i += 1
             elif (len(fields) > 2) and (len(fields[0]) == 0) and (len(fields[1]) == 0):
                 s0 = fields[2].split(' : ')
-                s.append([s0[0],s0[1]])
+                s[s0[0]] = s0[1]
                 if len(fields) > 3:
                     s0 = fields[3].split(' : ')
-                    s.append([s0[0],s0[1]])
+                    s[s0[0]]=s0[1]
             m += 1
         return (f,s,v)
 
@@ -325,7 +329,7 @@ class dataset_page(Insee):
         url = "http://www.bdm.insee.fr/bdm2/choixCriteres?request_locale=en&codeGroupe=" + dataset_code
         fh = Insee.open_url_and_check(self,url)
         page = BeautifulSoup(fh)
-        #            page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/rub"))
+        #        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/rub"))
         h1 = page.find('h1')
         self.dataset_name = h1.string
         f = page.find('form',id='listeSeries')
@@ -474,7 +478,6 @@ class dataset_page(Insee):
         dataset = {'datasetCode': self.dataset_code,
                    'doc_href': "http://www.bdm/insee.fr/bdm2/documentationGroupe/codeGroupe=" + self.dataset_code,
                    'name': self.dataset_name,
-                   'codes': self.codes_desc,
                    'lastUpdate': self.lastUpdate,
                    'versionDate': datetime.datetime.now()}
         return(dataset)
