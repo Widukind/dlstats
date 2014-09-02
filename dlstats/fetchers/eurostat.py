@@ -9,7 +9,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers.skeleton import Skeleton
+from dlstats.fetchers._skeleton import Skeleton
 import threading
 import collections
 import lxml.etree

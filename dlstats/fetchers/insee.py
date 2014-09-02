@@ -10,7 +10,7 @@ from io import BytesIO, StringIO
 import requests
 import csv
 #from dlstats.fetchers.skeleton import Skeleton
-from dlstats.fetchers.skeleton import Skeleton
+from dlstats.fetchers._skeleton import Skeleton
 from bson import ObjectId
 from json import loads
 import collections
