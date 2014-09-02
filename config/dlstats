@@ -1,5 +1,5 @@
 [General]
-logging_directory=/var/log/
+logging_directory=/var/log/dlstats/
 socket_directory=/run/
 [MongoDB]
 host=127.0.0.1
