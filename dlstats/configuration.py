@@ -40,7 +40,6 @@ use_greenlets = boolean()
 url_table_of_contents = string()"""
 configuration = configobj.ConfigObj(configuration_filename,
                                     configspec=_configspec.split('\n'))
-print(configuration)
 validator = validate.Validator()
 configuration.validate(validator)
 configuration = configuration.dict()
