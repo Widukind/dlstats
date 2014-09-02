@@ -24,7 +24,7 @@ import re
 import pymongo
 import logging
 from multiprocessing import Pool
-import pysdmx
+import sdmx
 import datetime
 import time
 import math
@@ -154,7 +154,7 @@ class Eurostat(Skeleton):
                     if re.search(lastup_regex, line):
                         i=1
                 key = '....'
-                series__ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],
+                series__ = sdmx.eurostat.data_extraction(leaf['flowRef'][0],
                                                           key)
                 series = []
                 for series_ in [series__.time_series[key]
@@ -243,7 +243,7 @@ class Eurostat(Skeleton):
             try:
                 id_journal = self.db.journal.insert({'method': 'update_a_series'})
                 key = '....'
-                series_ = pysdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
+                series_ = sdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
                 for series in [series_.time_series[key]
                                for key
                                in series_.time_series.keys()]:
