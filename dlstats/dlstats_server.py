@@ -1,5 +1,5 @@
 import logging
-from dlstats import configuration
+import dlstats
 import os
 import glob
 import socket
@@ -16,10 +16,11 @@ def get_logger(configuration):
     logger.addHandler(file_handler)
     return logger
 
-logger = get_logger(configuration)
+logger = get_logger(dlstats.configuration)
 
-def hello():
-    return ('I love you won\'t you tell me your name?')
+def list_fetchers():
+    fetchers = [fetcher for fetcher in dir(dlstats.fetchers) if not fetcher.startswith('_')]
+    return (', '.join(fetchers))
 
 def event_loop(configuration):
     logger.info('Spawning event loop.')
@@ -29,7 +30,7 @@ def event_loop(configuration):
     server = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
     server.bind(socket_path)
     server.listen(5)
-    commands = {'hello':hello}
+    commands = {'list_fetchers':list_fetchers}
     exit_sentinel = False
     while True: 
         connection, address = server.accept()
@@ -52,4 +53,4 @@ def event_loop(configuration):
     logger.info('Quitting event_loop')
 
 if __name__ == "__main__":
-    event_loop(configuration)
+    event_loop(dlstats.configuration)

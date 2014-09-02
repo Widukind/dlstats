@@ -1,6 +1,6 @@
 [General]
 logging_directory=/var/log/dlstats/
-socket_directory=/run/
+socket_directory=/run/dlstats
 [MongoDB]
 host=127.0.0.1
 port=27017
