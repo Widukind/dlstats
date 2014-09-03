@@ -23,7 +23,7 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
-    def bson_update(self,coll,bson,key):
+    def _bson_update(self,coll,bson,key):
         old_bson = coll.find_one({key: bson[key]})
         if old_bson == None:
             _id = coll.insert(bson)
@@ -39,7 +39,7 @@ class Skeleton(object):
                 coll.update({'_id': old_bson['_id']},bson)
             return old_bson['_id']
 
-    def series_update(self,coll,bson,key):
+    def _series_update(self,coll,bson,key):
         old_bson = coll.find_one({key: bson[key]})
         if old_bson == None:
             _id = coll.insert(bson)
@@ -68,7 +68,7 @@ class Skeleton(object):
                 coll.update({'_id': old_bson['_id']},bson,upsert=True)
             return old_bson['_id']
 
-    def log_warning(self,msg):
+    def _log_warning(self,msg):
         """Send message to the database operator"""
 
         print(msg)

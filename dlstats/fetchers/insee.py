@@ -45,7 +45,7 @@ class Insee(Skeleton):
         node = {'name': 'insee',
                 'code': '0',
                 'children': children}
-        self.bson_update(self.db.categories,node,'code')
+        self._bson_update(self.db.categories,node,'code')
 
     def get_page_2(self,url):
         """Parser for  2nd level pages of INSEE BDM
@@ -73,12 +73,12 @@ class Insee(Skeleton):
                     node = {'name': name,
                             'code': code,
                             'children': None}
-                    _id = self.bson_update(self.db.categories,node,'code')
+                    _id = self._bson_update(self.db.categories,node,'code')
                     return (None,_id)
             node = {'name': name,
                     'code': code,
                     'children': children}
-            _id = self.bson_update(self.db.categories,node,'code')
+            _id = self._bson_update(self.db.categories,node,'code')
             return (code1,_id)
         fh = self.open_url_and_check(url)
         page = BeautifulSoup(fh)
@@ -154,13 +154,13 @@ class Insee(Skeleton):
                 dimension_list[k].update(dimensions_desc[k])
             flags_list.update(s)
             for s in series:
-                self.series_update(self.db.series,s,'key')
+                self._series_update(self.db.series,s,'key')
         dataset.update(dp.get_dataset())
         dataset['dimension_list'] = dict()
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
         dataset['attribute_list']['flags'] = flags_list
-        self.bson_update(self.db.datasets,dataset,'datasetCode')
+        self._bson_update(self.db.datasets,dataset,'datasetCode')
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
