@@ -8,13 +8,18 @@ class Skeleton(object):
     def __init__(self):
         self.configuration = configuration
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-    def upsert_categories_db(self):
+    def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
-    def upsert_series_db(self):
+    def upsert_a_series(self,id):
         """Upsert the series in MongoDB
+        """
+        raise NotImplementedError("This method from the Skeleton class must"
+                                  "be implemented.")
+    def upsert_dataset(self,id):
+        """Upsert a dataset in MongoDB
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")

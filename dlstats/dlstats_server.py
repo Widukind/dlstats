@@ -1,9 +1,27 @@
+#TODO : Configure the MongoDBJobStore with the configuration file
+#TODO : Make the jobs persist when the server is restarted
 import logging
 import dlstats
 import os
 import glob
 import socket
 import time
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.mongodb import MongoDBJobStore
+from apscheduler.executors.pool import ThreadPoolExecutor
+
+jobstores = {
+        'default': MongoDBJobStore(),
+}
+executors = {
+        'default': ThreadPoolExecutor(20),
+}
+job_defaults = {
+        'coalesce': True,
+        'max_instances': 1
+}
+
+scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults)
 
 def get_logger(configuration):
     logger = logging.getLogger(__name__)
@@ -22,6 +40,18 @@ def list_fetchers():
     fetchers = [fetcher for fetcher in dir(dlstats.fetchers) if not fetcher.startswith('_')]
     return (', '.join(fetchers))
 
+def upsert_categories(scheduled_time,fetcher,id):
+    fetcher = getattr(dlstats.fetchers,fetcher)
+    scheduler.add_job(fetcher.upsert_categories,args=id,next_run_time=scheduled_time)
+
+def upsert_dataset(scheduled_time,fetcher,id):
+    fetcher = getattr(dlstats.fetchers,fetcher)
+    scheduler.add_job(fetcher.upsert_dataset,args=id,next_run_time=scheduled_time)
+
+def upsert_a_series(scheduled_time,fetcher,id):
+    fetcher = getattr(dlstats.fetchers,fetcher)
+    scheduler.add_job(fetcher.upsert_a_series,args=id,next_run_time=scheduled_time)
+
 def event_loop(configuration):
     logger.info('Spawning event loop.')
     socket_path = os.path.normpath(configuration['General']['socket_directory']+'/dlstats.socket')
@@ -30,20 +60,32 @@ def event_loop(configuration):
     server = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
     server.bind(socket_path)
     server.listen(5)
-    commands = {'list_fetchers':list_fetchers}
+    commands = {'list_fetchers':list_fetchers,'upsert_categories': upsert_categories, 'upsert_dataset': upsert_dataset}
     exit_sentinel = False
     while True: 
         connection, address = server.accept()
         while True:
             data = connection.recv( 512 ).decode()
-            if not data or data == 'close':
+            data_ = data.split(' ')
+            data__ []
+            for argument in data_:
+                if len(argument.split('_')) > 1
+                    data__.append(argument.split('_'))
+                else:
+                    data__.append(argument)
+            command = data_[0]
+            if len(data_) > 1:
+                args = data_[1:end]
+            else:
+                args = None
+            if not command or command == 'close':
                 break
             else:
                 logger.info('Received command: %s', data)
-                if data == 'quit':
+                if command == 'quit':
                     exit_sentinel = True
-                elif data in commands.keys():
-                    connection.send(commands[data]().encode())
+                elif command in commands.keys():
+                    connection.send(commands[command](*args).encode())
                 else:
                     connection.send('Unrecognized command: '+data)
         connection.close()
