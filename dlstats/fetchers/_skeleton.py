@@ -67,8 +67,3 @@ class Skeleton(object):
                 bson['revisions'] = revisions
                 coll.update({'_id': old_bson['_id']},bson,upsert=True)
             return old_bson['_id']
-
-    def _log_warning(self,msg):
-        """Send message to the database operator"""
-
-        print(msg)
