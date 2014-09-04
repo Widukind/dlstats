@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pymongo
+from voluptuous import Required, All, Length, Range
 from dlstats import configuration
+from datetime import datetime
 
 class Skeleton(object):
     """Basic structure for statistical providers implementations."""
@@ -68,22 +70,58 @@ class Skeleton(object):
                 coll.update({'_id': old_bson['_id']},bson,upsert=True)
             return old_bson['_id']
 
-    class _Series(self):
-        
-        def __init__(self):
-            self = {'name': None,
-                    'key': None,
-                    'datasetCode': None,
-                    'startDate': None, 
-                    'endDate': None, 
-                    'values': None,
-                    'attributes', None,
-                    'releaseDates': None,
-                    'revisions': None,
-                    'frequency': None,
-                    'dimensions': None}
-                    # Do we need it?
-                    'categoryCode': None,
+
+    #Validation and ODM
+    #Custom validator (only a few types are natively implemented in voluptuous)
+    def date_validator(v,fmt='%Y-%m-%d'):
+        return datetime.strptime(v, fmt)
+    #Schema definition in voluptuous
+    str_date = (Required(All(str, Length(min=1))), Required(All(int, Range(min=1,max=20))))
+    revision = (Required(All(int)), Required(All(int)),Required(All(float)))
+    dimension = {Required('name'): All(str), Required('value'): All(str)}
+    schema_series = Schema({Required('name'): All(str, Length(min=1)),
+                            Required('key'): All(str, Length(min=1))),
+                            Required('dataset_code'): All(str, Length(min=1)),
+                            Required('start_date'): All(str_date),
+                            Required('end_date'): All(str_date),
+                            Required('values'): All(float),
+                            Required('attributes'): All(str),
+                            Required('release_dates'): All([date_validator()]),
+                            Required('revisions'): All([revision]),
+                            Required('frequency'): All(str, Length(max=1)),
+                            Required('dimensions'): All([dimension]),
+                           })
+
+    class _Series(object):
+        def __init__(self,
+                     name=None,
+                     key=None,
+                     dataset_code=None,
+                     start_date=None,
+                     end_date=None,
+                     values=None,
+                     attributes=None,
+                     release_dates=None,
+                     revisions=None,
+                     frequency=None,
+                     dimensions=None,
+                     category_code=None):
+        self.name=name
+        self.key=key
+        self.dataset_code=dataset_code
+        self.start_date=start_date
+        self.end_date=end_date
+        self.values=values
+        self.attributes=attributes
+        self.release_dates=release_dates
+        self.revisions=revisions
+        self.frequency=frequency
+        self.dimensions=dimensions
+        self.category_code=category_code
+        def validate(self):
+            schema_series(self)
+
+
 
     class _Dataset():
         def __init__(self):
@@ -101,3 +139,4 @@ class Skeleton(object):
                     'categoryCode': None,
                     # we need to keep track of wich categories we mirror on Widukind
                     'present': False}
+
