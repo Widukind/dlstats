@@ -67,3 +67,37 @@ class Skeleton(object):
                 bson['revisions'] = revisions
                 coll.update({'_id': old_bson['_id']},bson,upsert=True)
             return old_bson['_id']
+
+    class _Series(self):
+        
+        def __init__(self):
+            self = {'name': None,
+                    'key': None,
+                    'datasetCode': None,
+                    'startDate': None, 
+                    'endDate': None, 
+                    'values': None,
+                    'attributes', None,
+                    'releaseDates': None,
+                    'revisions': None,
+                    'frequency': None,
+                    'dimensions': None}
+                    # Do we need it?
+                    'categoryCode': None,
+
+    class _Dataset():
+        def __init__(self):
+            self = {'datasetCode': None,
+                    'dimensionList': None,
+                    'docHref': None,
+                    'attributeList': None,
+                    'lastUdpate': None,
+                    'versionDate': None}
+
+    class _Category():
+        def __init__(self):
+            self = {'name': None,
+                    'children': None,
+                    'categoryCode': None,
+                    # we need to keep track of wich categories we mirror on Widukind
+                    'present': False}
