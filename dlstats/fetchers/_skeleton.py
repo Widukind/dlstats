@@ -77,14 +77,14 @@ class Skeleton(object):
         return datetime.strptime(v, fmt)
     #Schema definition in voluptuous
     str_date = (Required(All(str, Length(min=1))), Required(All(int, Range(min=1,max=20))))
-    revision = (Required(All(int)), Required(All(int)),Required(All(float)))
+    revision = (Required(All(int)), Required(All(int)),Required(All(str)))
     dimension = {Required('name'): All(str), Required('value'): All(str)}
     schema_series = Schema({Required('name'): All(str, Length(min=1)),
                             Required('key'): All(str, Length(min=1))),
                             Required('dataset_code'): All(str, Length(min=1)),
                             Required('start_date'): All(str_date),
                             Required('end_date'): All(str_date),
-                            Required('values'): All(float),
+                            Required('values'): All(str),
                             Required('attributes'): All(str),
                             Required('release_dates'): All([date_validator()]),
                             Required('revisions'): All([revision]),
@@ -106,18 +106,18 @@ class Skeleton(object):
                      frequency=None,
                      dimensions=None,
                      category_code=None):
-        self.name=name
-        self.key=key
-        self.dataset_code=dataset_code
-        self.start_date=start_date
-        self.end_date=end_date
-        self.values=values
-        self.attributes=attributes
-        self.release_dates=release_dates
-        self.revisions=revisions
-        self.frequency=frequency
-        self.dimensions=dimensions
-        self.category_code=category_code
+            self.name=name
+            self.key=key
+            self.dataset_code=dataset_code
+            self.start_date=start_date
+            self.end_date=end_date
+            self.values=values
+            self.attributes=attributes
+            self.release_dates=release_dates
+            self.revisions=revisions
+            self.frequency=frequency
+            self.dimensions=dimensions
+            self.category_code=category_code
         def validate(self):
             schema_series(self)
 
