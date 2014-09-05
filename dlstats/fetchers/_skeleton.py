@@ -143,6 +143,12 @@ class Skeleton(object):
                      last_update=None,
                      version_date=None
                     ):
+            self.dataset_code=dataset_code
+            self.dimension_list=dimension_list
+            self.doc_href=doc_href
+            self.attribute_list=attribute_list
+            self.last_update=last_update
+            self.version_date=version_date
         def validate(self):
             schema_dataset(self)
 
@@ -153,6 +159,9 @@ class Skeleton(object):
                      category_code=None,
                      exposed=False,
                     ):
+            self.name=name
+            self.children=children
+            self.category_code=category_code
+            self.exposed=exposed
         def validate(self):
             schema_category(self)
-
