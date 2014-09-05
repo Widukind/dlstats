@@ -91,7 +91,20 @@ class Skeleton(object):
                             Required('frequency'): All(str, Length(max=1)),
                             Required('dimensions'): All([dimension]),
                            })
-
+    dimension_list = {Required('name'): All(str), [list]}
+    schema_dataset = Schema({Required('dataset_code'): All(str, Length(min=1)),
+                             Required('dimension_list'): All(dimension_list, Length(min=1))),
+                             Required('doc_href'): All(str, Length(min=1)),
+                             Required('attribute_list'): All(dimension_list),
+                             Required('last_update'): All(date_validator()),
+                             Required('version_date'): All(date_validator())
+                            })
+    schema_category = Schema({Required('name'): All(str, Length(min=1)),
+                              Required('children'): All(str, Length(min=1))),
+                              Required('category_code'): All(str, Length(min=1)),
+                              Required('exposed'): All(bool),
+                             })
+    
     class _Series(object):
         def __init__(self,
                      name=None,
@@ -121,22 +134,25 @@ class Skeleton(object):
         def validate(self):
             schema_series(self)
 
+    class _Dataset(object):
+        def __init__(self,
+                     dataset_code=None,
+                     dimension_list=None,
+                     doc_href=None,
+                     attribute_list=None,
+                     last_update=None,
+                     version_date=None
+                    ):
+        def validate(self):
+            schema_dataset(self)
 
-
-    class _Dataset():
-        def __init__(self):
-            self = {'datasetCode': None,
-                    'dimensionList': None,
-                    'docHref': None,
-                    'attributeList': None,
-                    'lastUdpate': None,
-                    'versionDate': None}
-
-    class _Category():
-        def __init__(self):
-            self = {'name': None,
-                    'children': None,
-                    'categoryCode': None,
-                    # we need to keep track of wich categories we mirror on Widukind
-                    'present': False}
+    class _Category(object):
+        def __init__(self,
+                     name=None,
+                     children=None,
+                     category_code=None,
+                     exposed=False,
+                    ):
+        def validate(self):
+            schema_category(self)
 
