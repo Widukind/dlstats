@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pymongo
-from voluptuous import Required, All, Length, Range
+from voluptuous import Required, All, Length, Range, Schema
 from dlstats import configuration
 from datetime import datetime
 
@@ -80,27 +80,28 @@ class Skeleton(object):
     revision = (Required(All(int)), Required(All(int)),Required(All(str)))
     dimension = {Required('name'): All(str), Required('value'): All(str)}
     schema_series = Schema({Required('name'): All(str, Length(min=1)),
-                            Required('key'): All(str, Length(min=1))),
+                            Required('key'): All(str, Length(min=1)),
                             Required('dataset_code'): All(str, Length(min=1)),
                             Required('start_date'): All(str_date),
                             Required('end_date'): All(str_date),
                             Required('values'): All(str),
                             Required('attributes'): All(str),
-                            Required('release_dates'): All([date_validator()]),
+#                            Required('release_dates'): All([date_validator()]),
                             Required('revisions'): All([revision]),
                             Required('frequency'): All(str, Length(max=1)),
                             Required('dimensions'): All([dimension]),
                            })
-    dimension_list = {Required('name'): All(str), [list]}
+#    dimension_list = {Required('name'): All(str), [list]}
     schema_dataset = Schema({Required('dataset_code'): All(str, Length(min=1)),
-                             Required('dimension_list'): All(dimension_list, Length(min=1))),
+                             Required('name'): All(str, Length(min=1)),
+#                             Required('dimension_list'): All(dimension_list, Length(min=1))),
                              Required('doc_href'): All(str, Length(min=1)),
-                             Required('attribute_list'): All(dimension_list),
-                             Required('last_update'): All(date_validator()),
-                             Required('version_date'): All(date_validator())
+#                             Required('attribute_list'): All(dimension_list),
+#                             Required('last_update'): All(date_validator()),
+#                             Required('version_date'): All(date_validator())
                             })
     schema_category = Schema({Required('name'): All(str, Length(min=1)),
-                              Required('children'): All(str, Length(min=1))),
+                              Required('children'): All(str, Length(min=1)),
                               Required('category_code'): All(str, Length(min=1)),
                               Required('exposed'): All(bool),
                              })
@@ -111,14 +112,13 @@ class Skeleton(object):
                      key=None,
                      dataset_code=None,
                      start_date=None,
-                     end_date=None,
+                     end_date=None, 
                      values=None,
                      attributes=None,
                      release_dates=None,
                      revisions=None,
                      frequency=None,
-                     dimensions=None,
-                     category_code=None):
+                     dimensions=None):
             self.name=name
             self.key=key
             self.dataset_code=dataset_code
@@ -130,13 +130,28 @@ class Skeleton(object):
             self.revisions=revisions
             self.frequency=frequency
             self.dimensions=dimensions
-            self.category_code=category_code
+            self.bson = {'name': self.name,
+                         'key': self.key,
+                         'datasetCode': self.dataset_code,
+                         'startDate': self.start_date,
+                         'endDate': self.end_date,
+                         'values': self.values,
+                         'attributes': self.attributes,
+                         'dimensions': self.dimensions,
+                         'releaseDates': self.release_dates,
+                         'revisions': self.revisions,
+                         'frequency': self.frequency}
+        def get(self):
+            return self.bson
         def validate(self):
             schema_series(self)
+        def store(self,db):
+            return self._series_update(db,self.bson,'key')
 
     class _Dataset(object):
         def __init__(self,
                      dataset_code=None,
+                     name=None,
                      dimension_list=None,
                      doc_href=None,
                      attribute_list=None,
@@ -144,13 +159,24 @@ class Skeleton(object):
                      version_date=None
                     ):
             self.dataset_code=dataset_code
+            self.name=name
             self.dimension_list=dimension_list
             self.doc_href=doc_href
             self.attribute_list=attribute_list
             self.last_update=last_update
             self.version_date=version_date
+            self.bson = {'name': self.name,
+                         'datasetCode': self.dataset_code,
+                         'attributeList': self.attribute_list,
+                         'dimensionList': self.dimensions_list,
+                         'docHref': self.doc_href,
+                         'lastUpdate': self.last_update}
+        def get(self):
+            return self.bson
         def validate(self):
             schema_dataset(self)
+        def store(self,db):
+            return self._bson_update(db,self.bson,'datasetCode')
 
     class _Category(object):
         def __init__(self,
@@ -163,5 +189,13 @@ class Skeleton(object):
             self.children=children
             self.category_code=category_code
             self.exposed=exposed
+            self.bson = {'name': self.name,
+                         'children': self.children,
+                         'categoryCode': self.category_code,
+                         'exposed': self.exposed}
+        def get(self):
+            return self.bson
         def validate(self):
             schema_category(self)
+        def store(self,db):
+            return Skeleton._bson_update(self,db,self.bson,'name')
