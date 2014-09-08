@@ -130,19 +130,20 @@ class Skeleton(object):
             self.revisions=revisions
             self.frequency=frequency
             self.dimensions=dimensions
-            self.bson = {'name': self.name,
-                         'key': self.key,
-                         'datasetCode': self.dataset_code,
-                         'startDate': self.start_date,
-                         'endDate': self.end_date,
-                         'values': self.values,
-                         'attributes': self.attributes,
-                         'dimensions': self.dimensions,
-                         'releaseDates': self.release_dates,
-                         'revisions': self.revisions,
-                         'frequency': self.frequency}
-        def get(self):
-            return self.bson
+        @property
+        def bson(self):
+            self.validate()
+            return {'name': self.name,
+                    'key': self.key,
+                    'datasetCode': self.dataset_code,
+                    'startDate': self.start_date,
+                    'endDate': self.end_date,
+                    'values': self.values,
+                    'attributes': self.attributes,
+                    'dimensions': self.dimensions,
+                    'releaseDates': self.release_dates,
+                    'revisions': self.revisions,
+                    'frequency': self.frequency}
         def validate(self):
             schema_series(self)
         def store(self,db):
@@ -171,8 +172,15 @@ class Skeleton(object):
                          'dimensionList': self.dimensions_list,
                          'docHref': self.doc_href,
                          'lastUpdate': self.last_update}
-        def get(self):
-            return self.bson
+        @property
+        def bson(self):
+            self.validate()
+            return {'name': self.name,
+                    'datasetCode': self.dataset_code,
+                    'attributeList': self.attribute_list,
+                    'dimensionList': self.dimensions_list,
+                    'docHref': self.doc_href,
+                    'lastUpdate': self.last_update}
         def validate(self):
             schema_dataset(self)
         def store(self,db):
@@ -193,8 +201,13 @@ class Skeleton(object):
                          'children': self.children,
                          'categoryCode': self.category_code,
                          'exposed': self.exposed}
-        def get(self):
-            return self.bson
+        @property
+        def bson(self):
+            self.validate()
+            return {'name': self.name,
+                    'children': self.children,
+                    'categoryCode': self.category_code,
+                    'exposed': self.exposed}
         def validate(self):
             schema_category(self)
         def store(self,db):
