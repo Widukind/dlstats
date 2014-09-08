@@ -4,6 +4,7 @@ import pymongo
 from voluptuous import Required, All, Length, Range, Schema
 from dlstats import configuration
 from datetime import datetime
+import logging
 
 class Skeleton(object):
     """Basic structure for statistical providers implementations."""
@@ -35,7 +36,7 @@ class Skeleton(object):
             for k in bson.keys():
                 if not (k == 'versionDate'):
                     if (old_bson[k] != bson[k]):
-                        self.log_warning(coll.database.name+'.'+coll.name+': '+k+" has changed value. Old value: {}, new value: {}".format(old_bson[k],bson[k]))
+                        logging.warning(coll.database.name+'.'+coll.name+': '+k+" has changed value. Old value: {}, new value: {}".format(old_bson[k],bson[k]))
                         identical = False
             if not identical:
                 coll.update({'_id': old_bson['_id']},bson)
@@ -51,7 +52,7 @@ class Skeleton(object):
             for k in bson.keys():
                 if (k != 'versionDate'):
                     if (old_bson[k] != bson[k]):
-                        self.log_warning(coll.database.name+'.'+coll.name+': '+k+" has changed value. Old value: {}, new value: {}".format(old_bson[k],bson[k]))
+                        logging.warning(coll.database.name+'.'+coll.name+': '+k+" has changed value. Old value: {}, new value: {}".format(old_bson[k],bson[k]))
                         identical = False
             if not identical:
                 values = bson['values']
@@ -101,8 +102,8 @@ class Skeleton(object):
 #                             Required('version_date'): All(date_validator())
                             })
     schema_category = Schema({Required('name'): All(str, Length(min=1)),
-                              Required('children'): All(str, Length(min=1)),
-                              Required('category_code'): All(str, Length(min=1)),
+#                              Required('children'): All(str, Length(min=1)),
+                              Required('categoryCode'): All(str, Length(min=1)),
                               Required('exposed'): All(bool),
                              })
     
@@ -132,7 +133,7 @@ class Skeleton(object):
             self.dimensions=dimensions
         @property
         def bson(self):
-            self.validate()
+ #           self.validate()
             return {'name': self.name,
                     'key': self.key,
                     'datasetCode': self.dataset_code,
@@ -166,15 +167,10 @@ class Skeleton(object):
             self.attribute_list=attribute_list
             self.last_update=last_update
             self.version_date=version_date
-            self.bson = {'name': self.name,
-                         'datasetCode': self.dataset_code,
-                         'attributeList': self.attribute_list,
-                         'dimensionList': self.dimensions_list,
-                         'docHref': self.doc_href,
-                         'lastUpdate': self.last_update}
+
         @property
         def bson(self):
-            self.validate()
+ #           self.validate()
             return {'name': self.name,
                     'datasetCode': self.dataset_code,
                     'attributeList': self.attribute_list,
@@ -197,18 +193,16 @@ class Skeleton(object):
             self.children=children
             self.category_code=category_code
             self.exposed=exposed
-            self.bson = {'name': self.name,
-                         'children': self.children,
-                         'categoryCode': self.category_code,
-                         'exposed': self.exposed}
+
         @property
         def bson(self):
-            self.validate()
+#            self.validate()
             return {'name': self.name,
                     'children': self.children,
                     'categoryCode': self.category_code,
                     'exposed': self.exposed}
         def validate(self):
-            schema_category(self)
+            print(self.bson)
+            Skeleton.schema_category(self.bson)
         def store(self,db):
-            return Skeleton._bson_update(self,db,self.bson,'name')
+            return Skeleton._bson_update(self,db,self.bson,'categoryCode')
