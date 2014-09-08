@@ -9,7 +9,8 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import Skeleton
+#from dlstats.fetchers.skeleton import Skeleton
+from _skeleton import Skeleton
 import threading
 import collections
 import lxml.etree
@@ -44,18 +45,21 @@ class Eurostat(Skeleton):
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
         self.db = self.client.eurostat
-        webpage = urllib.request.urlopen(
-            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            timeout=7)
-        table_of_contents = webpage.read()
-        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-        self.store_path = '/mnt/data/dlstats/'
-    def create_categories_db(self):
-        """Create the categories in MongoDB
-        """
+#        webpage = urllib.request.urlopen(
+#            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+#            timeout=7)
+#        table_of_contents = webpage.read()
+#        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+        parser = lxml.etree.XMLParser(recover=True) 
+        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
+        self.selected_codes = ['ei_bcs_cs']
 
-        id_journal = self.db.journal.insert({'method': 'insert_categories_db'})
-        def walktree(branch, parent_id):
+    def update_categories_db(self):
+        """Update the categories in MongoDB
+
+        If a category doesn't exit, it is created
+        """
+        def walktree(child):
             """Recursive function for parsing table_of_contents.xml
 
             :param branch: The current branch explored. The function
@@ -64,262 +68,101 @@ class Eurostat(Skeleton):
             :param parent_id: The id of the previous branch
             :type parent_id: MongoObject(Id)
             """
-            for children in branch.iterchildren(
-                '{urn:eu.europa.ec.eurostat.navtree}children'):
-                for branch in children.iterchildren(
-                    '{urn:eu.europa.ec.eurostat.navtree}branch'):
-                    for title in branch.iterchildren(
-                        '{urn:eu.europa.ec.eurostat.navtree}title'):
-                        if title.attrib.values()[0] == 'en':
-                            node = {'name': title.text,
-                                    'id_journal': id_journal}
-                            _id = self.db.categories.insert(node)
-                            self.db.categories.update(
-                                {'_id': parent_id},
-                                {'$push': {'children': _id}})
-                    walktree(branch, _id)
-                for leaf in children.iterchildren(
-                    '{urn:eu.europa.ec.eurostat.navtree}leaf'):
-                    for title in leaf.iterchildren(
-                        '{urn:eu.europa.ec.eurostat.navtree}title'):
-                        if title.attrib.values()[0] == 'en':
-                            node = {'name': title.text,
-                                    'id_journal': id_journal}
-                            _id = self.db.categories.insert(node)
-                            self.db.categories.update(
-                                {'_id': parent_id},
-                                {'$push': {'children': _id}})
-                    for key in leaf.iterchildren(
-                        '{urn:eu.europa.ec.eurostat.navtree}code'):
-                            self.db.categories.update(
-                                {'_id': _id},
-                                {'$push': {'flowRef': key.text}})
-                    for download_link in leaf.iterchildren(
-                        '{urn:eu.europa.ec.eurostat.navtree}downloadLink'):
-                            format =  download_link.attrib.values()[0]
-                            _url = download_link.text
-                            self.db.categories.update(
-                                {'_id': _id},
-                                {'$push': {'url_'+format: _url }})
+            children_ids = []
+            for branch in child.iterchildren():
+                lastUpdate = None
+                lastModified = None
+                code = None
+                children = None
+                for element in branch.iterchildren():
+                    if element.tag[-5:] == 'title':
+                        if element.attrib.values()[0] == 'en':
+                            title = element.text
+                    elif element.tag[-4:] == 'code':
+                        code = element.text
+                    elif element.tag[-10:] == 'lastUpdate':
+                        if not (element.text is None):
+                            lastUpdate = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                    elif element.tag[-8:] == 'children':
+                        children = walktree(element)
+                if not ((lastUpdate is None) | (lastModified is None)):
+                    lastUpdate = max(lastUpdate,lastModified)
+                document = self._Category(name=title,children=children,category_code=code)
+                _id = document.store(self.db.categories)
+                children_ids += [_id]
+            return children_ids
 
-        root = self.table_of_contents.iterfind(
-            '{urn:eu.europa.ec.eurostat.navtree}branch')
-        for branch in root:
-            for title in branch.iterchildren(
-                '{urn:eu.europa.ec.eurostat.navtree}title'):
-                if title.attrib.values()[0] == 'en':
-                    node = {'name': title.text, 'id_journal': id_journal}
-                    _id = self.db.categories.insert(node)
-            walktree(branch, _id)
+        branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
+        _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
+        document = self._Category(name='Eurostat',children=[_id])
+        document.store(self.db.categories)
 
 
-    def update_categories_db(self):
-        """Update the categories in MongoDB
-        """
-        id_journal = self.db.journal.insert({'method': 'update_categories_db'})
-        self.create_categories_db()
-        id_and_names = [name['name']
-                        for name 
-                        in self.db.categories.find({},
-                                                   fields = {'_id':0,'name':1})]
-        dupes = [dupe for dupe, number_of_occurences 
-                 in collections.Counter(id_and_names).items() 
-                 if number_of_occurences > 1]
-        for dupe in dupes:
-            candidates = self.db.categories.find({'name':dupe}).sort('_id')
-            candidates = [candidate for candidate in candidates]
-            self.db.categories.remove({'_id':candidates[1]['_id']})
+    def get_selected_datasets(self):
+        """Collects the dataset codes that are in table of contents,
+        below the ones indicated in "selected_codes" provided in configuration
+        :returns: list of codes"""
+        def walktree1(id):
+            datasets1 = []
+            c = self.db.categories.find_one({'_id': id})
+            if 'children' in c:
+                for child in  c['children']:
+                    datasets1 += walktree1(child)
+                return datasets1
+            else:
+                return [c['code']]
+        datasets = []
+        for code in self.selected_codes:
+            cc = self.db.categories.find_one({'code': code})
+            datasets += walktree1(cc['_id'])
+        return datasets
 
-    def create_series_db(self):
-        """Create time series documents in MongoDB. 
-        :param leaf: A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
-        :type lxml.etree.ElementTree 
+    def update_selected_dataset(self,dataset_code):
+        """Updates data in Database for selected datasets
+        :dset: dataset code
         :returns: None"""
-        def create_a_series(lgr,db,leaf):
-            try:
-                id_journal = db.journal.insert({'method': 'create_a_series'})
-                webpage = urllib.request.urlopen(leaf['url_dft'][0], timeout=7)
-                buffer = BytesIO(webpage.read())
-                dft_file = gzip.GzipFile(fileobj=buffer, mode="rb")
-                dft_file = TextIOWrapper(dft_file, encoding='utf-8', newline='')
-                split_dft = [line.strip() for line in dft_file]
-                i=0
-                lastup_regex = re.compile('LASTUP')
-                for line in split_dft:
-                    if i == 1:
-                        last_update = line.title()
-                        last_update = datetime.datetime.strptime(last_update,
-                                                                 '%a %d %b %Y %X')
-                        break
-                    if re.search(lastup_regex, line):
-                        i=1
-                key = '....'
-                series__ = sdmx.eurostat.data_extraction(leaf['flowRef'][0],
-                                                          key)
-                series = []
-                for series_ in [series__.time_series[key]
-                               for key
-                               in series__.time_series.keys()]:
-                    values = series_[1].values.tolist()
-                    release_dates = [last_update for i in range(len(values))]
-                    codes_ = series_[0]
-                    codes = [{'name': name, 'value': value} 
-                             for name, value in codes_.items()]
-                    series_id = db.series.insert({'name': leaf['name'],
-                                   'start_date':series_[1].index[0], 
-                                   'end_date':series_[1].index[-1], 
-                                   'values':values,
-                                   'release_dates':release_dates,
-                                   'frequency':series_[0]['FREQ'], 
-                                   'categories_id':leaf['_id'],
-                                   'id_journal':id_journal,
-                                   'codes': codes})
-                    for code in codes:
-                        #This is very ugly because of https://jira.mongodb.org/browse/SERVER-831
-                        #This is also a terrible race condition. We need to fix that...
-                        #We may want to implement an ugly locking mechanism (there is
-                        #no clean way of doing this in mongodb)
-                        category = db.categories.find_one({'_id':leaf['_id']})
-                        sentinel_code = False
-                        codes_ = []
-                        for code_ in category['codes']:
-                            if code_['name'] == code['name']:
-                                sentinel_code = True
-                                sentinel_value = False
-                                values_ = []
-                                for value in code_['name']['values']:
-                                    if value['key'] == code['value']:
-                                        sentinel_value = True
-                                        if series_id not in value['series_id']:
-                                            value['series_id'].append(series_id)
-                                    else:
-                                        values_.append(value)
-                                if sentinel_value == False:
-                                    values_.append({'key':code['value'],'series_id':[series_id]})
-                                code_['values'] = values_
-                                codes_.append(code_)
-                            else:
-                                codes_.append(code_)
-                            if sentinel_code == False:
-                                codes_.append({'name':code['name'],
-                                               'values':{'key':code['value'], 'series_id':[series_id]}})
-                        category['codes'] = codes_
-                        db.categories.update({'_id':leaf['_id']},category)
-                lgr.info('Successfully inserted '+leaf['flowRef'][0])
-            except:
-                lgr.info('Insertion failed '+leaf['flowRef'][0])
+        dsd = sdmx.eurostat.data_definition(d)
+        cat = self.db.categories.find_one({'code': d})
+        document = self._Dataset(dataset_code=d,
+                                 dimension_list=dsd.codes,
+# To be fixed !!!!
+                                 attributes_list=None,
+                                 lastUpdate=cat['lastUpdate'])
+        id = document.store(self.db.datasets)
+# To be tested
+        self.update_a_series(dataset_code,id,document.lastUpdate)    
 
-        id_journal = self.db.journal.insert({'method': 'create_series_db'})
-        last_update_categories = list(self.db.journal.find(
-            {'method': 'insert_categories_db'}).sort([('_id',-1)]).limit(1))
-        leaves = list(self.db.categories.find({
-            'id_journal': last_update_categories[0]['_id'],
-            'flowRef': {'$exists': 'true'}}))
-#The next line is for testing purposes.
-        leaves = leaves[0:9]
-        threads = []
-        for leaf in leaves:
-            threads.append(threading.Thread(target=create_a_series,
-                                            args=(self.lgr,self.db,leaf)))
-        i=1
-        for thread in threads:
-            thread.start()
-            time.sleep(math.log(i)+4)
-            i += 1
-            if i > 70:
-                thread[i-70].join()
-        for thread in threads[i-70:]:
-            thread.join()
-        self.lgr.info('create_series_db() done')
-
-    def update_series_db(self):
-        """Update the series in MongoDB
-        """
-        def update_a_series(leaf):
-            """Update the time series documents in MongoDB.
-            :param: leaf (): A leaf from http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing/table_of_contents.xml
-            :type: lxml.etree.ElementTree
-            :returns: A tuple providing additional info. The first member is True if the insertion succeeded. The second member is the flowRef identifying the DataFlow that was pulled."""
-            try:
-                id_journal = self.db.journal.insert({'method': 'update_a_series'})
-                key = '....'
-                series_ = sdmx.eurostat.data_extraction(leaf['flowRef'][0],key)
-                for series in [series_.time_series[key]
-                               for key
-                               in series_.time_series.keys()]:
-                    name = leaf['name']
-                    start_date = series[1].index[0]
-                    end_date = series[1].index[-1]
-                    values = series[1].values.tolist()
-                    frequency = series[0]['FREQ']
-                    codes = series[0]
-                    categories_id = leaf['_id']
-                    previous_series = db.series.find({'flowRef':leaf['flowRef'][0],
-                                                      'name':name},
-                                                     fields={'values':1})
-                    series_id = db.series.update({'flowRef':leaf['flowRef'][0],
-                                                  'name':name},
-                                                 {'name':name,
-                                                  'start_date':start_date,
-                                                  'end_date':end_date,
-                                                  'values':values,
-                                                  'frequency':frequency,
-                                                  'categories_id':categories_id},
-                                                 {'$push':{'_id_journal':id_journal}},
-                                                upsert=True)
-                    i = 0
-                    for old_value in previous_series[0]['values']:
-                        if old_value != values[i]:
-                            db.series.update(
-                                {'flowRef':leaf['flowRef'][0],'name':name},
-                                {'revisions': {'value': old_value,
-                                               'position':i}},
-                                upsert=True)
-                            i += 1
-
-                    if previous_series != []:
-                        for code_name, code_value in codes.items():
-                            code_id = db.codes.insert(
-                                {'name':code_name,
-                                 'values':{'value':code_value}},
-                                {'$push': {'series_id': series_id}})
-                            db.series.update({'_id':series_id},
-                                             {'$push':{'codes_id':code_id}},
-                                             upsert=True)
-                return (True,'flowRef : '+leaf['flowRef'][0])
-            except:
-                return (False,'flowRef : '+leaf['flowRef'][0])
-        last_create_series_db = list(self.db.journal.find(
-            {'name': 'create_series_db'}).sort([('_id',-1)]).limit(1))
-        last_update_series_db = list(self.db.journal.find(
-            {'name': 'update_series_db'}).sort([('_id',-1)]).limit(1))
-        if last_update_series_db == []:
-            last_update_series_db = last_create_series_db
-        date_infimum = last_update_series_db[0]['_id'].generation_time
-        id_journal = self.db.journal.insert({'method': 'update_series_db'})
-
-        last_update_categories = list(self.db.journal.find(
-            {'method': 'insert_categories_db'}).sort([('_id',-1)]).limit(1))
-        leaves = list(self.db.categories.find({
-            'id_journal': last_update_categories[0]['_id'],
-            'flowRef': {'$exists': 'true'}}))
-        leaves = leaves[0:9]
-        threads = []
-        for leaf in leaves:
-            threads.append(threading.Thread(target=update_a_series,
-                                            args=(self.lgr,self.db,leaf)))
-        i=1
-        for thread in threads:
-            thread.start()
-            time.sleep(math.log(i)+4)
-            i += 1
-            if i > 70:
-                thread[i-70].join()
-        for thread in threads[i-70:]:
-            thread.join()
-        self.lgr.info('update_series_db() done')
+    def update_a_series(self,dataset_code,dataset_id,lastUpdate):
+        key = '....'
+        series__ = sdmx.eurostat.data_extraction(dataset_code,key)
+        for series_ in [series__.time_series[key]
+                        for key
+                        in series__.time_series.keys()]:
+            series_key = (dataset_code+'.'+'.'.join(series_[0].values())).upper()
+            values = series_[1].values.tolist()
+            release_dates = [lastUpdate for i in range(len(values))]
+            codes_ = series_[0]
+            codes = [{'name': name, 'value': value} 
+                     for name, value in codes_.items()]
+            document = self._Series(key= series_key,
+                                datasetCode= dataset_code,
+                                startDate=series_[1].index[0], 
+                                endDate=series_[1].index[-1], 
+                                values=values,
+# to be fixed !!!!
+                                attributes=None,
+                                releaseDates=release_dates,
+                                frequency=series_[0]['FREQ'], 
+                                categoriesId=dataset_id,
+                                dimensions=codes)
+            document.store(self.db.series)
 
 
+    def update_eurostat(self):
+        categories = self.create_categories_db()
+#        print(self.get_selected_datasets())
+#        for d in self.get_selected_datasets():
+#            self.update_selected_dataset(d)
 
 
 
