@@ -5,6 +5,7 @@ from voluptuous import Required, All, Length, Range, Schema
 from dlstats import configuration
 from datetime import datetime
 import logging
+from collections import defaultdict
 
 class Skeleton(object):
     """Basic structure for statistical providers implementations."""
@@ -59,15 +60,14 @@ class Skeleton(object):
                 old_values = old_bson['values']
                 releaseDates = bson['releaseDates']
                 old_releaseDates = old_bson['releaseDates']
-                old_revisions = old_bson['revisions']
+                revisions = old_bson['revisions']
                 for i in range(len(old_values)):
                     if old_values[i] == values[i]:
                         releaseDates[i] = old_releaseDates[i]
                     else:
-                        revisions[i] = old_revisions[i]
                         revisions[i][releaseDates[i]] = old_values[i]
-                bson['releaseDates'] = releaseDates
                 bson['revisions'] = revisions
+                bson['releaseDates'] = releaseDates
                 coll.update({'_id': old_bson['_id']},bson,upsert=True)
             return old_bson['_id']
 
@@ -117,7 +117,7 @@ class Skeleton(object):
                      values=None,
                      attributes=None,
                      release_dates=None,
-                     revisions=None,
+                     revisions=defaultdict(dict),
                      frequency=None,
                      dimensions=None):
             self.name=name
@@ -148,23 +148,21 @@ class Skeleton(object):
         def validate(self):
             schema_series(self)
         def store(self,db):
-            return self._series_update(db,self.bson,'key')
+            return Skeleton._series_update(self,db,self.bson,'key')
 
     class _Dataset(object):
         def __init__(self,
                      dataset_code=None,
                      name=None,
-                     dimension_list=None,
+                     codes_list=None,
                      doc_href=None,
-                     attribute_list=None,
                      last_update=None,
                      version_date=None
                     ):
             self.dataset_code=dataset_code
             self.name=name
-            self.dimension_list=dimension_list
+            self.codes_list=codes_list
             self.doc_href=doc_href
-            self.attribute_list=attribute_list
             self.last_update=last_update
             self.version_date=version_date
 
@@ -173,33 +171,38 @@ class Skeleton(object):
  #           self.validate()
             return {'name': self.name,
                     'datasetCode': self.dataset_code,
-                    'attributeList': self.attribute_list,
-                    'dimensionList': self.dimensions_list,
+                    'codesList': self.codes_list,
                     'docHref': self.doc_href,
                     'lastUpdate': self.last_update}
         def validate(self):
             schema_dataset(self)
         def store(self,db):
-            return self._bson_update(db,self.bson,'datasetCode')
+            return Skeleton._bson_update(self,db,self.bson,'datasetCode')
 
     class _Category(object):
         def __init__(self,
                      name=None,
+                     doc_href=None,
                      children=None,
                      category_code=None,
+                     last_update=None,
                      exposed=False,
                     ):
             self.name=name
+            self.doc_href=doc_href
             self.children=children
             self.category_code=category_code
+            self.last_update=last_update
             self.exposed=exposed
 
         @property
         def bson(self):
 #            self.validate()
             return {'name': self.name,
+                    'docHref': self.doc_href,
                     'children': self.children,
                     'categoryCode': self.category_code,
+                    'lastUpdate': self.last_update,
                     'exposed': self.exposed}
         def validate(self):
             print(self.bson)

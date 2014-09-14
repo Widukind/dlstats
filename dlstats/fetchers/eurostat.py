@@ -9,7 +9,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-#from dlstats.fetchers.skeleton import Skeleton
+#from dlstats.fetchers._skeleton import Skeleton
 from _skeleton import Skeleton
 import threading
 import collections
@@ -70,31 +70,39 @@ class Eurostat(Skeleton):
             """
             children_ids = []
             for branch in child.iterchildren():
-                lastUpdate = None
-                lastModified = None
+                title = None
+                doc_href = None
+                last_update = None
+                last_modified = None
                 code = None
                 children = None
                 for element in branch.iterchildren():
                     if element.tag[-5:] == 'title':
                         if element.attrib.values()[0] == 'en':
                             title = element.text
+                    elif element.tag[-5:] == 'metadata':
+                        if element.attrib.values()[0] == 'html':
+                            doc_href = element.text
                     elif element.tag[-4:] == 'code':
                         code = element.text
                     elif element.tag[-10:] == 'lastUpdate':
                         if not (element.text is None):
-                            lastUpdate = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                            last_update = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                    elif element.tag[-12:] == 'lastModified':
+                        if not (element.text is None):
+                            last_modified = datetime.datetime.strptime(element.text,'%d.%m.%Y')
                     elif element.tag[-8:] == 'children':
                         children = walktree(element)
-                if not ((lastUpdate is None) | (lastModified is None)):
-                    lastUpdate = max(lastUpdate,lastModified)
-                document = self._Category(name=title,children=children,category_code=code)
+                if not ((last_update is None) | (last_modified is None)):
+                    last_update = max(last_update,last_modified)
+                document = self._Category(name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
                 _id = document.store(self.db.categories)
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = self._Category(name='Eurostat',children=[_id])
+        document = self._Category(name='Eurostat',children=[_id],last_update=None)
         document.store(self.db.categories)
 
 
@@ -121,40 +129,50 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: dataset code
         :returns: None"""
-        dsd = sdmx.eurostat.data_definition(d)
-        cat = self.db.categories.find_one({'code': d})
-        document = self._Dataset(dataset_code=d,
-                                 dimension_list=dsd.codes,
-# To be fixed !!!!
-                                 attributes_list=None,
-                                 lastUpdate=cat['lastUpdate'])
+        dsd = sdmx.eurostat_test.codes(dataset_code)
+        cat = self.db.categories.find_one({'categoryCode': dataset_code})
+        document = self._Dataset(dataset_code=dataset_code,
+                                 codes_list=dsd,
+                                 name = cat['name'],
+                                 doc_href = cat['docHref'],
+                                 last_update=cat['lastUpdate'])
         id = document.store(self.db.datasets)
-# To be tested
-        self.update_a_series(dataset_code,id,document.lastUpdate)    
+        self.update_a_series(dataset_code,id,document.bson['lastUpdate'],dsd)    
 
-    def update_a_series(self,dataset_code,dataset_id,lastUpdate):
-        key = '....'
-        series__ = sdmx.eurostat.data_extraction(dataset_code,key)
-        for series_ in [series__.time_series[key]
-                        for key
-                        in series__.time_series.keys()]:
-            series_key = (dataset_code+'.'+'.'.join(series_[0].values())).upper()
-            values = series_[1].values.tolist()
-            release_dates = [lastUpdate for i in range(len(values))]
-            codes_ = series_[0]
-            codes = [{'name': name, 'value': value} 
+    def parse_date(self,str):
+        m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
+        if m.groups()[3]:
+            return (m.groups()[3],None,'A')
+        else:
+            return (m.groups()[0],m.groups()[2],m.groups()[1])
+
+    def update_a_series(self,dataset_code,code_list,lastUpdate,codes_list):
+        (raw_values, raw_dates, raw_attributes, raw_codes) = sdmx.eurostat_test.raw_data(dataset_code,'....')
+        for key in raw_values:
+            series_key = (dataset_code+'.'+ key).upper()
+            # Eurostat lists data in reversed chronological order
+            values = raw_values[key][::-1]
+            (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][-1])
+            (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][0])
+            for a in raw_attributes[key]:
+                raw_attributes[key][a] = raw_attributes[key][a][::-1]
+            release_dates = [lastUpdate for v in values]
+            codes_ = raw_codes[key]
+            codes = [{name: value} 
                      for name, value in codes_.items()]
+            name = "-".join([codes_list[name][value] for c in codes for name,value in c.items()])
+            print(name)
             document = self._Series(key= series_key,
-                                datasetCode= dataset_code,
-                                startDate=series_[1].index[0], 
-                                endDate=series_[1].index[-1], 
-                                values=values,
-# to be fixed !!!!
-                                attributes=None,
-                                releaseDates=release_dates,
-                                frequency=series_[0]['FREQ'], 
-                                categoriesId=dataset_id,
-                                dimensions=codes)
+                                    name=name,
+                                    dataset_code= dataset_code,
+                                    start_date=[start_year,start_subperiod],
+                                    end_date=[end_year,end_subperiod],
+                                    values=raw_values[key],
+                                    attributes=raw_attributes[key],
+                                    release_dates=release_dates,
+                                    frequency=freq,
+                                    dimensions=codes
+                                )
             document.store(self.db.series)
 
 
@@ -166,3 +184,7 @@ class Eurostat(Skeleton):
 
 
 
+if __name__ == "__main__":
+    import eurostat
+    e = eurostat.Eurostat()
+    e.update_selected_dataset('ei_bsco_q')
