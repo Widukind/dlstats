@@ -67,9 +67,9 @@ def event_loop(configuration):
         while True:
             data = connection.recv( 512 ).decode()
             data_ = data.split(' ')
-            data__ []
+            data__  = []
             for argument in data_:
-                if len(argument.split('_')) > 1
+                if len(argument.split('_')) > 1:
                     data__.append(argument.split('_'))
                 else:
                     data__.append(argument)
