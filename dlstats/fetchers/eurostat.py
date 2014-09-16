@@ -9,10 +9,10 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-#from dlstats.fetchers._skeleton import Skeleton
-from _skeleton import Skeleton
+from dlstats.fetchers._skeleton import Skeleton
+#from _skeleton import Skeleton
 import threading
-import collections
+from collections import OrderedDict
 import lxml.etree
 import urllib
 from pandas.tseries.offsets import *
@@ -29,7 +29,8 @@ import sdmx
 import datetime
 import time
 import math
-
+import requests
+import zipfile
 
 
 class Eurostat(Skeleton):
@@ -125,11 +126,85 @@ class Eurostat(Skeleton):
             datasets += walktree1(cc['_id'])
         return datasets
 
+    def parse_dsd(self,file,dataset_code):
+        parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
+        tree = lxml.etree.fromstring(file, parser)
+        # Anonymous namespace is not supported by lxml
+        nsmap = {}
+        for t in tree.nsmap:
+            if t != None:
+                nsmap[t] = tree.nsmap[t]
+        codes = {}
+        for codelist_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
+            for codelist in codelist_.iterfind(".//structure:CodeList",
+                                                namespaces=nsmap):
+                name = codelist.get('id')
+                # truncate intial "CL_" in name
+                name = name[3:]
+                # a dot "." can't be part of a JSON field name
+                name = re.sub(r"\.","",name)
+                code = []
+                for code_ in codelist.iterfind(".//structure:Code",
+                                               namespaces=nsmap):
+                    code_key = code_.get("value")
+                    for desc in code_:
+                        if desc.attrib.items()[0][1] == "en":
+                            code.append([code_key, desc.text])
+                codes[name] = code
+        return codes
+
+    def parse_sdmx(self,file,dataset_code):
+        parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
+        tree = lxml.etree.fromstring(file, parser)
+        # Anonymous namespace is not supported by lxml
+        nsmap = {}
+        for t in tree.nsmap:
+            if t != None:
+                nsmap[t] = tree.nsmap[t]
+
+        raw_codes = {}
+        raw_dates = {}
+        raw_values = {}
+        raw_attributes = {}
+        DATA = '{'+tree.nsmap['data']+'}'
+
+        for series in tree.iterfind(".//data:Series",
+                                    namespaces=nsmap):
+
+            attributes = {}
+            values = []
+            dimensions = []
+
+            codes = OrderedDict(series.attrib)
+            for observation in series.iterchildren():
+                attrib = observation.attrib
+                for a in attrib:
+                    if a == "TIME_PERIOD":
+                        dimensions.append(attrib[a])
+                    elif a == "OBS_VALUE":
+                        values.append(attrib[a])
+                    else:
+                        attributes[a] = attrib[a]
+            key = ".".join(codes.values())
+            raw_codes[key] = codes
+            raw_dates[key] = dimensions
+            raw_values[key] = values
+            raw_attributes[key] = attributes
+        return (raw_values, raw_dates, raw_attributes, raw_codes)
+
+
+
     def update_selected_dataset(self,dataset_code):
         """Updates data in Database for selected datasets
         :dset: dataset code
         :returns: None"""
-        dsd = sdmx.eurostat_test.codes(dataset_code)
+#        request = requests.get("http://localhost:8800/eurostat/" + dataset_code + ".sdmx.zip")
+        request = requests.get("http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=data/" + dataset_code + ".sdmx.zip")
+        buffer = BytesIO(request.content)
+        files = zipfile.ZipFile(buffer)
+        dsd_file = files.read(dataset_code + ".dsd.xml")
+        data_file = files.read(dataset_code + ".sdmx.xml")
+        dsd = self.parse_dsd(dsd_file,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
         document = self._Dataset(dataset_code=dataset_code,
                                  codes_list=dsd,
@@ -137,7 +212,7 @@ class Eurostat(Skeleton):
                                  doc_href = cat['docHref'],
                                  last_update=cat['lastUpdate'])
         id = document.store(self.db.datasets)
-        self.update_a_series(dataset_code,id,document.bson['lastUpdate'],dsd)    
+        self.update_a_series(data_file,dataset_code,id,document.bson['lastUpdate'],dsd)    
 
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
@@ -146,8 +221,8 @@ class Eurostat(Skeleton):
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def update_a_series(self,dataset_code,code_list,lastUpdate,codes_list):
-        (raw_values, raw_dates, raw_attributes, raw_codes) = sdmx.eurostat_test.raw_data(dataset_code,'....')
+    def update_a_series(self,data_file,dataset_code,code_list,lastUpdate,codes_list):
+        (raw_values, raw_dates, raw_attributes, raw_codes) = self.parse_sdmx(data_file,dataset_code)
         for key in raw_values:
             series_key = (dataset_code+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
@@ -158,10 +233,9 @@ class Eurostat(Skeleton):
                 raw_attributes[key][a] = raw_attributes[key][a][::-1]
             release_dates = [lastUpdate for v in values]
             codes_ = raw_codes[key]
-            codes = [{name: value} 
+            codes = [{name.upper(): value} 
                      for name, value in codes_.items()]
-            name = "-".join([codes_list[name][value] for c in codes for name,value in c.items()])
-            print(name)
+            name = "-".join([d[1] for c in codes for name,value in c.items() for d in codes_list[name] if d[0] == value])
             document = self._Series(key= series_key,
                                     name=name,
                                     dataset_code= dataset_code,
@@ -187,4 +261,4 @@ class Eurostat(Skeleton):
 if __name__ == "__main__":
     import eurostat
     e = eurostat.Eurostat()
-    e.update_selected_dataset('ei_bsco_q')
+    e.update_selected_dataset('namq_gdp_c')
