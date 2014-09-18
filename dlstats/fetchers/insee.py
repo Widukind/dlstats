@@ -466,8 +466,6 @@ class dataset_page(Insee):
             keys += [td[1].string]
             lastUpdate += [datetime.datetime.strptime(td[5].string,'%Y-%m-%d')]
             self.lastUpdate = max(lastUpdate+[self.lastUpdate])
-            #        href = "http://www.bdm/insee.fr/bdm2/affichageSeries?bouton=Download+file&"+ '&'.join(['idbank='+k for k in keys])
-            # change set into dict for codes. INSEE doesn't have short names so key = value
         return (keys)
 
     def get_dataset(self):
