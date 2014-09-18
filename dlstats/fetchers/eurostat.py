@@ -227,15 +227,16 @@ class Eurostat(Skeleton):
             series_key = (dataset_code+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
             values = raw_values[key][::-1]
-            (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][-1])
-            (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][0])
+            (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
+            (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][-1])
             for a in raw_attributes[key]:
                 raw_attributes[key][a] = raw_attributes[key][a][::-1]
             release_dates = [lastUpdate for v in values]
             codes_ = raw_codes[key]
-            codes = [{name.upper(): value} 
-                     for name, value in codes_.items()]
-            name = "-".join([d[1] for c in codes for name,value in c.items() for d in codes_list[name] if d[0] == value])
+            # make all codes uppercase
+            codes = {name.upper(): value.upper() 
+                     for name, value in codes_.items()}
+            name = "-".join([d[1] for name,value in codes.items() for d in codes_list[name] if d[0] == value])
             document = self._Series(key= series_key,
                                     name=name,
                                     dataset_code= dataset_code,
