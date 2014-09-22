@@ -1,3 +1,5 @@
+# test limitation on line 98
+
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
@@ -9,7 +11,6 @@ import zipfile
 from io import BytesIO, StringIO
 import requests
 import csv
-#from dlstats.fetchers.skeleton import Skeleton
 from dlstats.fetchers._skeleton import Skeleton
 from bson import ObjectId
 from json import loads
@@ -42,10 +43,8 @@ class Insee(Skeleton):
         for a in ul.find_all("a"):
             href = 'http://www.bdm.insee.fr'+a['href']
             children += self.get_page_2(href)
-        node = {'name': 'insee',
-                'code': '0',
-                'children': children}
-        self._bson_update(self.db.categories,node,'code')
+        document = self._Category(name='insee',children=children,category_code='0')
+        document.store(self.db.categories)
 
     def get_page_2(self,url):
         """Parser for  2nd level pages of INSEE BDM
@@ -70,19 +69,15 @@ class Insee(Skeleton):
                     name = c.string
                     href = c['href']
                     code = href.split('=')[1]
-                    node = {'name': name,
-                            'code': code,
-                            'children': None}
-                    _id = self._bson_update(self.db.categories,node,'code')
+                    document = self._Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+                    _id = document.store(self.db.categories)
                     return (None,_id)
-            node = {'name': name,
-                    'code': code,
-                    'children': children}
-            _id = self._bson_update(self.db.categories,node,'code')
+            document = self._Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+            _id = document.store(self.db.categories)
             return (code1,_id)
         fh = self.open_url_and_check(url)
         page = BeautifulSoup(fh)
-#        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/1"))
+        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/1"))
         racine = page.find('ul',id='racine')
         children = []
         for l1 in racine.find_all('li',recursive=False):
@@ -100,8 +95,10 @@ class Insee(Skeleton):
             node = self.db.categories.find_one({'_id': _id})
             if node['children'] == None:
                 if not re.search(re.compile('Stopped series'),node['name']):
-                    # limit number of datasets for testing
-                    if self.test_count < 10:
+                    # !!!!!!!!!!!!!
+                    # limit number of datasets for testing 
+                    # !!!!!!!!!!!!!
+                    if self.test_count < 2:
                         try:
                             self.get_data(node['code'])
                         except:
@@ -138,7 +135,7 @@ class Insee(Skeleton):
                                             [('idbank', k) for k in keys])
             params = params.encode('utf-8')
             fh = self.open_url_and_check(href,params)
-            #            fh = urllib.request.urlopen("http://localhost:8800/insee/A.zip")
+#            fh = urllib.request.urlopen("http://localhost:8800/insee/A.zip")
             buffer = BytesIO(fh.read())
             file = zipfile.ZipFile(buffer)
             (dimensions_desc,series,s_offset) = self.get_charact_csv(file,code)
@@ -154,13 +151,28 @@ class Insee(Skeleton):
                 dimension_list[k].update(dimensions_desc[k])
             flags_list.update(s)
             for s in series:
-                self._series_update(self.db.series,s,'key')
+                document = self._Series(name = s['name'],
+                                        key = s['key'],
+                                        dataset_code = s['datasetCode'],
+                                        start_date = s['startDate'],
+                                        end_date = s['endDate'],
+                                        values = s['values'],
+                                        attributes = s['attributes'],
+                                        dimensions = s['dimensions'],
+                                        release_dates = s['releaseDates'],
+                                        revisions = s['revisions'],
+                                        frequency = s['frequency'])
+                document.store(self.db.series)
         dataset.update(dp.get_dataset())
         dataset['dimension_list'] = dict()
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
         dataset['attribute_list']['flags'] = flags_list
-        self._bson_update(self.db.datasets,dataset,'datasetCode')
+        document = self._Dataset(name = dataset['name'],
+                                 dataset_code = dataset['datasetCode'],
+                                 codes_list = dict(list(dataset['dimension_list'].items())+list(dataset['attribute_list'].items())),
+                                 doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code)
+        document.store(self.db.datasets)
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
@@ -500,9 +512,10 @@ class CodeGroupError(InseeError):
 
 if __name__ == "__main__":
     insee = Insee()
-    insee.update_datasets()
-    #    insee.get_categories(self.initial_page)
+#    insee.get_categories(insee.initial_page)
+    insee.get_data('1336')
+#    insee.update_datasets()
     #    Insee.parse_agenda()             
-    # get_data("http://localhost:8800/insee/A.zip")
-    # get_data("http://localhost:8800/insee/Q.zip")
-    # get_data("http://localhost:8800/insee/M.zip")
+#    insee.get_data("http://localhost:8800/insee/A.zip")
+#    insee.get_data("http://localhost:8800/insee/Q.zip")
+#    insee.get_data("http://localhost:8800/insee/M.zip")
