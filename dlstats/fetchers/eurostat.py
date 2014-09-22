@@ -46,13 +46,13 @@ class Eurostat(Skeleton):
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
         self.db = self.client.eurostat
-#        webpage = urllib.request.urlopen(
-#            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-#            timeout=7)
-#        table_of_contents = webpage.read()
-#        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-        parser = lxml.etree.XMLParser(recover=True) 
-        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
+        webpage = urllib.request.urlopen(
+            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+            timeout=7)
+        table_of_contents = webpage.read()
+        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+#        parser = lxml.etree.XMLParser(recover=True) 
+#        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
