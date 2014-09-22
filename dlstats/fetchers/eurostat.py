@@ -122,7 +122,7 @@ class Eurostat(Skeleton):
                 return [c['code']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'code': code})
+            cc = self.db.categories.find_one({'category_code': code})
             datasets += walktree1(cc['_id'])
         return datasets
 
