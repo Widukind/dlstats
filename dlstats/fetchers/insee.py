@@ -77,7 +77,7 @@ class Insee(Skeleton):
             return (code1,_id)
         fh = self.open_url_and_check(url)
         page = BeautifulSoup(fh)
-        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/1"))
+#        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/1"))
         racine = page.find('ul',id='racine')
         children = []
         for l1 in racine.find_all('li',recursive=False):
