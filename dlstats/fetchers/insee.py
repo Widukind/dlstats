@@ -93,24 +93,25 @@ class Insee(Skeleton):
 
         def walktree(_id):
             node = self.db.categories.find_one({'_id': _id})
-            if node['children'] == None:
+            if len(node['children']) == 0:
                 if not re.search(re.compile('Stopped series'),node['name']):
                     # !!!!!!!!!!!!!
                     # limit number of datasets for testing 
                     # !!!!!!!!!!!!!
                     if self.test_count < 10:
                         try:
-                            self.get_data(node['code'])
+                            self.get_data(node['categoryCode'])
                         except:
-                            print("CodeGroup {} can't be downloaded".format(node['code']))
+                            print("CodeGroup {} can't be downloaded".format(node['categoryCode']))
                             print(sys.exc_info()[0])
                         else:
-                            print(node['code'])
+                            print(node['categoryCode'])
                         self.test_count += 1
             else:
                 for id in node['children']:
                     walktree(id)
         node = self.db.categories.find_one({'name': 'insee'},{'_id': True})
+        print(node)
         walktree(ObjectId(node['_id']))
     
     def get_data(self,code):
