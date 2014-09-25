@@ -22,7 +22,7 @@ class Insee(Skeleton):
     """Class for managing INSEE data in dlstats"""
     def __init__(self):
         super().__init__()
-        self.db = self.client.insee
+        self.db = self.client.widukind
         self.initial_page = "http://www.bdm.insee.fr/bdm2/index?request_locale=en"
         self.test_count = 0
 
@@ -43,7 +43,7 @@ class Insee(Skeleton):
         for a in ul.find_all("a"):
             href = 'http://www.bdm.insee.fr'+a['href']
             children += self.get_page_2(href)
-        document = self._Category(name='insee',children=children,category_code='0')
+        document = self._Category(provider='insee',name='root',children=children,category_code='0')
         document.store(self.db.categories)
 
     def get_page_2(self,url):
@@ -72,7 +72,7 @@ class Insee(Skeleton):
                     document = self._Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
                     _id = document.store(self.db.categories)
                     return (None,_id)
-            document = self._Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+            document = self._Category(provider='insee',name=name,children=children,category_code=code,last_update=datetime.datetime.now())
             _id = document.store(self.db.categories)
             return (code1,_id)
         fh = self.open_url_and_check(url)
@@ -110,8 +110,7 @@ class Insee(Skeleton):
             else:
                 for id in node['children']:
                     walktree(id)
-        node = self.db.categories.find_one({'name': 'insee'},{'_id': True})
-        print(node)
+        node = self.db.categories.find_one({'provider': 'insee', 'name': 'root'},{'_id': True})
         walktree(ObjectId(node['_id']))
     
     def get_data(self,code):
@@ -152,7 +151,8 @@ class Insee(Skeleton):
                 dimension_list[k].update(dimensions_desc[k])
             flags_list.update(s)
             for s in series:
-                document = self._Series(name = s['name'],
+                document = self._Series(provider='insee',
+                                        name = s['name'],
                                         key = s['key'],
                                         dataset_code = s['datasetCode'],
                                         start_date = s['startDate'],
@@ -169,7 +169,8 @@ class Insee(Skeleton):
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
         dataset['attribute_list']['flags'] = flags_list
-        document = self._Dataset(name = dataset['name'],
+        document = self._Dataset(provider='insee',
+                                 name = dataset['name'],
                                  dataset_code = dataset['datasetCode'],
                                  codes_list = dict(list(dataset['dimension_list'].items())+list(dataset['attribute_list'].items())),
                                  doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code)

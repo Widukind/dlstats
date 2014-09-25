@@ -109,6 +109,7 @@ class Skeleton(object):
     
     class _Series(object):
         def __init__(self,
+                     provider=None,
                      name=None,
                      key=None,
                      dataset_code=None,
@@ -120,6 +121,7 @@ class Skeleton(object):
                      revisions=defaultdict(dict),
                      frequency=None,
                      dimensions=None):
+            self.provider=provider
             self.name=name
             self.key=key
             self.dataset_code=dataset_code
@@ -134,7 +136,8 @@ class Skeleton(object):
         @property
         def bson(self):
  #           self.validate()
-            return {'name': self.name,
+            return {'provider': self.provider,
+                    'name': self.name,
                     'key': self.key,
                     'datasetCode': self.dataset_code,
                     'startDate': self.start_date,
@@ -152,6 +155,7 @@ class Skeleton(object):
 
     class _Dataset(object):
         def __init__(self,
+                     provider=None,
                      dataset_code=None,
                      name=None,
                      codes_list=None,
@@ -159,6 +163,7 @@ class Skeleton(object):
                      last_update=None,
                      version_date=None
                     ):
+            slef.provider=provider
             self.dataset_code=dataset_code
             self.name=name
             self.codes_list=codes_list
@@ -169,7 +174,8 @@ class Skeleton(object):
         @property
         def bson(self):
  #           self.validate()
-            return {'name': self.name,
+            return {'provider': self.provider,
+                    'name': self.name,
                     'datasetCode': self.dataset_code,
                     'codesList': self.codes_list,
                     'docHref': self.doc_href,
@@ -181,6 +187,7 @@ class Skeleton(object):
 
     class _Category(object):
         def __init__(self,
+                     provider=None,
                      name=None,
                      doc_href=None,
                      children=None,
@@ -188,6 +195,7 @@ class Skeleton(object):
                      last_update=None,
                      exposed=False,
                     ):
+            self.provider=provider
             self.name=name
             self.doc_href=doc_href
             self.children=children
@@ -198,7 +206,8 @@ class Skeleton(object):
         @property
         def bson(self):
 #            self.validate()
-            return {'name': self.name,
+            return {'provider': self.provider,
+                    'name': self.name,
                     'docHref': self.doc_href,
                     'children': self.children,
                     'categoryCode': self.category_code,

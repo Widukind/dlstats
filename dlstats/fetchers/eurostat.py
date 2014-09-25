@@ -45,7 +45,7 @@ class Eurostat(Skeleton):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
-        self.db = self.client.eurostat
+        self.db = self.client.widukind
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             timeout=7)
@@ -96,14 +96,14 @@ class Eurostat(Skeleton):
                         children = walktree(element)
                 if not ((last_update is None) | (last_modified is None)):
                     last_update = max(last_update,last_modified)
-                document = self._Category(name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
+                document = self._Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
                 _id = document.store(self.db.categories)
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = self._Category(name='Eurostat',children=[_id],last_update=None)
+        document = self._Category(provider='eurostat',name='root',children=[_id],last_update=None)
         document.store(self.db.categories)
 
 
@@ -122,7 +122,7 @@ class Eurostat(Skeleton):
                 return [c['code']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'categoryCode': code})
+            cc = self.db.categories.find_one({'provider': 'eurostat','categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
 
@@ -206,7 +206,8 @@ class Eurostat(Skeleton):
         data_file = files.read(dataset_code + ".sdmx.xml")
         dsd = self.parse_dsd(dsd_file,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
-        document = self._Dataset(dataset_code=dataset_code,
+        document = self._Dataset(provider='eurostat',
+                                 dataset_code=dataset_code,
                                  codes_list=dsd,
                                  name = cat['name'],
                                  doc_href = cat['docHref'],
@@ -237,7 +238,8 @@ class Eurostat(Skeleton):
             codes = {name.upper(): value.upper() 
                      for name, value in codes_.items()}
             name = "-".join([d[1] for name,value in codes.items() for d in codes_list[name] if d[0] == value])
-            document = self._Series(key= series_key,
+            document = self._Series(provider='eurostat',
+                                    key= series_key,
                                     name=name,
                                     dataset_code= dataset_code,
                                     start_date=[start_year,start_subperiod],
