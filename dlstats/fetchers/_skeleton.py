@@ -163,7 +163,7 @@ class Skeleton(object):
                      last_update=None,
                      version_date=None
                     ):
-            slef.provider=provider
+            self.provider=provider
             self.dataset_code=dataset_code
             self.name=name
             self.codes_list=codes_list
