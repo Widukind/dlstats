@@ -158,7 +158,7 @@ class Skeleton(object):
                      provider=None,
                      dataset_code=None,
                      name=None,
-                     codes_list=None,
+                     dimensions_list=None,
                      doc_href=None,
                      last_update=None,
                      version_date=None
@@ -166,7 +166,7 @@ class Skeleton(object):
             self.provider=provider
             self.dataset_code=dataset_code
             self.name=name
-            self.codes_list=codes_list
+            self.dimensions_list=dimensions_list
             self.doc_href=doc_href
             self.last_update=last_update
             self.version_date=version_date
@@ -176,8 +176,8 @@ class Skeleton(object):
  #           self.validate()
             return {'provider': self.provider,
                     'name': self.name,
-                    'datasetCode': self.dataset_code,
-                    'codesList': self.codes_list,
+                    'dataset_code': self.dataset_code,
+                    'dimensions_list': self.dimensions_list,
                     'docHref': self.doc_href,
                     'lastUpdate': self.last_update}
         def validate(self):
