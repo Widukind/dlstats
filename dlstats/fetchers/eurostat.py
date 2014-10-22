@@ -134,23 +134,23 @@ class Eurostat(Skeleton):
         for t in tree.nsmap:
             if t != None:
                 nsmap[t] = tree.nsmap[t]
-        codes = {}
-        for codelist_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
-            for codelist in codelist_.iterfind(".//structure:CodeList",
+        dimensions = {}
+        for dimensions_list_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
+            for dimensions_list in dimensions_list_.iterfind(".//structure:CodeList",
                                                 namespaces=nsmap):
-                name = codelist.get('id')
+                name = dimensions_list.get('id')
                 # truncate intial "CL_" in name
                 name = name[3:]
                 # a dot "." can't be part of a JSON field name
                 name = re.sub(r"\.","",name)
-                code = []
-                for code_ in codelist.iterfind(".//structure:Code",
+                dimension = []
+                for dimension_ in dimensions_list.iterfind(".//structure:Code",
                                                namespaces=nsmap):
-                    code_key = code_.get("value")
+                    dimension_key = dimension_.get("value")
                     for desc in code_:
                         if desc.attrib.items()[0][1] == "en":
-                            code.append([code_key, desc.text])
-                codes[name] = code
+                            dimension.append([dimension_key, desc.text])
+                dimensions[name] = dimension
         return codes
 
     def parse_sdmx(self,file,dataset_code):
@@ -175,7 +175,7 @@ class Eurostat(Skeleton):
             values = []
             dimensions = []
 
-            codes = OrderedDict(series.attrib)
+            dimensions = OrderedDict(series.attrib)
             for observation in series.iterchildren():
                 attrib = observation.attrib
                 for a in attrib:
@@ -185,12 +185,12 @@ class Eurostat(Skeleton):
                         values.append(attrib[a])
                     else:
                         attributes[a] = attrib[a]
-            key = ".".join(codes.values())
-            raw_codes[key] = codes
+            key = ".".join(dimensions.values())
+            raw_dimensions[key] = dimensions
             raw_dates[key] = dimensions
             raw_values[key] = values
             raw_attributes[key] = attributes
-        return (raw_values, raw_dates, raw_attributes, raw_codes)
+        return (raw_values, raw_dates, raw_attributes, raw_dimensions)
 
 
 
@@ -208,7 +208,7 @@ class Eurostat(Skeleton):
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
         document = self._Dataset(provider='eurostat',
                                  dataset_code=dataset_code,
-                                 codes_list=dsd,
+                                 dimensions_list=dsd,
                                  name = cat['name'],
                                  doc_href = cat['docHref'],
                                  last_update=cat['lastUpdate'])
@@ -222,8 +222,8 @@ class Eurostat(Skeleton):
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def update_a_series(self,data_file,dataset_code,code_list,lastUpdate,codes_list):
-        (raw_values, raw_dates, raw_attributes, raw_codes) = self.parse_sdmx(data_file,dataset_code)
+    def update_a_series(self,data_file,dataset_code,dimensions_list,lastUpdate,codes_list):
+        (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,dataset_code)
         for key in raw_values:
             series_key = (dataset_code+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
@@ -233,11 +233,11 @@ class Eurostat(Skeleton):
             for a in raw_attributes[key]:
                 raw_attributes[key][a] = raw_attributes[key][a][::-1]
             release_dates = [lastUpdate for v in values]
-            codes_ = raw_codes[key]
+            dimensions_ = raw_dimensions[key]
             # make all codes uppercase
-            codes = {name.upper(): value.upper() 
-                     for name, value in codes_.items()}
-            name = "-".join([d[1] for name,value in codes.items() for d in codes_list[name] if d[0] == value])
+            dimensions = {name.upper(): value.upper() 
+                     for name, value in dimensions_.items()}
+            name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_list[name] if d[0] == value])
             document = self._Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
@@ -248,7 +248,7 @@ class Eurostat(Skeleton):
                                     attributes=raw_attributes[key],
                                     release_dates=release_dates,
                                     frequency=freq,
-                                    dimensions=codes
+                                    dimensions=dimensions
                                 )
             document.store(self.db.series)
 
