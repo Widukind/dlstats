@@ -22,7 +22,6 @@ class Insee(Skeleton):
     """Class for managing INSEE data in dlstats"""
     def __init__(self):
         super().__init__()
-        self.db = self.client.widukind
         self.initial_page = "http://www.bdm.insee.fr/bdm2/index?request_locale=en"
         self.test_count = 0
 

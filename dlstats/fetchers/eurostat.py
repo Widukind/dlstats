@@ -45,7 +45,6 @@ class Eurostat(Skeleton):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
-        self.db = self.client.widukind
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             timeout=7)

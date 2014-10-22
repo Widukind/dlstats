@@ -12,6 +12,7 @@ class Skeleton(object):
     def __init__(self):
         self.configuration = configuration
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
