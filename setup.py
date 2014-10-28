@@ -17,6 +17,7 @@ setup(name='dlstats',
     install_requires=[
         'pandas>=0.12',
         'docopt>=0.6.0'
+        'voluptuous>=0.8'
       ]
 	)
 
