@@ -146,11 +146,11 @@ class Eurostat(Skeleton):
                 for dimension_ in dimensions_list.iterfind(".//structure:Code",
                                                namespaces=nsmap):
                     dimension_key = dimension_.get("value")
-                    for desc in code_:
+                    for desc in dimension_:
                         if desc.attrib.items()[0][1] == "en":
                             dimension.append([dimension_key, desc.text])
                 dimensions[name] = dimension
-        return codes
+        return dimensions
 
     def parse_sdmx(self,file,dataset_code):
         parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
@@ -161,7 +161,7 @@ class Eurostat(Skeleton):
             if t != None:
                 nsmap[t] = tree.nsmap[t]
 
-        raw_codes = {}
+        raw_dimensions = {}
         raw_dates = {}
         raw_values = {}
         raw_attributes = {}
@@ -174,7 +174,7 @@ class Eurostat(Skeleton):
             values = []
             dimensions = []
 
-            dimensions = OrderedDict(series.attrib)
+            dimensions_ = OrderedDict(series.attrib)
             for observation in series.iterchildren():
                 attrib = observation.attrib
                 for a in attrib:
@@ -184,8 +184,8 @@ class Eurostat(Skeleton):
                         values.append(attrib[a])
                     else:
                         attributes[a] = attrib[a]
-            key = ".".join(dimensions.values())
-            raw_dimensions[key] = dimensions
+            key = ".".join(dimensions_.values())
+            raw_dimensions[key] = dimensions_
             raw_dates[key] = dimensions
             raw_values[key] = values
             raw_attributes[key] = attributes
@@ -212,7 +212,7 @@ class Eurostat(Skeleton):
                                  doc_href = cat['docHref'],
                                  last_update=cat['lastUpdate'])
         id = document.store(self.db.datasets)
-        self.update_a_series(data_file,dataset_code,id,document.bson['lastUpdate'],dsd)    
+        self.update_a_series(data_file,dataset_code,dsd,document.bson['lastUpdate'],dsd)    
 
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
@@ -236,6 +236,7 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
+            print(dimensions_list)
             name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_list[name] if d[0] == value])
             document = self._Series(provider='eurostat',
                                     key= series_key,

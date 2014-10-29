@@ -140,7 +140,7 @@ class Skeleton(object):
             return {'provider': self.provider,
                     'name': self.name,
                     'key': self.key,
-                    'datasetCode': self.dataset_code,
+                    'dataset_code': self.dataset_code,
                     'startDate': self.start_date,
                     'endDate': self.end_date,
                     'values': self.values,
@@ -184,7 +184,7 @@ class Skeleton(object):
         def validate(self):
             schema_dataset(self)
         def store(self,db):
-            return Skeleton._bson_update(self,db,self.bson,'datasetCode')
+            return Skeleton._bson_update(self,db,self.bson,'dataset_code')
 
     class _Category(object):
         def __init__(self,
