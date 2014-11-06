@@ -39,41 +39,42 @@ class WorldBank(Skeleton):
                             column_value = column[1:-1]
                             for cell_value in column_value :
                                 value.append(cell_value.value)
-                                series['value'] = value
-                                series['name'] = name_series[:-5] 
-                                if sheet_name in ('annual') :
-                                    series['start_date'] = str(
+                            series['value'] = value
+                            series['name'] = name_series[:-5] 
+                            if sheet_name in ('annual') :
+                                series['start_date'] = str(
                                     label_row_list[3].value)[:-2]
-                                    series['end_date'] = str(
+                                series['end_date'] = str(
                                     label_row_list[-1].value)[:-2] 
-                                if sheet_name not in ('annual') :       
-                                    series['start_date'] = str(label_row_list[3].value) 
-                                    series['end_date'] = str(label_row_list[-1].value)  
+                            if sheet_name not in ('annual') :       
+                                series['start_date'] = str(label_row_list[3].value) 
+                                series['end_date'] = str(label_row_list[-1].value)  
                                         
-                                if sheet_name == 'annual':    
-                                    frequency = 'a'
-                                if sheet_name == 'monthly':    
-                                    frequency = 'm'
-                                if sheet_name == 'daily':    
-                                    frequency = 'd'              
-                                series['frequency'] = frequency       
-                                series['provider'] = 'WorldBank' 
-                                series['key'] = name_series[:-5].replace(' ',
-                                    '_').replace(',', '')+'.'+column[0].value
-                                series_.append(series)
-                                dataset['provider'] = 'WorldBank'
-                                dataset['name'] = name_series[:-5]
-                                value_dataset_ = []
-                                for value_dataset in label_column_list :
-                                    value_dataset_.append(value_dataset.value) 
-                                if name_series[:-5] in ['Commodity Prices']:
-                                    dataset['dimensions'] = {'name':'Commodity Prices'
-                                    ,'value': value_dataset_[1:-1]} 
-                                if name_series[:-5] not in ['Commodity Prices']:        
-                                    dataset['dimension_list'] = {'name': 'country' , 
-                                    'value': value_dataset_[1:-1]}
-                                dataset['dataset_code'] = 'worldBank_'+name_series[:-5]
-                                dataset_.append(dataset)
+                            if sheet_name == 'annual':    
+                                frequency = 'a'
+                            if sheet_name == 'monthly':    
+                                frequency = 'm'
+                            if sheet_name == 'daily':    
+                                frequency = 'd'              
+                            series['frequency'] = frequency       
+                            series['provider'] = 'WorldBank' 
+                            series['key'] = name_series[:-5].replace(' ',
+                                                '_').replace(',', '')+'.'+column[0].value
+                            series_.append(series)
+                            dataset['provider'] = 'WorldBank'
+                            dataset['name'] = name_series[:-5]
+                            value_dataset_ = []
+                            for value_dataset in label_column_list :
+                                value_dataset_.append(value_dataset.value) 
+                            if name_series[:-5] in ['Commodity Prices']:
+                                dataset['dimensions'] = {'name':'Commodity Prices'
+                                                         ,'value': value_dataset_[1:-1]} 
+                            if name_series[:-5] not in ['Commodity Prices']:        
+                                dataset['dimension_list'] = {'name': 'country' , 
+                                                             'value': value_dataset_[1:-1]}
+                            dataset['dataset_code'] = 'worldBank_'+name_series[:-5]
+                            dataset_.append(dataset)
 				               #bulk = self.db.series.initialize_unordered_bulk_op()
         for series in series_:
+#            print(series)
             self.db.series.insert(series)
