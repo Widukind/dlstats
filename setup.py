@@ -15,6 +15,7 @@ setup(name='dlstats',
     data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
                 ('/etc/systemd/system',['os_specific/dlstats.service'])],
     install_requires=[
+        'pymongo>=2.7.2',
         'pandas>=0.12',
         'docopt>=0.6.0',
         'voluptuous>=0.8',
