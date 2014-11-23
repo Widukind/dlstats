@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 import pymongo
-from voluptuous import Required, All, Length, Range, Schema
+from voluptuous import Required, All, Length, Range, Schema, Invalid
 from dlstats import configuration
 from datetime import datetime
 import logging
@@ -36,7 +36,7 @@ class Skeleton(object):
         else:
             identical = True
             for k in bson.keys():
-                if not (k == 'versionDate'):
+                if not (k == 'version_date'):
                     if (old_bson[k] != bson[k]):
                         logging.warning(coll.database.name+'.'+coll.name+': '+k+" has changed value. Old value: {}, new value: {}".format(old_bson[k],bson[k]))
                         identical = False
@@ -59,8 +59,8 @@ class Skeleton(object):
             if not identical:
                 values = bson['values']
                 old_values = old_bson['values']
-                releaseDates = bson['releaseDates']
-                old_releaseDates = old_bson['releaseDates']
+                releaseDates = bson['release_dates']
+                old_releaseDates = old_bson['release_dates']
                 revisions = old_bson['revisions']
                 for i in range(len(old_values)):
                     if old_values[i] == values[i]:
@@ -75,36 +75,39 @@ class Skeleton(object):
 
     #Validation and ODM
     #Custom validator (only a few types are natively implemented in voluptuous)
-    def date_validator(v,fmt='%Y-%m-%d'):
-        return datetime.strptime(v, fmt)
+    def date_validator(value):
+        if isinstance(value, datetime):
+            return value
+        else:
+            raise Invalid('Input date was not of type datetime.datetime')
+
     #Schema definition in voluptuous
-    str_date = (Required(All(str, Length(min=1))), Required(All(int, Range(min=1,max=20))))
     revision = (Required(All(int)), Required(All(int)),Required(All(str)))
     dimension = {Required('name'): All(str), Required('value'): All(str)}
     schema_series = Schema({Required('name'): All(str, Length(min=1)),
                             Required('key'): All(str, Length(min=1)),
                             Required('dataset_code'): All(str, Length(min=1)),
-                            Required('start_date'): All(str_date),
-                            Required('end_date'): All(str_date),
+                            Required('start_ordinal_date'): All(int),
+                            Required('end_ordinal_date'): All(int),
                             Required('values'): All(str),
                             Required('attributes'): All(str),
-#                            Required('release_dates'): All([date_validator()]),
+                            Required('release_dates'): All([date_validator]),
                             Required('revisions'): All([revision]),
                             Required('frequency'): All(str, Length(max=1)),
-                            Required('dimensions'): All([dimension]),
+                            Required('dimensions'): All([dimension])
                            })
-#    dimension_list = {Required('name'): All(str), [list]}
+    dimension_list = [{Required('name'): All(str), Required('value'): [All(str)]}]
     schema_dataset = Schema({Required('dataset_code'): All(str, Length(min=1)),
                              Required('name'): All(str, Length(min=1)),
-#                             Required('dimension_list'): All(dimension_list, Length(min=1))),
+                             Required('dimension_list'): All(dimension_list, Length(min=1)),
                              Required('doc_href'): All(str, Length(min=1)),
-#                             Required('attribute_list'): All(dimension_list),
-#                             Required('last_update'): All(date_validator()),
-#                             Required('version_date'): All(date_validator())
+                             Required('attribute_list'): All(dimension_list),
+                             Required('last_update'): All(date_validator),
+                             Required('version_date'): All(date_validator)
                             })
     schema_category = Schema({Required('name'): All(str, Length(min=1)),
-#                              Required('children'): All(str, Length(min=1)),
-                              Required('categoryCode'): All(str, Length(min=1)),
+                              Required('children'): All(str, Length(min=1)),
+                              Required('category_code'): All(str, Length(min=1)),
                               Required('exposed'): All(bool),
                              })
     
@@ -114,8 +117,8 @@ class Skeleton(object):
                      name=None,
                      key=None,
                      dataset_code=None,
-                     start_date=None,
-                     end_date=None, 
+                     start_ordinal_date=None,
+                     end_ordinal_date=None, 
                      values=None,
                      attributes=None,
                      release_dates=None,
@@ -136,7 +139,7 @@ class Skeleton(object):
             self.dimensions=dimensions
         @property
         def bson(self):
- #           self.validate()
+            self.validate()
             return {'provider': self.provider,
                     'name': self.name,
                     'key': self.key,
@@ -174,7 +177,7 @@ class Skeleton(object):
 
         @property
         def bson(self):
- #           self.validate()
+            self.validate()
             return {'provider': self.provider,
                     'name': self.name,
                     'dataset_code': self.dataset_code,
@@ -206,7 +209,7 @@ class Skeleton(object):
 
         @property
         def bson(self):
-#            self.validate()
+            self.validate()
             return {'provider': self.provider,
                     'name': self.name,
                     'docHref': self.doc_href,
