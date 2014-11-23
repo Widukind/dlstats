@@ -1,5 +1,9 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+.. module:: _skeleton
+    :synopsis: Module containing an abstract base class for all the fetchers
+"""
 import pymongo
 from voluptuous import Required, All, Length, Range, Schema, Invalid
 from dlstats import configuration
@@ -8,7 +12,7 @@ import logging
 from collections import defaultdict
 
 class Skeleton(object):
-    """Basic structure for statistical providers implementations."""
+    """Abstract base class for fetchers"""
     def __init__(self):
         self.configuration = configuration
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
@@ -82,7 +86,7 @@ class Skeleton(object):
             raise Invalid('Input date was not of type datetime.datetime')
 
     #Schema definition in voluptuous
-    revision = (Required(All(int)), Required(All(int)),Required(All(str)))
+    revision = [{'value':Required(All(int)), 'position':Required(All(int)), 'release_date':Required(All(date_validator))}]
     dimension = {Required('name'): All(str), Required('value'): All(str)}
     schema_series = Schema({Required('name'): All(str, Length(min=1)),
                             Required('key'): All(str, Length(min=1)),
@@ -91,7 +95,6 @@ class Skeleton(object):
                             Required('end_ordinal_date'): All(int),
                             Required('values'): All(str),
                             Required('attributes'): All(str),
-                            Required('release_dates'): All([date_validator]),
                             Required('revisions'): All([revision]),
                             Required('frequency'): All(str, Length(max=1)),
                             Required('dimensions'): All([dimension])
@@ -112,6 +115,21 @@ class Skeleton(object):
                              })
     
     class _Series(object):
+        """Abstract base class for time series
+        >>> import datetime
+        >>> series = Series(provider='Test provider',name='GDP in France',
+        ...                 key='GDP_FR',dataset_code='nama_gdp_fr',
+        ...                 start_ordinal_date=8052,end_ordinal_date=8056,
+        ...                 values = [2700, 2720, 2740, 2760],
+        ...                 attributes = {'name':'OBS_VALUE','value':'p'},
+        ...                 release_dates = [datetime.datetime(2014,8,28),
+        ...                                  datetime.datetime(2014,11,28)],
+        ...                 revisions = [{'value':2710, 'position':2,
+        ...                 'release_date':datetime.datetime(2014,11,28)}],
+        ...                 frequency = 'Q',
+        ...                 dimensions = {'name':'Seasonal adjustment', value:'wda'})
+        """
+
         def __init__(self,
                      provider=None,
                      name=None,
@@ -121,19 +139,18 @@ class Skeleton(object):
                      end_ordinal_date=None, 
                      values=None,
                      attributes=None,
-                     release_dates=None,
                      revisions=defaultdict(dict),
                      frequency=None,
                      dimensions=None):
             self.provider=provider
             self.name=name
             self.key=key
+            #SDMX equivalent concept: flowRef
             self.dataset_code=dataset_code
             self.start_date=start_date
             self.end_date=end_date
             self.values=values
             self.attributes=attributes
-            self.release_dates=release_dates
             self.revisions=revisions
             self.frequency=frequency
             self.dimensions=dimensions
