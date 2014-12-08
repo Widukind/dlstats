@@ -205,7 +205,7 @@ class Series(object):
     def update_database(self,mongo_id=None,key=None):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        old_bson = coll.find_one({'key': self.bson['key']})
+        old_bson = self.db.series.find_one({'key': self.bson['key']})
 
         if old_bson == None:
             return self.db.series.insert(self.bson)
