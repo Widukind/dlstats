@@ -9,7 +9,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import Skeleton
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
 #from _skeleton import Skeleton
 import threading
 from collections import OrderedDict
@@ -45,6 +45,7 @@ class Eurostat(Skeleton):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
+        self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             timeout=7)
@@ -95,14 +96,14 @@ class Eurostat(Skeleton):
                         children = walktree(element)
                 if not ((last_update is None) | (last_modified is None)):
                     last_update = max(last_update,last_modified)
-                document = self._Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
+                document = Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
                 _id = document.store(self.db.categories)
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = self._Category(provider='eurostat',name='root',children=[_id],last_update=None)
+        document = Category(provider='eurostat',name='root',children=[_id],last_update=None)
         document.store(self.db.categories)
 
 
@@ -121,7 +122,7 @@ class Eurostat(Skeleton):
                 return [c['code']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'provider': 'eurostat','categoryCode': code})
+            cc = self.db.categories.find_one({'provider': 'eurostat','category_code': code})
             datasets += walktree1(cc['_id'])
         return datasets
 
@@ -133,7 +134,7 @@ class Eurostat(Skeleton):
         for t in tree.nsmap:
             if t != None:
                 nsmap[t] = tree.nsmap[t]
-        dimensions = {}
+        dimensions = []
         for dimensions_list_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
             for dimensions_list in dimensions_list_.iterfind(".//structure:CodeList",
                                                 namespaces=nsmap):
@@ -148,8 +149,9 @@ class Eurostat(Skeleton):
                     dimension_key = dimension_.get("value")
                     for desc in dimension_:
                         if desc.attrib.items()[0][1] == "en":
-                            dimension.append([dimension_key, desc.text])
-                dimensions[name] = dimension
+                            dimension.append((dimension_key, desc.text))
+                dimensions.append({'name':name, 'values': dimension})
+        self.lgr.debug('Parsed dimensions %s', dimensions)
         return dimensions
 
     def parse_sdmx(self,file,dataset_code):
@@ -205,9 +207,9 @@ class Eurostat(Skeleton):
         data_file = files.read(dataset_code + ".sdmx.xml")
         dsd = self.parse_dsd(dsd_file,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
-        document = self._Dataset(provider='eurostat',
+        document = Dataset(provider='eurostat',
                                  dataset_code=dataset_code,
-                                 dimensions_list=dsd,
+                                 dimension_list=dsd,
                                  name = cat['name'],
                                  doc_href = cat['docHref'],
                                  last_update=cat['lastUpdate'])
@@ -236,9 +238,8 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
-            print(dimensions_list)
             name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_list[name] if d[0] == value])
-            document = self._Series(provider='eurostat',
+            document = Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
                                     dataset_code= dataset_code,

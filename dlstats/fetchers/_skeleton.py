@@ -62,7 +62,7 @@ def typecheck(type, msg=None):
 revision = [{'value':Required(All(int)), 'position':Required(All(int)),
              'release_date':Required(All(date_validator))}]
 dimension = {Required('name'): All(str), Required('value'): All(str)}
-dimension_list = [{Required('name'): All(str), Required('values'): [All(str)]}]
+dimension_list = [{Required('name'): All(str), Required('values'): [(All(str))]}]
 schema_dataset = Schema({Required('dataset_code'): All(str, Length(min=1)),
                          Required('name'): All(str, Length(min=1)),
                          Required('dimension_list'): All(dimension_list,
@@ -230,16 +230,14 @@ class Dataset(object):
     ...                 dataset_code='nama_gdp_fr',
     ...                 dimension_list=[{'name':'COUNTRY','values':['FR']}],
     ...                 doc_href='nauriset',
-    ...                 last_update=datetime(2014,12,2),
-    ...                 version_date=datetime(2014,12,1))
+    ...                 last_update=datetime(2014,12,2))
     >>> print(dataset)
     [('dataset_code', 'nama_gdp_fr'),
      ('dimension_list', [{'name': 'COUNTRY', 'values': ['FR']}]),
      ('doc_href', 'nauriset'),
      ('last_update', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
-     ('provider', 'Test provider'),
-     ('version_date', datetime.datetime(2014, 12, 1, 0, 0))]
+     ('provider', 'Test provider')]
     None
     """
     def __init__(self,
@@ -249,7 +247,6 @@ class Dataset(object):
                  dimension_list=None,
                  doc_href=None,
                  last_update=None,
-                 version_date=None
                 ):
         self.provider=provider
         self.dataset_code=dataset_code
@@ -257,7 +254,6 @@ class Dataset(object):
         self.dimension_list=dimension_list
         self.doc_href=doc_href
         self.last_update=last_update
-        self.version_date=version_date
         self.configuration = configuration
         self.schema = Schema({Required('name'):
                                      All(str, Length(min=1)),
@@ -269,8 +265,6 @@ class Dataset(object):
                                      All(str, Length(min=1)),
                                      Required('last_update'):
                                      All(typecheck(datetime)),
-                                     Required('version_date'):
-                                     All(typecheck(datetime)),
                                      Required('dimension_list'):
                                      All(dimension_list)
                                },required=True)
@@ -279,8 +273,7 @@ class Dataset(object):
                     'name': self.name,
                     'dimension_list': self.dimension_list,
                     'doc_href': self.doc_href,
-                    'last_update': self.last_update,
-                    'version_date': self.version_date
+                    'last_update': self.last_update
                     })
 
     def __repr__(self):
