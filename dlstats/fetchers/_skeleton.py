@@ -62,21 +62,7 @@ def typecheck(type, msg=None):
 revision = [{'value':Required(All(int)), 'position':Required(All(int)),
              'release_date':Required(All(date_validator))}]
 dimension = {Required('name'): All(str), Required('value'): All(str)}
-dimension_list = [{Required('name'): All(str), Required('values'): [(All(str))]}]
-schema_dataset = Schema({Required('dataset_code'): All(str, Length(min=1)),
-                         Required('name'): All(str, Length(min=1)),
-                         Required('dimension_list'): All(dimension_list,
-                                                         Length(min=1)),
-                         Required('doc_href'): All(str, Length(min=1)),
-                         Required('attribute_list'): All(dimension_list),
-                         Required('last_update'): All(typecheck(datetime)),
-                         Required('version_date'): All(typecheck(datetime))
-                        })
-schema_category = Schema({Required('name'): All(str, Length(min=1)),
-                          Required('children'): All(str, Length(min=1)),
-                          Required('category_code'): All(str, Length(min=1)),
-                          Required('exposed'): All(bool),
-                         })
+dimension_list_schema = [{Required('name'): All(str), Required('values'): [(All(str),All(str))]}]
 
 class Series(object):
     """Abstract base class for time series
@@ -228,12 +214,13 @@ class Dataset(object):
     >>> from datetime import datetime
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
     ...                 dataset_code='nama_gdp_fr',
-    ...                 dimension_list=[{'name':'COUNTRY','values':['FR']}],
+    ...                 dimension_list=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
     ...                 doc_href='nauriset',
     ...                 last_update=datetime(2014,12,2))
     >>> print(dataset)
     [('dataset_code', 'nama_gdp_fr'),
-     ('dimension_list', [{'name': 'COUNTRY', 'values': ['FR']}]),
+     ('dimension_list',
+      [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
      ('doc_href', 'nauriset'),
      ('last_update', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
@@ -245,7 +232,7 @@ class Dataset(object):
                  dataset_code=None,
                  name=None,
                  dimension_list=None,
-                 doc_href=None,
+                 doc_href='',
                  last_update=None,
                 ):
         self.provider=provider
@@ -266,7 +253,7 @@ class Dataset(object):
                                      Required('last_update'):
                                      All(typecheck(datetime)),
                                      Required('dimension_list'):
-                                     All(dimension_list)
+                                     All(dimension_list_schema)
                                },required=True)
         self.validate = self.schema({'provider': self.provider,
                     'dataset_code': self.dataset_code,
