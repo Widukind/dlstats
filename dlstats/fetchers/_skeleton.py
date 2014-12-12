@@ -128,23 +128,34 @@ class Series(object):
                               All(typecheck(pandas.tseries.period.PeriodIndex)),
                               Required('values'):
                               All([int]),
-                              Required('attributes'):
+                              Optional('attributes'):
                               All(dimension),
                               Required('revisions'):
                               All(revision),
                               Required('dimensions'):
                               All([dimension])
                                })
-        self.validate = self.schema({'provider': self.provider,
-                                     'name': self.name,
-                                     'key': self.key,
-                                     'dataset_code': self.dataset_code,
-                                     'period_index': self.period_index,
-                                     'values': self.values,
-                                     'attributes': self.attributes,
-                                     'dimensions': self.dimensions,
-                                     'revisions': self.revisions
-                                    })
+        if attributes is None:
+            self.validate = self.schema({'provider': self.provider,
+                                         'name': self.name,
+                                         'key': self.key,
+                                         'dataset_code': self.dataset_code,
+                                         'period_index': self.period_index,
+                                         'values': self.values,
+                                         'dimensions': self.dimensions,
+                                         'revisions': self.revisions
+                                        })
+        else:
+            self.validate = self.schema({'provider': self.provider,
+                                         'name': self.name,
+                                         'key': self.key,
+                                         'dataset_code': self.dataset_code,
+                                         'period_index': self.period_index,
+                                         'values': self.values,
+                                         'attributes': self.attributes,
+                                         'dimensions': self.dimensions,
+                                         'revisions': self.revisions
+                                        })
 
     @classmethod
     def from_index(cls,mongo_id):
