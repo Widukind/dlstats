@@ -231,8 +231,8 @@ class Dataset(object):
                  dataset_code=None,
                  name=None,
                  dimension_list=None,
-                 doc_href='',
-                 last_update=None,
+                 doc_href=None,
+                 last_update=None
                 ):
         self.provider=provider
         self.dataset_code=dataset_code
@@ -254,13 +254,21 @@ class Dataset(object):
                                      Required('dimension_list'):
                                      All(dimension_list_schema)
                                },required=True)
-        self.validate = self.schema({'provider': self.provider,
-                    'dataset_code': self.dataset_code,
-                    'name': self.name,
-                    'dimension_list': self.dimension_list,
-                    'doc_href': self.doc_href,
-                    'last_update': self.last_update
-                    })
+        if doc_href is None:
+            self.validate = self.schema({'provider': self.provider,
+                        'dataset_code': self.dataset_code,
+                        'name': self.name,
+                        'dimension_list': self.dimension_list,
+                        'last_update': self.last_update
+                        })
+        else:
+            self.validate = self.schema({'provider': self.provider,
+                        'dataset_code': self.dataset_code,
+                        'name': self.name,
+                        'dimension_list': self.dimension_list,
+                        'doc_href': self.doc_href,
+                        'last_update': self.last_update
+                        })
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
