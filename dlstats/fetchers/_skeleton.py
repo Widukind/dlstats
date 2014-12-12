@@ -169,8 +169,7 @@ class Series(object):
                   )
 
     def __repr__(self):
-        return str(pprint.pprint([(key, self.validate[key])
-                                  for key in sorted(self.validate.keys())]))
+        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
@@ -264,8 +263,7 @@ class Dataset(object):
                     })
 
     def __repr__(self):
-        return str(pprint.pprint([(key, self.validate[key])
-                                  for key in sorted(self.validate.keys())]))
+        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
@@ -342,8 +340,7 @@ class Category(object):
                     })
 
     def __repr__(self):
-        return str(pprint.pprint([(key, self.validate[key])
-                                  for key in sorted(self.validate.keys())]))
+        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
