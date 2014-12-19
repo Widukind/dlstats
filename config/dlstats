@@ -6,4 +6,4 @@ host=127.0.0.1
 port=27017
 [Fetchers]
 [[Eurostat]]
-url_table_of_contents = http://www.epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=table_of_contents.xml
+url_table_of_contents = http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml

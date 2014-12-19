@@ -31,6 +31,7 @@ import time
 import math
 import requests
 import zipfile
+import pprint
 
 
 class Eurostat(Skeleton):
@@ -96,7 +97,11 @@ class Eurostat(Skeleton):
                         children = walktree(element)
                 if not ((last_update is None) | (last_modified is None)):
                     last_update = max(last_update,last_modified)
-                document = Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
+                self.lgr.debug("doc_href : %s", doc_href)
+                if doc_href is not None:
+                    document = Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
+                else:
+                    document = Category(provider='eurostat',name=title,children=children,category_code=code,last_update=last_update)
                 _id = document.store(self.db.categories)
                 children_ids += [_id]
             return children_ids
@@ -200,13 +205,15 @@ class Eurostat(Skeleton):
         :dset: dataset code
         :returns: None"""
 #        request = requests.get("http://localhost:8800/eurostat/" + dataset_code + ".sdmx.zip")
-        request = requests.get("http://epp.eurostat.ec.europa.eu/NavTree_prod/everybody/BulkDownloadListing?sort=1&file=data/" + dataset_code + ".sdmx.zip")
+        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + dataset_code + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(dataset_code + ".dsd.xml")
         data_file = files.read(dataset_code + ".sdmx.xml")
         dsd = self.parse_dsd(dsd_file,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
+        self.lgr.debug("docHref : %s", cat['docHref'])
+        self.lgr.debug("dsd : %s", pprint.pformat(dsd))
         document = Dataset(provider='eurostat',
                                  dataset_code=dataset_code,
                                  dimension_list=dsd,
@@ -225,6 +232,7 @@ class Eurostat(Skeleton):
 
     def update_a_series(self,data_file,dataset_code,dimensions_list,lastUpdate,codes_list):
         (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,dataset_code)
+        print(raw_dates)
         for key in raw_values:
             series_key = (dataset_code+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
