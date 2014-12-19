@@ -100,6 +100,7 @@ class Series(object):
                  key=None,
                  dataset_code=None,
                  period_index=None, 
+                 release_dates=None, 
                  values=None,
                  attributes=None,
                  revisions=defaultdict(dict),
@@ -113,6 +114,7 @@ class Series(object):
         self.dataset_code=dataset_code
         self.period_index=period_index
         self.values=values
+        self.release_dates=release_dates
         self.attributes=attributes
         self.revisions=revisions
         self.dimensions=dimensions
@@ -128,6 +130,8 @@ class Series(object):
                               All(typecheck(pandas.tseries.period.PeriodIndex)),
                               Required('values'):
                               All([int]),
+                              Optional('release_dates'):
+                              All([date_validator]),
                               Optional('attributes'):
                               All(dimension),
                               Required('revisions'):
