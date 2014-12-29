@@ -113,6 +113,7 @@ class Series(object):
         #SDMX equivalent concept: flowRef
         self.dataset_code=dataset_code
         self.period_index=period_index
+        self.frequency=frequency
         self.values=values
         self.release_dates=release_dates
         self.attributes=attributes
@@ -139,27 +140,27 @@ class Series(object):
                               Required('dimensions'):
                               All([dimension])
                                })
-        if attributes is None:
-            self.validate = self.schema({'provider': self.provider,
-                                         'name': self.name,
-                                         'key': self.key,
-                                         'dataset_code': self.dataset_code,
-                                         'period_index': self.period_index,
-                                         'values': self.values,
-                                         'dimensions': self.dimensions,
-                                         'revisions': self.revisions
-                                        })
-        else:
-            self.validate = self.schema({'provider': self.provider,
-                                         'name': self.name,
-                                         'key': self.key,
-                                         'dataset_code': self.dataset_code,
-                                         'period_index': self.period_index,
-                                         'values': self.values,
-                                         'attributes': self.attributes,
-                                         'dimensions': self.dimensions,
-                                         'revisions': self.revisions
-                                        })
+#        if attributes is None:
+#            self.validate = self.schema({'provider': self.provider,
+#                                         'name': self.name,
+#                                         'key': self.key,
+#                                         'dataset_code': self.dataset_code,
+#                                         'period_index': self.period_index,
+#                                         'values': self.values,
+#                                         'dimensions': self.dimensions,
+#                                         'revisions': self.revisions
+#                                        })
+#        else:
+#            self.validate = self.schema({'provider': self.provider,
+#                                         'name': self.name,
+#                                         'key': self.key,
+#                                         'dataset_code': self.dataset_code,
+#                                         'period_index': self.period_index,
+#                                         'values': self.values,
+#                                         'attributes': self.attributes,
+#                                         'dimensions': self.dimensions,
+#                                         'revisions': self.revisions
+#                                        })
 
     @classmethod
     def from_index(cls,mongo_id):
@@ -192,12 +193,11 @@ class Series(object):
                 'name': self.name,
                 'key': self.key,
                 'dataset_code': self.dataset_code,
-                'start_date': self.start_date,
-                'endDate': self.end_date,
+                'startDate': self.period_index[0].to_timestamp(),
+                'endDate': self.period_index[-1].to_timestamp(),
                 'values': self.values,
                 'attributes': self.attributes,
                 'dimensions': self.dimensions,
-                'start_date': self.period_index[0],
                 'number_of_periods': len(self.period_index),
                 'revisions': self.revisions,
                 'frequency': self.frequency}
@@ -212,7 +212,7 @@ class Series(object):
         else:
             self.revisions = self.bson['revisions']
             position = 0
-            for values in zip(self.old_bson['values'],self.values):
+            for values in zip(old_bson['values'],self.values):
                 if values[0] != values[1]:
                     self.revisions.append({'value':values[0],
                                            'position': position,
