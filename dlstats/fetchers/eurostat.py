@@ -49,11 +49,12 @@ class Eurostat(Skeleton):
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+            #            "http://localhost:8800/eurostat/table_of_contents.xml",
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-#        parser = lxml.etree.XMLParser(recover=True) 
-#        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
+        parser = lxml.etree.XMLParser(recover=True) 
+        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
@@ -220,7 +221,7 @@ class Eurostat(Skeleton):
                                  name = cat['name'],
                                  doc_href = cat['docHref'],
                                  last_update=cat['lastUpdate'])
-        id = document.store(self.db.datasets)
+        id = document.update_database()
         self.update_a_series(data_file,dataset_code,dsd,document.bson['lastUpdate'],dsd)    
 
     def parse_date(self,str):
@@ -232,13 +233,13 @@ class Eurostat(Skeleton):
 
     def update_a_series(self,data_file,dataset_code,dimensions_list,lastUpdate,codes_list):
         (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,dataset_code)
-        print(raw_dates)
         for key in raw_values:
             series_key = (dataset_code+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
             values = raw_values[key][::-1]
             (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
             (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][-1])
+            period_index = pandas.period_range(start=start_year+freq+start_subperiod,end=end_year+freq+end_subperiod,freq=freq)
             for a in raw_attributes[key]:
                 raw_attributes[key][a] = raw_attributes[key][a][::-1]
             release_dates = [lastUpdate for v in values]
@@ -246,20 +247,20 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
-            name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_list[name] if d[0] == value])
+            dimensions_dict = {d['name']: d['values'] for d in dimensions_list}
+            name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_dict[name] if d[0] == value])
             document = Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
                                     dataset_code= dataset_code,
-                                    start_date=[start_year,start_subperiod],
-                                    end_date=[end_year,end_subperiod],
+                                    period_index=period_index,
                                     values=raw_values[key],
                                     attributes=raw_attributes[key],
                                     release_dates=release_dates,
                                     frequency=freq,
                                     dimensions=dimensions
                                 )
-            document.store(self.db.series)
+            document.update_database(key=key)
 
 
     def update_eurostat(self):
