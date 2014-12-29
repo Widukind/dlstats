@@ -242,7 +242,7 @@ class Eurostat(Skeleton):
             period_index = pandas.period_range(start=start_year+freq+start_subperiod,end=end_year+freq+end_subperiod,freq=freq)
             for a in raw_attributes[key]:
                 raw_attributes[key][a] = raw_attributes[key][a][::-1]
-            release_dates = [lastUpdate for v in values]
+            releaseDates = [lastUpdate for v in values]
             dimensions_ = raw_dimensions[key]
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
@@ -256,7 +256,7 @@ class Eurostat(Skeleton):
                                     period_index=period_index,
                                     values=raw_values[key],
                                     attributes=raw_attributes[key],
-                                    release_dates=release_dates,
+                                    releaseDates=releaseDates,
                                     frequency=freq,
                                     dimensions=dimensions
                                 )

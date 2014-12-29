@@ -100,7 +100,7 @@ class Series(object):
                  key=None,
                  dataset_code=None,
                  period_index=None, 
-                 release_dates=None, 
+                 releaseDates=None, 
                  values=None,
                  attributes=None,
                  revisions=defaultdict(dict),
@@ -115,7 +115,7 @@ class Series(object):
         self.period_index=period_index
         self.frequency=frequency
         self.values=values
-        self.release_dates=release_dates
+        self.releaseDates=releaseDates
         self.attributes=attributes
         self.revisions=revisions
         self.dimensions=dimensions
@@ -131,7 +131,7 @@ class Series(object):
                               All(typecheck(pandas.tseries.period.PeriodIndex)),
                               Required('values'):
                               All([int]),
-                              Optional('release_dates'):
+                              Required('releaseDates'):
                               All([date_validator]),
                               Optional('attributes'):
                               All(dimension),
@@ -178,6 +178,7 @@ class Series(object):
                    key=bson['key'],
                    dataset_code=bson['dataset_code'],
                    values=bson['values'],
+                   releaseDates=bson['releaseDates'],
                    attributes=bson['attributes'],
                    revisions=bson['revisions'],
                    dimensions=bson['dimensions'],
@@ -196,6 +197,7 @@ class Series(object):
                 'startDate': self.period_index[0].to_timestamp(),
                 'endDate': self.period_index[-1].to_timestamp(),
                 'values': self.values,
+                'releaseDates': self.releaseDates,
                 'attributes': self.attributes,
                 'dimensions': self.dimensions,
                 'number_of_periods': len(self.period_index),
