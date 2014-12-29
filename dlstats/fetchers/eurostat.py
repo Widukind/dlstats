@@ -74,9 +74,9 @@ class Eurostat(Skeleton):
             children_ids = []
             for branch in child.iterchildren():
                 title = None
-                doc_href = None
-                last_update = None
-                last_modified = None
+                docHref = None
+                lastUpdate = None
+                lastModified = None
                 code = None
                 children = None
                 for element in branch.iterchildren():
@@ -85,32 +85,32 @@ class Eurostat(Skeleton):
                             title = element.text
                     elif element.tag[-5:] == 'metadata':
                         if element.attrib.values()[0] == 'html':
-                            doc_href = element.text
+                            docHref = element.text
                     elif element.tag[-4:] == 'code':
                         code = element.text
                     elif element.tag[-10:] == 'lastUpdate':
                         if not (element.text is None):
-                            last_update = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                            lastUpdate = datetime.datetime.strptime(element.text,'%d.%m.%Y')
                     elif element.tag[-12:] == 'lastModified':
                         if not (element.text is None):
-                            last_modified = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                            lastModified = datetime.datetime.strptime(element.text,'%d.%m.%Y')
                     elif element.tag[-8:] == 'children':
                         children = walktree(element)
-                if not ((last_update is None) | (last_modified is None)):
-                    last_update = max(last_update,last_modified)
-                self.lgr.debug("doc_href : %s", doc_href)
-                if doc_href is not None:
-                    document = Category(provider='eurostat',name=title,doc_href=doc_href,children=children,category_code=code,last_update=last_update)
+                if not ((lastUpdate is None) | (lastModified is None)):
+                    lastUpdate = max(lastUpdate,lastModified)
+                self.lgr.debug("docHref : %s", doc_href)
+                if docHref is not None:
+                    document = Category(provider='eurostat',name=title,docHref=doc_href,children=children,categoryCode=code,lastUpdate=lastUpdate)
                 else:
-                    document = Category(provider='eurostat',name=title,children=children,category_code=code,last_update=last_update)
-                _id = document.store(self.db.categories)
+                    document = Category(provider='eurostat',name=title,children=children,categoryCode=code,last_update=lastUpdate)
+                _id = document.update_dabase()
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider='eurostat',name='root',children=[_id],last_update=None)
-        document.store(self.db.categories)
+        document = Category(provider='eurostat',name='root',children=[_id],lastUpdate=None)
+        document.update_database()
 
 
     def get_selected_datasets(self):
@@ -125,10 +125,10 @@ class Eurostat(Skeleton):
                     datasets1 += walktree1(child)
                 return datasets1
             else:
-                return [c['code']]
+                return [c['categoryCode']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'provider': 'eurostat','category_code': code})
+            cc = self.db.categories.find_one({'provider': 'eurostat','categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
 
@@ -201,28 +201,28 @@ class Eurostat(Skeleton):
 
 
 
-    def update_selected_dataset(self,dataset_code):
+    def update_selected_dataset(self,datasetCode):
         """Updates data in Database for selected datasets
-        :dset: dataset code
+        :dset: datasetCode
         :returns: None"""
 #        request = requests.get("http://localhost:8800/eurostat/" + dataset_code + ".sdmx.zip")
-        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + dataset_code + ".sdmx.zip")
+        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
-        dsd_file = files.read(dataset_code + ".dsd.xml")
-        data_file = files.read(dataset_code + ".sdmx.xml")
-        dsd = self.parse_dsd(dsd_file,dataset_code)
-        cat = self.db.categories.find_one({'categoryCode': dataset_code})
+        dsd_file = files.read(datasetCode + ".dsd.xml")
+        data_file = files.read(datasetCode + ".sdmx.xml")
+        dsd = self.parse_dsd(dsd_file,datasetCode)
+        cat = self.db.categories.find_one({'categoryCode': datasetCode})
         self.lgr.debug("docHref : %s", cat['docHref'])
         self.lgr.debug("dsd : %s", pprint.pformat(dsd))
         document = Dataset(provider='eurostat',
-                                 dataset_code=dataset_code,
-                                 dimension_list=dsd,
+                                 datasetCode=datasetCode,
+                                 dimensionList=dsd,
                                  name = cat['name'],
-                                 doc_href = cat['docHref'],
-                                 last_update=cat['lastUpdate'])
+                                 docHref = cat['docHref'],
+                                 lastUpdate=cat['lastUpdate'])
         id = document.update_database()
-        self.update_a_series(data_file,dataset_code,dsd,document.bson['lastUpdate'],dsd)    
+        self.update_a_series(data_file,datasetCode,dsd,document.bson['lastUpdate'])    
 
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
@@ -231,10 +231,10 @@ class Eurostat(Skeleton):
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def update_a_series(self,data_file,dataset_code,dimensions_list,lastUpdate,codes_list):
-        (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,dataset_code)
+    def update_a_series(self,data_file,datasetCode,dimensionList,lastUpdate):
+        (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
         for key in raw_values:
-            series_key = (dataset_code+'.'+ key).upper()
+            series_key = (datasetCode+'.'+ key).upper()
             # Eurostat lists data in reversed chronological order
             values = raw_values[key][::-1]
             (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
@@ -247,12 +247,12 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
-            dimensions_dict = {d['name']: d['values'] for d in dimensions_list}
+            dimensions_dict = {d['name']: d['values'] for d in dimensionList}
             name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_dict[name] if d[0] == value])
             document = Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
-                                    dataset_code= dataset_code,
+                                    datasetCode= datasetCode,
                                     period_index=period_index,
                                     values=raw_values[key],
                                     attributes=raw_attributes[key],

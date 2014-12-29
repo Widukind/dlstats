@@ -68,8 +68,9 @@ class Series(object):
     """Abstract base class for time series
     >>> from datetime import datetime
     >>> series = Series(provider='Test provider',name='GDP in France',
-    ...                 key='GDP_FR',dataset_code='nama_gdp_fr',
+    ...                 key='GDP_FR',datasetCode='nama_gdp_fr',
     ...                 values = [2700, 2720, 2740, 2760],
+    ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)]
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
     ...                 attributes = {'name':'OBS_VALUE','value':'p'},
     ...                 revisions = [{'value':2710, 'position':2,
@@ -77,7 +78,7 @@ class Series(object):
     ...                 dimensions = [{'name':'Seasonal adjustment', 'value':'wda'}])
     >>> print(series)
     [('attributes', {'name': 'OBS_VALUE', 'value': 'p'}),
-     ('dataset_code', 'nama_gdp_fr'),
+     ('datasetCode', 'nama_gdp_fr'),
      ('dimensions', [{'name': 'Seasonal adjustment', 'value': 'wda'}]),
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
@@ -90,7 +91,8 @@ class Series(object):
       [{'position': 2,
         'release_date': datetime.datetime(2014, 11, 28, 0, 0),
         'value': 2710}]),
-     ('values', [2700, 2720, 2740, 2760])]
+     ('values', [2700, 2720, 2740, 2760])
+     ('releaseDates', [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)]) ]
     None
     """
 
@@ -98,7 +100,7 @@ class Series(object):
                  provider=None,
                  name=None,
                  key=None,
-                 dataset_code=None,
+                 datasetCode=None,
                  period_index=None, 
                  releaseDates=None, 
                  values=None,
@@ -111,7 +113,7 @@ class Series(object):
         self.name=name
         self.key=key
         #SDMX equivalent concept: flowRef
-        self.dataset_code=dataset_code
+        self.datasetCode=datasetCode
         self.period_index=period_index
         self.frequency=frequency
         self.values=values
@@ -125,7 +127,7 @@ class Series(object):
                               All(str, Length(min=1)),
                               Required('key'):
                               All(str, Length(min=1)),
-                              Required('dataset_code'):
+                              Required('datasetCode'):
                               All(str, Length(min=1)),
                               Required('period_index'):
                               All(typecheck(pandas.tseries.period.PeriodIndex)),
@@ -144,7 +146,7 @@ class Series(object):
 #            self.validate = self.schema({'provider': self.provider,
 #                                         'name': self.name,
 #                                         'key': self.key,
-#                                         'dataset_code': self.dataset_code,
+#                                         'datasetCode': self.datasetCode,
 #                                         'period_index': self.period_index,
 #                                         'values': self.values,
 #                                         'dimensions': self.dimensions,
@@ -154,7 +156,7 @@ class Series(object):
 #            self.validate = self.schema({'provider': self.provider,
 #                                         'name': self.name,
 #                                         'key': self.key,
-#                                         'dataset_code': self.dataset_code,
+#                                         'datasetCode': self.datasetCode,
 #                                         'period_index': self.period_index,
 #                                         'values': self.values,
 #                                         'attributes': self.attributes,
@@ -170,13 +172,13 @@ class Series(object):
 
     @classmethod
     def from_bson(cls,bson):
-        period_index = pandas.period_range(bson['start_period'],
-                                           periods=bson['number_of_periods'],
+        period_index = pandas.period_range(bson['startDate'],
+                                           periods=bson['numberOfPeriods'],
                                            freq=bson['frequency'])
         return cls(provider=bson['provider'],
                    name=bson['name'],
                    key=bson['key'],
-                   dataset_code=bson['dataset_code'],
+                   dataset_code=bson['datasetCode'],
                    values=bson['values'],
                    releaseDates=bson['releaseDates'],
                    attributes=bson['attributes'],
@@ -193,14 +195,14 @@ class Series(object):
         return {'provider': self.provider,
                 'name': self.name,
                 'key': self.key,
-                'dataset_code': self.dataset_code,
+                'datasetCode': self.datasetCode,
                 'startDate': self.period_index[0].to_timestamp(),
                 'endDate': self.period_index[-1].to_timestamp(),
                 'values': self.values,
                 'releaseDates': self.releaseDates,
                 'attributes': self.attributes,
                 'dimensions': self.dimensions,
-                'number_of_periods': len(self.period_index),
+                'numberOfPeriods': len(self.period_index),
                 'revisions': self.revisions,
                 'frequency': self.frequency}
 
@@ -229,62 +231,62 @@ class Dataset(object):
     """Abstract base class for datasets
     >>> from datetime import datetime
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
-    ...                 dataset_code='nama_gdp_fr',
-    ...                 dimension_list=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
-    ...                 doc_href='nauriset',
-    ...                 last_update=datetime(2014,12,2))
+    ...                 datasetCode='nama_gdp_fr',
+    ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
+    ...                 docHref='nauriset',
+    ...                 lastUpdate=datetime(2014,12,2))
     >>> print(dataset)
-    [('dataset_code', 'nama_gdp_fr'),
-     ('dimension_list',
+    [('datasetCode', 'nama_gdp_fr'),
+     ('dimensionList',
       [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
-     ('doc_href', 'nauriset'),
-     ('last_update', datetime.datetime(2014, 12, 2, 0, 0)),
+     ('docHref', 'nauriset'),
+     ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
      ('provider', 'Test provider')]
     None
     """
     def __init__(self,
                  provider=None,
-                 dataset_code=None,
+                 datasetCode=None,
                  name=None,
-                 dimension_list=None,
-                 doc_href=None,
-                 last_update=None
+                 dimensionList=None,
+                 docHref=None,
+                 lastUpdate=None
                 ):
         self.provider=provider
-        self.dataset_code=dataset_code
+        self.datasetCode=datasetCode
         self.name=name
-        self.dimension_list=dimension_list
-        self.doc_href=doc_href
-        self.last_update=last_update
+        self.dimensionList=dimensionList
+        self.docHref=docHref
+        self.lastUpdate=lastUpdate
         self.configuration = configuration
         self.schema = Schema({Required('name'):
                                      All(str, Length(min=1)),
                                      Required('provider'):
                                      All(str, Length(min=1)),
-                                     Required('dataset_code'):
+                                     Required('datasetCode'):
                                      All(str, Length(min=1)),
-                                     Optional('doc_href'):
+                                     Optional('docHref'):
                                      All(str, Length(min=1)),
-                                     Required('last_update'):
+                                     Required('lastUpdate'):
                                      All(typecheck(datetime)),
-                                     Required('dimension_list'):
+                                     Required('dimensionList'):
                                      All(dimension_list_schema)
                                },required=True)
-        if doc_href is None:
+        if docHref is None:
             self.validate = self.schema({'provider': self.provider,
-                        'dataset_code': self.dataset_code,
+                        'datasetCode': self.datasetCode,
                         'name': self.name,
-                        'dimension_list': self.dimension_list,
-                        'last_update': self.last_update
+                        'dimensionList': self.dimensionList,
+                        'lastUpdate': self.lastUpdate
                         })
         else:
             self.validate = self.schema({'provider': self.provider,
-                        'dataset_code': self.dataset_code,
+                        'datasetCode': self.datasetCode,
                         'name': self.name,
-                        'dimension_list': self.dimension_list,
-                        'doc_href': self.doc_href,
-                        'last_update': self.last_update
+                        'dimensionList': self.dimensionList,
+                        'docHref': self.docHref,
+                        'lastUpdate': self.lastUpdate
                         })
 
     def __repr__(self):
@@ -294,31 +296,31 @@ class Dataset(object):
     def bson(self):
         return {'provider': self.provider,
                 'name': self.name,
-                'dataset_code': self.dataset_code,
-                'dimension_list': self.dimension_list,
-                'docHref': self.doc_href,
-                'lastUpdate': self.last_update}
+                'datasetCode': self.datasetCode,
+                'dimensionList': self.dimensionList,
+                'docHref': self.docHref,
+                'lastUpdate': self.lastUpdate}
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        self.db.datasets.update({'dataset_code': self.bson['dataset_code']},
+        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
 class Category(object):
     """Abstract base class for categories
     >>> from datetime import datetime
     >>> category = Category(provider='Test provider',name='GDP',
-    ...                 category_code='nama_gdp',
+    ...                 categoryCode='nama_gdp',
     ...                 children=[bson.objectid.ObjectId.from_datetime(datetime(2014,12,3))],
     ...                 doc_href='http://www.perdu.com',
-    ...                 last_update=datetime(2014,12,2),
+    ...                 lastUpdate=datetime(2014,12,2),
     ...                 exposed=True)
     >>> print(category)
-    [('category_code', 'GDP'),
+    [('categoryCode', 'GDP'),
      ('children', [ObjectId('547e52800000000000000000')]),
-     ('doc_href', 'http://www.perdu.com'),
+     ('docHref', 'http://www.perdu.com'),
      ('exposed', True),
-     ('last_update', datetime.datetime(2014, 12, 2, 0, 0)),
+     ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP'),
      ('provider', 'Test provider')]
     None
@@ -326,18 +328,18 @@ class Category(object):
     def __init__(self,
                  provider=None,
                  name=None,
-                 doc_href=None,
+                 docHref=None,
                  children=None,
-                 category_code=None,
-                 last_update=None,
+                 categoryCode=None,
+                 lastUpdate=None,
                  exposed=False
                 ):
         self.provider=provider
         self.name=name
-        self.doc_href=doc_href
+        self.docHref=docHref
         self.children=children
-        self.category_code=category_code
-        self.last_update=last_update
+        self.categoryCode=categoryCode
+        self.lastUpdate=lastUpdate
         self.exposed=exposed
         self.configuration=configuration
         self.schema = Schema({Required('name'):
@@ -346,21 +348,21 @@ class Category(object):
                                      All(str, Length(min=1)),
                                      Required('children'):
                                      All([typecheck(bson.objectid.ObjectId)]),
-                                     Required('doc_href'):
+                                     Required('docHref'):
                                      All(str, Length(min=1)),
-                                     Required('last_update'):
+                                     Required('lastUpdate'):
                                      All(typecheck(datetime)),
-                                     Required('category_code'):
+                                     Required('categoryCode'):
                                      All(str, Length(min=1)),
                                      Required('exposed'):
                                      All(typecheck(bool)),
                                })
         self.validate = self.schema({'provider': self.provider,
-                    'category_code': self.name,
+                    'categoryCode': self.categoryCode,
                     'name': self.name,
                     'children': self.children,
-                    'doc_href': self.doc_href,
-                    'last_update': self.last_update,
+                    'docHref': self.docHref,
+                    'lastUpdate': self.lastUpdate,
                     'exposed': self.exposed
                     })
 
@@ -371,15 +373,15 @@ class Category(object):
     def bson(self):
         return {'provider': self.provider,
                 'name': self.name,
-                'doc_href': self.doc_href,
+                'docHref': self.docHref,
                 'children': self.children,
-                'category_code': self.category_code,
-                'last_update': self.last_update,
+                'categoryCode': self.categoryCode,
+                'lastUpdate': self.lastUpdate,
                 'exposed': self.exposed}
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        self.db.categories.update({'category': self.bson['category_code']},
+        self.db.categories.update({'categoryCode': self.bson['categoryCode']},
                                   self.bson,upsert=True)
 
 if __name__ == "__main__":
