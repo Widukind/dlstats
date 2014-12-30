@@ -60,7 +60,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision = [{'value':Required(All(int)), 'position':Required(All(int)),
-             'release_date':Required(All(date_validator))}]
+             'releaseDate':Required(All(date_validator))}]
 dimension = {Required('name'): All(str), Required('value'): All(str)}
 dimension_list_schema = [{Required('name'): All(str), Required('values'): [(All(str),All(str))]}]
 
@@ -214,14 +214,31 @@ class Series(object):
         if old_bson == None:
             return self.db.series.insert(self.bson)
         else:
-            self.revisions = self.bson['revisions']
             position = 0
-            for values in zip(old_bson['values'],self.values):
-                if values[0] != values[1]:
-                    self.revisions.append({'value':values[0],
-                                           'position': position,
-                                           'release_date':
-                                           old_bson['release_date']})
+            self.revisions = self.old_bson['revisions']
+            if self.bson[StartDate] > old_bson[StartDate]:
+            # previous, longer, series is kept
+                offset = self.bson[StartDate] - old_bson[StartDate]
+                self.bson[numberOfPeriods] += offset
+                self.bson[StartDate] = old_bson[StartDate]
+                for values in zip(old_bson['values'][offset:],self.values):
+                    if values[0] != values[1]:
+                        self.revisions.append({'value':values[0],
+                                               'position': offset+position,
+                                               'releaseDate':
+                                               old_bson['releaseDate'][offset+position]})
+                    position += 1
+            else:
+            # zero or more data are added at the beginning of the series
+                offset = old_bson[StartDate] - self.bson[StartDate]
+                for values in zip(old_bson['values'],self.values[offset:]):
+                    if values[0] != values[1]:
+                        self.revisions.append({'value':values[0],
+                                               'position': offset+position,
+                                               'releaseDate':
+                                               old_bson['releaseDate'][position]})
+                    position += 1
+                                              
             self.bson['revisions'] = self.revisions
             self.db.series.update({'_id': old_bson['_id']},self.bson,
                                   upsert=True)
