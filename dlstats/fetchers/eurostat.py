@@ -48,8 +48,8 @@ class Eurostat(Skeleton):
         self.lgr.addHandler(self.fh)
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
-            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            #            "http://localhost:8800/eurostat/table_of_contents.xml",
+            #self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+            "http://localhost:8800/eurostat/table_of_contents.xml",
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
@@ -140,7 +140,7 @@ class Eurostat(Skeleton):
         for t in tree.nsmap:
             if t != None:
                 nsmap[t] = tree.nsmap[t]
-        dimensions = []
+        codes = []
         for dimensions_list_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
             for dimensions_list in dimensions_list_.iterfind(".//structure:CodeList",
                                                 namespaces=nsmap):
@@ -156,9 +156,15 @@ class Eurostat(Skeleton):
                     for desc in dimension_:
                         if desc.attrib.items()[0][1] == "en":
                             dimension.append((dimension_key, desc.text))
-                dimensions.append({'name':name, 'values': dimension})
-        self.lgr.debug('Parsed dimensions %s', dimensions)
-        return dimensions
+                codes.append({'name':name, 'values': dimension})
+        self.lgr.debug('Parsed codes %s', codes)
+        # Splitting codeList in dimensions and attributes
+        for concept_list in tree.iterfind(".//structure:Components",namespaces=nsmap):
+            dl = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Dimension",namespaces=nsmap)]
+            al = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Attribute",namespaces=nsmap)]
+        attributes = [d for d in codes if d['name'] in al]
+        dimensions = [d for d in codes if d['name'] in dl]
+        return (attributes,dimensions)
 
     def parse_sdmx(self,file,dataset_code):
         parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
@@ -205,24 +211,26 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-#        request = requests.get("http://localhost:8800/eurostat/" + dataset_code + ".sdmx.zip")
-        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
+        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
+#        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
         data_file = files.read(datasetCode + ".sdmx.xml")
-        dsd = self.parse_dsd(dsd_file,datasetCode)
+        [attributes,dimensions] = self.parse_dsd(dsd_file,datasetCode)
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
         self.lgr.debug("docHref : %s", cat['docHref'])
-        self.lgr.debug("dsd : %s", pprint.pformat(dsd))
+        self.lgr.debug("attributeList : %s", pprint.pformat(attributes))
+        self.lgr.debug("dimensionList : %s", pprint.pformat(dimensions))
         document = Dataset(provider='eurostat',
                                  datasetCode=datasetCode,
-                                 dimensionList=dsd,
+                                 attributeList=attributes,
+                                 dimensionList=dimensions,
                                  name = cat['name'],
                                  docHref = cat['docHref'],
                                  lastUpdate=cat['lastUpdate'])
         id = document.update_database()
-        self.update_a_series(data_file,datasetCode,dsd,document.bson['lastUpdate'])    
+        self.update_a_series(data_file,datasetCode,dimensions,document.bson['lastUpdate'])
 
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
@@ -248,7 +256,7 @@ class Eurostat(Skeleton):
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
             dimensions_dict = {d['name']: d['values'] for d in dimensionList}
-            name = "-".join([d[1] for name,value in dimensions.items() for d in dimensions_dict[name] if d[0] == value])
+            name = "-".join([v[1] for name,value in dimensions.items() for d in dimensionList if d['name'] == name for v in d['values'] if v[0] == value])
             document = Series(provider='eurostat',
                                     key= series_key,
                                     name=name,

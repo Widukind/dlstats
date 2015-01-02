@@ -74,7 +74,6 @@ class Series(object):
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
     ...                 attributes = {'name':'OBS_VALUE','value':'p'},
     ...                 revisions = [{'value':2710, 'position':2,
-    ...                 'release_date' : datetime(2014,11,28)}],
     ...                 dimensions = [{'name':'Seasonal adjustment', 'value':'wda'}])
     >>> print(series)
     [('attributes', {'name': 'OBS_VALUE', 'value': 'p'}),
@@ -215,12 +214,14 @@ class Series(object):
             return self.db.series.insert(self.bson)
         else:
             position = 0
-            self.revisions = self.old_bson['revisions']
-            if self.bson[StartDate] > old_bson[StartDate]:
+            self.revisions = old_bson['revisions']
+            old_start_period = pandas.Period(old_bson['startDate'],old_bson['dimensions']['FREQ'])
+            start_period = pandas.Period(self.bson['startDate'],self.bson['dimensions']['FREQ'])
+            if start_period > old_start_period:
             # previous, longer, series is kept
-                offset = self.bson[StartDate] - old_bson[StartDate]
-                self.bson[numberOfPeriods] += offset
-                self.bson[StartDate] = old_bson[StartDate]
+                offset = start_period - old_start_period
+                self.bson['numberOfPeriods'] += offset
+                self.bson['startDate'] = old_bson['startDate']
                 for values in zip(old_bson['values'][offset:],self.values):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
@@ -230,7 +231,7 @@ class Series(object):
                     position += 1
             else:
             # zero or more data are added at the beginning of the series
-                offset = old_bson[StartDate] - self.bson[StartDate]
+                offset = old_start_period - start_period
                 for values in zip(old_bson['values'],self.values[offset:]):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
@@ -250,12 +251,15 @@ class Dataset(object):
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
     ...                 datasetCode='nama_gdp_fr',
     ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
+    ...                 attributeList={'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')],
     ...                 docHref='nauriset',
     ...                 lastUpdate=datetime(2014,12,2))
     >>> print(dataset)
     [('datasetCode', 'nama_gdp_fr'),
      ('dimensionList',
       [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
+     ('attributeList',
+      [{'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')]}]),
      ('docHref', 'nauriset'),
      ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
@@ -267,12 +271,14 @@ class Dataset(object):
                  datasetCode=None,
                  name=None,
                  dimensionList=None,
+                 attributeList=None,
                  docHref=None,
                  lastUpdate=None
                 ):
         self.provider=provider
         self.datasetCode=datasetCode
         self.name=name
+        self.attributeList=attributeList
         self.dimensionList=dimensionList
         self.docHref=docHref
         self.lastUpdate=lastUpdate
@@ -288,6 +294,8 @@ class Dataset(object):
                                      Required('lastUpdate'):
                                      All(typecheck(datetime)),
                                      Required('dimensionList'):
+                                     All(dimension_list_schema),
+                                     Required('attributeList'):
                                      All(dimension_list_schema)
                                },required=True)
         if docHref is None:
@@ -295,6 +303,7 @@ class Dataset(object):
                         'datasetCode': self.datasetCode,
                         'name': self.name,
                         'dimensionList': self.dimensionList,
+                        'attributeList': self.attributeList,
                         'lastUpdate': self.lastUpdate
                         })
         else:
@@ -302,6 +311,7 @@ class Dataset(object):
                         'datasetCode': self.datasetCode,
                         'name': self.name,
                         'dimensionList': self.dimensionList,
+                        'attributeList': self.attributeList,
                         'docHref': self.docHref,
                         'lastUpdate': self.lastUpdate
                         })
@@ -315,6 +325,7 @@ class Dataset(object):
                 'name': self.name,
                 'datasetCode': self.datasetCode,
                 'dimensionList': self.dimensionList,
+                'attributeList': self.dimensionList,
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
     def update_database(self):
