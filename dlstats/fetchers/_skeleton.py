@@ -59,7 +59,7 @@ def typecheck(type, msg=None):
 
 
 #Schema definition in voluptuous
-revision = [{'value':Required(All(int)), 'position':Required(All(int)),
+revision_schema = [{'value':Required(All(int)), 'position':Required(All(int)),
              'releaseDate':Required(All(date_validator))}]
 dimension = {Required('name'): All(str), Required('value'): All(str)}
 dimension_list_schema = [{Required('name'): All(str), Required('values'): [(All(str),All(str))]}]
@@ -70,10 +70,11 @@ class Series(object):
     >>> series = Series(provider='Test provider',name='GDP in France',
     ...                 key='GDP_FR',datasetCode='nama_gdp_fr',
     ...                 values = [2700, 2720, 2740, 2760],
-    ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)]
+    ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)],
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
     ...                 attributes = {'name':'OBS_VALUE','value':'p'},
     ...                 revisions = [{'value':2710, 'position':2,
+    ...                 'releaseDate' : datetime(2014,11,28)}],
     ...                 dimensions = [{'name':'Seasonal adjustment', 'value':'wda'}])
     >>> print(series)
     [('attributes', {'name': 'OBS_VALUE', 'value': 'p'}),
@@ -86,13 +87,16 @@ class Series(object):
     [1999Q1, ..., 2016Q4]
     Length: 72, Freq: Q-DEC),
      ('provider', 'Test provider'),
+     ('releaseDates',
+      [datetime.datetime(2013, 11, 28, 0, 0),
+       datetime.datetime(2014, 12, 28, 0, 0),
+       datetime.datetime(2015, 1, 28, 0, 0),
+       datetime.datetime(2015, 2, 28, 0, 0)]),
      ('revisions',
       [{'position': 2,
-        'release_date': datetime.datetime(2014, 11, 28, 0, 0),
+        'releaseDate': datetime.datetime(2014, 11, 28, 0, 0),
         'value': 2710}]),
-     ('values', [2700, 2720, 2740, 2760])
-     ('releaseDates', [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)]) ]
-    None
+     ('values', [2700, 2720, 2740, 2760])]
     """
 
     def __init__(self,
@@ -137,31 +141,33 @@ class Series(object):
                               Optional('attributes'):
                               All(dimension),
                               Required('revisions'):
-                              All(revision),
+                              All(revision_schema),
                               Required('dimensions'):
                               All([dimension])
                                })
-#        if attributes is None:
-#            self.validate = self.schema({'provider': self.provider,
-#                                         'name': self.name,
-#                                         'key': self.key,
-#                                         'datasetCode': self.datasetCode,
-#                                         'period_index': self.period_index,
-#                                         'values': self.values,
-#                                         'dimensions': self.dimensions,
-#                                         'revisions': self.revisions
-#                                        })
-#        else:
-#            self.validate = self.schema({'provider': self.provider,
-#                                         'name': self.name,
-#                                         'key': self.key,
-#                                         'datasetCode': self.datasetCode,
-#                                         'period_index': self.period_index,
-#                                         'values': self.values,
-#                                         'attributes': self.attributes,
-#                                         'dimensions': self.dimensions,
-#                                         'revisions': self.revisions
-#                                        })
+        if attributes is None:
+            self.validate = self.schema({'provider': self.provider,
+                                         'name': self.name,
+                                         'key': self.key,
+                                         'datasetCode': self.datasetCode,
+                                         'period_index': self.period_index,
+                                         'values': self.values,
+                                         'dimensions': self.dimensions,
+                                         'revisions': self.revisions,
+                                         'releaseDates': self.releaseDates
+                                        })
+        else:
+            self.validate = self.schema({'provider': self.provider,
+                                         'name': self.name,
+                                         'key': self.key,
+                                         'datasetCode': self.datasetCode,
+                                         'period_index': self.period_index,
+                                         'values': self.values,
+                                         'attributes': self.attributes,
+                                         'dimensions': self.dimensions,
+                                         'revisions': self.revisions,
+                                         'releaseDates': self.releaseDates
+                                        })
 
     @classmethod
     def from_index(cls,mongo_id):
@@ -251,20 +257,20 @@ class Dataset(object):
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
     ...                 datasetCode='nama_gdp_fr',
     ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
-    ...                 attributeList={'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')],
+    ...                 attributeList=[{'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')]}],
     ...                 docHref='nauriset',
     ...                 lastUpdate=datetime(2014,12,2))
     >>> print(dataset)
-    [('datasetCode', 'nama_gdp_fr'),
+    [('attributeList',
+      [{'name': 'OBS_VALUE',
+        'values': [('p', 'preliminary'), ('f', 'forecast')]}]),
+     ('datasetCode', 'nama_gdp_fr'),
      ('dimensionList',
       [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
-     ('attributeList',
-      [{'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')]}]),
      ('docHref', 'nauriset'),
      ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
      ('provider', 'Test provider')]
-    None
     """
     def __init__(self,
                  provider=None,
@@ -340,18 +346,17 @@ class Category(object):
     >>> category = Category(provider='Test provider',name='GDP',
     ...                 categoryCode='nama_gdp',
     ...                 children=[bson.objectid.ObjectId.from_datetime(datetime(2014,12,3))],
-    ...                 doc_href='http://www.perdu.com',
+    ...                 docHref='http://www.perdu.com',
     ...                 lastUpdate=datetime(2014,12,2),
     ...                 exposed=True)
     >>> print(category)
-    [('categoryCode', 'GDP'),
+    [('categoryCode', 'nama_gdp'),
      ('children', [ObjectId('547e52800000000000000000')]),
      ('docHref', 'http://www.perdu.com'),
      ('exposed', True),
      ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP'),
      ('provider', 'Test provider')]
-    None
     """
     def __init__(self,
                  provider=None,
