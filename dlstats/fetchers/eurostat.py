@@ -12,7 +12,7 @@
 from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
 #from _skeleton import Skeleton
 import threading
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import lxml.etree
 import urllib
 from pandas.tseries.offsets import *
@@ -184,12 +184,15 @@ class Eurostat(Skeleton):
         for series in tree.iterfind(".//data:Series",
                                     namespaces=nsmap):
 
-            attributes = {}
+            attributes = defaultdict(list)
             values = []
             dimensions = []
 
             dimensions_ = OrderedDict(series.attrib)
+            nobs = 1
             for observation in series.iterchildren():
+                for k in attributes:
+                    attributes[k] += [""]
                 attrib = observation.attrib
                 for a in attrib:
                     if a == "TIME_PERIOD":
@@ -197,7 +200,10 @@ class Eurostat(Skeleton):
                     elif a == "OBS_VALUE":
                         values.append(attrib[a])
                     else:
-                        attributes[a] = attrib[a]
+                        if not a in attributes.keys():
+                            attributes[a] = ["" for i in range(nobs)]
+                        attributes[a][-1] = attrib[a]
+                nobs += 1
             key = ".".join(dimensions_.values())
             raw_dimensions[key] = dimensions_
             raw_dates[key] = dimensions

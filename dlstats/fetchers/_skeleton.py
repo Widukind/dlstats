@@ -7,7 +7,7 @@
 """
 import pymongo
 import pandas
-from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional
+from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any
 from dlstats import configuration
 from datetime import datetime
 import logging
@@ -61,7 +61,8 @@ def typecheck(type, msg=None):
 #Schema definition in voluptuous
 revision_schema = [{'value':Required(All(int)), 'position':Required(All(int)),
              'releaseDate':Required(All(date_validator))}]
-dimension = {Required('name'): All(str), Required('value'): All(str)}
+dimensions = {str: str}
+attributes = {str: [str]}
 dimension_list_schema = [{Required('name'): All(str), Required('values'): [(All(str),All(str))]}]
 
 class Series(object):
@@ -125,44 +126,56 @@ class Series(object):
         self.revisions=revisions
         self.dimensions=dimensions
 
-        self.schema = Schema({Required('name'):
+        self.schema = Schema({'name':
                               All(str, Length(min=1)),
-                              Required('provider'):
+                              'provider':
                               All(str, Length(min=1)),
-                              Required('key'):
+                              'key':
                               All(str, Length(min=1)),
-                              Required('datasetCode'):
+                              'datasetCode':
                               All(str, Length(min=1)),
-                              Required('period_index'):
+                              'period_index':
                               All(typecheck(pandas.tseries.period.PeriodIndex)),
-                              Required('values'):
-                              All([int]),
-                              Required('releaseDates'):
+                              'values':
+                              All([str]),
+                              'releaseDates':
                               All([date_validator]),
-                              Optional('attributes'):
-                              All(dimension),
-                              Optional('revisions'):
-                              All(revision_schema),
-                              Required('dimensions'):
-                              All([dimension])
-                               })
+                              'attributes':
+                              Any({},attributes),
+                              'revisions':
+                              Any(None,revision_schema),
+                              'dimensions':
+                              All(dimensions)
+                               },required=True)
 
-        _to_be_validated = {'provider': self.provider,
-                            'name': self.name,
-                            'key': self.key,
-                            'datasetCode': self.datasetCode,
-                            'period_index': self.period_index,
-                            'values': self.values,
-                            'attributes': self.attributes,
-                            'dimensions': self.dimensions,
-                            'revisions': self.revisions,
-                            'releaseDates': self.releaseDates
-                           }
+        self.validate = self.schema({'provider': self.provider,
+                                     'name': self.name,
+                                     'key': self.key,
+                                     'datasetCode': self.datasetCode,
+                                     'period_index': self.period_index,
+                                     'values': self.values,
+                                     'attributes': self.attributes,
+                                     'dimensions': self.dimensions,
+                                     'revisions': self.revisions,
+                                     'releaseDates': self.releaseDates
+                                 })
+        
+#        _to_be_validated = {'provider': self.provider,
+#                            'name': self.name,
+#                            'key': self.key,
+#                            'datasetCode': self.datasetCode,
+#                            'period_index': self.period_index,
+#                            'values': self.values,
+#                            'attributes': self.attributes,
+#                            'dimensions': self.dimensions,
+#                            'revisions': self.revisions,
+#                            'releaseDates': self.releaseDates
+#                           }
 
-        for optional_key in ['attributes','revisions']:
-            if _to_be_validated[optional_key] is None:
-                _to_be_validated.pop(optional_key)
-        self.validate = self.schema(_to_be_validated)
+#        for optional_key in ['attributes','revisions']:
+#            if _to_be_validated[optional_key] is None:
+#                _to_be_validated.pop(optional_key)
+#        self.validate = self.schema(_to_be_validated)
 
     @classmethod
     def from_index(cls,mongo_id):
@@ -375,7 +388,7 @@ class Category(object):
                                      Required('provider'):
                                      All(str, Length(min=1)),
                                      Required('children'):
-                                     All([typecheck(bson.objectid.ObjectId)]),
+                                     Any(None,[typecheck(bson.objectid.ObjectId)]),
                                      Required('docHref'):
                                      All(str, Length(min=1)),
                                      Required('lastUpdate'):
