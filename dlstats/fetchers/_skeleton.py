@@ -108,7 +108,7 @@ class Series(object):
                  releaseDates=None, 
                  values=None,
                  attributes=None,
-                 revisions=defaultdict(dict),
+                 revisions=None,
                  frequency=None,
                  dimensions=None):
         self.configuration=configuration
@@ -124,6 +124,7 @@ class Series(object):
         self.attributes=attributes
         self.revisions=revisions
         self.dimensions=dimensions
+
         self.schema = Schema({Required('name'):
                               All(str, Length(min=1)),
                               Required('provider'):
@@ -140,34 +141,28 @@ class Series(object):
                               All([date_validator]),
                               Optional('attributes'):
                               All(dimension),
-                              Required('revisions'):
+                              Optional('revisions'):
                               All(revision_schema),
                               Required('dimensions'):
                               All([dimension])
                                })
-        if attributes is None:
-            self.validate = self.schema({'provider': self.provider,
-                                         'name': self.name,
-                                         'key': self.key,
-                                         'datasetCode': self.datasetCode,
-                                         'period_index': self.period_index,
-                                         'values': self.values,
-                                         'dimensions': self.dimensions,
-                                         'revisions': self.revisions,
-                                         'releaseDates': self.releaseDates
-                                        })
-        else:
-            self.validate = self.schema({'provider': self.provider,
-                                         'name': self.name,
-                                         'key': self.key,
-                                         'datasetCode': self.datasetCode,
-                                         'period_index': self.period_index,
-                                         'values': self.values,
-                                         'attributes': self.attributes,
-                                         'dimensions': self.dimensions,
-                                         'revisions': self.revisions,
-                                         'releaseDates': self.releaseDates
-                                        })
+
+        _to_be_validated = {'provider': self.provider,
+                            'name': self.name,
+                            'key': self.key,
+                            'datasetCode': self.datasetCode,
+                            'period_index': self.period_index,
+                            'values': self.values,
+                            'attributes': self.attributes,
+                            'dimensions': self.dimensions,
+                            'revisions': self.revisions,
+                            'releaseDates': self.releaseDates
+                           }
+
+        for optional_key in ['attributes','revisions']:
+            if _to_be_validated[optional_key] is None:
+                _to_be_validated.pop(optional_key)
+        self.validate = self.schema(_to_be_validated)
 
     @classmethod
     def from_index(cls,mongo_id):
