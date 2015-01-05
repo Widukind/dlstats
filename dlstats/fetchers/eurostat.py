@@ -48,13 +48,13 @@ class Eurostat(Skeleton):
         self.lgr.addHandler(self.fh)
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
-            #self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            "http://localhost:8800/eurostat/table_of_contents.xml",
+            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+            #            "http://localhost:8800/eurostat/table_of_contents.xml",
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-        parser = lxml.etree.XMLParser(recover=True) 
-        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
+#        parser = lxml.etree.XMLParser(recover=True) 
+#        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
@@ -217,8 +217,8 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
-#        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
+#        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
+        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
