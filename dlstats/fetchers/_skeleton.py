@@ -59,28 +59,28 @@ def typecheck(type, msg=None):
 
 
 #Schema definition in voluptuous
-revision_schema = [{'value':Required(All(int)), 'position':Required(All(int)),
-             'releaseDate':Required(All(date_validator))}]
+revision_schema = [{Required('value'): str, Required('position'): int,
+             Required('releaseDate'): date_validator}]
 dimensions = {str: str}
 attributes = {str: [str]}
-dimension_list_schema = [{Required('name'): All(str), Required('values'): [(All(str),All(str))]}]
+dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
 
 class Series(object):
     """Abstract base class for time series
     >>> from datetime import datetime
     >>> series = Series(provider='Test provider',name='GDP in France',
     ...                 key='GDP_FR',datasetCode='nama_gdp_fr',
-    ...                 values = [2700, 2720, 2740, 2760],
+    ...                 values = ['2700', '2720', '2740', '2760'],
     ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)],
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
-    ...                 attributes = {'name':'OBS_VALUE','value':'p'},
-    ...                 revisions = [{'value':2710, 'position':2,
+    ...                 attributes = {'OBS_VALUE': ['p']},
+    ...                 revisions = [{'value': '2710', 'position':2,
     ...                 'releaseDate' : datetime(2014,11,28)}],
-    ...                 dimensions = [{'name':'Seasonal adjustment', 'value':'wda'}])
+    ...                 dimensions = {'Seasonal adjustment':'wda'})
     >>> print(series)
-    [('attributes', {'name': 'OBS_VALUE', 'value': 'p'}),
+    [('attributes', {'OBS_VALUE': ['p']}),
      ('datasetCode', 'nama_gdp_fr'),
-     ('dimensions', [{'name': 'Seasonal adjustment', 'value': 'wda'}]),
+     ('dimensions', {'Seasonal adjustment': 'wda'}),
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
      ('period_index',
@@ -96,8 +96,9 @@ class Series(object):
      ('revisions',
       [{'position': 2,
         'releaseDate': datetime.datetime(2014, 11, 28, 0, 0),
-        'value': 2710}]),
-     ('values', [2700, 2720, 2740, 2760])]
+        'value': '2710'}]),
+     ('values', ['2700', '2720', '2740', '2760'])]
+    >>>
     """
 
     def __init__(self,
@@ -135,17 +136,17 @@ class Series(object):
                               'datasetCode':
                               All(str, Length(min=1)),
                               'period_index':
-                              All(typecheck(pandas.tseries.period.PeriodIndex)),
+                              typecheck(pandas.tseries.period.PeriodIndex),
                               'values':
-                              All([str]),
+                              [str],
                               'releaseDates':
-                              All([date_validator]),
+                              [date_validator],
                               'attributes':
                               Any({},attributes),
                               'revisions':
                               Any(None,revision_schema),
                               'dimensions':
-                              All(dimensions)
+                              dimensions
                                },required=True)
 
         self.validate = self.schema({'provider': self.provider,
@@ -297,20 +298,20 @@ class Dataset(object):
         self.docHref=docHref
         self.lastUpdate=lastUpdate
         self.configuration = configuration
-        self.schema = Schema({Required('name'):
-                                     All(str, Length(min=1)),
-                                     Required('provider'):
-                                     All(str, Length(min=1)),
-                                     Required('datasetCode'):
-                                     All(str, Length(min=1)),
-                                     Optional('docHref'):
-                                     All(str, Length(min=1)),
-                                     Required('lastUpdate'):
-                                     All(typecheck(datetime)),
-                                     Required('dimensionList'):
-                                     All(dimension_list_schema),
-                                     Required('attributeList'):
-                                     All(dimension_list_schema)
+        self.schema = Schema({'name':
+                              All(str, Length(min=1)),
+                              'provider':
+                              All(str, Length(min=1)),
+                              'datasetCode':
+                              All(str, Length(min=1)),
+                              'docHref':
+                              str,
+                              'lastUpdate':
+                              typecheck(datetime),
+                              'dimensionList':
+                              dimension_list_schema,
+                              'attributeList':
+                              dimension_list_schema
                                },required=True)
         if docHref is None:
             self.validate = self.schema({'provider': self.provider,
@@ -383,21 +384,22 @@ class Category(object):
         self.lastUpdate=lastUpdate
         self.exposed=exposed
         self.configuration=configuration
-        self.schema = Schema({Required('name'):
-                                     All(str, Length(min=1)),
-                                     Required('provider'):
-                                     All(str, Length(min=1)),
-                                     Required('children'):
-                                     Any(None,[typecheck(bson.objectid.ObjectId)]),
-                                     Required('docHref'):
-                                     All(str, Length(min=1)),
-                                     Required('lastUpdate'):
-                                     All(typecheck(datetime)),
-                                     Required('categoryCode'):
-                                     All(str, Length(min=1)),
-                                     Required('exposed'):
-                                     All(typecheck(bool)),
-                               })
+        self.schema = Schema({'name':
+                              All(str, Length(min=1)),
+                              'provider':
+                              All(str, Length(min=1)),
+                              'children':
+                              Any(None,[typecheck(bson.objectid.ObjectId)]),
+                              'docHref':
+                              str,
+                              'lastUpdate':
+                              typecheck(datetime),
+                              'categoryCode':
+                              All(str, Length(min=1)),
+                              'exposed':
+                              typecheck(bool)
+                          }, required=True
+)
         self.validate = self.schema({'provider': self.provider,
                     'categoryCode': self.categoryCode,
                     'name': self.name,
