@@ -98,12 +98,13 @@ class Eurostat(Skeleton):
                         children = walktree(element)
                 if not ((lastUpdate is None) | (lastModified is None)):
                     lastUpdate = max(lastUpdate,lastModified)
-                self.lgr.debug("docHref : %s", doc_href)
+                if lastUpdate is not None and not isinstance(lastUpdate,datetime.datetime):
+                    lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
                     document = Category(provider='eurostat',name=title,docHref=doc_href,children=children,categoryCode=code,lastUpdate=lastUpdate)
                 else:
-                    document = Category(provider='eurostat',name=title,children=children,categoryCode=code,last_update=lastUpdate)
-                _id = document.update_dabase()
+                    document = Category(provider='eurostat',name=title,children=children,categoryCode=code,lastUpdate=lastUpdate)
+                _id = document.update_database()
                 children_ids += [_id]
             return children_ids
 
@@ -278,7 +279,7 @@ class Eurostat(Skeleton):
 
 
     def update_eurostat(self):
-        categories = self.create_categories_db()
+        return self.update_categories_db()
 #        print(self.get_selected_datasets())
 #        for d in self.get_selected_datasets():
 #            self.update_selected_dataset(d)

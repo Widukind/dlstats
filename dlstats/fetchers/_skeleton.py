@@ -305,7 +305,7 @@ class Dataset(object):
                               'datasetCode':
                               All(str, Length(min=1)),
                               'docHref':
-                              str,
+                              Any(None,str),
                               'lastUpdate':
                               typecheck(datetime),
                               'dimensionList':
@@ -313,23 +313,6 @@ class Dataset(object):
                               'attributeList':
                               dimension_list_schema
                                },required=True)
-        if docHref is None:
-            self.validate = self.schema({'provider': self.provider,
-                        'datasetCode': self.datasetCode,
-                        'name': self.name,
-                        'dimensionList': self.dimensionList,
-                        'attributeList': self.attributeList,
-                        'lastUpdate': self.lastUpdate
-                        })
-        else:
-            self.validate = self.schema({'provider': self.provider,
-                        'datasetCode': self.datasetCode,
-                        'name': self.name,
-                        'dimensionList': self.dimensionList,
-                        'attributeList': self.attributeList,
-                        'docHref': self.docHref,
-                        'lastUpdate': self.lastUpdate
-                        })
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
@@ -391,7 +374,7 @@ class Category(object):
                               'children':
                               Any(None,[typecheck(bson.objectid.ObjectId)]),
                               'docHref':
-                              str,
+                              Any(None,str),
                               'lastUpdate':
                               typecheck(datetime),
                               'categoryCode':
@@ -424,7 +407,7 @@ class Category(object):
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        self.db.categories.update({'categoryCode': self.bson['categoryCode']},
+        return self.db.categories.update({'categoryCode': self.bson['categoryCode']},
                                   self.bson,upsert=True)
 
 if __name__ == "__main__":
