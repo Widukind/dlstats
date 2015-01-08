@@ -407,8 +407,10 @@ class Category(object):
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        return self.db.categories.update({'categoryCode': self.bson['categoryCode']},
+        id_category = self.db.categories.find_one({'categoryCode': self.bson['categoryCode']})['_id']
+        self.db.categories.update({'_id': id_category},
                                   self.bson,upsert=True)
+        return id_category
 
 if __name__ == "__main__":
     import doctest
