@@ -230,8 +230,8 @@ class Series(object):
         else:
             position = 0
             self.revisions = old_bson['revisions']
-            old_start_period = pandas.Period(old_bson['startDate'],old_bson['frequency'])
-            start_period = pandas.Period(self.bson['startDate'],self.bson['frequency'])
+            old_start_period = pandas.Period(old_bson['startDate'],freq=old_bson['frequency'])
+            start_period = pandas.Period(self.bson['startDate'],freq=self.bson['frequency'])
             if start_period > old_start_period:
             # previous, longer, series is kept
                 offset = start_period - old_start_period
@@ -407,10 +407,13 @@ class Category(object):
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        id_category = self.db.categories.find_one({'categoryCode': self.bson['categoryCode']})['_id']
-        self.db.categories.update({'_id': id_category},
-                                  self.bson,upsert=True)
-        return id_category
+        in_base_category = self.db.categories.find_one({'categoryCode': self.bson['categoryCode']})
+        if in_base_category is None:
+  	     	_id_ = self.db.categories.insert(self.bson)
+        else:
+            self.db.categories.update({'_id': in_base_category['_id']}, self.bson)
+            _id_ = in_base_category['_id']
+        return _id_
 
 if __name__ == "__main__":
     import doctest
