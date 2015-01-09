@@ -101,19 +101,19 @@ class Eurostat(Skeleton):
                 if lastUpdate is not None and not isinstance(lastUpdate,datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
-                    self.lgr.debug('Instantiating Category: %s', {'provider':'eurostat',
+                    self.lgr.debug('Instantiating Category: %s', pprint.pformat({'provider':'eurostat',
                                                                   'name':title,
                                                                   'docHref':doc_href,
                                                                   'children':children,
                                                                   'categoryCode':code,
-                                                                  'lastUpdate':lastUpdate})
+                                                                  'lastUpdate':lastUpdate}))
                     document = Category(provider='eurostat',name=title,docHref=doc_href,children=children,categoryCode=code,lastUpdate=lastUpdate)
                 else:
-                    self.lgr.debug('Instantiating Category: %s', {'provider':'eurostat',
+                    self.lgr.debug('Instantiating Category: %s', pprint.pformat({'provider':'eurostat',
                                                                   'name':title,
                                                                   'children':children,
                                                                   'categoryCode':code,
-                                                                  'lastUpdate':lastUpdate})
+                                                                  'lastUpdate':lastUpdate}))
                     document = Category(provider='eurostat',name=title,children=children,categoryCode=code,lastUpdate=lastUpdate)
                 _id = document.update_database()
                 children_ids += [_id]
@@ -169,7 +169,7 @@ class Eurostat(Skeleton):
                         if desc.attrib.items()[0][1] == "en":
                             dimension.append((dimension_key, desc.text))
                 codes.append({'name':name, 'values': dimension})
-        self.lgr.debug('Parsed codes %s', codes)
+        self.lgr.debug('Parsed codes %s', pprint.pformat(codes))
         # Splitting codeList in dimensions and attributes
         for concept_list in tree.iterfind(".//structure:Components",namespaces=nsmap):
             dl = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Dimension",namespaces=nsmap)]
@@ -275,7 +275,7 @@ class Eurostat(Skeleton):
                      for name, value in dimensions_.items()}
             dimensions_dict = {d['name']: d['values'] for d in dimensionList}
             name = "-".join([v[1] for name,value in dimensions.items() for d in dimensionList if d['name'] == name for v in d['values'] if v[0] == value])
-            self.lgr.debug('Instantiating Series: %s', {'provider':'eurostat',
+            self.lgr.debug('Instantiating Series: %s', pprint.pformat({'provider':'eurostat',
                                                         'name':name,
                                                         'datasetCode':datasetCode,
                                                         'period_index':period_index,
@@ -283,7 +283,7 @@ class Eurostat(Skeleton):
                                                         'attributes':raw_attributes[key],
                                                         'releaseDates':releaseDates,
                                                         'frequency':freq,
-                                                        'dimensions':dimensions})
+                                                        'dimensions':dimensions}))
             document = Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
