@@ -230,8 +230,8 @@ class Series(object):
         else:
             position = 0
             self.revisions = old_bson['revisions']
-            old_start_period = pandas.Period(old_bson['startDate'],old_bson['dimensions']['FREQ'])
-            start_period = pandas.Period(self.bson['startDate'],self.bson['dimensions']['FREQ'])
+            old_start_period = pandas.Period(old_bson['startDate'],old_bson['frequency']
+            start_period = pandas.Period(self.bson['startDate'],self.bson['frequency']
             if start_period > old_start_period:
             # previous, longer, series is kept
                 offset = start_period - old_start_period
