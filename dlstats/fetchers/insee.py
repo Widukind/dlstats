@@ -1,5 +1,6 @@
 # test limitation on line 98
 
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
@@ -11,12 +12,13 @@ import zipfile
 from io import BytesIO, StringIO
 import requests
 import csv
-from dlstats.fetchers._skeleton import Skeleton
 from bson import ObjectId
 from json import loads
 import collections
 from numpy import prod
 import sys
+from pandas import period_range
+import dlstats.fetchers.inseeMetadata
 
 class Insee(Skeleton):   
     """Class for managing INSEE data in dlstats"""
@@ -42,8 +44,8 @@ class Insee(Skeleton):
         for a in ul.find_all("a"):
             href = 'http://www.bdm.insee.fr'+a['href']
             children += self.get_page_2(href)
-        document = self._Category(provider='insee',name='root',children=children,category_code='0')
-        document.store(self.db.categories)
+        document = Category(provider='insee',name='root',children=children,category_code='0')
+        document.update_database()
 
     def get_page_2(self,url):
         """Parser for  2nd level pages of INSEE BDM
@@ -68,11 +70,11 @@ class Insee(Skeleton):
                     name = c.string
                     href = c['href']
                     code = href.split('=')[1]
-                    document = self._Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+                    document = Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
                     _id = document.store(self.db.categories)
                     return (None,_id)
-            document = self._Category(provider='insee',name=name,children=children,category_code=code,last_update=datetime.datetime.now())
-            _id = document.store(self.db.categories)
+            document = Category(provider='insee',name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+            _id = document.update_database()
             return (code1,_id)
         fh = self.open_url_and_check(url)
         page = BeautifulSoup(fh)
@@ -117,7 +119,6 @@ class Insee(Skeleton):
 
         dataset = dict()
         dataset['attribute_list'] = dict()
-        flags_list = dict()
         dimension_list = collections.defaultdict(set)
         dp = dataset_page(code)
         series = []
@@ -148,37 +149,39 @@ class Insee(Skeleton):
                 series[i]['revisions'] = []
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
-            flags_list.update(s)
             for s in series:
-                document = self._Series(provider='insee',
-                                        name = s['name'],
-                                        key = s['key'],
-                                        dataset_code = s['datasetCode'],
-                                        start_date = s['startDate'],
-                                        end_date = s['endDate'],
-                                        values = s['values'],
-                                        attributes = s['attributes'],
-                                        dimensions = s['dimensions'],
-                                        release_dates = s['releaseDates'],
-                                        revisions = s['revisions'],
-                                        frequency = s['frequency'])
-                document.store(self.db.series)
+                document = Series(provider='insee',
+                                  name = s['name'],
+                                  key = s['key'],
+                                  datasetCode = s['datasetCode'],
+                                  period_index = s['period_index'],
+                                  values = s['values'],
+                                  attributes = s['attributes'],
+                                  dimensions = s['dimensions'],
+                                  releaseDates = s['releaseDates'],
+                                  revisions = s['revisions'],
+                                  frequency = s['frequency'])
+                document.update_database()
         dataset.update(dp.get_dataset())
         dataset['dimension_list'] = dict()
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
-        dataset['attribute_list']['flags'] = flags_list
-        document = self._Dataset(provider='insee',
-                                 name = dataset['name'],
-                                 dataset_code = dataset['datasetCode'],
-                                 codes_list = dict(list(dataset['dimension_list'].items())+list(dataset['attribute_list'].items())),
-                                 doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code)
-        document.store(self.db.datasets)
+        dataset['attribute_list']['flags'] = inseeMetadata.inseeMetadata()
+        document = Dataset(provider='insee',
+                           name = dataset['name'],
+                           datasetCode = dataset['datasetCode'],
+                           dimensionList = dataset['dimension_list'],
+                           attributeList = dataset['attribute_list'],
+                           docHref = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code,
+                           lastUpdate = dataset['lastUpdate']) 
+        document.update_database()
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
         
         series = []
+        startDate = []
+        endDate = []
         dimensions_desc = collections.defaultdict(set)
         buffer = file.read('Charact.csv').decode(encoding='UTF-8')
         lines = buffer.split('\r\n')
@@ -220,6 +223,7 @@ class Insee(Skeleton):
                         s_offset = 2
             elif fields[0] == 'Beginning date':
                 for i in range(len(fields)-1):
+                    startDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
@@ -229,6 +233,7 @@ class Insee(Skeleton):
                         series[i]['startDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
             elif fields[0] == 'Ending date':
                 for i in range(len(fields)-1):
+                    endDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
@@ -241,6 +246,14 @@ class Insee(Skeleton):
                     series[i]['dimensions'][fields[0]] = fields[i+1]
                     dimensions_desc[fields[0]].add(fields[i+1])
             m += 1
+        for i in range(len(startDate)):
+            if series[i]['frequency'] == "Q":
+                d1 = startDate[i].split()
+                d2 = endData[i].split()
+                series[i]['period_index'] = period_range(d1[1]+' '+d1[3],d2[1]+' '+d2[3],freq="Q")
+            else:
+                series[i]['period_index'] = period_range(startDate[i],endDate[i],freq=series[i]['frequency'])
+                
         return (dimensions_desc,series,s_offset)
 
     def get_values_csv(self,file,series,s_offset):
@@ -487,7 +500,7 @@ class dataset_page(Insee):
         Needs to be called last because lastUpdate is updated through the iterations."""
         
         dataset = {'datasetCode': self.dataset_code,
-                   'doc_href': "http://www.bdm/insee.fr/bdm2/documentationGroupe/codeGroupe=" + self.dataset_code,
+                   'docHref': "http://www.bdm/insee.fr/bdm2/documentationGroupe/codeGroupe=" + self.dataset_code,
                    'name': self.dataset_name,
                    'lastUpdate': self.lastUpdate,
                    'versionDate': datetime.datetime.now()}
