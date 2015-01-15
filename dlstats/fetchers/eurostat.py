@@ -121,7 +121,7 @@ class Eurostat(Skeleton):
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider='eurostat',name='root',children=[_id],lastUpdate=None)
+        document = Category(provider='eurostat',name='root',children=_id,lastUpdate=None,categoryCode='eurostat_root')
         document.update_database()
 
 
