@@ -261,14 +261,13 @@ class Eurostat(Skeleton):
         (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
         for key in raw_values:
             series_key = (datasetCode+'.'+ key).upper()
-            # Eurostat lists data in reversed chronological order
-            values = raw_values[key][::-1]
             (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
             (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][-1])
-            period_index = pandas.period_range(start=start_year+freq+start_subperiod,end=end_year+freq+end_subperiod,freq=freq)
-            for a in raw_attributes[key]:
-                raw_attributes[key][a] = raw_attributes[key][a][::-1]
-            releaseDates = [lastUpdate for v in values]
+            if freq == "A":
+                period_index = pandas.period_range(start=start_year,end=end_year,freq=freq)
+            else:
+                period_index = pandas.period_range(start=start_year+freq+start_subperiod,end=end_year+freq+end_subperiod,freq=freq)
+            releaseDates = [lastUpdate for v in raw_values[key]]
             dimensions_ = raw_dimensions[key]
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
