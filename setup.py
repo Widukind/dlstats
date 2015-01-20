@@ -20,7 +20,8 @@ setup(name='dlstats',
         'pandas>=0.12',
         'docopt>=0.6.0',
         'voluptuous>=0.8',
-        'xlrd>=0.8'
+        'xlrd>=0.8',
+        'elasticsearch>=1.0.0,<2.0.0'
       ]
 	)
 
