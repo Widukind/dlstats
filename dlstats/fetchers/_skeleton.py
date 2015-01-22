@@ -13,7 +13,7 @@ import logging
 import bson
 import pprint
 from collections import defaultdict
-from elasticsearch import elasticsearch
+from elasticsearch import Elasticsearch
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
