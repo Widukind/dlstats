@@ -35,6 +35,9 @@ waitQueueTimeout = integer()
 waitQueueMultiple = integer()
 auto_start_request = boolean()
 use_greenlets = boolean()
+[ElasticSearch]
+host = integer()
+port = integer()
 [Fetchers]
 [[Eurostat]]
 url_table_of_contents = string()"""
