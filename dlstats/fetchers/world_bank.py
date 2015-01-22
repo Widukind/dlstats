@@ -35,7 +35,7 @@ class WorldBank(Skeleton):
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
-            released_dates = list(zipfile_.infolist()[index_name_series].date_time)
+            released_dates = list(zipfile_.infolist()[index_name_series].date_time[0:6])
             
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
@@ -87,11 +87,11 @@ class WorldBank(Skeleton):
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
-            released_dates = list(zipfile_.infolist()[index_name_series].date_time)
+            released_dates = str(zipfile_.infolist()[index_name_series].date_time[0:6])
             
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
-                if sheet_name not in ['Sheet1','Sheet2','Sheet3']: 
+                if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4','Feuille1','Feuille2','Feuille3','Feuille4']: 
                     label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]
                     for column_index in range (1,
                         excel_file.sheet_by_name(sheet_name).ncols):
@@ -127,7 +127,7 @@ class WorldBank(Skeleton):
                         Key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+column[0].value
  
-                        document = Category(provider = 'WorldBank', name = name_series[:-5] , categoryCode = Key,lastUpdate = released_dates )
+                        document = Category(provider = 'WorldBank', name = name_series[:-5] , categoryCode = Key )
                         _id = document.update_database()
                                   
     def update_a_series(self):
@@ -137,12 +137,13 @@ class WorldBank(Skeleton):
         zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
         excelfile = {name : zipfile_.read(name) for name in zipfile_.namelist()}
         for name_series in excelfile.keys():
+            released_dates = []
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
-            released_dates = list(zipfile_.infolist()[index_name_series].date_time)
+            released_dates.append(zipfile_.infolist()[index_name_series].date_time[0:6])
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
-                if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4']: 
+                if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4','Feuille1','Feuille2','Feuille3','Feuille4']: 
                     label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]
                     for column_index in range (1,
                         excel_file.sheet_by_name(sheet_name).ncols):
@@ -175,5 +176,5 @@ class WorldBank(Skeleton):
                             frequency = 'd' 'day'                                             
                         Key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+column[0].value
-                        document = Series(provider = 'WorldBank', name = name_series[:-5] , key = Key, datasetCode = Key, values = value, period_index = pandas.period_range(start_date_b, end_date_b , freq = frequency), releaseDates = released_dates ,frequency=frequency , dimensions =  dimensions_int)
+                        document = Series(provider = 'WorldBank', name = name_series[:-5] , key = Key, datasetCode = Key, values = value, period_index = pandas.period_range(start_date_b, end_date_b , freq = frequency) , releaseDates = released_dates ,frequency=frequency , dimensions =  dimensions_int)
                         _id = document.update_database(key = Key)     
