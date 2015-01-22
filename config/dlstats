@@ -4,6 +4,7 @@ socket_directory=/run/dlstats
 [MongoDB]
 host=127.0.0.1
 port=27017
+replicaSet=rs0
 [ElasticSearch]
 host=127.0.0.1
 port=9200
