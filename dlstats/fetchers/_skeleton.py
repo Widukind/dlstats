@@ -17,7 +17,7 @@ from elasticsearch import Elasticsearch
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
-    def __init__(self):
+    def __init__(self, provider_name=None):
         self.configuration = configuration
         self.provider_name = provider_name
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
@@ -40,7 +40,7 @@ class Skeleton(object):
                                   "be implemented.")
     def create_index_elasticsearch(self):
         def get_dimensions(dimensions,dimension_list):
-            dd = collections.defaultdict(dict)
+            dd = defaultdict(dict)
             dl = {s['name']: {s1[0]: s1[1] for s1 in s['values']} for s in dimension_list}
             for d in dimensions:
                 for di in d['dimensions'].items():

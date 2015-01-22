@@ -37,7 +37,7 @@ import pprint
 class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     def __init__(self):
-        super().__init__()
+        super().__init__(provider_name='eurostat')
         self.lgr = logging.getLogger('Eurostat')
         self.lgr.setLevel(logging.DEBUG)
         self.fh = logging.FileHandler('Eurostat.log')
