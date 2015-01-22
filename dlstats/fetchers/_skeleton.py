@@ -13,7 +13,7 @@ import logging
 import bson
 import pprint
 from collections import defaultdict
-from elasticsearch import Elasticsearch
+import elasticsearch
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
@@ -22,7 +22,7 @@ class Skeleton(object):
         self.provider_name = provider_name
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        self.elasticsearch = Elasticsearch(host = self.configuration['ElasticSearch']['host'])
+        self.elasticsearch = elasticsearch.Elasticsearch(host = self.configuration['ElasticSearch']['host'])
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
