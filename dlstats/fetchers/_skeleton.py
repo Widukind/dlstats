@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-#TODO: Review category_code. Review Category(). Put in skeletons methods for updating things, properly implemented
 """
 .. module:: _skeleton
     :synopsis: Module containing an abstract base class for all the fetchers
@@ -14,13 +13,16 @@ import logging
 import bson
 import pprint
 from collections import defaultdict
+from elasticsearch import elasticsearch
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
     def __init__(self):
         self.configuration = configuration
+        self.provider_name = provider_name
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
+        self.elasticsearch = Elasticsearch(host = self.configuration['ElasticSearch']['host'])
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
@@ -36,6 +38,100 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
+    def create_index_elasticsearch(self):
+        def get_dimensions(dimensions,dimension_list):
+            dd = collections.defaultdict(dict)
+            dl = {s['name']: {s1[0]: s1[1] for s1 in s['values']} for s in dimension_list}
+            for d in dimensions:
+                for di in d['dimensions'].items():
+                    if di[0] in dl.keys():
+                        dd[di[0]][di[1]] = dl[di[0]][di[1]]
+            return dd
+
+        ES_HOST = {
+            "host" : self.configuration['ElasticSearch']['host'],
+            "port" : self.configuration['ElasticSearch']['port']
+        }
+
+        INDEX_NAME = 'widukind'
+        TYPE_NAME = 'datasets'
+
+        ID_FIELD = 'datasetCode'
+
+        cat = self.db.categories.find_one({'provider': self.provider_name, 'name': 'root'})
+
+        coll = { d['_id']: d for d in self.db.categories.find({'provider': self.provider_name},{'provider': 0})}
+
+        def levels(d,node,coll,level,order):
+            level += [coll[node]['name']]
+            children = coll[node]['children']
+            if type(children) is list:
+                if type(children[0]) is list:
+                    children = children[0]
+                for child in children:
+                    (d, order) = levels(d,child,coll,level,order)
+                level.pop()
+            else:
+                d[coll[node]['categoryCode']] = [order]+level[1:]
+                order += 1
+                level.pop()
+            return (d, order)
+
+        res = levels({},cat['_id'],coll,[],0)
+        d_levels = res[0]
+
+        print(d_levels)
+
+        datasets = self.db.datasets.find({'provider': self.provider_name})
+
+        bulk_data = []
+
+        for d in datasets:
+            if 'dimensionList' in d.keys():
+                dimensions = self.db.series.find({'datasetCode': d['datasetCode']},{'dimensions': 1})
+                data_dict = {}
+                data_dict['name'] = d['name']
+                data_dict['dimensionList'] = get_dimensions(dimensions,d['dimensionList'])
+                data_dict['provider'] = d['provider']
+                data_dict['datasetCode'] = d['datasetCode']
+                data_dict['order'] = d_levels[d['datasetCode']][0]
+                k = 1
+                for e in d_levels[d['datasetCode']][1:]:
+                    data_dict['level'+str(k)] = e
+                    k += 1
+                    
+                op_dict = {
+                    "index": {
+                        "_index": INDEX_NAME,
+                        "_type": TYPE_NAME,
+                        "_id": data_dict[ID_FIELD]
+                    }
+                }
+                bulk_data.append(op_dict)
+                bulk_data.append(data_dict)
+
+
+        if elasticsearch.indices.exists(INDEX_NAME):
+            res = elasticsearch.indices.delete(index = INDEX_NAME)
+
+        request_body = {
+            "settings" : {
+                "number_of_shards": 1,
+                "number_of_replicas": 0
+            }
+        }
+        print(bulk_data[:10])
+        res = elasticsearch.bulk(index = INDEX_NAME, body = bulk_data, refresh = True)
+
+
+        # sanity check
+        print("searching...")
+        res = elasticsearch.search(index = INDEX_NAME, size=2, body={"query": {"match_all": {}}})
+        print(" response: '%s'" % (res))
+        print("results:")
+        for hit in res['hits']['hits']:
+            print(hit["_source"])
+
 #Validation and ODM
 #Custom validator (only a few types are natively implemented in voluptuous)
 def date_validator(value):
