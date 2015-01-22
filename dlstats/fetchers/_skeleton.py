@@ -111,8 +111,8 @@ class Skeleton(object):
                 bulk_data.append(data_dict)
 
 
-        if elasticsearch.indices.exists(INDEX_NAME):
-            res = elasticsearch.indices.delete(index = INDEX_NAME)
+        if self.elasticsearch.indices.exists(INDEX_NAME):
+            res = self.elasticsearch.indices.delete(index = INDEX_NAME)
 
         request_body = {
             "settings" : {
@@ -120,17 +120,7 @@ class Skeleton(object):
                 "number_of_replicas": 0
             }
         }
-        print(bulk_data[:10])
-        res = elasticsearch.bulk(index = INDEX_NAME, body = bulk_data, refresh = True)
-
-
-        # sanity check
-        print("searching...")
-        res = elasticsearch.search(index = INDEX_NAME, size=2, body={"query": {"match_all": {}}})
-        print(" response: '%s'" % (res))
-        print("results:")
-        for hit in res['hits']['hits']:
-            print(hit["_source"])
+        res = self.elasticsearch.bulk(index = INDEX_NAME, body = bulk_data, refresh = True)
 
 #Validation and ODM
 #Custom validator (only a few types are natively implemented in voluptuous)
