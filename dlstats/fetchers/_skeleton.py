@@ -327,8 +327,8 @@ class Series(object):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
                                                'position': offset+position,
-                                               'releaseDate':
-                                               old_bson['releaseDate'][offset+position]})
+                                               'releaseDates':
+                                               old_bson['releaseDates'][offset+position]})
                     position += 1
             else:
             # zero or more data are added at the beginning of the series
@@ -337,8 +337,8 @@ class Series(object):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
                                                'position': offset+position,
-                                               'releaseDate':
-                                               old_bson['releaseDate'][position]})
+                                               'releaseDates':
+                                               old_bson['releaseDates'][position]})
                     position += 1
                                               
             self.bson['revisions'] = self.revisions
