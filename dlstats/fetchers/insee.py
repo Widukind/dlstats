@@ -18,7 +18,6 @@ import collections
 from numpy import prod
 import sys
 from pandas import period_range
-from dlstats.fetchers.inseeMetadata import inseeMetadata
 
 class Insee(Skeleton):   
     """Class for managing INSEE data in dlstats"""
@@ -121,7 +120,6 @@ class Insee(Skeleton):
         dataset['attribute_list'] = dict()
         dimension_list = collections.defaultdict(set)
         dp = dataset_page(code)
-        dp = [[1]]
         series = []
         for keys in dp:
             # no series are available in this chunk
@@ -136,18 +134,17 @@ class Insee(Skeleton):
                                             [('idbank', k) for k in keys])
             params = params.encode('utf-8')
             fh = self.open_url_and_check(href,params)
-#            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
+            #            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
             buffer = BytesIO(fh.read())
             file = zipfile.ZipFile(buffer)
             (dimensions_desc,series,s_offset) = self.get_charact_csv(file,code)
-            (f,s,v) = self.get_values_csv(file,series,s_offset)
-            print(len(series),len(v))
-            for i in range(len(v)):
+            (attributes,attribute_list,values) = self.get_values_csv(file,series,s_offset)
+            for i in range(len(values)):
                 series[i]['datasetCode'] = code
-                series[i]['values'] = v[i]
+                series[i]['values'] = values[i]
                 series[i]['attributes'] = dict()
-                series[i]['attributes'] = {'flags': f[i]}
-                series[i]['releaseDates'] = [series[i]['releaseDates'] for j in v[i]]
+                series[i]['attributes'] = {'flags': attributes[i]}
+                series[i]['releaseDates'] = [series[i]['releaseDates'] for j in values[i]]
                 series[i]['revisions'] = []
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
@@ -168,7 +165,7 @@ class Insee(Skeleton):
         dataset['dimension_list'] = dict()
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
-        dataset['attribute_list']['flags'] = inseeMetadata()
+        dataset['attribute_list']['flags'] = attribute_list
         document = Dataset(provider='insee',
                            name = dataset['name'],
                            datasetCode = dataset['datasetCode'],
@@ -274,13 +271,13 @@ class Insee(Skeleton):
                 # names is used to check for Flags
                 # we keep the heading to have the same aligning as fields
                 for i in range(len(fields)):
-                    names += fields[i]
+                    names.append(fields[i])
             elif m == 1:
                 k = 0
                 for i in range(s_offset,len(fields)):
                     if names[i] != 'Flags':
                         if fields[i] != series[k]['key'].split('.')[1]:
-                            print('key error in Values.csv',fields[i+s_offset],series[i]['key'])
+                            print('key error in Values.csv',fields[i],series[k]['key'])
                         else:
                             k += 1
             elif (m == 3) :
@@ -290,11 +287,11 @@ class Insee(Skeleton):
                     else:
                         v.append([re.sub(re.compile(','),'',fields[i])])
                         f.append([])
-            elif (m > 3) :
+            elif (m > 3) and (len(fields[0]) > 0):
                 k = 0;
                 for i in range(s_offset,len(fields)):
                     if names[i] == 'Flags':
-                        f[k-1].append([fields[i]])
+                        f[k-1].append(fields[i])
                     else:
                         v[k].append(re.sub(re.compile(','),'',fields[i]))
                         k += 1 
