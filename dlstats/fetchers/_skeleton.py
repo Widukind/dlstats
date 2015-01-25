@@ -409,7 +409,7 @@ class Dataset(object):
                 'name': self.name,
                 'datasetCode': self.datasetCode,
                 'dimensionList': self.dimensionList,
-                'attributeList': self.dimensionList,
+                'attributeList': self.attributeList,
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
     def update_database(self):
