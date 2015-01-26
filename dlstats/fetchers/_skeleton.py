@@ -146,7 +146,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = [{Required('value'): str, Required('position'): int,
-             Required('releaseDate'): date_validator}]
+             Required('releaseDates'): date_validator}]
 dimensions = {str: str}
 attributes = {str: [str]}
 dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
