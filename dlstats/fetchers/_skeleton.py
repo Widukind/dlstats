@@ -146,7 +146,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = [{Required('value'): str, Required('position'): int,
-             Required('releaseDate'): date_validator}]
+             Required('releaseDates'): date_validator}]
 dimensions = {str: str}
 attributes = {str: [str]}
 dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
@@ -327,8 +327,8 @@ class Series(object):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
                                                'position': offset+position,
-                                               'releaseDate':
-                                               old_bson['releaseDate'][offset+position]})
+                                               'releaseDates':
+                                               old_bson['releaseDates'][offset+position]})
                     position += 1
             else:
             # zero or more data are added at the beginning of the series
@@ -337,8 +337,8 @@ class Series(object):
                     if values[0] != values[1]:
                         self.revisions.append({'value':values[0],
                                                'position': offset+position,
-                                               'releaseDate':
-                                               old_bson['releaseDate'][position]})
+                                               'releaseDates':
+                                               old_bson['releaseDates'][position]})
                     position += 1
                                               
             self.bson['revisions'] = self.revisions
@@ -409,7 +409,7 @@ class Dataset(object):
                 'name': self.name,
                 'datasetCode': self.datasetCode,
                 'dimensionList': self.dimensionList,
-                'attributeList': self.dimensionList,
+                'attributeList': self.attributeList,
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
     def update_database(self):

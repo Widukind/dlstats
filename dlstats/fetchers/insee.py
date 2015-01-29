@@ -18,7 +18,6 @@ import collections
 from numpy import prod
 import sys
 from pandas import period_range
-import dlstats.fetchers.inseeMetadata
 
 class Insee(Skeleton):   
     """Class for managing INSEE data in dlstats"""
@@ -44,7 +43,7 @@ class Insee(Skeleton):
         for a in ul.find_all("a"):
             href = 'http://www.bdm.insee.fr'+a['href']
             children += self.get_page_2(href)
-        document = Category(provider='insee',name='root',children=children,category_code='0')
+        document = Category(provider='insee',name='root',children=children,categoryCode='0')
         document.update_database()
 
     def get_page_2(self,url):
@@ -70,10 +69,10 @@ class Insee(Skeleton):
                     name = c.string
                     href = c['href']
                     code = href.split('=')[1]
-                    document = Category(name=name,children=children,category_code=code,last_update=datetime.datetime.now())
-                    _id = document.store(self.db.categories)
+                    document = Category(provider='insee',name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
+                    _id = document.update_database()
                     return (None,_id)
-            document = Category(provider='insee',name=name,children=children,category_code=code,last_update=datetime.datetime.now())
+            document = Category(provider='insee',name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
             _id = document.update_database()
             return (code1,_id)
         fh = self.open_url_and_check(url)
@@ -135,17 +134,17 @@ class Insee(Skeleton):
                                             [('idbank', k) for k in keys])
             params = params.encode('utf-8')
             fh = self.open_url_and_check(href,params)
-#            fh = urllib.request.urlopen("http://localhost:8800/insee/A.zip")
+            #            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
             buffer = BytesIO(fh.read())
             file = zipfile.ZipFile(buffer)
             (dimensions_desc,series,s_offset) = self.get_charact_csv(file,code)
-            (f,s,v) = self.get_values_csv(file,series,s_offset)
-            for i in range(len(v)):
+            (attributes,attribute_list,values) = self.get_values_csv(file,series,s_offset)
+            for i in range(len(values)):
                 series[i]['datasetCode'] = code
-                series[i]['values'] = v[i]
+                series[i]['values'] = values[i]
                 series[i]['attributes'] = dict()
-                series[i]['attributes'] = {'flags': f[i]}
-                series[i]['releaseDates'] = [series[i]['releaseDates'] for j in v[i]]
+                series[i]['attributes'] = {'flags': attributes[i]}
+                series[i]['releaseDates'] = [series[i]['releaseDates'] for j in values[i]]
                 series[i]['revisions'] = []
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
@@ -166,7 +165,7 @@ class Insee(Skeleton):
         dataset['dimension_list'] = dict()
         for k in dimension_list:
             dataset['dimension_list'][k] = [d for d in dimension_list[k]]
-        dataset['attribute_list']['flags'] = inseeMetadata.inseeMetadata()
+        dataset['attribute_list']['flags'] = attribute_list
         document = Dataset(provider='insee',
                            name = dataset['name'],
                            datasetCode = dataset['datasetCode'],
@@ -188,7 +187,7 @@ class Insee(Skeleton):
         m = 0
         for line in lines:
             fields = re.split(r"[;](?![ ])",line)
-            if fields[0] == 'Heading':
+            if (fields[0] == 'Heading') or (fields[0] == 'Title'):
                 for i in range(len(fields)-1):
                     series += [{'name': fields[i+1]}]
                     name_parts = fields[i+1].split(' - ')
@@ -221,7 +220,7 @@ class Insee(Skeleton):
                         datefmt = '%B %Y'
                         # column offset in Values.zip
                         s_offset = 2
-            elif fields[0] == 'Beginning date':
+            elif (fields[0] == 'Beginning date') or (fields[0] == 'Start date'):
                 for i in range(len(fields)-1):
                     startDate.append(fields[i+1])
                     # Quaterly dates are in a special format
@@ -231,7 +230,7 @@ class Insee(Skeleton):
                         series[i]['startDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
                     else:
                         series[i]['startDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
-            elif fields[0] == 'Ending date':
+            elif (fields[0] == 'Ending date') or (fields[0] == 'End date'):
                 for i in range(len(fields)-1):
                     endDate.append(fields[i+1])
                     # Quaterly dates are in a special format
@@ -265,28 +264,37 @@ class Insee(Skeleton):
         f = []
         s = dict()
         m = 0;
+        names = []
         for line in lines:
             fields = re.split(r"[;](?![ ])",line)
-            if m == 1:
-                k = s_offset
-                for i in range(len(series)):
-                    if fields[k] != series[i]['key'].split('.')[1]:
-                        print('key error in Values.csv',fields[i+s_offset],series[i]['key'])
-                    k += 2
-            elif m == 3:
-                k = s_offset
-                while (k < len(fields)):
-                    v += [[re.sub(re.compile(','),'',fields[k])]]
-                    f += [[fields[k+1]]]
-                    k += 2
+            if m == 0:
+                # names is used to check for Flags
+                # we keep the heading to have the same aligning as fields
+                for i in range(len(fields)):
+                    names.append(fields[i])
+            elif m == 1:
+                k = 0
+                for i in range(s_offset,len(fields)):
+                    if names[i] != 'Flags':
+                        if fields[i] != series[k]['key'].split('.')[1]:
+                            print('key error in Values.csv',fields[i],series[k]['key'])
+                        else:
+                            k += 1
+            elif (m == 3) :
+                for i in range(s_offset,len(fields)):
+                    if names[i] == 'Flags':
+                        f.append([fields[i]])
+                    else:
+                        v.append([re.sub(re.compile(','),'',fields[i])])
+                        f.append([])
             elif (m > 3) and (len(fields[0]) > 0):
-                k = s_offset
-                i = 0
-                while (k < len(fields)):
-                    v[i] += [re.sub(re.compile(','),'',fields[k])]
-                    f[i] += [fields[k+1]]
-                    k += 2
-                    i += 1
+                k = 0;
+                for i in range(s_offset,len(fields)):
+                    if names[i] == 'Flags':
+                        f[k-1].append(fields[i])
+                    else:
+                        v[k].append(re.sub(re.compile(','),'',fields[i]))
+                        k += 1 
             elif (len(fields) > 2) and (len(fields[0]) == 0) and (len(fields[1]) == 0):
                 s0 = fields[2].split(' : ')
                 s[s0[0]] = s0[1]
