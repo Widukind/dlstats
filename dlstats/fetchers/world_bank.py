@@ -127,7 +127,7 @@ class WorldBank(Skeleton):
                         Key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+column[0].value
  
-                        document = Category(provider = 'WorldBank', name = name_series[:-5] , categoryCode = Key )
+                        document = Category(provider = 'WorldBank', name = name_series[:-5] , categoryCode = Key, lastUpdate = released_dates )
                         _id = document.update_database()
                                   
     def update_a_series(self):
