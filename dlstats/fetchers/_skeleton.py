@@ -146,7 +146,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = [{Required('value'): str, Required('position'): int,
-             Required('releaseDates'): date_validator}]
+             Required('releaseDates'): [date_validator]}]
 dimensions = {str: str}
 attributes = {str: [str]}
 dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
@@ -161,12 +161,12 @@ class Series(object):
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
     ...                 attributes = {'OBS_VALUE': ['p']},
     ...                 revisions = [{'value': '2710', 'position':2,
-    ...                 'releaseDate' : datetime(2014,11,28)}],
-    ...                 dimensions = {'Seasonal adjustment':'wda'})
+    ...                 'releaseDates' : [datetime(2014,11,28)]}],
+    ...                 dimensions = [{'name':'Seasonal adjustment','value':'wda'}])
     >>> print(series)
     [('attributes', {'OBS_VALUE': ['p']}),
      ('datasetCode', 'nama_gdp_fr'),
-     ('dimensions', {'Seasonal adjustment': 'wda'}),
+     ('dimensions', [{'name': 'Seasonal adjustment', 'value': 'wda'}]),
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
      ('period_index',
@@ -181,7 +181,7 @@ class Series(object):
        datetime.datetime(2015, 2, 28, 0, 0)]),
      ('revisions',
       [{'position': 2,
-        'releaseDate': datetime.datetime(2014, 11, 28, 0, 0),
+        'releaseDates': [datetime.datetime(2014, 11, 28, 0, 0)],
         'value': '2710'}]),
      ('values', ['2700', '2720', '2740', '2760'])]
     >>>
@@ -399,6 +399,24 @@ class Dataset(object):
                               'attributeList':
                               dimension_list_schema
                                },required=True)
+
+        if docHref is None:
+            self.validate = self.schema({'provider': self.provider,
+                                         'datasetCode': self.datasetCode,
+                                         'name': self.name,
+                                         'dimensionList': self.dimensionList,
+                                         'attributeList': self.attributeList,
+                                         'lastUpdate': self.lastUpdate
+                                         })
+        else:
+            self.validate = self.schema({'provider': self.provider,
+                                         'datasetCode': self.datasetCode,
+                                         'name': self.name,
+                                         'dimensionList': self.dimensionList,
+                                         'attributeList': self.attributeList,
+                                         'docHref': self.docHref,
+                                         'lastUpdate': self.lastUpdate
+                                        })
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
