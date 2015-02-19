@@ -4,10 +4,8 @@ import zipfile
 import urllib.request
 import xlrd
 import os
-import time
 import datetime
 import pandas
-import logging
 import random
 
 class WorldBank(Skeleton):
@@ -16,15 +14,11 @@ class WorldBank(Skeleton):
         self.response = urllib.request.urlopen(
                    'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' +\
                    'GemDataEXTR.zip')
-        '''
-        ********Getting released date from headers of the Zipfile**********
-        '''           
+       
+        #Getting released date from headers of the Zipfile
         self.releaseDates_ = self.response.getheaders()[1][1] 
         self.releaseDates = [datetime.datetime.strptime(self.releaseDates_[5:], 
         "%d %b %Y %H:%M:%S GMT")]
-        '''
-        *********************
-        '''
        
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
@@ -32,18 +26,15 @@ class WorldBank(Skeleton):
                            
     def update_selected_database(self, datasetCode):
         
-        if datasetCode == 'GEM':
-            excelfile = self.excelfile_['GemDataEXTR']
-        #excelfile = {name : self.zipfile_.read(name) for name in self.zipfile_.namelist()}
+        def Error(datasetCode):
+            if datasetCode=='GEM':
+                excelfile = self.excelfile_['GemDataEXTR']
+            else:
+                raise Exception("The name of dataset was not entered!")
         
-        '''
-        *********List of the name of the excel files**********
-        '''
+        #List of the name of the excel files
         concept_list=[]
         [concept_list.append(key[:-5]) for key in excelfile.keys()]
-        '''
-        *********************
-        '''
         
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
@@ -55,18 +46,14 @@ class WorldBank(Skeleton):
                 'Feuille1','Feuille2','Feuille3','Feuille4']: 
                     label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]
                     
-                    '''
-                    ************List of countries or comodities***
-                    '''
+                    #List of countries or comodities
                     dimensionList=[]
                     countries_list=[]
                     [countries_list.append((excel_file.
                     sheet_by_name(sheet_name).col(column_index))[0].value) for
                     column_index in range (1, excel_file.sheet_by_name
                     (sheet_name).ncols)]
-                    '''
-                    ****************
-                    '''
+
                     dimensionList=[{'name':'concept', 'values': concept_list},
                                    {'name':'country', 'values': countries_list}]
                     for column_index in range (1,
