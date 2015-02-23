@@ -26,11 +26,10 @@ class WorldBank(Skeleton):
                            
     def update_selected_database(self, datasetCode):
         
-        def Error(datasetCode):
-            if datasetCode=='GEM':
-                excelfile = self.excelfile_['GemDataEXTR']
-            else:
-                raise Exception("The name of dataset was not entered!")
+        if datasetCode=='GEM':
+            excelfile = self.excelfile_['GemDataEXTR']
+        else:
+            raise Exception("The name of dataset was not entered!")
         
         #List of the name of the excel files
         concept_list=[]
