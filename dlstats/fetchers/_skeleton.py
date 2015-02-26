@@ -431,7 +431,7 @@ class Dataset(object):
                               All(str, Length(min=1)),
                               'datasetCode':
                               All(str, Length(min=1)),
-                              'docHref':
+                              Optional('docHref'):
                               Any(None,str),
                               'lastUpdate':
                               typecheck(datetime),
