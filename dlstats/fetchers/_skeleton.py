@@ -41,8 +41,7 @@ class Skeleton(object):
     def insert_provider(self)
         """Insert the provider in MongoDB
         """
-        raise NotImplementedError("This method from the Skeleton class must"
-                                  "be implemented.")
+        self.provider.update_database()
     def create_index_elasticsearch(self):
         def get_dimensions(dimensions,dimension_list):
             dd = defaultdict(dict)
@@ -155,6 +154,49 @@ revision_schema = [{Required('value'): str, Required('position'): int,
 dimensions = {str: str}
 attributes = {str: [str]}
 dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
+
+class Provider(object):
+    """Abstract base class for providers
+    >>> from datetime import datetime
+    >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
+    >>> print(provider)
+    [('name', 'Eurostat'),
+     ('website', 'http://ec.europa.eu/eurostat')]
+    >>>
+    """
+
+    def __init__(self,
+                 name=None,
+                 website=None):
+        self.name=name
+        self.website=website
+
+        self.schema = Schema({'name':
+                              All(str, Length(min=1)),
+                              'website':
+                              All(str, Length(min=9))
+                             },required=True)
+
+        self.validate = self.schema({'name': self.name,
+                                     'website': self.website
+                                 })
+        
+        return cls(name=bson['name'],
+                   website=bson['name']
+                  )
+
+    def __repr__(self):
+        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+
+    @property
+    def bson(self):
+        return {'name': self.name,
+                'website': self.website}
+
+    def update_database(self,mongo_id=None,key=None):
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
+        return self.db.providers.update(self.bson,upsert=True)
 
 class Series(object):
     """Abstract base class for time series
