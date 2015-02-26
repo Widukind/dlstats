@@ -38,6 +38,11 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
+    def insert_provider(self)
+        """Insert the provider in MongoDB
+        """
+        raise NotImplementedError("This method from the Skeleton class must"
+                                  "be implemented.")
     def create_index_elasticsearch(self):
         def get_dimensions(dimensions,dimension_list):
             dd = defaultdict(dict)
