@@ -157,11 +157,9 @@ dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(s
 
 class Provider(object):
     """Abstract base class for providers
-    >>> from datetime import datetime
     >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
     >>> print(provider)
-    [('name', 'Eurostat'),
-     ('website', 'http://ec.europa.eu/eurostat')]
+    [('name', 'Eurostat'), ('website', 'http://ec.europa.eu/eurostat')]
     >>>
     """
 
@@ -181,10 +179,6 @@ class Provider(object):
                                      'website': self.website
                                  })
         
-        return cls(name=bson['name'],
-                   website=bson['name']
-                  )
-
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
