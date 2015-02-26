@@ -55,6 +55,7 @@ class Eurostat(Skeleton):
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
 #        parser = lxml.etree.XMLParser(recover=True) 
 #        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
+        self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
