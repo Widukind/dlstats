@@ -166,6 +166,7 @@ class Provider(object):
     def __init__(self,
                  name=None,
                  website=None):
+        self.configuration=configuration
         self.name=name
         self.website=website
 
@@ -190,7 +191,7 @@ class Provider(object):
     def update_database(self,mongo_id=None,key=None):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
-        return self.db.providers.update(self.bson,upsert=True)
+        return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
 
 class Series(object):
     """Abstract base class for time series
