@@ -38,7 +38,7 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
-    def insert_provider(self)
+    def insert_provider(self):
         """Insert the provider in MongoDB
         """
         self.provider.update_database()
