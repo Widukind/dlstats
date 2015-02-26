@@ -25,6 +25,7 @@ class Insee(Skeleton):
         super().__init__()
         self.initial_page = "http://www.bdm.insee.fr/bdm2/index?request_locale=en"
         self.test_count = 0
+        self.provider = Provider(name='INSEE',website='http://www.insee.fr')
 
     def get_categories(self,url):
         """Gets categories for INSEE BDM

@@ -23,6 +23,7 @@ class WorldBank(Skeleton):
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
                            self.zipfile_.namelist()}}
+        self.provider = Provider(name='World Bank',website='http://www.worldbank.org/')
                            
     def update_selected_database(self, datasetCode):
         
