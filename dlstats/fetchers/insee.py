@@ -1,6 +1,6 @@
 # test limitation on line 98
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse

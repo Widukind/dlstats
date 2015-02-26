@@ -1,4 +1,4 @@
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
 import io
 import zipfile
 import urllib.request

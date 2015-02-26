@@ -9,7 +9,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
 #from _skeleton import Skeleton
 import threading
 from collections import OrderedDict, defaultdict
