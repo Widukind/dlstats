@@ -42,89 +42,6 @@ class Skeleton(object):
         """Insert the provider in MongoDB
         """
         self.provider.update_database()
-    def create_index_elasticsearch(self):
-        def get_dimensions(dimensions,dimension_list):
-            dd = defaultdict(dict)
-            dl = {s['name']: {s1[0]: s1[1] for s1 in s['values']} for s in dimension_list}
-            for d in dimensions:
-                for di in d['dimensions'].items():
-                    if di[0] in dl.keys():
-                        dd[di[0]][di[1]] = dl[di[0]][di[1]]
-            return dd
-
-        ES_HOST = {
-            "host" : self.configuration['ElasticSearch']['host'],
-            "port" : self.configuration['ElasticSearch']['port']
-        }
-
-        INDEX_NAME = 'widukind'
-        TYPE_NAME = 'datasets'
-
-        ID_FIELD = 'datasetCode'
-
-        cat = self.db.categories.find_one({'provider': self.provider_name, 'name': 'root'})
-
-        coll = { d['_id']: d for d in self.db.categories.find({'provider': self.provider_name},{'provider': 0})}
-
-        def levels(d,node,coll,level,order):
-            level += [coll[node]['name']]
-            children = coll[node]['children']
-            if type(children) is list:
-                if type(children[0]) is list:
-                    children = children[0]
-                for child in children:
-                    (d, order) = levels(d,child,coll,level,order)
-                level.pop()
-            else:
-                d[coll[node]['categoryCode']] = [order]+level[1:]
-                order += 1
-                level.pop()
-            return (d, order)
-
-        res = levels({},cat['_id'],coll,[],0)
-        d_levels = res[0]
-
-        print(d_levels)
-
-        datasets = self.db.datasets.find({'provider': self.provider_name})
-
-        bulk_data = []
-
-        for d in datasets:
-            if 'dimensionList' in d.keys():
-                dimensions = self.db.series.find({'datasetCode': d['datasetCode']},{'dimensions': 1})
-                data_dict = {}
-                data_dict['name'] = d['name']
-                data_dict['dimensionList'] = get_dimensions(dimensions,d['dimensionList'])
-                data_dict['provider'] = d['provider']
-                data_dict['datasetCode'] = d['datasetCode']
-                data_dict['order'] = d_levels[d['datasetCode']][0]
-                k = 1
-                for e in d_levels[d['datasetCode']][1:]:
-                    data_dict['level'+str(k)] = e
-                    k += 1
-                    
-                op_dict = {
-                    "index": {
-                        "_index": INDEX_NAME,
-                        "_type": TYPE_NAME,
-                        "_id": data_dict[ID_FIELD]
-                    }
-                }
-                bulk_data.append(op_dict)
-                bulk_data.append(data_dict)
-
-
-        if self.elasticsearch.indices.exists(INDEX_NAME):
-            res = self.elasticsearch.indices.delete(index = INDEX_NAME)
-
-        request_body = {
-            "settings" : {
-                "number_of_shards": 1,
-                "number_of_replicas": 0
-            }
-        }
-        res = self.elasticsearch.bulk(index = INDEX_NAME, body = bulk_data, refresh = True)
 
 #Validation and ODM
 #Custom validator (only a few types are natively implemented in voluptuous)
@@ -388,6 +305,137 @@ class Series(object):
                                   upsert=True)
         return old_bson['_id']
 
+class ES_series_index(object):
+    def __init__(self,series,codeDict):
+        self.key = series.key
+        self.provider = series.provider
+        self.name = series.name
+        self.datasetCode = series.datasetCode
+        self.dimensions = {}
+        for dname in series.dimensions:
+            value = series.dimensions[dname]
+            self.dimensions[dname] = [value, codeDict[dname][value]]
+
+    @property
+    def bson(self):
+        return({'provider': self.provider,
+                'key': self.key,
+                'name': self.name,
+                'datasetCode': self.datasetCode,
+                'dimensions': self.dimensions
+                })
+
+class BulkSeries(object):
+    def __init__(self,datasetCode,dimensionList,attributeList):
+        self.data = []
+        self.datasetCode = datasetCode
+        self.dimensionList = dimensionList
+        self.codeDict = {d['name']: {v[0]: v[1] for v in d['values']} for d in dimensionList+attributeList}
+
+    def append(self,series):
+        self.data.append(series)
+
+    def get_dimensions(dimensions,codeDict):
+        dd = defaultdict(dict)
+        dl = {s['name']: {s1[0]: s1[1] for s1 in s['values']} for s in dimension_list}
+        for d in dimensions:
+            for di in d['dimensions'].items():
+                if di[0] in codeDict:
+                    dd[di[0]][di[1]] = codeDict[di[0]][di[1]]
+        return dd
+
+    class effective_dimension_list(object):
+        def __init__(self,codeDict):
+            self.codeDict = codeDict
+            self.effectiveDimensionDict = {}
+
+        def update(self,dimensions):
+            for d in dimensions:
+                if d in self.effectiveDimensionDict:
+                    if not dimensions[d] in self.effectiveDimensionDict[d]:
+                        self.effectiveDimensionDict[d][dimensions[d]] = self.codeDict[d][dimensions[d]]
+                else:
+                    self.effectiveDimensionDict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
+                        
+        def get(self):
+            return [{'name': d, 'values': [[v[0], v[1]] for v in self.effectiveDimensionDict[d].items()]} for d in self.effectiveDimensionDict]   
+
+            
+    def bulk_update_database(self):
+        client = pymongo.MongoClient(**configuration['MongoDB'])
+        db = client.widukind
+        mdb_bulk = db.series.initialize_ordered_bulk_op()
+        es_bulk = []
+
+        old_values = {d['key']: d for d in db.series.find({'datasetCode': self.datasetCode})}
+        es = elasticsearch.Elasticsearch(host = "localhost")
+        es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
+        old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
+        effectiveDimensionList = self.effective_dimension_list(self.codeDict)
+        
+        for s in self.data:
+            effectiveDimensionList.update(s.dimensions)
+            
+            old_bson = old_values[s.key]
+
+            if old_bson == None:
+                mdb_bulk.insert(s.bson)
+                
+            else:
+                position = 0
+                s.revisions = old_bson['revisions']
+                old_start_period = pandas.Period(old_bson['startDate'],freq=old_bson['frequency'])
+                start_period = pandas.Period(s.bson['startDate'],freq=s.bson['frequency'])
+                if start_period > old_start_period:
+                # previous, longer, series is kept
+                    offset = start_period - old_start_period
+                    s.bson['numberOfPeriods'] += offset
+                    s.bson['startDate'] = old_bson['startDate']
+                    for values in zip(old_bson['values'][offset:],s.values):
+                        if values[0] != values[1]:
+                            s.revisions.append({'value':values[0],
+                                                   'position': offset+position,
+                                                   'releaseDates':
+                                                   old_bson['releaseDates'][offset+position]})
+                        position += 1
+                else:
+                # zero or more data are added at the beginning of the series
+                    offset = old_start_period - start_period
+                    for values in zip(old_bson['values'],s.values[offset:]):
+                        if values[0] != values[1]:
+                            s.revisions.append({'value':values[0],
+                                                   'position': offset+position,
+                                                   'releaseDates':
+                                                   old_bson['releaseDates'][position]})
+                        position += 1
+
+                s.bson['revisions'] = s.revisions
+                mdb_bulk.find({'_id': old_bson['_id']}).update({'$set': s.bson})
+            es_index = ES_series_index(s,self.codeDict)
+            if s.key in old_es_index:
+                if es_index != old_es_index[s.key]:
+                    op_dict = {
+                        "update": {
+                            "_index": 'widukind',
+                            "_type": 'series',
+                            "_id": s.key
+                        }
+                    }
+                    es_bulk.append(op_dict)
+            else:
+                op_dict = {
+                    "index": {
+                        "_index": 'widukind',
+                        "_type": 'series',
+                        "_id": s.key
+                    }
+                }
+                es_bulk.append(op_dict)
+            es_bulk.append(es_index.bson)
+        
+        res_mdb = mdb_bulk.execute();
+        res_es = es.bulk(index = 'widukind', body = es_bulk, refresh = True)
+
 class Dataset(object):
     """Abstract base class for datasets
     >>> from datetime import datetime
@@ -439,7 +487,7 @@ class Dataset(object):
                               'dimensionList':
                               dimension_list_schema,
                               'attributeList':
-                              dimension_list_schema
+                              Any(None,dimension_list_schema)
                                },required=True)
 
         if docHref is None:
@@ -472,12 +520,25 @@ class Dataset(object):
                 'attributeList': self.attributeList,
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
+
+    def es_bson(self,effectiveDimensionList):
+        return {'provider': self.provider,
+                'name': self.name,
+                'datasetCode': self.datasetCode,
+                'codeList': effectiveDimensionList,
+                'docHref': self.docHref,
+                'lastUpdate': self.lastUpdate}
+
     def update_database(self):
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
         self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
+    def update_es_database(self,effectiveDimensionList):
+        es = elasticsearch.Elasticsearch(host = "localhost")
+        es.index(index = 'widukind', doc_type = 'datasets', id = self.provider+'.'+self.datasetCode, body = self.es_bson(effectiveDimensionList))
+                 
 class Category(object):
     """Abstract base class for categories
     >>> from datetime import datetime

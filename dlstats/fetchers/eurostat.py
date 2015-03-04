@@ -9,7 +9,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
 #from _skeleton import Skeleton
 import threading
 from collections import OrderedDict, defaultdict
@@ -47,12 +47,12 @@ class Eurostat(Skeleton):
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
-        webpage = urllib.request.urlopen(
-            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+#        webpage = urllib.request.urlopen(
+#            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             #            "http://localhost:8800/eurostat/table_of_contents.xml",
-            timeout=7)
-        table_of_contents = webpage.read()
-        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+#            timeout=7)
+#        table_of_contents = webpage.read()
+#        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
 #        parser = lxml.etree.XMLParser(recover=True) 
 #        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
@@ -178,7 +178,7 @@ class Eurostat(Skeleton):
         attributes = [d for d in codes if d['name'] in al]
         dimensions = [d for d in codes if d['name'] in dl]
         return (attributes,dimensions)
-
+    
     def parse_sdmx(self,file,dataset_code):
         parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
         tree = lxml.etree.fromstring(file, parser)
@@ -230,8 +230,8 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-#        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
-        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
+        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
+#        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
@@ -249,8 +249,9 @@ class Eurostat(Skeleton):
                                  docHref = cat['docHref'],
                                  lastUpdate=cat['lastUpdate'])
         id = document.update_database()
-        self.update_a_series(data_file,datasetCode,dimensions,document.bson['lastUpdate'])
-
+        effectiveDimensionList = self.update_series(data_file,datasetCode,dimensions,attributes,document.bson['lastUpdate'])
+        document.update_es_database(effectiveDimensionList)
+        
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
         if m.groups()[3]:
@@ -258,8 +259,9 @@ class Eurostat(Skeleton):
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def update_a_series(self,data_file,datasetCode,dimensionList,lastUpdate):
+    def update_series(self,data_file,datasetCode,dimensionList,attributeList,lastUpdate):
         (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
+        documents = BulkSeries(datasetCode,dimensionList,attributeList)
         for key in raw_values:
             series_key = (datasetCode+'.'+ key).upper()
             (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
@@ -284,7 +286,7 @@ class Eurostat(Skeleton):
                                                         'releaseDates':releaseDates,
                                                         'frequency':freq,
                                                         'dimensions':dimensions}))
-            document = Series(provider='eurostat',
+            documents.append(Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
                                     datasetCode= datasetCode,
@@ -294,8 +296,8 @@ class Eurostat(Skeleton):
                                     releaseDates=releaseDates,
                                     frequency=freq,
                                     dimensions=dimensions
-                                )
-            document.update_database(key=key)
+                                ))
+        return(documents.bulk_update_database())
 
 
     def update_eurostat(self):
