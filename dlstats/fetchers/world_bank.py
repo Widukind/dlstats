@@ -13,7 +13,8 @@ class WorldBank(Skeleton):
         super().__init__()         
         self.response = urllib.request.urlopen(
                    'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' +\
-                   'GemDataEXTR.zip')
+#            'http://localhost:8800/worldbank/'+
+            'GemDataEXTR.zip')
        
         #Getting released date from headers of the Zipfile
         self.releaseDates_ = self.response.getheaders()[1][1] 
@@ -39,7 +40,7 @@ class WorldBank(Skeleton):
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
-            last_Update = list(zipfile_.infolist()[index_name_series].date_time[0:6])
+            last_Update = datetime.datetime(*self.zipfile_.infolist()[index_name_series].date_time[0:6])
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
                 if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4',
@@ -96,7 +97,6 @@ class WorldBank(Skeleton):
                                            datasetCode = datasetCode, lastUpdate = last_Update,
                                            dimensionList = dimensionList )
                         id = document.update_database()
-                        #print(dimensionList)
        
     def categories_db(self,datasetCode):
         if datasetCode == 'GEM':
@@ -208,3 +208,8 @@ class WorldBank(Skeleton):
                                           frequency=frequency , 
                                           dimensions =  dimensions_int)
                         _id = document.update_database(key=series_key)     
+
+if __name__ == "__main__":
+    import world_bank
+    w = world_bank.WorldBank()
+    w.update_selected_database('GEM')
