@@ -10,7 +10,6 @@
 """
 
 from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
-#from _skeleton import Skeleton
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
@@ -47,12 +46,12 @@ class Eurostat(Skeleton):
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
-#        webpage = urllib.request.urlopen(
-#            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            #            "http://localhost:8800/eurostat/table_of_contents.xml",
-#            timeout=7)
-#        table_of_contents = webpage.read()
-#        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+        webpage = urllib.request.urlopen(
+            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+            "http://localhost:8800/eurostat/table_of_contents.xml",
+            timeout=7)
+        table_of_contents = webpage.read()
+        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
 #        parser = lxml.etree.XMLParser(recover=True) 
 #        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
@@ -230,8 +229,8 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
-#        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
+#        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
+        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
