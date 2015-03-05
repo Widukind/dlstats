@@ -25,7 +25,7 @@ class WorldBank(Skeleton):
                            self.zipfile_.namelist()}}
         self.provider = Provider(name='World Bank',website='http://www.worldbank.org/')
                            
-    def update_selected_database(self, datasetCode):
+    def upsert_dataset(self, datasetCode):
         
         if datasetCode=='GEM':
             excelfile = self.excelfile_['GemDataEXTR']
