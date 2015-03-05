@@ -163,10 +163,11 @@ class Insee(Skeleton):
                                   frequency = s['frequency'])
                 document.update_database()
         dataset.update(dp.get_dataset())
-        dataset['dimension_list'] = dict()
+        dataset['dimension_list'] = []
         for k in dimension_list:
-            dataset['dimension_list'][k] = [d for d in dimension_list[k]]
-        dataset['attribute_list']['flags'] = attribute_list
+            dataset['dimension_list'].append({'name': k, 'values': [d for d in dimension_list[k]]})
+        dataset['attribute_list'] = [{'name': 'flags', 'values': [ (v[0], v[1]) for v in attribute_list.items()]}]
+        print(dataset['attribute_list'])
         document = Dataset(provider='insee',
                            name = dataset['name'],
                            datasetCode = dataset['datasetCode'],
@@ -319,7 +320,6 @@ class Insee(Skeleton):
             groups = parse_theme(href)
             text = li.find('p','info').string
             date = datetime.datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
-            print(date)
 
     def parse_theme(self,url):
         """Find updated code groups"""
@@ -363,6 +363,7 @@ class dataset_page(Insee):
         # Parse parameters
         url = "http://www.bdm.insee.fr/bdm2/choixCriteres?request_locale=en&codeGroupe=" + dataset_code
         fh = Insee.open_url_and_check(self,url)
+        print(fh)
         page = BeautifulSoup(fh)
         #        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/rub"))
         h1 = page.find('h1')
