@@ -330,7 +330,7 @@ class ES_series_index(object):
                 })
 
 class BulkSeries(object):
-    def __init__(self,datasetCode,dimensionList,attributeList,data=[]):
+    def __init__(self,datasetCode,dimensionList,attributeList=[],data=[]):
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
