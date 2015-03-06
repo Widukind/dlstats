@@ -32,11 +32,38 @@ class WorldBank(Skeleton):
             excelfile = self.excelfile_['GemDataEXTR']
         else:
             raise Exception("The name of dataset was not entered!")
-        
+        def dictionary_union(*dictionaries):
+            dictionaries = list(dictionaries)
+            def dictionary_union_(dic1,dic2):
+                dic3 = {}
+                dic2_ = set(dic2.keys()) - set(dic1.keys())
+                for key in dic1.keys():
+                    if key in dic2:
+                        if type(dic1[key]) is not list:
+                            a = [dic1[key]]
+                        else:
+                            a = dic1[key]
+                        if type(dic2[key]) is not list:
+                            b = [dic2[key]]
+                        else:
+                            b = dic2[key]
+                        print(a, b)
+                        dic3[key] = list(set(a + b))
+                    else:
+                        dic3[key] = dic1[key]
+                for key in dic2_:
+                    dic3[key] = dic2[key]
+                return dic3
+            dic1 = dictionaries.pop()
+            for dic in dictionaries:
+                dic1 = dictionary_union_(dic,dic1)
+            return dic1
         #List of the name of the excel files
         concept_list=[]
         [concept_list.append(key[:-5]) for key in excelfile.keys()]
-        
+
+        dimensionList_ = []       
+
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
@@ -54,55 +81,22 @@ class WorldBank(Skeleton):
                     sheet_by_name(sheet_name).col(column_index))[0].value) for
                     column_index in range (1, excel_file.sheet_by_name
                     (sheet_name).ncols)]
-
-                    dimensionList=[{'name':'concept', 'values': concept_list},
+                    dimensionList_interm=[{'name':'concept', 'values': concept_list},
                                    {'name':'country', 'values': countries_list}]
-                    for column_index in range (1,
-                        excel_file.sheet_by_name(sheet_name).ncols):
-                        value = []
-                        column = excel_file.sheet_by_name(sheet_name).\
-                        col(column_index)
-                        if name_series[:-5] in ['Commodity Prices']:
-                            dimensions_int = {'name':'Commodity Prices',
-                            'value':column[0].value} 
-                        if name_series[:-5] not in ['Commodity Prices']:    
-                            dimensions_int = {'name':'country',
-                            'value':column[0].value} 
-                        column_value = column[2:]
-                        for cell_value in column_value :
-                            value.append(cell_value.value)
-
-                        if sheet_name in ('annual') :
-                            start_date_b = str(int(label_column_list[0].value))
-                            end_date_b = str(int(label_column_list[-1].value)) 
-                                
-                        if sheet_name not in ('annual') :       
-                            start_date = str(label_column_list[0].value)
-                            start_date_b = start_date.replace('M','-') 
-                            end_date = str(label_column_list[-1].value)
-                            end_date_b = end_date.replace('M','-') 
-                                    
-                        if sheet_name == 'annual':    
-                            frequency = 'A'
-                        if sheet_name == 'quarterly':    
-                            frequency = 'q'
-                        if sheet_name == 'monthly':    
-                            frequency = 'm'
-                        if sheet_name == 'daily':    
-                            frequency = 'd'
-                        Key = name_series[:-5].replace(' ',
-                                            '_').replace(',', '')+'.'+column[0].value
-                        document = Dataset(provider = 'WorldBank', 
-                                           name = name_series[:-5] ,
-                                           datasetCode = datasetCode, lastUpdate = last_Update,
-                                           dimensionList = dimensionList )
-                        id = document.update_database()
+                    dimensionList_.append(dimensionList_interm) 
+            
+        dimensionList = dictionary_union(*dimensionList_)            
+        document = Dataset(provider = 'WorldBank', 
+                           name = 'GEM' ,
+                           datasetCode = 'GEM', lastUpdate = self.releaseDates,
+                           dimensionList = dimensionList )
+        id = document.update_database()
        
     def upsert_categories(self):
         document = Category(provider = 'WorldBank', 
                             name = 'GEM' , 
                             categoryCode ='GEM')
-	return document.update_database()
+        return document.update_database()
                                   
     def update_a_series(self,datasetCode):
         if datasetCode == 'GEM':
