@@ -89,6 +89,8 @@ class Provider(object):
                  name=None,
                  website=None):
         self.configuration=configuration
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
         self.name=name
         self.website=website
 
@@ -111,8 +113,6 @@ class Provider(object):
                 'website': self.website}
 
     def update_database(self,mongo_id=None,key=None):
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
         return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
 
 class Series(object):
@@ -164,6 +164,8 @@ class Series(object):
                  frequency=None,
                  dimensions=None):
         self.configuration=configuration
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
         self.provider=provider
         self.name=name
         self.key=key
@@ -230,8 +232,6 @@ class Series(object):
 
     @classmethod
     def from_index(cls,mongo_id):
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
         return cls.from_bson(self.db.series.find(mongo_id))
 
     @classmethod
@@ -271,8 +271,6 @@ class Series(object):
                 'frequency': self.frequency}
 
     def update_database(self,mongo_id=None,key=None):
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
         old_bson = self.db.series.find_one({'key': self.bson['key']})
 
         if old_bson == None:
@@ -474,6 +472,9 @@ class Dataset(object):
                  docHref=None,
                  lastUpdate=None
                 ):
+        self.configuration=configuration
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
         self.provider=provider
         self.datasetCode=datasetCode
         self.name=name
@@ -538,8 +539,6 @@ class Dataset(object):
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
         self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
@@ -574,6 +573,9 @@ class Category(object):
                  lastUpdate=None,
                  exposed=False
                 ):
+        self.configuration = configuration
+        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
+        self.db = self.client.widukind
         self.provider=provider
         self.name=name
         self.docHref=docHref
@@ -620,8 +622,6 @@ class Category(object):
                 'lastUpdate': self.lastUpdate,
                 'exposed': self.exposed}
     def update_database(self):
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
         in_base_category = self.db.categories.find_one({'categoryCode': self.bson['categoryCode']})
         if in_base_category is None:
   	     	_id_ = self.db.categories.insert(self.bson)
