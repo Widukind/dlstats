@@ -368,12 +368,9 @@ class BulkSeries(object):
 
             
     def bulk_update_database(self):
-        client = pymongo.MongoClient(**configuration['MongoDB'])
-        db = client.widukind
-        mdb_bulk = db.series.initialize_ordered_bulk_op()
+        mdb_bulk = self.db.series.initialize_ordered_bulk_op()
         es_bulk = []
 
-        old_values = {d['key']: d for d in db.series.find({'datasetCode': self.datasetCode})}
         es = elasticsearch.Elasticsearch(host = "localhost")
         es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
@@ -381,42 +378,8 @@ class BulkSeries(object):
         
         for s in self.data:
             effectiveDimensionList.update(s.dimensions)
-            
-            old_bson = old_values[s.key]
-
-            if old_bson == None:
-                mdb_bulk.insert(s.bson)
-                
-            else:
-                position = 0
-                s.revisions = old_bson['revisions']
-                old_start_period = pandas.Period(old_bson['startDate'],freq=old_bson['frequency'])
-                start_period = pandas.Period(s.bson['startDate'],freq=s.bson['frequency'])
-                if start_period > old_start_period:
-                # previous, longer, series is kept
-                    offset = start_period - old_start_period
-                    s.bson['numberOfPeriods'] += offset
-                    s.bson['startDate'] = old_bson['startDate']
-                    for values in zip(old_bson['values'][offset:],s.values):
-                        if values[0] != values[1]:
-                            s.revisions.append({'value':values[0],
-                                                   'position': offset+position,
-                                                   'releaseDates':
-                                                   old_bson['releaseDates'][offset+position]})
-                        position += 1
-                else:
-                # zero or more data are added at the beginning of the series
-                    offset = old_start_period - start_period
-                    for values in zip(old_bson['values'],s.values[offset:]):
-                        if values[0] != values[1]:
-                            s.revisions.append({'value':values[0],
-                                                   'position': offset+position,
-                                                   'releaseDates':
-                                                   old_bson['releaseDates'][position]})
-                        position += 1
-
-                s.bson['revisions'] = s.revisions
-                mdb_bulk.find({'_id': old_bson['_id']}).update({'$set': s.bson})
+            s.db = mdb_bulk
+            s.update_database()
             es_index = ES_series_index(s,self.codeDict)
             if s.key in old_es_index:
                 if es_index != old_es_index[s.key]:
