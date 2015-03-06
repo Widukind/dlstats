@@ -166,6 +166,7 @@ class Series(object):
         self.configuration=configuration
         self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
         self.db = self.client.widukind
+        self.collection = self.db.series
         self.provider=provider
         self.name=name
         self.key=key
@@ -232,7 +233,7 @@ class Series(object):
 
     @classmethod
     def from_index(cls,mongo_id):
-        return cls.from_bson(self.db.series.find(mongo_id))
+        return cls.from_bson(self.collection.find(mongo_id))
 
     @classmethod
     def from_bson(cls,bson):
@@ -271,10 +272,10 @@ class Series(object):
                 'frequency': self.frequency}
 
     def update_database(self,mongo_id=None,key=None):
-        old_bson = self.db.series.find_one({'key': self.bson['key']})
+        old_bson = self.collection.find_one({'key': self.bson['key']})
 
         if old_bson == None:
-            return self.db.series.insert(self.bson)
+            return self.collection.insert(self.bson)
         else:
             position = 0
             self.revisions = old_bson['revisions']
@@ -304,7 +305,7 @@ class Series(object):
                     position += 1
                                               
             self.bson['revisions'] = self.revisions
-            self.db.series.update({'_id': old_bson['_id']},self.bson,
+            self.collection.update({'_id': old_bson['_id']},self.bson,
                                   upsert=True)
         return old_bson['_id']
 
@@ -378,7 +379,7 @@ class BulkSeries(object):
         
         for s in self.data:
             effectiveDimensionList.update(s.dimensions)
-            s.db = mdb_bulk
+            s.collection = mdb_bulk
             s.update_database()
             es_index = ES_series_index(s,self.codeDict)
             if s.key in old_es_index:
