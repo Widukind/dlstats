@@ -26,7 +26,7 @@ class WorldBank(Skeleton):
                            self.zipfile_.namelist()}}
         self.provider = Provider(name='World Bank',website='http://www.worldbank.org/')
                            
-    def upsert_dataset(self, datasetCode):
+    def update_selected_dataset(self, datasetCode):
         
         if datasetCode=='GEM':
             excelfile = self.excelfile_['GemDataEXTR']
@@ -171,7 +171,6 @@ class WorldBank(Skeleton):
             index_name_series = list(excelfile.keys()).index(name_series)
             S = list(zipfile_.infolist()[index_name_series].date_time[0:3])
             last_Update = [datetime.datetime(S[0],S[1],S[2])]
-            #last_Update.append(zipfile_.infolist()[index_name_series].date_time[0:6])
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
                 if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4','Feuille1',
