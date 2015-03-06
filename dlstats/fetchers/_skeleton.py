@@ -28,6 +28,11 @@ class Skeleton(object):
         """
         raise NotImplementedError("This method from the Skeleton class must"
                                   "be implemented.")
+    def upsert_series(self):
+        """Upsert all the series in MongoDB
+        """
+        raise NotImplementedError("This method from the Skeleton class must"
+                                  "be implemented.")
     def upsert_a_series(self,id):
         """Upsert the series in MongoDB
         """
