@@ -3,10 +3,10 @@ import io
 import zipfile
 import urllib.request
 import xlrd
-import os
 import datetime
 import pandas
 import random
+import pprint
 
 class WorldBank(Skeleton):
     def __init__(self):
@@ -18,8 +18,8 @@ class WorldBank(Skeleton):
        
         #Getting released date from headers of the Zipfile
         self.releaseDates_ = self.response.getheaders()[1][1] 
-        self.releaseDates = [datetime.datetime.strptime(self.releaseDates_[5:], 
-        "%d %b %Y %H:%M:%S GMT")]
+        self.releaseDates = datetime.datetime.strptime(self.releaseDates_[5:], 
+        "%d %b %Y %H:%M:%S GMT")
        
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
@@ -32,38 +32,22 @@ class WorldBank(Skeleton):
             excelfile = self.excelfile_['GemDataEXTR']
         else:
             raise Exception("The name of dataset was not entered!")
-        def dictionary_union(*dictionaries):
-            dictionaries = list(dictionaries)
-            def dictionary_union_(dic1,dic2):
-                dic3 = {}
-                dic2_ = set(dic2.keys()) - set(dic1.keys())
-                for key in dic1.keys():
-                    if key in dic2:
-                        if type(dic1[key]) is not list:
-                            a = [dic1[key]]
-                        else:
-                            a = dic1[key]
-                        if type(dic2[key]) is not list:
-                            b = [dic2[key]]
-                        else:
-                            b = dic2[key]
-                        print(a, b)
-                        dic3[key] = list(set(a + b))
-                    else:
-                        dic3[key] = dic1[key]
-                for key in dic2_:
-                    dic3[key] = dic2[key]
-                return dic3
-            dic1 = dictionaries.pop()
-            for dic in dictionaries:
-                dic1 = dictionary_union_(dic,dic1)
-            return dic1
+            
+        def bson_union(*bsons):
+            keys = set([bson['name'] for bson in bsons])
+            merged_bson = []
+            for key in keys:
+                values=[]
+                for bson in bsons:
+                    if bson['name'] == key:
+                        values.extend(bson['values'])
+                merged_bson.append({'name': key, 'values': list(set(values))})
+            return merged_bson                              
         #List of the name of the excel files
         concept_list=[]
         [concept_list.append(key[:-5]) for key in excelfile.keys()]
-
+        print(concept_list)
         dimensionList_ = []       
-
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
             index_name_series = list(excelfile.keys()).index(name_series)
@@ -72,27 +56,35 @@ class WorldBank(Skeleton):
             for sheet_name in excel_file.sheet_names():
                 if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4',
                 'Feuille1','Feuille2','Feuille3','Feuille4']: 
-                    label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]
-                    
+                    label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]                    
                     #List of countries or comodities
                     dimensionList=[]
                     countries_list=[]
-                    [countries_list.append((excel_file.
-                    sheet_by_name(sheet_name).col(column_index))[0].value) for
-                    column_index in range (1, excel_file.sheet_by_name
-                    (sheet_name).ncols)]
+                    commodity_prices_list = []
+                    if name_series[:-5] not in ['Commodity Prices']:
+                        [countries_list.append((excel_file.
+                        sheet_by_name(sheet_name).col(column_index))[0].value) for
+                        column_index in range (1, excel_file.sheet_by_name
+                        (sheet_name).ncols)]
+                    if name_series[:-5] in ['Commodity Prices']: 
+                        [commodity_prices_list.append((excel_file.
+                        sheet_by_name(sheet_name).col(column_index))[0].value) for
+                        column_index in range (1, excel_file.sheet_by_name
+                        (sheet_name).ncols)]
                     dimensionList_interm=[{'name':'concept', 'values': concept_list},
-                                   {'name':'country', 'values': countries_list}]
+                                   {'name':'country', 'values': countries_list}
+                                   ,{'name':'Commodity Prices','values': commodity_prices_list}]
                                    
-                    dimensionList_.extend(dimensionList_interm) 
-            
-        dimensionList = dictionary_union(*dimensionList_)            
+                    dimensionList_.extend(dimensionList_interm)             
+        dimensionList = bson_union(*dimensionList_)  
+        print(dimensionList) 
+        pprint.pprint(dimensionList)         
         document = Dataset(provider = 'WorldBank', 
                            name = 'GEM' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList )
         id = document.update_database()
-        self.upsert_a_series('GEM')
+        return self.update_series('GEM', dimensionList)  
        
     def upsert_categories(self):
         document = Category(provider = 'WorldBank', 
@@ -100,15 +92,14 @@ class WorldBank(Skeleton):
                             categoryCode ='GEM')
         return document.update_database()
 
-    def update_series(self,data_file,datasetCode,dimensionList,attributeList,lastUpdate):
+    def update_series(self,datasetCode,dimensionList):
         if datasetCode == 'GEM':
             excelfile = self.excelfile_['GemDataEXTR']
         else:
-            raise Exception("The name of dataset was not entered!")
-            
+            raise Exception("The name of dataset was not entered!")            
         for name_series in excelfile.keys():
             index_name_series = list(excelfile.keys()).index(name_series)
-            S = list(zipfile_.infolist()[index_name_series].date_time[0:3])
+            S = list(self.zipfile_.infolist()[index_name_series].date_time[0:3])
             last_Update = [datetime.datetime(S[0],S[1],S[2])]
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
@@ -146,21 +137,18 @@ class WorldBank(Skeleton):
                             frequency = 'd' 'day'                                             
                         series_key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+\
-                                            column[0].value+ str(random.random())  
-                       
-                        documents = BulkSeries(datasetCode,dimensionList,attributeList)
+                                            column[0].value+ str(random.random())                         
+                        documents = BulkSeries(datasetCode,dimensionList)
                         documents.append(Series(provider='WorldBank',
                                             key= series_key,
                                             name=name_series[:-5],
-                                            datasetCode= Key,
+                                            datasetCode= 'GEM',
                                             period_index=pandas.period_range
                                           (start_date_b, end_date_b , freq = frequency),
-                                            values=raw_values[key],
-                                            attributes=raw_attributes[key],
-                                            releaseDates= self.releaseDates,
+                                            values=value,
+                                            releaseDates= [self.releaseDates],
                                             frequency=frequency,
-                                            dimensions=dimensions_int
-                                        ))
+                                            dimensions=dimensions_int))
         return(documents.bulk_update_database())
         
     def upsert_a_series(self,datasetCode):                              
@@ -170,9 +158,8 @@ class WorldBank(Skeleton):
             raise Exception("The name of dataset was not entered!")
         for name_series in excelfile.keys():
             index_name_series = list(excelfile.keys()).index(name_series)
-            S = list(zipfile_.infolist()[index_name_series].date_time[0:3])
+            S = list(self.zipfile_.infolist()[index_name_series].date_time[0:3])
             last_Update = [datetime.datetime(S[0],S[1],S[2])]
-            #last_Update.append(zipfile_.infolist()[index_name_series].date_time[0:6])
             excel_file = xlrd.open_workbook(file_contents = excelfile[name_series])
             for sheet_name in excel_file.sheet_names():
                 if sheet_name not in ['Sheet1','Sheet2','Sheet3','Sheet4','Feuille1',
@@ -212,7 +199,7 @@ class WorldBank(Skeleton):
                                             column[0].value+ str(random.random())
                         document = Series(provider = 'WorldBank', 
                                           name = name_series[:-5] , key = series_key,
-                                          datasetCode = Key, values = value,
+                                          datasetCode = 'GEM', values = value,
                                           period_index = pandas.period_range
                                           (start_date_b, end_date_b , freq = frequency)
                                           , releaseDates = self.releaseDates ,
