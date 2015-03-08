@@ -48,7 +48,6 @@ class Eurostat(Skeleton):
         self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            "http://localhost:8800/eurostat/table_of_contents.xml",
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
