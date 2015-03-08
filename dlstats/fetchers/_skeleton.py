@@ -14,14 +14,14 @@ import bson
 import pprint
 from collections import defaultdict
 import elasticsearch
+from .. import mongo_client
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
     def __init__(self, provider_name=None):
         self.configuration = configuration
         self.provider_name = provider_name
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
+        self.db = mongo_client.widukind
         self.elasticsearch = elasticsearch.Elasticsearch(host = self.configuration['ElasticSearch']['host'])
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
@@ -89,8 +89,7 @@ class Provider(object):
                  name=None,
                  website=None):
         self.configuration=configuration
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
+        self.db = mongo_client.widukind
         self.name=name
         self.website=website
 
@@ -164,8 +163,7 @@ class Series(object):
                  frequency=None,
                  dimensions=None):
         self.configuration=configuration
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
+        self.db = mongo_client.widukind
         self.collection = self.db.series
         self.provider=provider
         self.name=name
@@ -331,6 +329,7 @@ class ES_series_index(object):
 
 class BulkSeries(object):
     def __init__(self,datasetCode,dimensionList,attributeList=[],data=[]):
+        self.db = mongo_client.widukind
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
@@ -437,8 +436,7 @@ class Dataset(object):
                  lastUpdate=None
                 ):
         self.configuration=configuration
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
+        self.db = mongo_client.widukind
         self.provider=provider
         self.datasetCode=datasetCode
         self.name=name
@@ -538,8 +536,7 @@ class Category(object):
                  exposed=False
                 ):
         self.configuration = configuration
-        self.client = pymongo.MongoClient(**self.configuration['MongoDB'])
-        self.db = self.client.widukind
+        self.db = mongo_client.widukind
         self.provider=provider
         self.name=name
         self.docHref=docHref
