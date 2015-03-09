@@ -109,14 +109,13 @@ class WorldBank(Skeleton):
                     label_column_list = excel_file.sheet_by_name(sheet_name).col(0)[2:]
                     for column_index in range (1,
                         excel_file.sheet_by_name(sheet_name).ncols):
+                        dimensions = {}
                         value = []
                         column = excel_file.sheet_by_name(sheet_name).col(column_index)
                         if name_series[:-5] in ['Commodity Prices']:
-                            dimensions_int = {'name':'Commodity Prices',
-                            'value':column[0].value} 
+                            dimensions['Commodity Prices'] = column[0].value 
                         if name_series[:-5] not in ['Commodity Prices']:    
-                            dimensions_int = {'name':'country',
-                            'value':column[0].value} 
+                            dimensions['country'] = column[0].value 
                         column_value = column[1:-1]
                         for cell_value in column_value :
                             value.append(str(cell_value.value))
@@ -149,7 +148,7 @@ class WorldBank(Skeleton):
                                             values=value,
                                             releaseDates= [self.releaseDates],
                                             frequency=frequency,
-                                            dimensions=dimensions_int))
+                                            dimensions=dimensions))
         return(documents.bulk_update_database())
         
     def upsert_a_series(self,datasetCode):                              

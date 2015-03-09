@@ -333,21 +333,18 @@ class BulkSeries(object):
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
-        self.codeDict = {d['name']: {v[0]: v[1] for v in d['values']} for d in dimensionList+attributeList}
+        dimensionList.update(attributeList)
+        # check whether there is a label for the dimension codes
+        if len(list(dimensionList.items())[0][1][0]) == 2:
+            self.codeDict =  {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
+        else:
+            self.codeDict =  {d: {v: None for v in dimensionList[d]} for d in dimensionList}
 
     def __iter__(self):
         return iter(self.data)
     
     def append(self,series):
         self.data.append(series)
-
-    def get_dimensions(dimensions,codeDict):
-        dd = defaultdict(dict)
-        for d in dimensions:
-            for di in d['dimensions'].items():
-                if di[0] in codeDict:
-                    dd[di[0]][di[1]] = codeDict[di[0]][di[1]]
-        return dd
 
     class effective_dimension_list(object):
         def __init__(self,codeDict):
@@ -358,12 +355,15 @@ class BulkSeries(object):
             for d in dimensions:
                 if d in self.effectiveDimensionDict:
                     if not dimensions[d] in self.effectiveDimensionDict[d]:
-                        self.effectiveDimensionDict[d][dimensions[d]] = self.codeDict[d][dimensions[d]]
+                        self.effectiveDimensionDict[d].append(self.codeDict[d][dimensions[d]])
                 else:
-                    self.effectiveDimensionDict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
+                    print(d)
+                    print(dimensions[d])
+                    print(self.codeDict)
+                    self.effectiveDimensionDict[d] = [self.codeDict[d][dimensions[d]]]
                         
         def get(self):
-            return [{'name': d, 'values': [[v[0], v[1]] for v in self.effectiveDimensionDict[d].items()]} for d in self.effectiveDimensionDict]   
+            return self.effectiveDimensionDict
 
             
     def bulk_update_database(self):
@@ -377,6 +377,7 @@ class BulkSeries(object):
         es.index(index="widukind", doc_type='series', id=1, body=body)
         es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
+        print('codeDict ',self.codeDict)
         effectiveDimensionList = self.effective_dimension_list(self.codeDict)
         
         for s in self.data:
@@ -407,7 +408,8 @@ class BulkSeries(object):
         
         res_mdb = mdb_bulk.execute();
         res_es = es.bulk(index = 'widukind', body = es_bulk, refresh = True)
-
+        return(effectiveDimensionList)
+    
 class Dataset(object):
     """Abstract base class for datasets
     >>> from datetime import datetime
