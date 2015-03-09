@@ -33,16 +33,17 @@ class WorldBank(Skeleton):
         else:
             raise Exception("The name of dataset was not entered!")
             
-        def bson_union(*bsons):
-            keys = set([bson['name'] for bson in bsons])
-            merged_bson = []
+        def dictionary_union(*dictionaries):
+            keys = [list(dictionary.keys()) for dictionary in dictionaries]
+            keys = [item for items in keys for item in items]
+            merged_dictionary = {}
             for key in keys:
                 values=[]
-                for bson in bsons:
-                    if bson['name'] == key:
-                        values.extend(bson['values'])
-                merged_bson.append({'name': key, 'values': list(set(values))})
-            return merged_bson                              
+                for dictionary in dictionaries:
+                    if key in dictionary.keys():
+                        values.extend(dictionary[key])
+                merged_dictionary[key] = list(set(values))
+            return merged_dictionary                              
         #List of the name of the excel files
         concept_list=[]
         [concept_list.append(key[:-5]) for key in excelfile.keys()]
@@ -71,12 +72,12 @@ class WorldBank(Skeleton):
                         sheet_by_name(sheet_name).col(column_index))[0].value) for
                         column_index in range (1, excel_file.sheet_by_name
                         (sheet_name).ncols)]
-                    dimensionList_interm=[{'name':'concept', 'values': concept_list},
-                                   {'name':'country', 'values': countries_list}
-                                   ,{'name':'Commodity Prices','values': commodity_prices_list}]
+                    dimensionList_interm=[{'concept': concept_list},
+                                   {'country': countries_list}
+                                   ,{'Commodity Prices': commodity_prices_list}]
                                    
                     dimensionList_.extend(dimensionList_interm)             
-        dimensionList = bson_union(*dimensionList_)  
+        dimensionList = dictionary_union(*dimensionList_)  
         print(dimensionList) 
         pprint.pprint(dimensionList)         
         document = Dataset(provider = 'WorldBank', 

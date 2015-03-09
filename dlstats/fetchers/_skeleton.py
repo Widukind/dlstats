@@ -76,7 +76,7 @@ revision_schema = [{Required('value'): str, Required('position'): int,
              Required('releaseDates'): [date_validator]}]
 dimensions = {str: str}
 attributes = {str: [str]}
-dimension_list_schema = [{Required('name'): str, Required('values'): [Any(str,(str, str))]}]
+dimension_list_schema = {str: [str]}
 
 class Provider(object):
     """Abstract base class for providers
