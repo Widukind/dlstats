@@ -328,7 +328,7 @@ class ES_series_index(object):
                 })
 
 class BulkSeries(object):
-    def __init__(self,datasetCode,dimensionList,attributeList=[],data=[]):
+    def __init__(self,datasetCode,dimensionList,attributeList={},data=[]):
         self.db = mongo_client.widukind
         self.data = data
         self.datasetCode = datasetCode
@@ -343,7 +343,6 @@ class BulkSeries(object):
 
     def get_dimensions(dimensions,codeDict):
         dd = defaultdict(dict)
-        dl = {s['name']: {s1[0]: s1[1] for s1 in s['values']} for s in dimension_list}
         for d in dimensions:
             for di in d['dimensions'].items():
                 if di[0] in codeDict:
