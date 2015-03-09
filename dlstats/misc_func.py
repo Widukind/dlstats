@@ -62,3 +62,16 @@ def urlopen(address, data=None):
     if webpage is None:
         raise Exception("Failed to retrieve" + address)
     return webpage
+
+def dictionary_union(*dictionaries):
+    keys = [list(dictionary.keys()) for dictionary in dictionaries]
+    keys = [item for items in keys for item in items]
+    merged_dictionary = {}
+    for key in keys:
+        values=[]
+        for dictionary in dictionaries:
+            if key in dictionary.keys():
+                values.extend(dictionary[key])
+        merged_dictionary[key] = list(set(values))
+    return merged_dictionary                              
+

@@ -9,6 +9,8 @@ import datetime
 import pandas
 from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any
 from dlstats import configuration
+#from dlstats.misc_func import dictionary_union
+from ..misc_func import dictionary_union
 from datetime import datetime
 import logging
 import bson
@@ -76,7 +78,8 @@ revision_schema = [{Required('value'): str, Required('position'): int,
              Required('releaseDates'): [date_validator]}]
 dimensions = {str: str}
 attributes = {str: [str]}
-dimension_list_schema = {str: [str]}
+attribute_list_schema = {str: [(str,str)]}
+dimension_list_schema = {str: [All()]}
 
 class Provider(object):
     """Abstract base class for providers
@@ -126,11 +129,11 @@ class Series(object):
     ...                 attributes = {'OBS_VALUE': ['p']},
     ...                 revisions = [{'value': '2710', 'position':2,
     ...                 'releaseDates' : [datetime(2014,11,28)]}],
-    ...                 dimensions = [{'name':'Seasonal adjustment','value':'wda'}])
+    ...                 dimensions = [{'Seasonal adjustment':'wda'}])
     >>> print(series)
     [('attributes', {'OBS_VALUE': ['p']}),
      ('datasetCode', 'nama_gdp_fr'),
-     ('dimensions', [{'name': 'Seasonal adjustment', 'value': 'wda'}]),
+     ('dimensions', {'Seasonal adjustment': 'wda'}),
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
      ('period_index',
@@ -307,16 +310,20 @@ class Series(object):
             self.collection.find({'_id': old_bson['_id']}).upsert().update({'$set': self.bson})
         return old_bson['_id']
 
-class ES_series_index(object):
+class ESSeriesIndex(object):
     def __init__(self,series,codeDict):
         self.key = series.key
         self.provider = series.provider
         self.name = series.name
         self.datasetCode = series.datasetCode
         self.dimensions = {}
-        for dname in series.dimensions:
-            value = series.dimensions[dname]
-            self.dimensions[dname] = [value, codeDict[dname][value]]
+        #for dname in series.dimensions:
+            #value = series.dimensions[dname]
+            #self.dimensions[dname] = [value, codeDict[dname][value]]
+
+        for key, value in series.dimensions.items():
+            self.dimensions[key] = [value, codeDict[key]]
+
 
     @property
     def bson(self):
@@ -346,24 +353,24 @@ class BulkSeries(object):
     def append(self,series):
         self.data.append(series)
 
-    class effective_dimension_list(object):
+    class EffectiveDimensionList(object):
         def __init__(self,codeDict):
             self.codeDict = codeDict
-            self.effectiveDimensionDict = {}
+            self.effective_dimension_dict = {}
 
         def update(self,dimensions):
             for d in dimensions:
-                if d in self.effectiveDimensionDict:
+                if d in self.effective_dimension_dict:
                     if not dimensions[d] in self.effectiveDimensionDict[d]:
-                        self.effectiveDimensionDict[d].append(self.codeDict[d][dimensions[d]])
+                        self.effective_dimension_dict[d].append(self.codeDict[d][dimensions[d]])
                 else:
                     print(d)
                     print(dimensions[d])
                     print(self.codeDict)
-                    self.effectiveDimensionDict[d] = [self.codeDict[d][dimensions[d]]]
+                    self.effective_dimension_dict[d] = [self.codeDict[d][dimensions[d]]]
                         
         def get(self):
-            return self.effectiveDimensionDict
+            return self.effective_dimension_dict
 
             
     def bulk_update_database(self):
@@ -377,14 +384,12 @@ class BulkSeries(object):
         es.index(index="widukind", doc_type='series', id=1, body=body)
         es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
-        print('codeDict ',self.codeDict)
-        effectiveDimensionList = self.effective_dimension_list(self.codeDict)
+        effective_dimension_list = self.EffectiveDimensionList(self.codeDict)
         
         for s in self.data:
-            effectiveDimensionList.update(s.dimensions)
             s.collection = mdb_bulk
             s.update_database()
-            es_index = ES_series_index(s,self.codeDict)
+            es_index = ESSeriesIndex(s,self.codeDict)
             if s.key in old_es_index:
                 if es_index != old_es_index[s.key]:
                     op_dict = {
@@ -408,7 +413,7 @@ class BulkSeries(object):
         
         res_mdb = mdb_bulk.execute();
         res_es = es.bulk(index = 'widukind', body = es_bulk, refresh = True)
-        return(effectiveDimensionList)
+        return(effective_dimension_list)
     
 class Dataset(object):
     """Abstract base class for datasets
@@ -416,13 +421,13 @@ class Dataset(object):
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
     ...                 datasetCode='nama_gdp_fr',
     ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
-    ...                 attributeList=[{'name': 'OBS_VALUE', 'values': [('p', 'preliminary'), ('f', 'forecast')]}],
+    ...                 attributeList=[{'OBS_VALUE': [('p', 'preliminary'), ('f', 'forecast')]}],
     ...                 docHref='nauriset',
     ...                 lastUpdate=datetime(2014,12,2))
     >>> print(dataset)
     [('attributeList',
-      [{'name': 'OBS_VALUE',
-        'values': [('p', 'preliminary'), ('f', 'forecast')]}]),
+      [{'OBS_VALUE'
+        : [('p', 'preliminary'), ('f', 'forecast')]}]),
      ('datasetCode', 'nama_gdp_fr'),
      ('dimensionList',
       [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
@@ -463,9 +468,12 @@ class Dataset(object):
                               'dimensionList':
                               dimension_list_schema,
                               'attributeList':
-                              Any(None,dimension_list_schema)
+                              Any(None,attribute_list_schema)
                                },required=True)
 
+        print(dimensionList)
+        print(attributeList)
+        
         if docHref is None:
             self.validate = self.schema({'provider': self.provider,
                                          'datasetCode': self.datasetCode,

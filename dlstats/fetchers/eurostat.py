@@ -151,7 +151,7 @@ class Eurostat(Skeleton):
         for t in tree.nsmap:
             if t != None:
                 nsmap[t] = tree.nsmap[t]
-        codes = []
+        codes = {}
         for dimensions_list_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
             for dimensions_list in dimensions_list_.iterfind(".//structure:CodeList",
                                                 namespaces=nsmap):
@@ -167,14 +167,14 @@ class Eurostat(Skeleton):
                     for desc in dimension_:
                         if desc.attrib.items()[0][1] == "en":
                             dimension.append((dimension_key, desc.text))
-                codes.append({'name':name, 'values': dimension})
+                codes[name] = dimension
         self.lgr.debug('Parsed codes %s', pprint.pformat(codes))
         # Splitting codeList in dimensions and attributes
         for concept_list in tree.iterfind(".//structure:Components",namespaces=nsmap):
             dl = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Dimension",namespaces=nsmap)]
             al = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Attribute",namespaces=nsmap)]
-        attributes = [d for d in codes if d['name'] in al]
-        dimensions = [d for d in codes if d['name'] in dl]
+        attributes = {key: codes[key] for key in al}
+        dimensions = {key: codes[key] for key in dl}
         return (attributes,dimensions)
     
     def parse_sdmx(self,file,dataset_code):
@@ -273,8 +273,8 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
-            dimensions_dict = {d['name']: d['values'] for d in dimensionList}
-            name = "-".join([v[1] for name,value in dimensions.items() for d in dimensionList if d['name'] == name for v in d['values'] if v[0] == value])
+            dimensions_dict = dimensionList
+            name = "-".join([value for name,value in dimensions.items()])
             self.lgr.debug('Instantiating Series: %s', pprint.pformat({'provider':'eurostat',
                                                         'name':name,
                                                         'datasetCode':datasetCode,
