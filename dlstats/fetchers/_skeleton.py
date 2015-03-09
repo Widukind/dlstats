@@ -5,6 +5,7 @@
     :synopsis: Module containing an abstract base class for all the fetchers
 """
 import pymongo
+import datetime
 import pandas
 from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any
 from dlstats import configuration
@@ -270,7 +271,7 @@ class Series(object):
                 'frequency': self.frequency}
 
     def update_database(self,mongo_id=None,key=None):
-        old_bson = self.collection.find_one({'key': self.bson['key']})
+        old_bson = self.db.series.find_one({'key': self.bson['key']})
 
         if old_bson == None:
             return self.collection.insert(self.bson)
@@ -303,8 +304,7 @@ class Series(object):
                     position += 1
                                               
             self.bson['revisions'] = self.revisions
-            self.collection.update({'_id': old_bson['_id']},self.bson,
-                                  upsert=True)
+            self.collection.find({'_id': old_bson['_id']}).upsert().update({'$set': self.bson})
         return old_bson['_id']
 
 class ES_series_index(object):
@@ -372,6 +372,10 @@ class BulkSeries(object):
         es_bulk = []
 
         es = elasticsearch.Elasticsearch(host = "localhost")
+        body = {
+                'created': datetime.today()
+        }
+        es.index(index="widukind", doc_type='series', id=1, body=body)
         es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
         effectiveDimensionList = self.effective_dimension_list(self.codeDict)
