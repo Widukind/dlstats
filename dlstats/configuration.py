@@ -6,9 +6,10 @@ def _get_filename():
     """Return the configuration file path."""
     appname = 'dlstats'
     if os.name == 'posix':
-        if os.path.isfile(os.environ["HOME"]+'/.'+appname):
-            return os.environ["HOME"]+'/.'+appname
-        elif os.path.isfile('/etc/'+appname):
+        if "HOME" in os.environ:
+            if os.path.isfile(os.environ["HOME"]+'/.'+appname):
+                return os.environ["HOME"]+'/.'+appname
+        if os.path.isfile('/etc/'+appname):
             return '/etc/'+appname
         else:
             raise FileNotFoundError('No configuration file found.')
