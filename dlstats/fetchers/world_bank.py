@@ -7,6 +7,8 @@ import datetime
 import pandas
 import random
 import pprint
+#from dlstats.misc_func import dictionary_union
+from ..misc_func import dictionary_union
 
 class WorldBank(Skeleton):
     def __init__(self):
@@ -33,21 +35,9 @@ class WorldBank(Skeleton):
         else:
             raise Exception("The name of dataset was not entered!")
             
-        def dictionary_union(*dictionaries):
-            keys = [list(dictionary.keys()) for dictionary in dictionaries]
-            keys = [item for items in keys for item in items]
-            merged_dictionary = {}
-            for key in keys:
-                values=[]
-                for dictionary in dictionaries:
-                    if key in dictionary.keys():
-                        values.extend(dictionary[key])
-                merged_dictionary[key] = list(set(values))
-            return merged_dictionary                              
         #List of the name of the excel files
         concept_list=[]
         [concept_list.append(key[:-5]) for key in excelfile.keys()]
-        print(concept_list)
         dimensionList_ = []       
         for name_series in excelfile.keys():
             #Saving the Last modified date of each excel file
@@ -78,8 +68,6 @@ class WorldBank(Skeleton):
                                    
                     dimensionList_.extend(dimensionList_interm)             
         dimensionList = dictionary_union(*dimensionList_)  
-        print(dimensionList) 
-        pprint.pprint(dimensionList)         
         document = Dataset(provider = 'WorldBank', 
                            name = 'GEM' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
@@ -169,12 +157,13 @@ class WorldBank(Skeleton):
                         excel_file.sheet_by_name(sheet_name).ncols):
                         value = []
                         column = excel_file.sheet_by_name(sheet_name).col(column_index)
-                        if name_series[:-5] in ['Commodity Prices']:
-                            dimensions_int = {'name':'Commodity Prices',
-                            'value':column[0].value} 
-                        if name_series[:-5] not in ['Commodity Prices']:    
-                            dimensions_int = {'name':'country',
-                            'value':column[0].value} 
+                        dimensions_int = {}
+                        dimensions_int['concept'] = name_series[:-5]
+                        if name_series[:-5] == 'Commodity Prices':
+                            dimensions_int = {'Commodity Prices':
+                            column[0].value} 
+                        else:
+                            dimensions_int = {'country':column[0].value} 
                         column_value = column[1:-1]
                         for cell_value in column_value :
                             value.append(str(cell_value.value))
