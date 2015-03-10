@@ -317,16 +317,12 @@ class ESSeriesIndex(object):
         self.name = series.name
         self.datasetCode = series.datasetCode
         self.dimensions = {}
-        #for dname in series.dimensions:
-            #value = series.dimensions[dname]
-            #self.dimensions[dname] = [value, codeDict[dname][value]]
 
         for key, value in series.dimensions.items():
             if len(codeDict):
-                self.dimensions[key] = [value, codeDict[key]]
+                self.dimensions[key] = [value, codeDict[key][value]]
             else:
                 self.dimensions[key] = [value]
-
 
     @property
     def bson(self):
@@ -481,9 +477,6 @@ class Dataset(object):
                               Any(None,attribute_list_schema)
                                },required=True)
 
-        print(dimensionList)
-        print(attributeList)
-        
         if docHref is None:
             self.validate = self.schema({'provider': self.provider,
                                          'datasetCode': self.datasetCode,
