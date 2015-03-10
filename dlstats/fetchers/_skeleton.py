@@ -509,7 +509,7 @@ class Dataset(object):
         return {'provider': self.provider,
                 'name': self.name,
                 'datasetCode': self.datasetCode,
-                'codeList': effectiveDimensionList,
+                'codeList': effectiveDimensionList.get(),
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
 
