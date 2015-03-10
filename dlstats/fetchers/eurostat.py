@@ -259,6 +259,9 @@ class Eurostat(Skeleton):
 
     def update_series(self,data_file,datasetCode,dimensionList,attributeList,lastUpdate):
         (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
+        dimensions_dict = {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
+        dimensions_dict.update({d: {v[0]: v[1] for v in attributeList[d]} for d in attributeList})
+        print(dimensions_dict)
         documents = BulkSeries(datasetCode,dimensionList,attributeList)
         for key in raw_values:
             series_key = (datasetCode+'.'+ key).upper()
@@ -273,8 +276,8 @@ class Eurostat(Skeleton):
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
-            dimensions_dict = dimensionList
-            name = "-".join([value for name,value in dimensions.items()])
+            # forming name with long label of the dimensions
+            name = "-".join([dimensions_dict[name][value] for name,value in dimensions.items()])
             self.lgr.debug('Instantiating Series: %s', pprint.pformat({'provider':'eurostat',
                                                         'name':name,
                                                         'datasetCode':datasetCode,
