@@ -1,6 +1,6 @@
 # test limitation on line 98
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, BulkSeries
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
@@ -121,7 +121,7 @@ class Insee(Skeleton):
         dataset['attribute_list'] = dict()
         dimension_list = collections.defaultdict(set)
         dp = dataset_page(code)
-        series = []
+        documents = BulkSeries(code)
         for keys in dp:
             # no series are available in this chunk
             if len(keys) == 0:
@@ -150,7 +150,7 @@ class Insee(Skeleton):
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
             for s in series:
-                document = Series(provider='insee',
+                documents.append(Series(provider='insee',
                                   name = s['name'],
                                   key = s['key'],
                                   datasetCode = s['datasetCode'],
@@ -160,14 +160,13 @@ class Insee(Skeleton):
                                   dimensions = s['dimensions'],
                                   releaseDates = s['releaseDates'],
                                   revisions = s['revisions'],
-                                  frequency = s['frequency'])
-                document.update_database()
+                                  frequency = s['frequency']))
+        effective_dimension_dict = documents.bulk_update_database()
         dataset.update(dp.get_dataset())
-        dataset['dimension_list'] = []
+        dataset['dimension_list'] = {}
         for k in dimension_list:
-            dataset['dimension_list'].append({'name': k, 'values': [d for d in dimension_list[k]]})
-        dataset['attribute_list'] = [{'name': 'flags', 'values': [ (v[0], v[1]) for v in attribute_list.items()]}]
-        print(dataset['attribute_list'])
+            dataset['dimension_list'].update({k: [d for d in dimension_list[k]]})
+        dataset['attribute_list'] = {'flags': [ (v[0], v[1]) for v in attribute_list.items()]}
         document = Dataset(provider='insee',
                            name = dataset['name'],
                            datasetCode = dataset['datasetCode'],
@@ -176,6 +175,7 @@ class Insee(Skeleton):
                            docHref = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code,
                            lastUpdate = dataset['lastUpdate']) 
         document.update_database()
+        document.update_es_database(effective_dimension_dict)
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
@@ -363,7 +363,6 @@ class dataset_page(Insee):
         # Parse parameters
         url = "http://www.bdm.insee.fr/bdm2/choixCriteres?request_locale=en&codeGroupe=" + dataset_code
         fh = Insee.open_url_and_check(self,url)
-        print(fh)
         page = BeautifulSoup(fh)
         #        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/rub"))
         h1 = page.find('h1')
@@ -537,7 +536,7 @@ class CodeGroupError(InseeError):
 if __name__ == "__main__":
     insee = Insee()
 #    insee.get_categories(insee.initial_page)
-    insee.get_data('1336')
+    insee.get_data('1560')
 #    insee.update_datasets()
     #    Insee.parse_agenda()             
 #    insee.get_data("http://localhost:8800/insee/A.zip")

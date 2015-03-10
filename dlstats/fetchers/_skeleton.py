@@ -322,7 +322,10 @@ class ESSeriesIndex(object):
             #self.dimensions[dname] = [value, codeDict[dname][value]]
 
         for key, value in series.dimensions.items():
-            self.dimensions[key] = [value, codeDict[key]]
+            if len(codeDict):
+                self.dimensions[key] = [value, codeDict[key]]
+            else:
+                self.dimensions[key] = [value]
 
 
     @property
@@ -335,17 +338,20 @@ class ESSeriesIndex(object):
                 })
 
 class BulkSeries(object):
-    def __init__(self,datasetCode,dimensionList,attributeList={},data=[]):
+    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
         self.db = mongo_client.widukind
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
         # check whether there is a label for the dimension codes
-        if len(list(dimensionList.items())[0][1][0]) == 2:
-            self.codeDict =  {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
+        if len(dimensionList):
+            if len(list(dimensionList.items())[0][1][0]) == 2:
+                self.codeDict =  {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
+            else:
+                self.codeDict =  {d: {v: None for v in dimensionList[d]} for d in dimensionList}
         else:
-            self.codeDict =  {d: {v: None for v in dimensionList[d]} for d in dimensionList}
+            self.codeDict = {}
 
     def __iter__(self):
         return iter(self.data)
@@ -362,12 +368,16 @@ class BulkSeries(object):
             for d in dimensions:
                 if d in self.effective_dimension_dict:
                     if not dimensions[d] in self.effectiveDimensionDict[d]:
-                        self.effective_dimension_dict[d].append(self.codeDict[d][dimensions[d]])
+                        if len(self.codeDict):
+                            self.effective_dimension_dict[d].append(self.codeDict[d][dimensions[d]])
+                        else:
+                            self.effective_dimension_dict[d].append(dimensions[d])
+                            
                 else:
-                    print(d)
-                    print(dimensions[d])
-                    print(self.codeDict)
-                    self.effective_dimension_dict[d] = [self.codeDict[d][dimensions[d]]]
+                    if len(self.codeDict):
+                        self.effective_dimension_dict[d] = [self.codeDict[d][dimensions[d]]]
+                    else:
+                        self.effective_dimension_dict[d] = [dimensions[d]]
                         
         def get(self):
             return self.effective_dimension_dict
