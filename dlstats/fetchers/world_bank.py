@@ -7,8 +7,8 @@ import datetime
 import pandas
 import random
 import pprint
-#from dlstats.misc_func import dictionary_union
-from ..misc_func import dictionary_union
+from dlstats.misc_func import dictionary_union
+#from ..misc_func import dictionary_union
 
 class WorldBank(Skeleton):
     def __init__(self):
