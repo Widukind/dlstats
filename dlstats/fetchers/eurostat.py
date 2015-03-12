@@ -9,7 +9,8 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._skeleton import (Skeleton, Category, Series,
+                                        BulkSeries, Dataset, Provider)
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
@@ -45,14 +46,13 @@ class Eurostat(Skeleton):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
-        self.lgr.info('Retrieving %s', self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
+        self.lgr.info('Retrieving %s',
+                      self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-#        parser = lxml.etree.XMLParser(recover=True) 
-#        self.table_of_contents = lxml.etree.parse("http://localhost:8800/eurostat/table_of_contents.xml", parser)
         self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
 
@@ -89,38 +89,48 @@ class Eurostat(Skeleton):
                         code = element.text
                     elif element.tag[-10:] == 'lastUpdate':
                         if not (element.text is None):
-                            lastUpdate = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                            lastUpdate = datetime.datetime.strptime(
+                                element.text,'%d.%m.%Y')
                     elif element.tag[-12:] == 'lastModified':
                         if not (element.text is None):
-                            lastModified = datetime.datetime.strptime(element.text,'%d.%m.%Y')
+                            lastModified = datetime.datetime.strptime(
+                                element.text,'%d.%m.%Y')
                     elif element.tag[-8:] == 'children':
                         children = walktree(element)
                 if not ((lastUpdate is None) | (lastModified is None)):
                     lastUpdate = max(lastUpdate,lastModified)
-                if lastUpdate is not None and not isinstance(lastUpdate,datetime.datetime):
+                if lastUpdate is not None and not isinstance(lastUpdate,
+                                                             datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
-                    self.lgr.debug('Instantiating Category: %s', pprint.pformat({'provider':'eurostat',
-                                                                  'name':title,
-                                                                  'docHref':doc_href,
-                                                                  'children':children,
-                                                                  'categoryCode':code,
-                                                                  'lastUpdate':lastUpdate}))
-                    document = Category(provider='eurostat',name=title,docHref=doc_href,children=children,categoryCode=code,lastUpdate=lastUpdate)
+                    self.lgr.debug('Instantiating Category: %s', 
+                                   pprint.pformat({'provider':'eurostat',
+                                                   'name':title,
+                                                   'docHref':doc_href,
+                                                   'children':children,
+                                                   'categoryCode':code,
+                                                   'lastUpdate':lastUpdate}))
+                    document = Category(provider='eurostat',name=title,
+                                        docHref=doc_href,children=children,
+                                        categoryCode=code,lastUpdate=lastUpdate)
                 else:
-                    self.lgr.debug('Instantiating Category: %s', pprint.pformat({'provider':'eurostat',
-                                                                  'name':title,
-                                                                  'children':children,
-                                                                  'categoryCode':code,
-                                                                  'lastUpdate':lastUpdate}))
-                    document = Category(provider='eurostat',name=title,children=children,categoryCode=code,lastUpdate=lastUpdate)
+                    self.lgr.debug('Instantiating Category: %s',
+                                   pprint.pformat({'provider':'eurostat',
+                                                   'name':title,
+                                                   'children':children,
+                                                   'categoryCode':code,
+                                                   'lastUpdate':lastUpdate}))
+                    document = Category(provider='eurostat',name=title,
+                                        children=children,categoryCode=code,
+                                        lastUpdate=lastUpdate)
                 _id = document.update_database()
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider='eurostat',name='root',children=_id,lastUpdate=None,categoryCode='eurostat_root')
+        document = Category(provider='eurostat',name='root',children=_id,
+                            lastUpdate=None,categoryCode='eurostat_root')
         document.update_database()
 
 
@@ -139,12 +149,14 @@ class Eurostat(Skeleton):
                 return [c['categoryCode']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'provider': 'eurostat','categoryCode': code})
+            cc = self.db.categories.find_one({'provider': 'eurostat',
+                                              'categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
 
     def parse_dsd(self,file,dataset_code):
-        parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
+        parser = lxml.etree.XMLParser(ns_clean=True, recover=True,
+                                      encoding='utf-8') 
         tree = lxml.etree.fromstring(file, parser)
         # Anonymous namespace is not supported by lxml
         nsmap = {}
@@ -152,9 +164,10 @@ class Eurostat(Skeleton):
             if t != None:
                 nsmap[t] = tree.nsmap[t]
         codes = {}
-        for dimensions_list_ in  tree.iterfind("{*}CodeLists",namespaces=nsmap):
-            for dimensions_list in dimensions_list_.iterfind(".//structure:CodeList",
-                                                namespaces=nsmap):
+        for dimensions_list_ in  tree.iterfind("{*}CodeLists",
+                                               namespaces=nsmap):
+            for dimensions_list in dimensions_list_.iterfind(
+                ".//structure:CodeList", namespaces=nsmap):
                 name = dimensions_list.get('id')
                 # truncate intial "CL_" in name
                 name = name[3:]
@@ -170,15 +183,19 @@ class Eurostat(Skeleton):
                 codes[name] = dimension
         self.lgr.debug('Parsed codes %s', pprint.pformat(codes))
         # Splitting codeList in dimensions and attributes
-        for concept_list in tree.iterfind(".//structure:Components",namespaces=nsmap):
-            dl = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Dimension",namespaces=nsmap)]
-            al = [d.get("codelist")[3:] for d in concept_list.iterfind(".//structure:Attribute",namespaces=nsmap)]
+        for concept_list in tree.iterfind(".//structure:Components",
+                                          namespaces=nsmap):
+            dl = [d.get("codelist")[3:] for d in concept_list.iterfind(
+                ".//structure:Dimension",namespaces=nsmap)]
+            al = [d.get("codelist")[3:] for d in concept_list.iterfind(
+                ".//structure:Attribute",namespaces=nsmap)]
         attributes = {key: codes[key] for key in al}
         dimensions = {key: codes[key] for key in dl}
         return (attributes,dimensions)
     
     def parse_sdmx(self,file,dataset_code):
-        parser = lxml.etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8') 
+        parser = lxml.etree.XMLParser(ns_clean=True, recover=True,
+                                      encoding='utf-8') 
         tree = lxml.etree.fromstring(file, parser)
         # Anonymous namespace is not supported by lxml
         nsmap = {}
@@ -228,8 +245,10 @@ class Eurostat(Skeleton):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-#        request = requests.get("http://localhost:8800/eurostat/" + datasetCode + ".sdmx.zip")
-        request = requests.get("http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/" + datasetCode + ".sdmx.zip")
+        request = requests.get("http://ec.europa.eu/eurostat/" +
+                               "estat-navtree-portlet-prod/" +
+                               "BulkDownloadListing?sort=1&file=data/" +
+                               datasetCode + ".sdmx.zip")
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
@@ -247,7 +266,9 @@ class Eurostat(Skeleton):
                                  docHref = cat['docHref'],
                                  lastUpdate=cat['lastUpdate'])
         id = document.update_database()
-        effectiveDimensionList = self.update_series(data_file,datasetCode,dimensions,attributes,document.bson['lastUpdate'])
+        effectiveDimensionList = self.update_series(data_file,datasetCode,
+                                                    dimensions,attributes,
+                                                    document.bson['lastUpdate'])
         document.update_es_database(effectiveDimensionList)
         
     def parse_date(self,str):
@@ -257,36 +278,50 @@ class Eurostat(Skeleton):
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def update_series(self,data_file,datasetCode,dimensionList,attributeList,lastUpdate):
-        (raw_values, raw_dates, raw_attributes, raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
-        dimensions_dict = {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
-        dimensions_dict.update({d: {v[0]: v[1] for v in attributeList[d]} for d in attributeList})
+    def update_series(self,data_file,datasetCode,dimensionList,attributeList,
+                      lastUpdate):
+        (raw_values, raw_dates, raw_attributes,
+         raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
+        dimensions_dict = {d: {v[0]:v[1]
+                               for v in dimensionList[d]}
+                           for d in dimensionList}
+        dimensions_dict.update({d: {v[0]: v[1]
+                                    for v in attributeList[d]}
+                                for d in attributeList})
         print(dimensions_dict)
         documents = BulkSeries(datasetCode,dimensionList,attributeList)
         for key in raw_values:
             series_key = (datasetCode+'.'+ key).upper()
-            (start_year, start_subperiod,freq) = self.parse_date(raw_dates[key][0])
-            (end_year,end_subperiod,freq) = self.parse_date(raw_dates[key][-1])
+            (start_year, start_subperiod,freq) = self.parse_date(
+                raw_dates[key][0])
+            (end_year,end_subperiod,freq) = self.parse_date(
+                raw_dates[key][-1])
             if freq == "A":
-                period_index = pandas.period_range(start=start_year,end=end_year,freq=freq)
+                period_index = pandas.period_range(start=start_year,
+                                                   end=end_year,freq=freq)
             else:
-                period_index = pandas.period_range(start=start_year+freq+start_subperiod,end=end_year+freq+end_subperiod,freq=freq)
+                period_index = pandas.period_range(
+                    start=start_year+freq+start_subperiod,
+                    end=end_year+freq+end_subperiod,
+                    freq=freq)
             releaseDates = [lastUpdate for v in raw_values[key]]
             dimensions_ = raw_dimensions[key]
             # make all codes uppercase
             dimensions = {name.upper(): value.upper() 
                      for name, value in dimensions_.items()}
             # forming name with long label of the dimensions
-            name = "-".join([dimensions_dict[name][value] for name,value in dimensions.items()])
-            self.lgr.debug('Instantiating Series: %s', pprint.pformat({'provider':'eurostat',
-                                                        'name':name,
-                                                        'datasetCode':datasetCode,
-                                                        'period_index':period_index,
-                                                        'values':raw_values[key],
-                                                        'attributes':raw_attributes[key],
-                                                        'releaseDates':releaseDates,
-                                                        'frequency':freq,
-                                                        'dimensions':dimensions}))
+            name = "-".join([dimensions_dict[name][value]
+                             for name,value in dimensions.items()])
+            self.lgr.debug('Instantiating Series: %s',
+                           pprint.pformat({'provider':'eurostat',
+                                           'name':name,
+                                           'datasetCode':datasetCode,
+                                           'period_index':period_index,
+                                           'values':raw_values[key],
+                                           'attributes':raw_attributes[key],
+                                           'releaseDates':releaseDates,
+                                           'frequency':freq,
+                                           'dimensions':dimensions}))
             documents.append(Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
