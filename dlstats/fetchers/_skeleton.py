@@ -25,7 +25,8 @@ class Skeleton(object):
         self.configuration = configuration
         self.provider_name = provider_name
         self.db = mongo_client.widukind
-        self.elasticsearch = elasticsearch.Elasticsearch(host = self.configuration['ElasticSearch']['host'])
+        self.elasticsearch = elasticsearch.Elasticsearch(
+            host = self.configuration['ElasticSearch']['host'])
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
@@ -255,7 +256,8 @@ class Series(object):
                   )
 
     def __repr__(self):
-        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+        return pprint.pformat([(key, self.validate[key])
+                               for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
@@ -281,8 +283,10 @@ class Series(object):
         else:
             position = 0
             self.revisions = old_bson['revisions']
-            old_start_period = pandas.Period(old_bson['startDate'],freq=old_bson['frequency'])
-            start_period = pandas.Period(self.bson['startDate'],freq=self.bson['frequency'])
+            old_start_period = pandas.Period(
+                old_bson['startDate'],freq=old_bson['frequency'])
+            start_period = pandas.Period(
+                self.bson['startDate'],freq=self.bson['frequency'])
             if start_period > old_start_period:
             # previous, longer, series is kept
                 offset = start_period - old_start_period
@@ -290,24 +294,27 @@ class Series(object):
                 self.bson['startDate'] = old_bson['startDate']
                 for values in zip(old_bson['values'][offset:],self.values):
                     if values[0] != values[1]:
-                        self.revisions.append({'value':values[0],
-                                               'position': offset+position,
-                                               'releaseDates':
-                                               old_bson['releaseDates'][offset+position]})
+                        self.revisions.append(
+                            {'value':values[0],
+                             'position': offset+position,
+                             'releaseDates':
+                             old_bson['releaseDates'][offset+position]})
                     position += 1
             else:
             # zero or more data are added at the beginning of the series
                 offset = old_start_period - start_period
                 for values in zip(old_bson['values'],self.values[offset:]):
                     if values[0] != values[1]:
-                        self.revisions.append({'value':values[0],
-                                               'position': offset+position,
-                                               'releaseDates':
-                                               old_bson['releaseDates'][position]})
+                        self.revisions.append(
+                            {'value':values[0],
+                             'position': offset+position,
+                             'releaseDates':
+                             old_bson['releaseDates'][position]})
                     position += 1
                                               
             self.bson['revisions'] = self.revisions
-            self.collection.find({'_id': old_bson['_id']}).upsert().update({'$set': self.bson})
+            self.collection.find({'_id': old_bson['_id']}).upsert().update(
+                {'$set': self.bson})
         return old_bson['_id']
 
 class ESSeriesIndex(object):
@@ -343,9 +350,13 @@ class BulkSeries(object):
         # check whether there is a label for the dimension codes
         if len(dimensionList):
             if len(list(dimensionList.items())[0][1][0]) == 2:
-                self.codeDict =  {d: {v[0]: v[1] for v in dimensionList[d]} for d in dimensionList}
+                self.codeDict =  {d: {v[0]: v[1]
+                                      for v in dimensionList[d]}
+                                  for d in dimensionList}
             else:
-                self.codeDict =  {d: {v: None for v in dimensionList[d]} for d in dimensionList}
+                self.codeDict =  {d: {v: None
+                                      for v in dimensionList[d]}
+                                  for d in dimensionList}
         else:
             self.codeDict = {}
 
@@ -365,13 +376,16 @@ class BulkSeries(object):
                 if d in self.effective_dimension_dict:
                     if not dimensions[d] in self.effectiveDimensionDict[d]:
                         if len(self.codeDict):
-                            self.effective_dimension_dict[d].append(self.codeDict[d][dimensions[d]])
+                            self.effective_dimension_dict[d].append(
+                                self.codeDict[d][dimensions[d]])
                         else:
-                            self.effective_dimension_dict[d].append(dimensions[d])
+                            self.effective_dimension_dict[d].append(
+                                dimensions[d])
                             
                 else:
                     if len(self.codeDict):
-                        self.effective_dimension_dict[d] = [self.codeDict[d][dimensions[d]]]
+                        self.effective_dimension_dict[d] = [
+                            self.codeDict[d][dimensions[d]]]
                     else:
                         self.effective_dimension_dict[d] = [dimensions[d]]
                         
@@ -388,7 +402,11 @@ class BulkSeries(object):
                 'created': datetime.today()
         }
         es.index(index="widukind", doc_type='series', id=1, body=body)
-        es_data = es.search(index = 'widukind', doc_type = 'series', body={"query" : { "filtered" : { "filter": {"term": {"_id": self.datasetCode}}}}})
+        es_data = es.search(index = 'widukind', doc_type = 'series',
+                            body={"query" : { "filtered" :
+                                             { "filter":
+                                              {"term":
+                                               {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
         effective_dimension_list = self.EffectiveDimensionList(self.codeDict)
         
@@ -496,7 +514,8 @@ class Dataset(object):
                                         })
 
     def __repr__(self):
-        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+        return pprint.pformat([(key, self.validate[key])
+                               for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
@@ -522,7 +541,9 @@ class Dataset(object):
 
     def update_es_database(self,effectiveDimensionList):
         es = elasticsearch.Elasticsearch(host = "localhost")
-        es.index(index = 'widukind', doc_type = 'datasets', id = self.provider+'.'+self.datasetCode, body = self.es_bson(effectiveDimensionList))
+        es.index(index = 'widukind', doc_type = 'datasets',
+                 id = self.provider+'.'+self.datasetCode,
+                 body = self.es_bson(effectiveDimensionList))
                  
 class Category(object):
     """Abstract base class for categories
@@ -587,7 +608,8 @@ class Category(object):
                     })
 
     def __repr__(self):
-        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+        return pprint.pformat([(key, self.validate[key])
+                               for key in sorted(self.validate.keys())])
 
     @property
     def bson(self):
@@ -599,11 +621,13 @@ class Category(object):
                 'lastUpdate': self.lastUpdate,
                 'exposed': self.exposed}
     def update_database(self):
-        in_base_category = self.db.categories.find_one({'categoryCode': self.bson['categoryCode']})
+        in_base_category = self.db.categories.find_one(
+            {'categoryCode': self.bson['categoryCode']})
         if in_base_category is None:
   	     	_id_ = self.db.categories.insert(self.bson)
         else:
-            self.db.categories.update({'_id': in_base_category['_id']}, self.bson)
+            self.db.categories.update(
+                {'_id': in_base_category['_id']},self.bson)
             _id_ = in_base_category['_id']
         return _id_
 
