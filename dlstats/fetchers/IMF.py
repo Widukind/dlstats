@@ -34,7 +34,9 @@ class IMF(Skeleton):
         Scale_list = []
         WEO_Country_Code_list = []
         Country_Series_specific_Notes_list = []
-        WEO_Subject_Code_list = []        
+        WEO_Subject_Code_list = [] 
+        CountryCode_ltuple = []
+        Subject_ltuple = []        
         for count, row in enumerate(reader):
             # last 2 rows are blank/metadata
             # so get out when we hit a blank row
@@ -48,13 +50,14 @@ class IMF(Skeleton):
                 if row['Scale'] not in Scale_list: Scale_list.append(row['Scale'])
                 if row['Country/Series-specific Notes'] not in Country_Series_specific_Notes_list: Country_Series_specific_Notes_list.append(row['Country/Series-specific Notes'])
                 if row['WEO Subject Code'] not in WEO_Subject_Code_list: WEO_Subject_Code_list.append(row['WEO Subject Code'])
-
+                if [row['ISO'] , row['Country']] not in CountryCode_ltuple:  CountryCode_ltuple.append([row['ISO'] , row['Country']])
+                if [row['WEO Subject Code'] , row['Subject Descriptor']] not in Subject_ltuple:  Subject_ltuple.append([row['WEO Subject Code'] , row['Subject Descriptor']])
                     
-        dimensionList=[{'name':'WEO Country Code', 'values': WEO_Country_Code_list},
-                       {'name':'ISO', 'values': ISO_list},
-                       {'name':'WEO Subject Code', 'values': WEO_Subject_Code_list},
-                       {'name':'Units', 'values': Units_list},
-                       {'name':'Scale', 'values': Scale_list}]
+        dimensionList=[{'Country Code': CountryCode_ltuple},
+                       {'ISO': ISO_list},
+                       {'Subject Code': Subject_ltuple},
+                       {'Units': Units_list},
+                       {'Scale': Scale_list}]
                        
         for count, row in enumerate(reader):
             if row['Country']:               
@@ -88,11 +91,11 @@ class IMF(Skeleton):
                 key = 'WEO_'+row['WEO Subject Code'] 
                 for year in years:
                     value.append(row[year])               
-                dimensions['WEO Country Code'] = row['WEO Country Code']
+                dimensions['Country Code'] = [row['ISO'] , row['Country']]
                 dimensions['ISO'] = row['ISO']
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
-                dimensions['WEO Subject Code'] = row['WEO Subject Code']
+                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]
          
             document = Series(provider = 'WorldBank', 
                               name = name , key = key,
@@ -103,6 +106,12 @@ class IMF(Skeleton):
             document.update_database(key=key)     
             
 
+
+
+if __name__ == "__main__":
+    import IMF
+    w = IMF.IMF()
+    w.update_selected_database('WEO') 
 
 
               
