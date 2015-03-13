@@ -7,6 +7,7 @@ import datetime
 import pandas
 import random
 import pprint
+import elasticsearch
 from dlstats.misc_func import dictionary_union
 #from ..misc_func import dictionary_union
 
@@ -20,6 +21,7 @@ class WorldBank(Skeleton):
        
         #Getting released date from headers of the Zipfile
         self.releaseDates_ = self.response.getheaders()[1][1] 
+        print(self.releaseDates_[5:])
         self.releaseDates = datetime.datetime.strptime(self.releaseDates_[5:], 
         "%d %b %Y %H:%M:%S GMT")
        
@@ -125,11 +127,11 @@ class WorldBank(Skeleton):
                             frequency = 'd' 'day'                                             
                         series_key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+\
-                                            column[0].value+ str(random.random())                         
+                                            column[0].value                         
                         documents = BulkSeries(datasetCode,dimensionList)
                         documents.append(Series(provider='WorldBank',
                                             key= series_key,
-                                            name=name_series[:-5],
+                                            name=name_series[:-5]+'_'+column[0].value ,
                                             datasetCode= 'GEM',
                                             period_index=pandas.period_range
                                           (start_date_b, end_date_b , freq = frequency),
@@ -160,10 +162,9 @@ class WorldBank(Skeleton):
                         dimensions_int = {}
                         dimensions_int['concept'] = name_series[:-5]
                         if name_series[:-5] == 'Commodity Prices':
-                            dimensions_int = {'Commodity Prices':
-                            column[0].value} 
+                            dimensions_int['Commodity Prices'] = column[0].value
                         else:
-                            dimensions_int = {'country':column[0].value} 
+                            dimensions_int['country'] = column[0].value 
                         column_value = column[1:-1]
                         for cell_value in column_value :
                             value.append(str(cell_value.value))
@@ -185,9 +186,10 @@ class WorldBank(Skeleton):
                             frequency = 'd' 'day'                                             
                         series_key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')+'.'+\
-                                            column[0].value+ str(random.random())
+                                            column[0].value
                         document = Series(provider = 'WorldBank', 
-                                          name = name_series[:-5] , key = series_key,
+                                          name = name_series[:-5]+'_'+column[0].value
+                                          , key = series_key,
                                           datasetCode = 'GEM', values = value,
                                           period_index = pandas.period_range
                                           (start_date_b, end_date_b , freq = frequency)
