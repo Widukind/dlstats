@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Mar 13 17:09:43 2015
+
+@author: salimeh
+"""
+
 from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
 import io
 import zipfile
@@ -108,7 +115,8 @@ class WorldBank(Skeleton):
                             dimensions['country'] = column[0].value 
                         column_value = column[1:-1]
                         for cell_value in column_value :
-                            value.append(str(cell_value.value))
+                            if cell_value.value:
+                                value.append(str(cell_value.value))
                         if sheet_name in ('annual') :
                             start_date_b = str(int(label_column_list[0].value))
                             end_date_b = str(int(label_column_list[-1].value))
@@ -204,6 +212,6 @@ class WorldBank(Skeleton):
                         _id = document.update_database(key=series_key)     
 
 if __name__ == "__main__":
-    import world_bank
-    w = world_bank.WorldBank()
+    import world_bank2
+    w = world_bank2.WorldBank()
     w.upsert_dataset('GEM')
