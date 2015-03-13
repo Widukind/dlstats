@@ -120,21 +120,24 @@ class WorldBank(Skeleton):
                         if sheet_name == 'annual':    
                             frequency = 'A'
                         if sheet_name == 'quarterly':    
-                            frequency = 'q'
+                            frequency = 'Q'
                         if sheet_name == 'monthly':    
-                            frequency = 'm'
+                            frequency = 'M'
                         if sheet_name == 'daily':    
-                            frequency = 'd' 'day'                                             
+                            frequency = 'D' 'day'                                             
                         series_key = name_series[:-5].replace(' ',
-                                            '_').replace(',', '')+'.'+\
-                                            column[0].value                         
+                                            '_').replace(',', '')
+                        # don't add a period if there is already one
+                        if series_key[-1] != '.':
+                            series_key += '.'
+                        series_key += column[0].value+'.'+frequency                         
                         documents = BulkSeries(datasetCode,dimensionList)
                         documents.append(Series(provider='WorldBank',
-                                            key= series_key,
+                                            key= upper(series_key),
                                             name=name_series[:-5]+'; '+column[0].value ,
                                             datasetCode= 'GEM',
                                             period_index=pandas.period_range
-                                          (start_date_b, end_date_b , freq = frequency),
+                                                (start_date_b, end_date_b , freq = frequency),
                                             values=value,
                                             releaseDates= [self.releaseDates],
                                             frequency=frequency,
