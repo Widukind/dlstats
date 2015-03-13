@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Mar 13 17:09:43 2015
-
-@author: salimeh
-"""
 
 from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
 import io
@@ -28,7 +22,6 @@ class WorldBank(Skeleton):
        
         #Getting released date from headers of the Zipfile
         self.releaseDates_ = self.response.getheaders()[1][1] 
-        print(self.releaseDates_[5:])
         self.releaseDates = datetime.datetime.strptime(self.releaseDates_[5:], 
         "%d %b %Y %H:%M:%S GMT")
        
@@ -212,6 +205,6 @@ class WorldBank(Skeleton):
                         _id = document.update_database(key=series_key)     
 
 if __name__ == "__main__":
-    import world_bank2
-    w = world_bank2.WorldBank()
+    import world_bank
+    w = world_bank.WorldBank()
     w.upsert_dataset('GEM')
