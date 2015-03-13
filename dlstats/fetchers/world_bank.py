@@ -131,7 +131,7 @@ class WorldBank(Skeleton):
                         documents = BulkSeries(datasetCode,dimensionList)
                         documents.append(Series(provider='WorldBank',
                                             key= series_key,
-                                            name=name_series[:-5]+'_'+column[0].value ,
+                                            name=name_series[:-5]+'; '+column[0].value ,
                                             datasetCode= 'GEM',
                                             period_index=pandas.period_range
                                           (start_date_b, end_date_b , freq = frequency),
