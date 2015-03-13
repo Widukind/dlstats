@@ -124,24 +124,26 @@ class WorldBank(Skeleton):
                         if sheet_name == 'monthly':    
                             frequency = 'M'
                         if sheet_name == 'daily':    
-                            frequency = 'D' 'day'                                             
+                            frequency = 'D'
+                        freq_long_name = {'A': 'Annual', 'Q': 'Quarterly', 'M': 'Monthly', 'D': 'Daily'}
                         series_key = name_series[:-5].replace(' ',
                                             '_').replace(',', '')
                         # don't add a period if there is already one
                         if series_key[-1] != '.':
                             series_key += '.'
-                        series_key += column[0].value+'.'+frequency                         
+                        series_key += 'GEM.' + column[0].value + '.' + frequency
+                        series_name = name_series[:-5] + '; ' + column[0].value + '; ' + freq_long_name[frequency]
                         documents = BulkSeries(datasetCode,dimensionList)
                         documents.append(Series(provider='WorldBank',
-                                            key= upper(series_key),
-                                            name=name_series[:-5]+'; '+column[0].value ,
-                                            datasetCode= 'GEM',
-                                            period_index=pandas.period_range
+                                                key= series_key.upper(),
+                                                name=series_name,
+                                                datasetCode= 'GEM',
+                                                period_index=pandas.period_range
                                                 (start_date_b, end_date_b , freq = frequency),
-                                            values=value,
-                                            releaseDates= [self.releaseDates],
-                                            frequency=frequency,
-                                            dimensions=dimensions))
+                                                values=value,
+                                                releaseDates= [self.releaseDates],
+                                                frequency=frequency,
+                                                dimensions=dimensions))
         return(documents.bulk_update_database())
         
     def upsert_a_series(self,datasetCode):                              
