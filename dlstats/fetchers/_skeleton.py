@@ -170,13 +170,13 @@ class Series(object):
         self.configuration=configuration
         self.db = mongo_client.widukind
         self.collection = self.db.series
-        self.provider=provider
+        self.provider=upper(provider)
         self.name=name
-        self.key=key
+        self.key=upper(key)
         #SDMX equivalent concept: flowRef
         self.datasetCode=datasetCode
         self.period_index=period_index
-        self.frequency=frequency
+        self.frequency=upper(frequency)
         self.values=values
         self.releaseDates=releaseDates
         self.attributes=attributes
@@ -344,7 +344,7 @@ class BulkSeries(object):
     def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
         self.db = mongo_client.widukind
         self.data = data
-        self.datasetCode = datasetCode
+        self.datasetCode = upper(datasetCode)
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
         # check whether there is a label for the dimension codes
@@ -471,8 +471,8 @@ class Dataset(object):
                 ):
         self.configuration=configuration
         self.db = mongo_client.widukind
-        self.provider=provider
-        self.datasetCode=datasetCode
+        self.provider=upper(provider)
+        self.datasetCode=upper(datasetCode)
         self.name=name
         self.attributeList=attributeList
         self.dimensionList=dimensionList
@@ -574,11 +574,11 @@ class Category(object):
                 ):
         self.configuration = configuration
         self.db = mongo_client.widukind
-        self.provider=provider
+        self.provider=upper(provider)
         self.name=name
         self.docHref=docHref
         self.children=children
-        self.categoryCode=categoryCode
+        self.categoryCode=upper(categoryCode)
         self.lastUpdate=lastUpdate
         self.exposed=exposed
         self.configuration=configuration
