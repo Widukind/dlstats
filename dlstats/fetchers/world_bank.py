@@ -65,8 +65,8 @@ class WorldBank(Skeleton):
                         column_index in range (1, excel_file.sheet_by_name
                         (sheet_name).ncols)]
                     dimensionList_interm=[{'concept': concept_list},
-                                   {'country': countries_list}
-                                   ,{'Commodity Prices': commodity_prices_list}]
+                                          {'country': countries_list},
+                                          {'Commodity Prices': commodity_prices_list}]
                                    
                     dimensionList_.extend(dimensionList_interm)             
         dimensionList = dictionary_union(*dimensionList_)  
@@ -74,7 +74,8 @@ class WorldBank(Skeleton):
                            name = 'GEM' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList )
-        id = document.update_database()
+        document.update_database()
+        document.update_es_database()
         return self.update_series('GEM', dimensionList)  
        
     def upsert_categories(self):
