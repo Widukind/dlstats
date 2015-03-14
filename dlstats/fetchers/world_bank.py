@@ -71,9 +71,10 @@ class WorldBank(Skeleton):
                     dimensionList_.extend(dimensionList_interm)             
         dimensionList = dictionary_union(*dimensionList_)  
         document = Dataset(provider = 'WorldBank', 
-                           name = 'GEM' ,
+                           name = 'Global Economic Monitor' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
-                           dimensionList = dimensionList )
+                           dimensionList = dimensionList,
+                           docHref = "http://data.worldbank.org/data-catalog/global-economic-monitor")
         effective_dimension_list = self.update_series('GEM', dimensionList)
         print(effective_dimension_list.get())
         document.update_database()
