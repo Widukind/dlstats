@@ -74,9 +74,10 @@ class WorldBank(Skeleton):
                            name = 'GEM' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList )
+        effective_dimension_list = self.update_series('GEM', dimensionList)
+        print(effective_dimension_list.get())
         document.update_database()
-        document.update_es_database()
-        return self.update_series('GEM', dimensionList)  
+        document.update_es_database(effective_dimension_list)
        
     def upsert_categories(self):
         document = Category(provider = 'WorldBank', 
@@ -135,7 +136,7 @@ class WorldBank(Skeleton):
                             series_key += '.'
                         series_key += 'GEM.' + column[0].value + '.' + frequency
                         series_name = name_series[:-5] + '; ' + column[0].value + '; ' + freq_long_name[frequency]
-                        documents = BulkSeries(datasetCode,dimensionList)
+                        documents = BulkSeries(datasetCode,{})
                         documents.append(Series(provider='WorldBank',
                                                 key= series_key.upper(),
                                                 name=series_name,

@@ -369,28 +369,33 @@ class BulkSeries(object):
     class EffectiveDimensionList(object):
         def __init__(self,codeDict):
             self.codeDict = codeDict
+            # mode == 1: a single code; mode == 2: a short and a long code
+            if len(self.codeDict):
+                self.mode = 2
+            else:
+                self.mode = 1
             self.effective_dimension_dict = {}
 
         def update(self,dimensions):
             for d in dimensions:
                 if d in self.effective_dimension_dict:
-                    if not dimensions[d] in self.effectiveDimensionDict[d]:
-                        if len(self.codeDict):
-                            self.effective_dimension_dict[d].append(
-                                self.codeDict[d][dimensions[d]])
+                    if not dimensions[d] in self.effective_dimension_dict[d]:
+                        if self.mode == 2:
+                            self.effective_dimension_dict[d].update({dimensions[d]: self.codeDict[d][dimensions[d]]})
                         else:
-                            self.effective_dimension_dict[d].append(
-                                dimensions[d])
+                            self.effective_dimension_dict[d].update([dimensions[d]])
                             
                 else:
-                    if len(self.codeDict):
-                        self.effective_dimension_dict[d] = [
-                            self.codeDict[d][dimensions[d]]]
+                    if self.mode == 2:
+                        self.effective_dimension_dict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
                     else:
-                        self.effective_dimension_dict[d] = [dimensions[d]]
+                        self.effective_dimension_dict[d] = set([dimensions[d]])
                         
         def get(self):
-            return self.effective_dimension_dict
+            if self.mode == 2:
+                return({d: list(self.effective_dimension_dict[d].items()) for d in self.effective_dimension_dict})
+            else:
+                return({d: list(self.effective_dimension_dict[d]) for d in self.effective_dimension_dict})
 
             
     def bulk_update_database(self):
@@ -434,7 +439,8 @@ class BulkSeries(object):
                 }
                 es_bulk.append(op_dict)
             es_bulk.append(es_index.bson)
-        
+            effective_dimension_list.update(s.dimensions)
+                                            
         res_mdb = mdb_bulk.execute();
         res_es = es.bulk(index = 'widukind', body = es_bulk, refresh = True)
         return(effective_dimension_list)
