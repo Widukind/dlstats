@@ -76,7 +76,6 @@ class WorldBank(Skeleton):
                            dimensionList = dimensionList,
                            docHref = "http://data.worldbank.org/data-catalog/global-economic-monitor")
         effective_dimension_list = self.update_series('GEM', dimensionList)
-        print(effective_dimension_list.get())
         document.update_database()
         document.update_es_database(effective_dimension_list)
        

@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-#TODO Refactor the code so that every method looks like create_series_db. This is *the right way*.
 """
 .. module:: eurostat
     :platform: Unix, Windows
@@ -39,9 +38,9 @@ class Eurostat(Skeleton):
     def __init__(self):
         super().__init__(provider_name='eurostat')
         self.lgr = logging.getLogger('Eurostat')
-        self.lgr.setLevel(logging.DEBUG)
+        self.lgr.setLevel(logging.INFO)
         self.fh = logging.FileHandler('Eurostat.log')
-        self.fh.setLevel(logging.DEBUG)
+        self.fh.setLevel(logging.INFO)
         self.frmt = logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
@@ -103,26 +102,15 @@ class Eurostat(Skeleton):
                                                              datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
-                    self.lgr.debug('Instantiating Category: %s', 
-                                   pprint.pformat({'provider':'eurostat',
-                                                   'name':title,
-                                                   'docHref':doc_href,
-                                                   'children':children,
-                                                   'categoryCode':code,
-                                                   'lastUpdate':lastUpdate}))
                     document = Category(provider='eurostat',name=title,
                                         docHref=doc_href,children=children,
                                         categoryCode=code,lastUpdate=lastUpdate)
+                    self.lgr.debug('Instantiating Category: %s',code) 
                 else:
-                    self.lgr.debug('Instantiating Category: %s',
-                                   pprint.pformat({'provider':'eurostat',
-                                                   'name':title,
-                                                   'children':children,
-                                                   'categoryCode':code,
-                                                   'lastUpdate':lastUpdate}))
                     document = Category(provider='eurostat',name=title,
                                         children=children,categoryCode=code,
                                         lastUpdate=lastUpdate)
+                    self.lgr.debug('Instantiating Category: %s',code) 
                 _id = document.update_database()
                 children_ids += [_id]
             return children_ids
@@ -181,7 +169,7 @@ class Eurostat(Skeleton):
                         if desc.attrib.items()[0][1] == "en":
                             dimension.append((dimension_key, desc.text))
                 codes[name] = dimension
-        self.lgr.debug('Parsed codes %s', pprint.pformat(codes))
+        self.lgr.debug('Parsed codes %s', codes)
         # Splitting codeList in dimensions and attributes
         for concept_list in tree.iterfind(".//structure:Components",
                                           namespaces=nsmap):
@@ -256,8 +244,8 @@ class Eurostat(Skeleton):
         [attributes,dimensions] = self.parse_dsd(dsd_file,datasetCode)
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
         self.lgr.debug("docHref : %s", cat['docHref'])
-        self.lgr.debug("attributeList : %s", pprint.pformat(attributes))
-        self.lgr.debug("dimensionList : %s", pprint.pformat(dimensions))
+        self.lgr.debug("attributeList : %s", attributes)
+        self.lgr.debug("dimensionList : %s", dimensions)
         document = Dataset(provider='eurostat',
                                  datasetCode=datasetCode,
                                  attributeList=attributes,
@@ -288,7 +276,6 @@ class Eurostat(Skeleton):
         dimensions_dict.update({d: {v[0]: v[1]
                                     for v in attributeList[d]}
                                 for d in attributeList})
-        print(dimensions_dict)
         documents = BulkSeries(datasetCode,dimensionList,attributeList)
         for key in raw_values:
             series_key = (datasetCode+'.'+ key).upper()
@@ -312,16 +299,6 @@ class Eurostat(Skeleton):
             # forming name with long label of the dimensions
             name = "-".join([dimensions_dict[name][value]
                              for name,value in dimensions.items()])
-            self.lgr.debug('Instantiating Series: %s',
-                           pprint.pformat({'provider':'eurostat',
-                                           'name':name,
-                                           'datasetCode':datasetCode,
-                                           'period_index':period_index,
-                                           'values':raw_values[key],
-                                           'attributes':raw_attributes[key],
-                                           'releaseDates':releaseDates,
-                                           'frequency':freq,
-                                           'dimensions':dimensions}))
             documents.append(Series(provider='eurostat',
                                     key= series_key,
                                     name=name,
@@ -333,16 +310,12 @@ class Eurostat(Skeleton):
                                     frequency=freq,
                                     dimensions=dimensions
                                 ))
+            self.lgr.debug('Instantiating Series: %s',series_key)
         return(documents.bulk_update_database())
 
 
     def update_eurostat(self):
         return self.update_categories_db()
-#        print(self.get_selected_datasets())
-#        for d in self.get_selected_datasets():
-#            self.update_selected_dataset(d)
-
-
 
 if __name__ == "__main__":
     import eurostat
