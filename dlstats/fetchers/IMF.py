@@ -22,7 +22,7 @@ class IMF(Skeleton):
         self.releaseDates_ = self.response.getheaders()[3][1] 
         self.releaseDates = [datetime.datetime.strptime(self.releaseDates_[5:], "%d %b %Y %H:%M:%S GMT")]
         
-    def update_selected_database(self, datasetCode):
+    def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
             reader = self.files_['WEOApr2014all']
         else:
@@ -41,7 +41,6 @@ class IMF(Skeleton):
             # last 2 rows are blank/metadata
             # so get out when we hit a blank row
             if row['Country']:
-                #countrys[row['ISO']] = row['Country']
                 if row['Country'] not in countries_list: countries_list.append(row['Country'])
                 if row['WEO Country Code'] not in WEO_Country_Code_list: WEO_Country_Code_list.append(row['WEO Country Code'])
                 if row['ISO'] not in ISO_list: ISO_list.append(row['ISO']) 
@@ -65,17 +64,21 @@ class IMF(Skeleton):
                 #key = 'WEO_'+row['WEO Subject Code']
                 
                 document = Dataset(provider = 'IMF', 
-                           name = name ,
-                           datasetCode = datasetCode, lastUpdate = self.releaseDates,
-                           dimensionList = dimensionList )
-                document.update_database()    
+                           name = 'World Economic Outlook' ,
+                           datasetCode = 'WEO', lastUpdate = self.releaseDates,
+                           dimensionList = dimensionList, docHref = "http://http://www.imf.org/" ) 
+                effective_dimension_list = self.update_series('IMF', dimensionList)
+                document.update_database()
+                document.update_es_database(effective_dimension_list)               
+                
     def upsert_categories(self):
         document = Category(provider = 'IMF', 
                             name = 'WEO' , 
                             categoryCode ='WEO')
         return document.update_database()
-    def update_a_series(self,datasetCode):
-        value = []
+        
+
+    def update_series(self,datasetCode,dimensionList):
         if datasetCode=='WEO':
             reader = self.files_['WEOApr2014all']
         else:
@@ -86,9 +89,11 @@ class IMF(Skeleton):
         
                     
         for count, row in enumerate(reader):
+            dimensions = {}
+            value = []
             if row['Country']:               
-                name = row['Subject Descriptor']
-                key = 'WEO_'+row['WEO Subject Code'] 
+                series_name = row['Subject Descriptor'] + '; ' + row['Country'] + '; ' + 'Annual'
+                series_key = 'WEO.' + row['WEO Subject Code'] + '; ' + row['ISO'] 
                 for year in years:
                     value.append(row[year])               
                 dimensions['Country Code'] = [row['ISO'] , row['Country']]
@@ -96,22 +101,23 @@ class IMF(Skeleton):
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
                 dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]
-         
-            document = Series(provider = 'WorldBank', 
-                              name = name , key = key,
-                              datasetCode = 'WEO', values = value,
-                              period_index = period_index
-                              , releaseDates = self.releaseDates,
-                              dimensions =  dimensions)
-            document.update_database(key=key)     
-            
 
-
+            documents = BulkSeries(datasetCode,{})
+            documents.append(Series(provider='IMF',
+                                    key= series_key.upper(),
+                                    name=series_name,
+                                    datasetCode= 'WEO',
+                                    period_index= period_index,
+                                    values=value,
+                                    releaseDates= [self.releaseDates],
+                                    frequency='annual',
+                                    dimensions=dimensions))
+        return(documents.bulk_update_database())
 
 if __name__ == "__main__":
     import IMF
     w = IMF.IMF()
-    w.update_selected_database('WEO') 
+    w.upsert_dataset('WEO') 
 
 
               
