@@ -62,7 +62,7 @@ class IMF(Skeleton):
             if row['Country']:               
                 name = row['Subject Descriptor']
                 #key = 'WEO_'+row['WEO Subject Code']
-                attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]]
+                attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]}]
                 document = Dataset(provider = 'IMF', 
                            name = 'World Economic Outlook' ,
                            datasetCode = 'WEO', lastUpdate = self.releaseDates,
@@ -86,8 +86,8 @@ class IMF(Skeleton):
             raise Exception("The name of dataset was not entered!")     
         years = reader.fieldnames[9:-1]      
         period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')
-        row['Estimates Start After']
-        attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]]            
+        #row['Estimates Start After']
+        attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]}]            
         for count, row in enumerate(reader):
             dimensions = {}
             value = []
