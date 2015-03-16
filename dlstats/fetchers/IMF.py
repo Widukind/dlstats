@@ -62,11 +62,12 @@ class IMF(Skeleton):
             if row['Country']:               
                 name = row['Subject Descriptor']
                 #key = 'WEO_'+row['WEO Subject Code']
-                
+                attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]]
                 document = Dataset(provider = 'IMF', 
                            name = 'World Economic Outlook' ,
                            datasetCode = 'WEO', lastUpdate = self.releaseDates,
-                           dimensionList = dimensionList, docHref = "http://http://www.imf.org/" ) 
+                           dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
+                           attributeList = attributeList) 
                 effective_dimension_list = self.update_series('IMF', dimensionList)
                 document.update_database()
                 document.update_es_database(effective_dimension_list)               
@@ -82,12 +83,11 @@ class IMF(Skeleton):
         if datasetCode=='WEO':
             reader = self.files_['WEOApr2014all']
         else:
-            raise Exception("The name of dataset was not entered!") 
-            
+            raise Exception("The name of dataset was not entered!")     
         years = reader.fieldnames[9:-1]      
         period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')
-        
-                    
+        row['Estimates Start After']
+        attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]]            
         for count, row in enumerate(reader):
             dimensions = {}
             value = []
@@ -101,8 +101,8 @@ class IMF(Skeleton):
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
                 dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]
-
-            documents = BulkSeries(datasetCode,{})
+                   
+            documents = BulkSeries(datasetCode,{},attributeList)
             documents.append(Series(provider='IMF',
                                     key= series_key.upper(),
                                     name=series_name,
@@ -111,6 +111,7 @@ class IMF(Skeleton):
                                     values=value,
                                     releaseDates= [self.releaseDates],
                                     frequency='annual',
+                                    attributes = {'OBS_VALUE': ['e']},
                                     dimensions=dimensions))
         return(documents.bulk_update_database())
 
