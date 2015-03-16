@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Feb 20 10:25:29 2015
 
-@author: salimeh/ CEPREMAP
-"""
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
 import urllib
 import xlrd
 import csv
 import codecs
 import datetime
 import pandas
+import pprint
 
 class IMF(Skeleton):
     def __init__(self):
@@ -52,23 +49,23 @@ class IMF(Skeleton):
                 if [row['ISO'] , row['Country']] not in CountryCode_ltuple:  CountryCode_ltuple.append([row['ISO'] , row['Country']])
                 if [row['WEO Subject Code'] , row['Subject Descriptor']] not in Subject_ltuple:  Subject_ltuple.append([row['WEO Subject Code'] , row['Subject Descriptor']])
                     
-        dimensionList=[{'Country Code': CountryCode_ltuple},
-                       {'ISO': ISO_list},
+        dimensionList=[{'Country Code': WEO_Country_Code_list},
+                       {'ISO': CountryCode_ltuple},
                        {'Subject Code': Subject_ltuple},
                        {'Units': Units_list},
-                       {'Scale': Scale_list}]
-                       
-        for count, row in enumerate(reader):
+                       {'Scale': Scale_list}] 
+        
+        
+        for count2, row in enumerate(reader):
             if row['Country']:               
-                name = row['Subject Descriptor']
                 #key = 'WEO_'+row['WEO Subject Code']
                 attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]}]
                 document = Dataset(provider = 'IMF', 
                            name = 'World Economic Outlook' ,
                            datasetCode = 'WEO', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
-                           attributeList = attributeList) 
-                effective_dimension_list = self.update_series('IMF', dimensionList)
+                           attributeList = attributeList)            
+                effective_dimension_list = self.update_series('WEO', dimensionList)
                 document.update_database()
                 document.update_es_database(effective_dimension_list)               
                 
@@ -88,7 +85,7 @@ class IMF(Skeleton):
         period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')
         #row['Estimates Start After']
         attributeList = [{'OBS_VALUE': [('e', 'Estimates Start After')]}]            
-        for count, row in enumerate(reader):
+        for count3, row in enumerate(reader):
             dimensions = {}
             value = []
             if row['Country']:               
@@ -96,12 +93,11 @@ class IMF(Skeleton):
                 series_key = 'WEO.' + row['WEO Subject Code'] + '; ' + row['ISO'] 
                 for year in years:
                     value.append(row[year])               
-                dimensions['Country Code'] = [row['ISO'] , row['Country']]
-                dimensions['ISO'] = row['ISO']
+                dimensions['Country Code'] = row['Country Code']
+                dimensions['ISO'] = [row['ISO'] , row['Country']]
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
-                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]
-                   
+                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]       
             documents = BulkSeries(datasetCode,{},attributeList)
             documents.append(Series(provider='IMF',
                                     key= series_key.upper(),
@@ -113,6 +109,7 @@ class IMF(Skeleton):
                                     frequency='annual',
                                     attributes = {'OBS_VALUE': ['e']},
                                     dimensions=dimensions))
+                                    
         return(documents.bulk_update_database())
 
 if __name__ == "__main__":
