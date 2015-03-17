@@ -54,18 +54,13 @@ class IMF(Skeleton):
                        'Subject Code': Subject_ltuple,
                        'Units': Units_list,
                        'Scale': Scale_list}
-       
-        #for count2, row2 in enumerate(reader):
-           # if row2['Country']:               
-                #key = 'WEO_'+row['WEO Subject Code']
         attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
         document = Dataset(provider = 'IMF', 
                    name = 'World Economic Outlook' ,
                    datasetCode = 'WEO', lastUpdate = self.releaseDates,
                    dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
-                   attributeList = attributeList)            
-        effective_dimension_list = self.update_series('WEO', dimensionList)
-        
+                   attributeList = attributeList) 
+        effective_dimension_list = self.update_series('WEO', dimensionList)    
         document.update_database()
         document.update_es_database(effective_dimension_list)               
                 
@@ -81,11 +76,12 @@ class IMF(Skeleton):
             reader = self.files_['WEOApr2014all']
         else:
             raise Exception("The name of dataset was not entered!")     
-        years = reader.fieldnames[9:-1]      
-        period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')
-        #row['Estimates Start After']
-        attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}           
-        for count3, row in enumerate(reader):
+        years = reader.fieldnames[9:-1] 
+        period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')   
+        attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]} 
+        response= urllib.request.urlopen('http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls')
+        reader = csv.DictReader(codecs.iterdecode(response, 'latin-1'), delimiter='\t')
+        for row in reader:
             dimensions = {}
             value = []
             if row['Country']:               
@@ -93,11 +89,11 @@ class IMF(Skeleton):
                 series_key = 'WEO.' + row['WEO Subject Code'] + '; ' + row['ISO'] 
                 for year in years:
                     value.append(row[year])               
-                dimensions['Country Code'] = row['Country Code']
+                dimensions['Country Code'] = row['WEO Country Code']
                 dimensions['ISO'] = [row['ISO'] , row['Country']]
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
-                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]       
+                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']] 
             documents = BulkSeries(datasetCode,{})
             documents.append(Series(provider='IMF',
                                     key= series_key.upper(),
