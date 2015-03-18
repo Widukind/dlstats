@@ -81,30 +81,35 @@ class IMF(Skeleton):
         attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]} 
         response= urllib.request.urlopen('http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls')
         reader = csv.DictReader(codecs.iterdecode(response, 'latin-1'), delimiter='\t')
+        documents = BulkSeries(datasetCode,{})
         for row in reader:
             dimensions = {}
             value = []
             if row['Country']:               
-                series_name = row['Subject Descriptor'] + '; ' + row['Country'] + '; ' + 'Annual'
+                series_name = row['Subject Descriptor'] + '; ' + row['Country']
                 series_key = 'WEO.' + row['WEO Subject Code'] + '; ' + row['ISO'] 
                 for year in years:
                     value.append(row[year])               
                 dimensions['Country Code'] = row['WEO Country Code']
-                dimensions['ISO'] = [row['ISO'] , row['Country']]
+                dimensions['ISO'] = row['ISO']
+                dimensions['Country'] = row['Country']
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
-                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']] 
-            documents = BulkSeries(datasetCode,{})
-            documents.append(Series(provider='IMF',
-                                    key= series_key.upper(),
-                                    name=series_name,
-                                    datasetCode= 'WEO',
-                                    period_index= period_index,
-                                    values=value,
-                                    releaseDates= [self.releaseDates],
-                                    frequency='annual',
-                                    attributes = {row['Estimates Start After']: ['e']},
-                                    dimensions=dimensions))
+                dimensions['Subject Code'] = row['WEO Subject Code']
+                attributes = {}
+                if row['Estimates Start After']:
+                    estimation_start = int(row['Estimates Start After']);
+                    attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
+                documents.append(Series(provider='IMF',
+                                        key= series_key.upper(),
+                                        name=series_name,
+                                        datasetCode= 'WEO',
+                                        period_index= period_index,
+                                        values=value,
+                                        releaseDates= [self.releaseDates],
+                                        frequency='A',
+                                        attributes = attributes,
+                                        dimensions=dimensions))
                                     
             
         return(documents.bulk_update_database())
