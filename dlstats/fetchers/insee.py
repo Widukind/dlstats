@@ -99,7 +99,7 @@ class Insee(Skeleton):
                     # !!!!!!!!!!!!!
                     # limit number of datasets for testing 
                     # !!!!!!!!!!!!!
-                    if self.test_count < 10:
+                    if self.test_count < 20:
                         try:
                             self.get_data(node['categoryCode'])
                         except:
