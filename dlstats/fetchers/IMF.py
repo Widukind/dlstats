@@ -101,7 +101,7 @@ class IMF(Skeleton):
                     estimation_start = int(row['Estimates Start After']);
                     attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
                 documents.append(Series(provider='IMF',
-                                        key= series_key.upper(),
+                                        key= series_key,
                                         name=series_name,
                                         datasetCode= 'WEO',
                                         period_index= period_index,

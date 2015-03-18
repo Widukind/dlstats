@@ -278,7 +278,7 @@ class Eurostat(Skeleton):
                                 for d in attributeList})
         documents = BulkSeries(datasetCode,dimensionList,attributeList)
         for key in raw_values:
-            series_key = (datasetCode+'.'+ key).upper()
+            series_key = (datasetCode+'.'+ key)
             (start_year, start_subperiod,freq) = self.parse_date(
                 raw_dates[key][0])
             (end_year,end_subperiod,freq) = self.parse_date(
@@ -293,9 +293,7 @@ class Eurostat(Skeleton):
                     freq=freq)
             releaseDates = [lastUpdate for v in raw_values[key]]
             dimensions_ = raw_dimensions[key]
-            # make all codes uppercase
-            dimensions = {name.upper(): value.upper() 
-                     for name, value in dimensions_.items()}
+            dimensions = {name: value for name, value in dimensions_.items()}
             # forming name with long label of the dimensions
             name = "-".join([dimensions_dict[name][value]
                              for name,value in dimensions.items()])
