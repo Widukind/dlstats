@@ -327,7 +327,10 @@ class ESSeriesIndex(object):
 
         for key, value in series.dimensions.items():
             if len(codeDict):
-                self.dimensions[key] = [value, codeDict[key][value]]
+                if key in codeDict:
+                    self.dimensions[key] = [value, codeDict[key][value]]
+                else:
+                    self.dimensions[key] = [value, '']
             else:
                 self.dimensions[key] = [value]
 
