@@ -293,7 +293,7 @@ class Eurostat(Skeleton):
                     freq=freq)
             releaseDates = [lastUpdate for v in raw_values[key]]
             dimensions_ = raw_dimensions[key]
-            dimensions = {name: value for name, value in dimensions_.items()}
+            dimensions = {name.upper(): value for name, value in dimensions_.items()}
             # forming name with long label of the dimensions
             name = "-".join([dimensions_dict[name][value]
                              for name,value in dimensions.items()])
