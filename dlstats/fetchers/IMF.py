@@ -91,11 +91,10 @@ class IMF(Skeleton):
                 for year in years:
                     value.append(row[year])               
                 dimensions['Country Code'] = row['WEO Country Code']
-                dimensions['ISO'] = row['ISO']
-                dimensions['Country'] = row['Country']
+                dimensions['ISO'] = [row['ISO'] , row['Country']]
                 dimensions['Units'] = row['Units']
                 dimensions['Scale'] = row['Scale']
-                dimensions['Subject Code'] = row['WEO Subject Code']
+                dimensions['Subject Code'] = [row['WEO Subject Code'] , row['Subject Descriptor']]
                 attributes = {}
                 if row['Estimates Start After']:
                     estimation_start = int(row['Estimates Start After']);
@@ -108,7 +107,7 @@ class IMF(Skeleton):
                                         values=value,
                                         releaseDates= [self.releaseDates],
                                         frequency='A',
-                                        attributes = attributes,
+                                        attributes = {row['Estimates Start After']: ['e']},
                                         dimensions=dimensions))
                                     
             
