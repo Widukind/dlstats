@@ -108,7 +108,7 @@ class IMF(Skeleton):
                                         values=value,
                                         releaseDates= [self.releaseDates],
                                         frequency='A',
-                                        attributes = attribute,
+                                        attributes = attributes,
                                         dimensions=dimensions))
                                     
             
