@@ -13,7 +13,8 @@ setup(name='dlstats',
       package_dir={'dlstats': 'dlstats', 'dlstats.fetchers': 'dlstats/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
     data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
-                ('/etc/systemd/system',['os_specific/dlstats.service'])],
+                ('/etc/systemd/system',['os_specific/dlstats.service']),
+                ('/etc/',['config/dlstats'])],
     install_requires=[
         'requests>=2.4.3',
         'pymongo>=2.7.2',
@@ -31,3 +32,6 @@ with open('/etc/systemd/system/dlstats.service'):
 
 with open('/usr/local/bin/dlstats_server.py'):
         os.chmod('/usr/local/bin/dlstats_server.py', 0o755)
+
+with open('/etc/dlstats'):
+        os.chmod('/etc/dlstats', 0o755)
