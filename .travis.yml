@@ -1,12 +1,11 @@
 sudo: required
 language: python
-services:
-      - mongodb
 
 python:
     - "3.4"
 
 install:                                                                                                                                                                                                                            
+    - sudo apt-get install mongodb
     - pip install requests
     - pip install pymongo
     - pip install pandas
@@ -20,9 +19,8 @@ install:
 before_script:
     - echo "replSet=rs0" | sudo tee -a /etc/mongodb.conf
     - echo "port=27017" | sudo tee -a /etc/mongodb.conf
-    - cat /etc/mongodb.conf
-    - sleep 25 
-    - sudo service mongodb restart
+    - cp /etc/mongodb.conf ~/.mongodb.conf
+    - mongod --config ~/.mongodb
     - mongo --eval 'rs.initiate()'
     - sleep 10
       
