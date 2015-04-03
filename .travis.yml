@@ -1,3 +1,4 @@
+sudo: required
 language: python
 services:
       - mongodb
@@ -17,6 +18,10 @@ install:
     - cp config/dlstats ~/.dlstats
 
 before_script:
-     - sleep 15
+    - echo "replSet = rs0" | sudo tee -a /etc/mongodb.conf
+    - sudo service mongodb restart
+    - sleep 20
+    - mongo --eval 'rs.initiate()'
+    - sleep 15
       
 script: nosetests
