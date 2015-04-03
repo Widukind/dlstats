@@ -18,9 +18,8 @@ install:
     - cp config/dlstats ~/.dlstats
 
 before_script:
-    - echo "replSet = rs0" | sudo tee -a /etc/mongodb.conf
-    - echo "bind_ip = 127.0.0.1" | sudo tee -a /etc/mongodb.conf
-    - echo "port = 27017" | sudo tee -a /etc/mongodb.conf
+    - echo "replSet=rs0" | sudo tee -a /etc/mongodb.conf
+    - echo "port=27017" | sudo tee -a /etc/mongodb.conf
     - cat /etc/mongodb.conf
     - sleep 25 
     - sudo service mongodb restart
