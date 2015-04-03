@@ -21,6 +21,7 @@ setup(name='dlstats',
         'docopt>=0.6.0',
         'voluptuous>=0.8',
         'xlrd>=0.8',
+        'configobj>=5.0',
         'elasticsearch>=1.0.0,<2.0.0'
       ]
 	)

@@ -11,5 +11,6 @@ install:
       - pip install voluptuous
       - pip install xlrd
       - pip install elasticsearch
+      - pip install configobj
 
 script: nosetests
