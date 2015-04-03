@@ -4,13 +4,15 @@ python:
     - "3.4"
 
 install:                                                                                                                                                                                                                            
-      - pip install requests
-      - pip install pymongo
-      - pip install pandas
-      - pip install docopt
-      - pip install voluptuous
-      - pip install xlrd
-      - pip install elasticsearch
-      - pip install configobj
+    - pip install requests
+    - pip install pymongo
+    - pip install pandas
+    - pip install docopt
+    - pip install voluptuous
+    - pip install xlrd
+    - pip install elasticsearch
+    - pip install configobj
+    - cp config/dlstats /etc/
 
+before_script:
 script: nosetests
