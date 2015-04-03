@@ -1,0 +1,15 @@
+language: python
+
+python:
+    - "3.4"
+
+install:                                                                                                                                                                                                                            
+      - pip install requests
+      - pip install pymongo
+      - pip install pandas
+      - pip install docopt
+      - pip install voluptuous
+      - pip install xlrd
+      - pip install elasticsearch
+
+script: nosetests
