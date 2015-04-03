@@ -1,4 +1,6 @@
 language: python
+services:
+      - mongodb
 
 python:
     - "3.4"
@@ -15,4 +17,6 @@ install:
     - cp config/dlstats ~/.dlstats
 
 before_script:
+     - sleep 15
+      
 script: nosetests
