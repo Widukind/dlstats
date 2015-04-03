@@ -12,7 +12,7 @@ install:
     - pip install xlrd
     - pip install elasticsearch
     - pip install configobj
-    - cp config/dlstats /etc/
+    - cp config/dlstats ~/.dlstats
 
 before_script:
 script: nosetests
