@@ -5,7 +5,7 @@ python:
     - "3.4"
 
 install:                                                                                                                                                                                                                            
-    - sudo apt-get -y install mongodb
+    - sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" install mongodb
     - pip install requests
     - pip install pymongo
     - pip install pandas
