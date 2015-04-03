@@ -19,8 +19,10 @@ install:
 
 before_script:
     - echo "replSet = rs0" | sudo tee -a /etc/mongodb.conf
+    - echo "bind_ip = 127.0.0.1" | sudo tee -a /etc/mongodb.conf
+    - echo "port = 27017" | sudo tee -a /etc/mongodb.conf
     - sudo service mongodb restart
-    - sleep 20
+    - sleep 15 
     - mongo --eval 'rs.initiate()'
     - sleep 15
       
