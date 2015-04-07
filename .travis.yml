@@ -28,7 +28,7 @@ before_script:
     - echo "quiet = true" | sudo tee -a ~/.mongoconf
     - sudo mkdir -p /data/db /data/log
     - sudo cat /home/travis/.mongoconf
-    - sudo mongod --config ~/.mongoconf
+    - sudo mongod --config /home/travis/.mongoconf
     - sleep 10
     - |
       echo "Testing MongoDB connection...";tries=4;
