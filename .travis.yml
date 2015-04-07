@@ -29,7 +29,16 @@ before_script:
     - sudo mkdir -p /data/db /data/log
     - sudo cat /home/travis/.mongoconf
     - sudo mongod --config ~/.mongoconf
-    - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()'
     - sleep 10
+     - |
+       echo "Testing MongoDB connection...";tries=4;
+       i=0;
+       while [ $i -lt $tries ]; do fail=$(mongo --eval db 2>&1 >/dev/null | grep "connect failed");
+         if [ "$fail" ] && [ $[ $i+1 ] -eq $tries ] ; then echo "Error: Could not connect to mongodb"; exit 1;
+         elif [ "$fail" ]; then echo "Connection failed. Retrying"; sleep 3; i=$[ $i+1 ];
+         else echo "OK"; i=$tries; fi;
+       done
+    - echo "... MongoDB OK"
+    - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()'
       
 script: nosetests
