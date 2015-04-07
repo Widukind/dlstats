@@ -17,9 +17,8 @@ install:
     - cp config/dlstats ~/.dlstats
 
 before_script:
-    - sudo mongod
-    - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()' &
-
+    - sudo mongod &
+    - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()' 
     - sleep 10
       
 script: nosetests
