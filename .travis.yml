@@ -17,11 +17,19 @@ install:
     - cp config/dlstats ~/.dlstats
 
 before_script:
+    - cp /etc/mongodb.conf ~/.mongodb.conf
     - echo "replSet=rs0" | sudo tee -a /etc/mongodb.conf
     - echo "port=27017" | sudo tee -a /etc/mongodb.conf
-    - cp /etc/mongodb.conf ~/.mongodb.conf
-    - mongod --config ~/.mongodb
+    - echo "fork = true" | sudo tee -a /etc/mongodb.conf
+    - echo "dbpath = /data/db" | sudo tee -a /etc/mongodb.conf
+    - echo "logpath = /data/log/mongod.log" | sudo tee -a /etc/mongodb.conf
+    - echo "logappend = true" | sudo tee -a /etc/mongodb.conf
+    - echo "journal = true" | sudo tee -a /etc/mongodb.conf
+    - echo "quiet = true" | sudo tee -a /etc/mongodb.conf
+    - sudo mkdir /data/db /data/log/mongod.log
+    - sudo mongod --config ~/.mongodb
     - sudo cat /var/log/mongodb/mongodb.log
+    - sudo cat ~/.mongodb
     - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()'
     - sleep 10
       
