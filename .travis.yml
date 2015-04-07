@@ -27,7 +27,7 @@ before_script:
     - echo "journal = true" | sudo tee -a /etc/mongodb.conf
     - echo "quiet = true" | sudo tee -a /etc/mongodb.conf
     - sudo mkdir -p /data/db /data/log
-    - sudo mongod --config ~/.mongodb
+    - sudo mongod --config ~/.mongodb.conf
     - sudo cat /home/travis/.mongodb.conf
     - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()'
     - sleep 10
