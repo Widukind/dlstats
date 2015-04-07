@@ -18,7 +18,7 @@ install:
 
 before_script:
     - sudo mkdir -p /data/db
-    - sudo mongod
+    - sudo mongod &
     - sudo mongo --port 27017 --host '127.0.0.1' --eval 'rs.initiate()'
 
     - sleep 10
