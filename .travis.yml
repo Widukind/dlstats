@@ -20,12 +20,12 @@ before_script:
     - cp /etc/mongodb.conf ~/.mongoconf
     - echo "replSet=rs0" | sudo tee -a ~/.mongoconf
     - echo "port=27017" | sudo tee -a ~/.mongoconf
-    - echo "fork = true" | sudo tee -a ~/.mongoconf
-    - echo "dbpath = /data/db" | sudo tee -a ~/.mongoconf
-    - echo "logpath = /data/log/mongod.log" | sudo tee -a ~/.mongoconf
-    - echo "logappend = true" | sudo tee -a ~/.mongoconf
-    - echo "journal = true" | sudo tee -a ~/.mongoconf
-    - echo "quiet = true" | sudo tee -a ~/.mongoconf
+    - echo "fork=true" | sudo tee -a ~/.mongoconf
+    - echo "dbpath=/data/db" | sudo tee -a ~/.mongoconf
+    - echo "logpath=/data/log/mongod.log" | sudo tee -a ~/.mongoconf
+    - echo "logappend=true" | sudo tee -a ~/.mongoconf
+    - echo "journal=true" | sudo tee -a ~/.mongoconf
+    - echo "quiet=true" | sudo tee -a ~/.mongoconf
     - sudo mkdir -p /data/db /data/log
     - sudo cat /home/travis/.mongoconf
     - sudo mongod --config /home/travis/.mongoconf
