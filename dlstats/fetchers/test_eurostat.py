@@ -1,5 +1,5 @@
 import unittest
-import eurostat
+from dlstats.fetchers import eurostat
 
 class EurostatTestCase(unittest.TestCase):
     def test_update_eurostat(self):
