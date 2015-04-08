@@ -37,6 +37,6 @@ try:
     with open('/etc/dlstats'):
             os.chmod('/etc/dlstats', 0o755)
 except PermissionError:
-    print("You should run the installation script as root if you want the
-          default configuration files")
+    print("You should run the installation script as root if you want the "
+          "default configuration files")
         
