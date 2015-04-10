@@ -5,4 +5,3 @@ from . import fetchers, misc_func
 
 logging.config.fileConfig('/etc/dlstats/logging.conf')
 logger = logging.getLogger('dlstats')
-'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
