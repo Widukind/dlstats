@@ -7,10 +7,10 @@ def _get_filename():
     appname = 'dlstats'
     if os.name == 'posix':
         if "HOME" in os.environ:
-            if os.path.isfile(os.environ["HOME"]+'/.'+appname):
-                return os.environ["HOME"]+'/.'+appname
-        if os.path.isfile('/etc/'+appname):
-            return '/etc/'+appname
+            if os.path.isfile(os.environ["HOME"]+'/.'+appname+'/main.conf'):
+                return os.environ["HOME"]+'/.'+appname+'main.conf'
+        if os.path.isfile('/etc/'+appname+'/main.conf'):
+            return '/etc/'+appname+'/main.conf'
         else:
             raise FileNotFoundError('No configuration file found.')
     elif os.name == 'mac':
