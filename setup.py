@@ -24,7 +24,8 @@ setup(name='dlstats',
         'voluptuous>=0.8',
         'xlrd>=0.8',
         'configobj>=5.0',
-        'elasticsearch>=1.0.0,<2.0.0'
+        'elasticsearch>=1.0.0,<2.0.0',
+        'ming>=0.5.0'
       ]
 	)
 
