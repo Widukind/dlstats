@@ -20,8 +20,6 @@ def _get_filename():
     else:
         raise UnsupportedOSError(os.name)
 
-configuration_filename = _get_filename()
-
 _configspec = """
 [General]
 logging_directory = string()
@@ -42,9 +40,16 @@ port = integer()
 [Fetchers]
 [[Eurostat]]
 url_table_of_contents = string()"""
-configuration = configobj.ConfigObj(configuration_filename,
-                                    configspec=_configspec.split('\n'))
-validator = validate.Validator()
-configuration.validate(validator)
-configuration = configuration.dict()
 
+try:
+    configuration_filename = _get_filename()
+    configuration = configobj.ConfigObj(configuration_filename,
+                                        configspec=_configspec.split('\n'))
+    validator = validate.Validator()
+    configuration.validate(validator)
+except FileNotFoundError:
+    configuration = configobj.ConfigObj()
+    configuration['General'] = {'logging_directory': os.environ["HOME"], 'socket_directory': os.environ["HOME"]}
+    configuration['Fetchers'] = {'Eurostat':{'url_table_of_contents':'http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml'}}
+
+configuration = configuration.dict()
