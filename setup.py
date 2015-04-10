@@ -14,7 +14,8 @@ setup(name='dlstats',
     packages=['dlstats', 'dlstats.fetchers'],
     data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
                 ('/etc/systemd/system',['os_specific/dlstats.service']),
-                ('/etc/',['config/dlstats'])],
+                ('/etc/dlstats/logging.conf',['config/logging.conf']),
+                ('/etc/dlstats/main.conf',['config/main.conf'])],
     install_requires=[
         'requests>=2.4.3',
         'pymongo>=2.7.2',
@@ -35,7 +36,10 @@ try:
             os.chmod('/usr/local/bin/dlstats_server.py', 0o755)
 
     with open('/etc/dlstats'):
-            os.chmod('/etc/dlstats', 0o755)
+            os.chmod('/etc/dlstats/main.conf', 0o755)
+
+    with open('/etc/dlstats'):
+            os.chmod('/etc/dlstats/logging.conf', 0o755)
 except PermissionError:
     print("You should run the installation script as root if you want the "
           "default configuration files")
