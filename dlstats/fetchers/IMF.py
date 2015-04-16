@@ -11,7 +11,7 @@ import pprint
 
 class IMF(Skeleton):
     def __init__(self):
-        super().__init__() 
+        super().__init__(provider_name='IMF') 
         self.urls = ['http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
         'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
         'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
