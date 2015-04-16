@@ -12,7 +12,7 @@ class SeriesInstantiation(unittest.TestCase):
                         period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
                         attributes = {'name':'OBS_VALUE','value':'p'},
                         revisions = [{'value':2710, 'position':2,
-                        'releaseDate' : datetime(2014,11,28)}],
+                        'releaseDates' : [datetime(2014,11,28)]}],
                         dimensions = [{'name':'Seasonal adjustment', 'value':'wda'}])
         self.assertIsInstance(series,Series)
     def test_empty_revisions(self):
