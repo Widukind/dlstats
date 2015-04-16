@@ -1,6 +1,5 @@
 import unittest
 import mongomock
-import ulstats 
 from dlstats.fetchers._skeleton import (Skeleton, Category, Series, BulkSeries,
                                       Dataset, Provider)
 import datetime
