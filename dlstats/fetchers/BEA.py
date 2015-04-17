@@ -18,7 +18,7 @@ import pprint
 
 class BEA(Skeleton):
     def __init__(self):
-        super().__init__() 
+        super().__init__(provider_name='BEA') 
         self.urls = ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.xls&Section=2']
         self.readers = []
         self.releaseDates = []
