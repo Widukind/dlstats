@@ -75,7 +75,7 @@ def typecheck(type, msg=None):
 
 
 #Schema definition in voluptuous
-revision_schema = [{Required('value'): Any(float,int), Required('position'): int,
+revision_schema = [{Required('value'): Any(str), Required('position'): int,
              Required('releaseDates'): [date_validator]}]
 dimensions = {str: str}
 attributes = {str: [str]}
@@ -177,10 +177,10 @@ class Series(object):
         self.datasetCode=datasetCode
         self.period_index=period_index
         self.frequency=frequency
-        self.values=[float(value) for value in values]
+        self.values=[str(value) for value in values]
         self.releaseDates=releaseDates
         self.attributes=attributes
-        self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':float(revision['value'])} for revision in revisions]
+        self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':str(revision['value'])} for revision in revisions]
         self.dimensions=dimensions
 
         self.schema = Schema({'name':
@@ -194,7 +194,7 @@ class Series(object):
                               'period_index':
                               typecheck(pandas.tseries.period.PeriodIndex),
                               'values':
-                              [Any(float,int)],
+                              [Any(str)],
                               'releaseDates':
                               [date_validator],
                               'attributes':
