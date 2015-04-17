@@ -182,6 +182,8 @@ class Series(object):
         self.attributes=attributes
         if revisions is not None:
             self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':str(revision['value'])} for revision in revisions]
+        else:
+            self.revisions=None
         self.dimensions=dimensions
 
         self.schema = Schema({'name':
