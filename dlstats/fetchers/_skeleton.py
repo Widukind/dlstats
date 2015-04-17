@@ -180,7 +180,8 @@ class Series(object):
         self.values=[str(value) for value in values]
         self.releaseDates=releaseDates
         self.attributes=attributes
-        self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':str(revision['value'])} for revision in revisions]
+        if revisions is not None:
+            self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':str(revision['value'])} for revision in revisions]
         self.dimensions=dimensions
 
         self.schema = Schema({'name':
