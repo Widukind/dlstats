@@ -33,9 +33,9 @@ class BEA(Skeleton):
         if datasetCode=='BEA':                                          
             for sheet_name in self.readers[0].sheet_names():  
                 sheet = self.readers[0].sheet_by_name(sheet_name)
-                dic = {}
                 line_ = []
                 concept = []
+                year_row = []
                  
                 if  sheet_name != 'Contents':
                     if 'Ann' in sheet_name:
@@ -45,7 +45,7 @@ class BEA(Skeleton):
                     line_draft = sheet.col(0) 
                     # lines in tables
                     for count_ in range(len(line_draft)):
-                        if type(line_draft[count_].value) is float : line_.append(line_[count_].value)
+                        if type(line_draft[count_].value) is float : line_.append(line_draft[count_].value)
                     
                     # rows in the table
                     for count_i in range(8 ,len(sheet.col(0))): 
@@ -59,7 +59,6 @@ class BEA(Skeleton):
                         else:
                             year_row.append(self.readers[0].sheet_by_name(sheet_name).row(7)[count].value)
                     period_index = pandas.period_range(year_row[3], year_row[-1] , freq = frequency)
-                    dic['data_set'] = test[sheet_name[:-4]]
                     lastUpdate = (datetime.datetime.strptime(sheet.col(0)[4].value[15:].strip(), "%B %d, %Y"))
                     
                     document = Dataset(provider = 'BEA', 
@@ -75,12 +74,14 @@ class BEA(Skeleton):
 
     #def upsert_categories(self):
     def update_series(self,datasetCode,dimensionList):
-        if datasetCode=='BEA':                                          
+        if datasetCode=='BEA':
+            documents = BulkSeries(datasetCode,{})                                          
             for sheet_name in self.readers[0].sheet_names():  
                 sheet = self.readers[0].sheet_by_name(sheet_name)
-                dic = {}
                 line_ = []
                 concept = []
+                year_row = []
+                dimensions = {}
                  
                 if  sheet_name != 'Contents':
                     if 'Ann' in sheet_name:
@@ -90,7 +91,7 @@ class BEA(Skeleton):
                     line_draft = sheet.col(0) 
                     # lines in tables
                     for count_ in range(len(line_draft)):
-                        if type(line_draft[count_].value) is float : line_.append(line_[count_].value)
+                        if type(line_draft[count_].value) is float : line_.append(line_draft[count_].value)
                     
                     # rows in the table
                     for count_i in range(8 ,len(sheet.col(0))): 
@@ -104,7 +105,6 @@ class BEA(Skeleton):
                         else:
                             year_row.append(self.readers[0].sheet_by_name(sheet_name).row(7)[count].value)
                     period_index = pandas.period_range(year_row[3], year_row[-1] , freq = frequency)
-                    dic['data_set'] = test[sheet_name[:-4]]
                     lastUpdate = (datetime.datetime.strptime(sheet.col(0)[4].value[15:].strip(), "%B %d, %Y"))    
                     for g in range(8 ,len(sheet.col(0))): 
                         if sheet.col(1)[g].value :
