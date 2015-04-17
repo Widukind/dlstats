@@ -177,10 +177,10 @@ class Series(object):
         self.datasetCode=datasetCode
         self.period_index=period_index
         self.frequency=frequency
-        self.values=values
+        self.values=[float(value) for value in values]
         self.releaseDates=releaseDates
         self.attributes=attributes
-        self.revisions=revisions
+        self.revisions=[{'position':revision['position'],'releaseDates':revision['releaseDates'],'value':float(revision['value'])} for revision in revisions]
         self.dimensions=dimensions
 
         self.schema = Schema({'name':
@@ -204,6 +204,7 @@ class Series(object):
                               'dimensions':
                               dimensions
                                },required=True)
+
 
         self.validate = self.schema({'provider': self.provider,
                                      'name': self.name,
