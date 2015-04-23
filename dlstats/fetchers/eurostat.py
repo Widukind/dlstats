@@ -309,7 +309,7 @@ class Eurostat(Skeleton):
                                     dimensions=dimensions
                                 ))
             self.lgr.debug('Instantiating Series: %s',series_key)
-        return(documents.bulk_update_database())
+        return(documents.bulk_update_database(),documents.bulk_update_elastic())
 
 
     def update_eurostat(self):

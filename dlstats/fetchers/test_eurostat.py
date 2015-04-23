@@ -1,9 +1,14 @@
 import unittest
+from unittest.mock import MagicMock
 from dlstats.fetchers import eurostat
 
 class EurostatTestCase(unittest.TestCase):
     def setUp(self):
+        eurostat.BulkSeries.bulk_update_elastic = MagicMock(return_value=True)
         self.eurostat = eurostat.Eurostat()
+        #Don't test elasticsearch at all
+    def tearDown(self):
+        del(self.eurostat)
     def test_update_eurostat(self):
         self.eurostat.update_eurostat()
     def test_update_selected_dataset_annually(self):

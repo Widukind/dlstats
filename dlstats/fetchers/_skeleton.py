@@ -411,9 +411,15 @@ class BulkSeries(DlstatsCollection):
             else:
                 return({d: list(self.effective_dimension_dict[d]) for d in self.effective_dimension_dict})
 
-            
     def bulk_update_database(self):
         mdb_bulk = self.db.series.initialize_ordered_bulk_op()
+        for s in self.data:
+            s.collection = mdb_bulk
+            s.update_database()
+        return mdb_bulk.execute();
+
+
+    def bulk_update_elastic(self):
         es_bulk = []
 
         body = {
@@ -429,8 +435,6 @@ class BulkSeries(DlstatsCollection):
         effective_dimension_list = self.EffectiveDimensionList(self.codeDict)
         
         for s in self.data:
-            s.collection = mdb_bulk
-            s.update_database()
             es_index = ESSeriesIndex(s,self.codeDict)
             if s.key in old_es_index:
                 if es_index != old_es_index[s.key]:
@@ -454,9 +458,8 @@ class BulkSeries(DlstatsCollection):
             es_bulk.append(es_index.bson)
             effective_dimension_list.update(s.dimensions)
                                             
-        res_mdb = mdb_bulk.execute();
         res_es = self.elasticsearch.bulk(index = 'widukind', body = es_bulk, refresh = True)
-        return(effective_dimension_list)
+        return True
     
 class Dataset(DlstatsCollection):
     """Abstract base class for datasets
