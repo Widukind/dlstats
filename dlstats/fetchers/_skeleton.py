@@ -18,6 +18,7 @@ import pprint
 from collections import defaultdict
 import elasticsearch
 from .. import mongo_client
+from .. import elasticsearch_client
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
@@ -25,8 +26,7 @@ class Skeleton(object):
         self.configuration = configuration
         self.provider_name = provider_name
         self.db = mongo_client.widukind
-        self.elasticsearch = elasticsearch.Elasticsearch(
-            host = self.configuration['ElasticSearch']['host'])
+        self.elasticsearch_client = elasticsearch_client
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
@@ -82,7 +82,14 @@ attributes = {str: [str]}
 attribute_list_schema = {str: [(str,str)]}
 dimension_list_schema = {str: [All()]}
 
-class Provider(object):
+class DlstatsCollection(object):
+    """Abstract base class for objects that are stored and indexed by dlstats
+    """
+    def __init__(self):
+        self.db = mongo_client.widukind
+        self.elasticsearch_client = elasticsearch_client
+
+class Provider(DlstatsCollection):
     """Abstract base class for providers
     >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
     >>> print(provider)
@@ -93,8 +100,8 @@ class Provider(object):
     def __init__(self,
                  name=None,
                  website=None):
+        super().__init__()
         self.configuration=configuration
-        self.db = mongo_client.widukind
         self.name=name
         self.website=website
 
@@ -119,7 +126,7 @@ class Provider(object):
     def update_database(self,mongo_id=None,key=None):
         return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
 
-class Series(object):
+class Series(DlstatsCollection):
     """Abstract base class for time series
     >>> from datetime import datetime
     >>> series = Series(provider='Test provider',name='GDP in France',
@@ -167,8 +174,8 @@ class Series(object):
                  revisions=None,
                  frequency=None,
                  dimensions=None):
+        super().__init__()
         self.configuration=configuration
-        self.db = mongo_client.widukind
         self.collection = self.db.series
         self.provider = provider
         self.name=name
@@ -347,9 +354,9 @@ class ESSeriesIndex(object):
                 'dimensions': self.dimensions
                 })
 
-class BulkSeries(object):
+class BulkSeries(DlstatsCollection):
     def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
-        self.db = mongo_client.widukind
+        super().__init__()
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
@@ -409,12 +416,11 @@ class BulkSeries(object):
         mdb_bulk = self.db.series.initialize_ordered_bulk_op()
         es_bulk = []
 
-        es = elasticsearch.Elasticsearch(host = "localhost")
         body = {
                 'created': datetime.today()
         }
-        es.index(index="widukind", doc_type='series', id=1, body=body)
-        es_data = es.search(index = 'widukind', doc_type = 'series',
+        self.elasticsearch_client.index(index="widukind", doc_type='series', id=1, body=body)
+        es_data = self.elasticsearch_client.search(index = 'widukind', doc_type = 'series',
                             body={"query" : { "filtered" :
                                              { "filter":
                                               {"term":
@@ -449,10 +455,10 @@ class BulkSeries(object):
             effective_dimension_list.update(s.dimensions)
                                             
         res_mdb = mdb_bulk.execute();
-        res_es = es.bulk(index = 'widukind', body = es_bulk, refresh = True)
+        res_es = self.elasticsearch.bulk(index = 'widukind', body = es_bulk, refresh = True)
         return(effective_dimension_list)
     
-class Dataset(object):
+class Dataset(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
@@ -482,8 +488,8 @@ class Dataset(object):
                  docHref=None,
                  lastUpdate=None
                 ):
+        super().__init__()
         self.configuration=configuration
-        self.db = mongo_client.widukind
         self.provider=provider
         self.datasetCode=datasetCode
         self.name=name
@@ -558,7 +564,7 @@ class Dataset(object):
                  id = self.provider+'.'+self.datasetCode,
                  body = self.es_bson(effectiveDimensionList))
                  
-class Category(object):
+class Category(DlstatsCollection):
     """Abstract base class for categories
     >>> from datetime import datetime
     >>> category = Category(provider='Test provider',name='GDP',
@@ -585,8 +591,8 @@ class Category(object):
                  lastUpdate=None,
                  exposed=False
                 ):
+        super().__init__()
         self.configuration = configuration
-        self.db = mongo_client.widukind
         self.provider=provider
         self.name=name
         self.docHref=docHref
