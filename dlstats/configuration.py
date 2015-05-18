@@ -8,7 +8,7 @@ def _get_filename():
     if os.name == 'posix':
         if "HOME" in os.environ:
             if os.path.isfile(os.environ["HOME"]+'/.'+appname+'/main.conf'):
-                return os.environ["HOME"]+'/.'+appname+'main.conf'
+                return os.environ["HOME"]+'/.'+appname+'/main.conf'
         if os.path.isfile('/etc/'+appname+'/main.conf'):
             return '/etc/'+appname+'/main.conf'
         else:
