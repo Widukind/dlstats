@@ -51,6 +51,6 @@ except FileNotFoundError:
     configuration = configobj.ConfigObj()
     configuration['General'] = {'logging_directory': os.environ["HOME"], 'socket_directory': os.environ["HOME"]}
     configuration['Fetchers'] = {'Eurostat':{'url_table_of_contents':'http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml'}}
-    configuration['MongoDB'] = {'host':'127.0.0.1', 'port':9200}
-
+    configuration['MongoDB'] = {'host':'127.0.0.1', 'port':27017}
+    configuration['ElasticSearch'] = {'host':'127.0.0.1', 'port':9200}
 configuration = configuration.dict()
