@@ -458,8 +458,8 @@ class BulkSeries(DlstatsCollection):
             es_bulk.append(es_index.bson)
             effective_dimension_list.update(s.dimensions)
                                             
-        res_es = self.elasticsearch.bulk(index = 'widukind', body = es_bulk, refresh = True)
-        return True
+        res_es = self.elasticsearch_client.bulk(index = 'widukind', body = es_bulk, refresh = True)
+        return effective_dimension_list
     
 class Dataset(DlstatsCollection):
     """Abstract base class for datasets
