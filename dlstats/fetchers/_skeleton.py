@@ -20,6 +20,16 @@ import elasticsearch
 from .. import mongo_client
 from .. import elasticsearch_client
 
+
+lgr = logging.getLogger('Eurostat')
+lgr.setLevel(logging.INFO)
+fh = logging.FileHandler('Eurostat.log')
+fh.setLevel(logging.INFO)
+frmt = logging.Formatter(
+'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(frmt)
+lgr.addHandler(fh)
+
 class Skeleton(object):
     """Abstract base class for fetchers"""
     def __init__(self, provider_name=None):
@@ -645,6 +655,7 @@ class Category(DlstatsCollection):
     def update_database(self):
         in_base_category = self.db.categories.find_one(
             {'categoryCode': self.bson['categoryCode']})
+        lgr.info(in_base_category)
         if in_base_category is None:
   	     	_id_ = self.db.categories.insert(self.bson)
         else:
