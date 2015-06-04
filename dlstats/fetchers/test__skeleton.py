@@ -1,7 +1,7 @@
 import unittest
 import pandas
 from datetime import datetime
-from dlstats.fetchers._skeleton import Dataset,Series
+from _skeleton import Dataset,Series
 
 class SeriesInstantiation(unittest.TestCase):
     def test_full_example(self):

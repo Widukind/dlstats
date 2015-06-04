@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from dlstats.fetchers import eurostat
+import eurostat
 
 class EurostatTestCase(unittest.TestCase):
     def setUp(self):

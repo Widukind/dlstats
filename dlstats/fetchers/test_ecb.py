@@ -1,6 +1,6 @@
 import unittest
 import mongomock
-from dlstats.fetchers._skeleton import (Skeleton, Category, Series, BulkSeries,
+from _skeleton import (Skeleton, Category, Series, BulkSeries,
                                       Dataset, Provider)
 import datetime
 from bson import ObjectId
