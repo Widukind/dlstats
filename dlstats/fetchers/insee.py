@@ -161,7 +161,8 @@ class Insee(Skeleton):
                                   releaseDates = s['releaseDates'],
                                   revisions = s['revisions'],
                                   frequency = s['frequency']))
-        effective_dimension_dict = documents.bulk_update_database()
+        documents.bulk_update_database()
+        effective_dimension_list = documents.bulk_update_elastic()
         dataset.update(dp.get_dataset())
         dataset['dimension_list'] = {}
         for k in dimension_list:
@@ -175,7 +176,7 @@ class Insee(Skeleton):
                            docHref = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code,
                            lastUpdate = dataset['lastUpdate']) 
         document.update_database()
-        document.update_es_database(effective_dimension_dict)
+        document.update_es_database(effective_dimension_list)
 
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
@@ -184,7 +185,7 @@ class Insee(Skeleton):
         startDate = []
         endDate = []
         dimensions_desc = collections.defaultdict(set)
-        buffer = file.read('Charact.csv').decode(encoding='UTF-8')
+        buffer = file.read('Charact.csv').decode(encoding='cp1252')
         lines = buffer.split('\r\n')
         m = 0
         for line in lines:
@@ -260,7 +261,7 @@ class Insee(Skeleton):
     def get_values_csv(self,file,series,s_offset):
         """Parse and store values in Values.csv"""
 
-        buffer = file.read('Values.csv').decode(encoding='UTF-8')
+        buffer = file.read('Values.csv').decode(encoding='cp1252')
         lines = buffer.split('\r\n')
         v = []
         f = []
@@ -378,14 +379,32 @@ class dataset_page(Insee):
             legend = field.find('legend').string
             legend = re.match(re.compile('(.*) (\(.*\))'),legend).group(1)
             id = field.find('select')
-            code = id['name']
-            size[code] = 0
-            for option in field.find_all('option'):
-                codes_nbr[code].append(option['value'])
-                self.codes_desc[legend].append([option.string,option.string])
-                size[code] += 1
+            if id is None:
+                for input in field.find_all('input'):
+                    code = input['name']
+                    size[code] = 1
+                    codes_nbr[code].append(input['value'])
+                    label = field.find('label')
+                    self.codes_desc[legend].append([label.string,label.string])
+                    size[code] += 1
+            else:
+                code = id['name']
+                size[code] = 0
+                for option in field.find_all('option'):
+                    if "selected" in option:
+                        codes_nbr[code] = option['value']
+                        self.codes_desc[legend] = [option.string,option.string]
+                        break
+                    else:
+                        codes_nbr[code].append(option['value'])
+                        self.codes_desc[legend].append([option.string,option.string])
+                    size[code] += 1
                 multiselect[code] = field.find('input')['name']
 
+        if dataset_code == '158':
+            self.params = self.params_158(codes_nbr,multiselect)
+            return
+        
         # Establish heuristic iteration stategy so as not to request more than 100 variables at a time
         # Implementation is limited to 3 criteria or less
         if self.nbrCriterium > 4:
@@ -413,11 +432,13 @@ class dataset_page(Insee):
                 for c1 in codes_nbr[kstar]:
                     requests = []
                     requests.append((kstar, c1))
-                    requests.append((multiselect[kstar],''))
+                    if kstar in multiselect:
+                        requests.append((multiselect[kstar],''))
                     for k in codes_nbr.keys():
                         if k != kstar:
                             requests += [(k,c2) for c2 in codes_nbr[k]]
-                            requests.append((multiselect[k],''))
+                            if k in multiselect:
+                                requests.append((multiselect[k],''))
                             self.params.append(self.build_request_params(requests))
             else:
                 # Run iterations on two criteria
@@ -432,43 +453,52 @@ class dataset_page(Insee):
                     for c1 in codes_nbr[ks[0]]:
                         requests = []
                         requests.append((ks[0], c1))
-                        requests.append((multiselect[ks[0]],''))
+                        if ks[0] in multiselect:
+                            requests.append((multiselect[ks[0]],''))
                         # Iterates over optimal chunks of intermediary size criterium
                         n1 = 0
                         for c2 in codes_nbr[ks[1]][0:size[ks[1]]:n]:
                             requests1 = requests + [(ks[1],c3) for c3 in codes_nbr[ks[1]][n1:(n1+n)]]
-                            requests1.append((multiselect[ks[1]],''))
+                            if ks[1] in multiselect:
+                                requests1.append((multiselect[ks[1]],''))
                             n1 += n
                             # Combine with largest criterium as a whole
                             requests1 += [(ks[2],c3) for c3 in codes_nbr[ks[2]]]
-                            requests1.append((multiselect[ks[2]],''))
+                            if ks[2] in multiselect:
+                                requests1.append((multiselect[ks[2]],''))
                             self.params.append(self.build_request_params(requests1))
                 elif self.nbrCriterium == 4:
                     for c1 in codes_nbr[ks[0]]:
                         requests = []
                         requests.append((ks[0], c1))
-                        requests.append((multiselect[ks[0]],''))
+                        if ks[0] in multiselect:
+                            requests.append((multiselect[ks[0]],''))
                         for c2 in codes_nbr[ks[1]]:
                             requests1 = requests + [(ks[1], c2)]
-                            requests1.append((multiselect[ks[1]],''))
+                            if ks[1] in multiselect:
+                                requests1.append((multiselect[ks[1]],''))
                             # Iterates over optimal chunks of intermediary size criterium
                             n1 = 0
                             for c3 in codes_nbr[ks[2]][0:size[ks[2]]:n]:
                                 requests2 = requests1 + [(ks[2],c4) for c4 in codes_nbr[ks[2]][n1:(n1+n)]]
-                                requests2.append((multiselect[ks[2]],''))
+                                if ks[2] in multiselect:
+                                    requests2.append((multiselect[ks[2]],''))
                                 n1 += n
                                 # Combine with largest criterium as a whole
                                 requests2 += [(ks[3],c4) for c4 in codes_nbr[ks[3]]]
-                                requests2.append((multiselect[ks[3]],''))
+                                if ks[3] in multiselect:
+                                    requests2.append((multiselect[ks[3]],''))
                                 self.params.append(self.build_request_params(requests2))
         else:
             # one chunk is enough
             requests = []
             for k in codes_nbr.keys():
                 requests += [(k,c) for c in codes_nbr[k]]
-                requests.append((multiselect[k],''))
+                if k in multiselect:
+                    requests.append((multiselect[k],''))
             self.params.append(self.build_request_params(requests))
 
+        
     def build_request_params(self,requests):
         """Builds request params to get variables page"""
         
@@ -514,7 +544,29 @@ class dataset_page(Insee):
                    'lastUpdate': self.lastUpdate,
                    'versionDate': datetime.datetime.now()}
         return(dataset)
-
+    
+    def params_158(self,codes_nbr,multiselect):
+        params = []
+        for c359 in ['10', '11']:
+            if c359 == '10':
+                codes3435 = ['10']
+            else:
+                codes3435 = ['10', '11']
+            for c3435 in codes3435:
+                increment = round(len(codes_nbr['358'])/4)+1
+                m1 = 0
+                m2 = increment
+                for i in range(4):
+                    request = [('359', c359),('3435', c3435),(multiselect['3435'],'')]
+                    for j in range(m1,m2):
+                        request.append((358,codes_nbr['358'][j]))
+                    request.append((multiselect['358'],''))
+                    params.append(self.build_request_params(request))
+                    m1 += increment
+                    m2 = min(len(codes_nbr['358']),m2+increment)
+        return(params)
+                    
+            
 class InseeError(Exception):
     """Base class for exception in Insee fetcher."""
     pass
@@ -536,7 +588,7 @@ class CodeGroupError(InseeError):
 if __name__ == "__main__":
     insee = Insee()
 #    insee.get_categories(insee.initial_page)
-    insee.get_data('1560')
+    insee.get_data('158')
 #    insee.update_datasets()
     #    Insee.parse_agenda()             
 #    insee.get_data("http://localhost:8800/insee/A.zip")
