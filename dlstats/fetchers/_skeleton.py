@@ -572,7 +572,7 @@ class Dataset(DlstatsCollection):
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.db.datasets.update_one({'datasetCode': self.bson['datasetCode']},
+        self.db.datasets.replace_one({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
     def update_es_database(self,effectiveDimensionList):
@@ -663,7 +663,7 @@ class Category(DlstatsCollection):
         if in_base_category is None:
   	     	_id_ = self.db.categories.insert(self.bson)
         else:
-            self.db.categories.update_one(
+            self.db.categories.replace_one(
                 {'_id': in_base_category['_id']},self.bson)
             _id_ = in_base_category['_id']
         return _id_
