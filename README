@@ -1,0 +1,6 @@
+Running the tests
+=================
+=================
+
+To run the tests for eurostat, for example :
+python3 -m tests.test_eurostat
