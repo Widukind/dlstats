@@ -134,7 +134,7 @@ class Provider(DlstatsCollection):
                 'website': self.website}
 
     def update_database(self,mongo_id=None,key=None):
-        return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
+        return self.db.providers.update_one({'name':self.bson['name']},self.bson,upsert=True)
 
 class Series(DlstatsCollection):
     """Abstract base class for time series
@@ -572,7 +572,7 @@ class Dataset(DlstatsCollection):
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
+        self.db.datasets.update_one({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
     def update_es_database(self,effectiveDimensionList):
@@ -663,7 +663,7 @@ class Category(DlstatsCollection):
         if in_base_category is None:
   	     	_id_ = self.db.categories.insert(self.bson)
         else:
-            self.db.categories.update(
+            self.db.categories.update_one(
                 {'_id': in_base_category['_id']},self.bson)
             _id_ = in_base_category['_id']
         return _id_
