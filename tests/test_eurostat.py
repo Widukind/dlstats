@@ -4,12 +4,15 @@ import unittest
 import ming
 from unittest.mock import MagicMock
 import dlstats.fetchers.eurostat as eurostat
+import tests.mongo_temporary_instance
 
-class EurostatTestCase(unittest.TestCase):
+os.environ['MONGODB_TEST_PORT'] = '27002'
+
+class EurostatTestCase(tests.mongo_temporary_instance.TestCase):
     def setUp(self):
-        datastore = ming.create_datastore('mim://')
+        super(tests.mongo_temporary_instance.TestCase,self).setUp()
         eurostat.BulkSeries.bulk_update_elastic = MagicMock(return_value=True)
-        self.eurostat = eurostat.Eurostat()
+        self.eurostat = eurostat.Eurostat(self.db)
         #Don't test elasticsearch at all
     def tearDown(self):
         del(self.eurostat)

@@ -1,4 +1,5 @@
-
+import json
+import os
 import time
 import atexit
 import shutil
@@ -8,8 +9,14 @@ import subprocess
 
 import pymongo
 
-from util import load_fixture
 
+
+def load_fixture(name):
+    return json.load(
+        open(os.path.join(os.path.dirname(__file__), name), 'r')
+    )
+
+MONGODB_TEST_PORT = 27002
 
 class MongoTemporaryInstance(object):
     """Singleton to manage a temporary MongoDB instance
@@ -46,7 +53,7 @@ class MongoTemporaryInstance(object):
         for i in range(3):
             time.sleep(0.1)
             try:
-                self._conn = pymongo.Connection('localhost', MONGODB_TEST_PORT)
+                self._mongo_client = pymongo.MongoClient('localhost', MONGODB_TEST_PORT)
             except pymongo.errors.ConnectionFailure:
                 continue
             else:
@@ -57,7 +64,7 @@ class MongoTemporaryInstance(object):
 
     @property
     def conn(self):
-        return self._conn
+        return self._mongo_client
 
     def shutdown(self):
         if self._process:
@@ -83,14 +90,15 @@ class TestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestCase, self).__init__(*args, **kwargs)
-        self.db = MongoTemporaryInstance.get_instance()
-        self.conn = self.db.conn
+        self.db_instance = MongoTemporaryInstance.get_instance()
+        self.mongo_client = self.db_instance.conn
+        self.db = self.mongo_client.widukind
 
     def setUp(self):
         super(TestCase, self).setUp()
 
         for db_name in self.conn.database_names():
-            self.conn.drop_database(db_name)
+            self.mongo_client.drop_database(db_name)
 
         for fixture in self.fixtures:
-            load_fixture(self.conn, fixture)
+            load_fixture(self.mongo_client, fixture)

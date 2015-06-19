@@ -32,10 +32,10 @@ lgr.addHandler(fh)
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
-    def __init__(self, provider_name=None):
+    def __init__(self, db, provider_name=None):
         self.configuration = configuration
         self.provider_name = provider_name
-        self.db = mongo_client.widukind
+        self.db = db
         self.elasticsearch_client = elasticsearch_client
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
@@ -95,8 +95,8 @@ dimension_list_schema = {str: [All()]}
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
     """
-    def __init__(self):
-        self.db = mongo_client.widukind
+    def __init__(self, db=None):
+        self.db = db
         self.elasticsearch_client = elasticsearch_client
 
 class Provider(DlstatsCollection):
@@ -108,9 +108,10 @@ class Provider(DlstatsCollection):
     """
 
     def __init__(self,
+                 db=None,
                  name=None,
                  website=None):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.name=name
         self.website=website
@@ -173,6 +174,7 @@ class Series(DlstatsCollection):
     """
 
     def __init__(self,
+                 db=None,
                  provider=None,
                  name=None,
                  key=None,
@@ -184,7 +186,7 @@ class Series(DlstatsCollection):
                  revisions=None,
                  frequency=None,
                  dimensions=None):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.collection = self.db.series
         self.provider = provider
@@ -369,8 +371,8 @@ class ESSeriesIndex(object):
                 })
 
 class BulkSeries(DlstatsCollection):
-    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
-        super().__init__()
+    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[], db=None):
+        super().__init__(db=db)
         self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
@@ -497,6 +499,7 @@ class Dataset(DlstatsCollection):
      ('provider', 'Test provider')]
     """
     def __init__(self,
+                 db=None,
                  provider=None,
                  datasetCode=None,
                  name=None,
@@ -505,7 +508,7 @@ class Dataset(DlstatsCollection):
                  docHref=None,
                  lastUpdate=None
                 ):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.provider=provider
         self.datasetCode=datasetCode
@@ -600,6 +603,7 @@ class Category(DlstatsCollection):
      ('provider', 'Test provider')]
     """
     def __init__(self,
+                 db=None,
                  provider=None,
                  name=None,
                  docHref=None,
@@ -608,7 +612,7 @@ class Category(DlstatsCollection):
                  lastUpdate=None,
                  exposed=False
                 ):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration = configuration
         self.provider=provider
         self.name=name
