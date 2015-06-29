@@ -311,28 +311,31 @@ class Insee(Skeleton):
         """Parse agenda of new releases and schedule jobs"""
         
         DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
-        #    url = 'http://www.insee.fr/en/publics/presse/agenda.asp'
-        url = "http://localhost:8800/insee/agenda.html"
+        url = 'http://www.insee.fr/en/publics/presse/agenda.asp'
+        # url = "http://localhost:8800/insee/agenda.html"
         fh = self.open_url_and_check(url)
         agenda = BeautifulSoup(fh)
         ul = agenda.find('div',id='contenu').find('ul','liens')
         for li in ul.find_all('li'):
             href = li.find('a')['href']
-            groups = parse_theme(href)
+            groups = self.parse_theme(href)
             text = li.find('p','info').string
             date = datetime.datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
-
+            print(href,groups,text,date)
+            
     def parse_theme(self,url):
         """Find updated code groups"""
         
-        url = "http://localhost:8800/insee/industrial_production.html"
-        fh = self.open_url_and_check(url)
+        #url = "http://localhost:8800/insee/industrial_production.html"
+        #fh = self.open_url_and_check(url)
+        fh = self.open_url_and_check('http://www.insee.fr' + url)
         theme = BeautifulSoup(fh)
         p = theme.find('div',id='savoirplus').find('p')
         groups = []
+        print(p.find_all('a'))
         for a in p.find_all('a'):
             groups += [a.string[1:]]
-            return groups
+        return groups
 
     def open_url_and_check(self,url,params=None):
         try:
@@ -587,10 +590,13 @@ class CodeGroupError(InseeError):
 
 if __name__ == "__main__":
     insee = Insee()
-#    insee.get_categories(insee.initial_page)
-    insee.get_data('158')
-#    insee.update_datasets()
-    #    Insee.parse_agenda()             
-#    insee.get_data("http://localhost:8800/insee/A.zip")
-#    insee.get_data("http://localhost:8800/insee/Q.zip")
-#    insee.get_data("http://localhost:8800/insee/M.zip")
+    #    insee.get_categories(insee.initial_page)
+    #    HPCI
+    #    insee.get_data('158')
+    #insee.get_data('1427')
+    #insee.get_data('1430')
+    #    insee.update_datasets()
+    insee.parse_agenda()             
+    #    insee.get_data("http://localhost:8800/insee/A.zip")
+    #    insee.get_data("http://localhost:8800/insee/Q.zip")
+    #    insee.get_data("http://localhost:8800/insee/M.zip")
