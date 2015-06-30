@@ -117,7 +117,7 @@ class IMF(Skeleton):
                     value = []
                     if row['Country']:               
                         series_name = row['Subject Descriptor'] + '; ' + row['Country']
-                        series_key = 'WEO.' + row['WEO Subject Code'] + '; ' + row['ISO'] 
+                        series_key = row['ISO'] 
                         for year in years:
                             value.append(row[year])               
                         dimensions['Country Code'] = row['WEO Country Code']

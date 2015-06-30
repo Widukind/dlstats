@@ -134,7 +134,7 @@ class WorldBank(Skeleton):
                         # don't add a period if there is already one
                         if series_key[-1] != '.':
                             series_key += '.'
-                        series_key += 'GEM.' + column[0].value + '.' + frequency
+                        series_key += column[0].value + '.' + frequency
                         series_name = name_series[:-5] + '; ' + column[0].value + '; ' + freq_long_name[frequency]
                         documents = BulkSeries(datasetCode,{})
                         documents.append(Series(provider='WorldBank',
