@@ -130,7 +130,7 @@ class Series(DlstatsCollection):
     """Abstract base class for time series
     >>> from datetime import datetime
     >>> series = Series(provider='Test provider',name='GDP in France',
-    ...                 key='GDP_FR',datasetCode='nama_gdp_fr',
+    ...                 key='GDP_FR',
     ...                 values = ['2700', '2720', '2740', '2760'],
     ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)],
     ...                 period_index = pandas.period_range('1/1999', periods=72, freq='Q'),
@@ -140,7 +140,6 @@ class Series(DlstatsCollection):
     ...                 dimensions = [{'Seasonal adjustment':'wda'}])
     >>> print(series)
     [('attributes', {'OBS_VALUE': ['p']}),
-     ('datasetCode', 'nama_gdp_fr'),
      ('dimensions', {'Seasonal adjustment': 'wda'}),
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
@@ -166,7 +165,6 @@ class Series(DlstatsCollection):
                  provider=None,
                  name=None,
                  key=None,
-                 datasetCode=None,
                  period_index=None, 
                  releaseDates=None, 
                  values=None,
@@ -181,7 +179,6 @@ class Series(DlstatsCollection):
         self.name=name
         self.key=key
         #SDMX equivalent concept: flowRef
-        self.datasetCode=datasetCode
         self.period_index=period_index
         self.frequency=frequency
         self.values=[str(value) for value in values]
@@ -198,8 +195,6 @@ class Series(DlstatsCollection):
                               'provider':
                               All(str, Length(min=1)),
                               'key':
-                              All(str, Length(min=1)),
-                              'datasetCode':
                               All(str, Length(min=1)),
                               'period_index':
                               typecheck(pandas.tseries.period.PeriodIndex),
@@ -219,7 +214,6 @@ class Series(DlstatsCollection):
         self.validate = self.schema({'provider': self.provider,
                                      'name': self.name,
                                      'key': self.key,
-                                     'datasetCode': self.datasetCode,
                                      'period_index': self.period_index,
                                      'values': self.values,
                                      'attributes': self.attributes,
@@ -231,7 +225,6 @@ class Series(DlstatsCollection):
 #        _to_be_validated = {'provider': self.provider,
 #                            'name': self.name,
 #                            'key': self.key,
-#                            'datasetCode': self.datasetCode,
 #                            'period_index': self.period_index,
 #                            'values': self.values,
 #                            'attributes': self.attributes,
@@ -257,7 +250,6 @@ class Series(DlstatsCollection):
         return cls(provider=bson['provider'],
                    name=bson['name'],
                    key=bson['key'],
-                   dataset_code=bson['datasetCode'],
                    values=bson['values'],
                    releaseDates=bson['releaseDates'],
                    attributes=bson['attributes'],
@@ -275,7 +267,6 @@ class Series(DlstatsCollection):
         return {'provider': self.provider,
                 'name': self.name,
                 'key': self.key,
-                'datasetCode': self.datasetCode,
                 'startDate': self.period_index[0].to_timestamp(),
                 'endDate': self.period_index[-1].to_timestamp(),
                 'values': self.values,
@@ -337,7 +328,6 @@ class ESSeriesIndex(object):
         self.key = series.key
         self.provider = series.provider
         self.name = series.name
-        self.datasetCode = series.datasetCode
         self.dimensions = {}
 
         for key, value in series.dimensions.items():
@@ -354,15 +344,13 @@ class ESSeriesIndex(object):
         return({'provider': self.provider,
                 'key': self.key,
                 'name': self.name,
-                'datasetCode': self.datasetCode,
                 'dimensions': self.dimensions
                 })
 
 class BulkSeries(DlstatsCollection):
-    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
+    def __init__(self,dimensionList={},attributeList={},data=[]):
         super().__init__()
         self.data = data
-        self.datasetCode = datasetCode
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
         # check whether there is a label for the dimension codes
@@ -434,7 +422,7 @@ class BulkSeries(DlstatsCollection):
                             body={"query" : { "filtered" :
                                              { "filter":
                                               {"term":
-                                               {"_id": self.datasetCode}}}}})
+                                               {"_id": self._id}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
         effective_dimension_list = self.EffectiveDimensionList(self.codeDict)
         
@@ -468,8 +456,8 @@ class BulkSeries(DlstatsCollection):
 class Dataset(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
+    >>> from pymongo.objectid import ObjectId
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
-    ...                 datasetCode='nama_gdp_fr',
     ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
     ...                 attributeList=[{'OBS_VALUE': [('p', 'preliminary'), ('f', 'forecast')]}],
     ...                 docHref='nauriset',
@@ -478,7 +466,6 @@ class Dataset(DlstatsCollection):
     [('attributeList',
       [{'OBS_VALUE'
         : [('p', 'preliminary'), ('f', 'forecast')]}]),
-     ('datasetCode', 'nama_gdp_fr'),
      ('dimensionList',
       [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
      ('docHref', 'nauriset'),
@@ -487,8 +474,8 @@ class Dataset(DlstatsCollection):
      ('provider', 'Test provider')]
     """
     def __init__(self,
+                 id=None,
                  provider=None,
-                 datasetCode=None,
                  name=None,
                  dimensionList=None,
                  attributeList=None,
@@ -496,9 +483,9 @@ class Dataset(DlstatsCollection):
                  lastUpdate=None
                 ):
         super().__init__()
+        self._id = id
         self.configuration=configuration
         self.provider=provider
-        self.datasetCode=datasetCode
         self.name=name
         self.attributeList=attributeList
         self.dimensionList=dimensionList
@@ -508,8 +495,6 @@ class Dataset(DlstatsCollection):
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
                               'provider':
-                              All(str, Length(min=1)),
-                              'datasetCode':
                               All(str, Length(min=1)),
                               Optional('docHref'):
                               Any(None,str),
@@ -523,7 +508,6 @@ class Dataset(DlstatsCollection):
 
         if docHref is None:
             self.validate = self.schema({'provider': self.provider,
-                                         'datasetCode': self.datasetCode,
                                          'name': self.name,
                                          'dimensionList': self.dimensionList,
                                          'attributeList': self.attributeList,
@@ -531,7 +515,6 @@ class Dataset(DlstatsCollection):
                                          })
         else:
             self.validate = self.schema({'provider': self.provider,
-                                         'datasetCode': self.datasetCode,
                                          'name': self.name,
                                          'dimensionList': self.dimensionList,
                                          'attributeList': self.attributeList,
@@ -547,7 +530,6 @@ class Dataset(DlstatsCollection):
     def bson(self):
         return {'provider': self.provider,
                 'name': self.name,
-                'datasetCode': self.datasetCode,
                 'dimensionList': self.dimensionList,
                 'attributeList': self.attributeList,
                 'docHref': self.docHref,
@@ -556,19 +538,18 @@ class Dataset(DlstatsCollection):
     def es_bson(self,effectiveDimensionList):
         return {'provider': self.provider,
                 'name': self.name,
-                'datasetCode': self.datasetCode,
                 'codeList': effectiveDimensionList.get(),
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
+        self.db.datasets.update_one({'_id': self._id},
                                 self.bson,upsert=True)
 
     def update_es_database(self,effectiveDimensionList):
         es = elasticsearch.Elasticsearch(host = "localhost")
         es.index(index = 'widukind', doc_type = 'datasets',
-                 id = self.provider+'.'+self.datasetCode,
+                 id = self._id,
                  body = self.es_bson(effectiveDimensionList))
                  
 class Category(DlstatsCollection):
