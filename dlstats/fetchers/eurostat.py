@@ -278,7 +278,6 @@ class Eurostat(Skeleton):
                                 for d in attributeList})
         documents = BulkSeries(datasetCode,dimensionList,attributeList,db=self.db)
         for key in raw_values:
-            series_key = (datasetCode+'.'+ key)
             (start_year, start_subperiod,freq) = self.parse_date(
                 raw_dates[key][0])
             (end_year,end_subperiod,freq) = self.parse_date(
@@ -299,7 +298,7 @@ class Eurostat(Skeleton):
                              for name,value in dimensions.items()])
             documents.append(Series(provider='eurostat',
                                     db = self.db,
-                                    key= series_key,
+                                    key=key,
                                     name=name,
                                     datasetCode= datasetCode,
                                     period_index=period_index,
