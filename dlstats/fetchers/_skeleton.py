@@ -638,15 +638,6 @@ class Category(DlstatsCollection):
                               typecheck(bool)
                           }, required=True
 )
-        print({'provider': self.provider,
-                    'categoryCode': self.categoryCode,
-                    'name': self.name,
-                    'children': self.children,
-                    'docHref': self.docHref,
-                    'lastUpdate': self.lastUpdate,
-                    'exposed': self.exposed
-                    })
-
         self.validate = self.schema({'provider': self.provider,
                     'categoryCode': self.categoryCode,
                     'name': self.name,
