@@ -307,7 +307,7 @@ class Eurostat(Skeleton):
                                     frequency=freq,
                                     dimensions=dimensions
                                 ))
-            self.lgr.debug('Instantiating Series: %s',series_key)
+            self.lgr.debug('Instantiating Series: %s',key)
             documents.bulk_update_database()
             return( documents.bulk_update_elastic() ) 
 
