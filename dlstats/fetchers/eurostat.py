@@ -101,16 +101,15 @@ class Eurostat(Skeleton):
                 if lastUpdate is not None and not isinstance(lastUpdate,
                                                              datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
+                self.lgr.debug('Instantiating Category: %s',code) 
                 if docHref is not None:
                     document = Category(provider='eurostat', db=self.db, name=title,
                                         docHref=doc_href,children=children,
-                                        categoryCode=code,lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
+                                        exposed=True, categoryCode=code,lastUpdate=lastUpdate)
                 else:
                     document = Category(provider='eurostat', db=self.db, name=title,
                                         children=children,categoryCode=code,
-                                        lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
+                                        exposed=True, lastUpdate=lastUpdate)
                 _id = document.update_database()
                 children_ids += [_id]
             return children_ids
