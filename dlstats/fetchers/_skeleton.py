@@ -638,6 +638,15 @@ class Category(DlstatsCollection):
                               typecheck(bool)
                           }, required=True
 )
+        print({'provider': self.provider,
+                    'categoryCode': self.categoryCode,
+                    'name': self.name,
+                    'children': self.children,
+                    'docHref': self.docHref,
+                    'lastUpdate': self.lastUpdate,
+                    'exposed': self.exposed
+                    })
+
         self.validate = self.schema({'provider': self.provider,
                     'categoryCode': self.categoryCode,
                     'name': self.name,
@@ -665,7 +674,8 @@ class Category(DlstatsCollection):
             {'categoryCode': self.bson['categoryCode']})
         lgr.info(in_base_category)
         if in_base_category is None:
-  	     	_id_ = self.db.categories.insert_one(self.bson)
+            _id_ = self.db.categories.insert_one(self.bson)
+            _id_ = _id_.inserted_id
         else:
             self.db.categories.replace_one(
                 {'_id': in_base_category['_id']},self.bson)
