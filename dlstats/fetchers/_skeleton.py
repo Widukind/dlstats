@@ -665,7 +665,7 @@ class Category(DlstatsCollection):
             {'categoryCode': self.bson['categoryCode']})
         lgr.info(in_base_category)
         if in_base_category is None:
-  	     	_id_ = self.db.categories.insert(self.bson)
+  	     	_id_ = self.db.categories.insert_one(self.bson)
         else:
             self.db.categories.replace_one(
                 {'_id': in_base_category['_id']},self.bson)
