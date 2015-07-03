@@ -256,7 +256,9 @@ class Eurostat(Skeleton):
         effectiveDimensionList = self.update_series(data_file,datasetCode,
                                                     dimensions,attributes,
                                                     document.bson['lastUpdate'])
-        document.update_es_database(effectiveDimensionList)
+        #The test suite make bulk_update_elastic always return True. It pretty much disbale the elasticsearch functionalities 
+        if effectiveDimensionList is not True:
+            document.update_es_database(effectiveDimensionList)
         
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
