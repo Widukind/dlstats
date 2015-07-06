@@ -42,7 +42,8 @@ class IMF(Skeleton):
             #print(self.count)
             self.files_[self.value_date] = self.readers[self.count]
             self.releaseDates.append(datetime.datetime.strptime(self.value_date, "%B %Y"))
-        self.provider = Provider(name='IMF',website='http://http://www.imf.org/')
+        self.provider_name = 'IMF'
+        self.provider = Provider(name=self.provider_name,website='http://http://www.imf.org/')
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
@@ -81,7 +82,7 @@ class IMF(Skeleton):
                                'Units': Units_list,
                                'Scale': Scale_list}
                 attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
-                document = Dataset(provider = 'IMF', 
+                document = Dataset(provider = self.provider_name, 
                            name = 'World Economic Outlook' ,
                            datasetCode = 'WEO', lastUpdate = self.releaseDates[co],
                            dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
@@ -92,7 +93,7 @@ class IMF(Skeleton):
         else:
             raise Exception("The name of dataset was not entered!")
     def upsert_categories(self):
-        document = Category(provider = 'IMF', 
+        document = Category(provider = self.provider_name, 
                             name = 'WEO' , 
                             categoryCode ='WEO')
         return document.update_database()
@@ -130,7 +131,7 @@ class IMF(Skeleton):
                         if row['Estimates Start After']:
                             estimation_start = int(row['Estimates Start After']);
                             attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
-                        documents.append(Series(provider='IMF',
+                        documents.append(Series(provider=self.provider_name,
                                                 key= series_key,
                                                 name=series_name,
                                                 datasetCode= 'WEO',

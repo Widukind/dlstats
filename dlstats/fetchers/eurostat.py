@@ -52,7 +52,8 @@ class Eurostat(Skeleton):
             timeout=7)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-        self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
+        self.provider_name = 'Eurostat'
+        self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
@@ -102,12 +103,12 @@ class Eurostat(Skeleton):
                                                              datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
-                    document = Category(provider='eurostat',name=title,
+                    document = Category(provider=self.provider_name,name=title,
                                         docHref=doc_href,children=children,
                                         categoryCode=code,lastUpdate=lastUpdate)
                     self.lgr.debug('Instantiating Category: %s',code) 
                 else:
-                    document = Category(provider='eurostat',name=title,
+                    document = Category(provider=self.provider_name,name=title,
                                         children=children,categoryCode=code,
                                         lastUpdate=lastUpdate)
                     self.lgr.debug('Instantiating Category: %s',code) 
@@ -117,7 +118,7 @@ class Eurostat(Skeleton):
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider='eurostat',name='root',children=_id,
+        document = Category(provider=self.provider_name,name='root',children=_id,
                             lastUpdate=None,categoryCode='eurostat_root')
         document.update_database()
 
@@ -137,7 +138,7 @@ class Eurostat(Skeleton):
                 return [c['categoryCode']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'provider': 'eurostat',
+            cc = self.db.categories.find_one({'provider': self.provider_name,
                                               'categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
@@ -246,7 +247,7 @@ class Eurostat(Skeleton):
         self.lgr.debug("docHref : %s", cat['docHref'])
         self.lgr.debug("attributeList : %s", attributes)
         self.lgr.debug("dimensionList : %s", dimensions)
-        document = Dataset(provider='eurostat',
+        document = Dataset(provider=self.provider_name,
                                  datasetCode=datasetCode,
                                  attributeList=attributes,
                                  dimensionList=dimensions,
@@ -296,7 +297,7 @@ class Eurostat(Skeleton):
             # forming name with long label of the dimensions
             name = "-".join([dimensions_dict[name][value]
                              for name,value in dimensions.items()])
-            documents.append(Series(provider='eurostat',
+            documents.append(Series(provider=self.provider_name,
                                     key=key,
                                     name=name,
                                     datasetCode= datasetCode,

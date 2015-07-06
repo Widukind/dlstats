@@ -25,7 +25,8 @@ class Insee(Skeleton):
         super().__init__()
         self.initial_page = "http://www.bdm.insee.fr/bdm2/index?request_locale=en"
         self.test_count = 0
-        self.provider = Provider(name='INSEE',website='http://www.insee.fr')
+        self.provider_name = 'INSEE'
+        self.provider = Provider(name=self.provider_name,website='http://www.insee.fr')
 
     def get_categories(self,url):
         """Gets categories for INSEE BDM
@@ -44,7 +45,7 @@ class Insee(Skeleton):
         for a in ul.find_all("a"):
             href = 'http://www.bdm.insee.fr'+a['href']
             children += self.get_page_2(href)
-        document = Category(provider='insee',name='root',children=children,categoryCode='0')
+        document = Category(provider=self.provider_name,name='root',children=children,categoryCode='0')
         document.update_database()
 
     def get_page_2(self,url):
@@ -70,10 +71,10 @@ class Insee(Skeleton):
                     name = c.string
                     href = c['href']
                     code = href.split('=')[1]
-                    document = Category(provider='insee',name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
+                    document = Category(provider=self.provider_name,name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
                     _id = document.update_database()
                     return (None,_id)
-            document = Category(provider='insee',name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
+            document = Category(provider=self.provider_name,name=name,children=children,categoryCode=code,lastUpdate=datetime.datetime.now())
             _id = document.update_database()
             return (code1,_id)
         fh = self.open_url_and_check(url)
@@ -111,7 +112,7 @@ class Insee(Skeleton):
             else:
                 for id in node['children']:
                     walktree(id)
-        node = self.db.categories.find_one({'provider': 'insee', 'name': 'root'},{'_id': True})
+        node = self.db.categories.find_one({'provider': self.provider_name, 'name': 'root'},{'_id': True})
         walktree(ObjectId(node['_id']))
     
     def get_data(self,code):
@@ -150,7 +151,7 @@ class Insee(Skeleton):
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
             for s in series:
-                documents.append(Series(provider='insee',
+                documents.append(Series(provider=self.provider_name,
                                   name = s['name'],
                                   key = s['key'],
                                   datasetCode = s['datasetCode'],
@@ -168,7 +169,7 @@ class Insee(Skeleton):
         for k in dimension_list:
             dataset['dimension_list'].update({k: [d for d in dimension_list[k]]})
         dataset['attribute_list'] = {'flags': [ (v[0], v[1]) for v in attribute_list.items()]}
-        document = Dataset(provider='insee',
+        document = Dataset(provider=self.provider_name,
                            name = dataset['name'],
                            datasetCode = dataset['datasetCode'],
                            dimensionList = dataset['dimension_list'],

@@ -28,7 +28,8 @@ class WorldBank(Skeleton):
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
                            self.zipfile_.namelist()}}
-        self.provider = Provider(name='World Bank',website='http://www.worldbank.org/')
+        self.provider_name = 'World Bank'
+        self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
                            
     def upsert_dataset(self, datasetCode):
         
@@ -70,7 +71,7 @@ class WorldBank(Skeleton):
                                    
                     dimensionList_.extend(dimensionList_interm)             
         dimensionList = dictionary_union(*dimensionList_)  
-        document = Dataset(provider = 'WorldBank', 
+        document = Dataset(provider = self.provider_name, 
                            name = 'Global Economic Monitor' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList,
@@ -80,7 +81,7 @@ class WorldBank(Skeleton):
         document.update_es_database(effective_dimension_list)
        
     def upsert_categories(self):
-        document = Category(provider = 'WorldBank', 
+        document = Category(provider = self.provider_name, 
                             name = 'GEM' , 
                             categoryCode ='GEM')
         return document.update_database()
@@ -137,7 +138,7 @@ class WorldBank(Skeleton):
                         series_key += column[0].value + '.' + frequency
                         series_name = name_series[:-5] + '; ' + column[0].value + '; ' + freq_long_name[frequency]
                         documents = BulkSeries(datasetCode,{})
-                        documents.append(Series(provider='WorldBank',
+                        documents.append(Series(provider=self.provider_name,
                                                 key= series_key,
                                                 name=series_name,
                                                 datasetCode= 'GEM',
