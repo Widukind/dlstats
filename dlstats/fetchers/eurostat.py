@@ -309,8 +309,8 @@ class Eurostat(Skeleton):
                                     dimensions=dimensions
                                 ))
             self.lgr.debug('Instantiating Series: %s',key)
-            documents.bulk_update_database()
-            return( documents.bulk_update_elastic() ) 
+        documents.bulk_update_database()
+        return documents.bulk_update_elastic()  
 
 
     def update_eurostat(self):
@@ -319,4 +319,6 @@ class Eurostat(Skeleton):
 if __name__ == "__main__":
     import eurostat
     e = eurostat.Eurostat()
-    e.update_selected_dataset('namq_gdp_c')
+    e.update_categories_db()
+    e.update_selected_dataset('nama_gdp_p')
+    e.update_selected_dataset('nama_gdp_k')
