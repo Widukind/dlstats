@@ -28,7 +28,7 @@ class WorldBank(Skeleton):
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
                            self.zipfile_.namelist()}}
-        self.provider_name = 'World Bank'
+        self.provider_name = 'WorldBank'
         self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
         self.dimension_reverse_index = {}
         
