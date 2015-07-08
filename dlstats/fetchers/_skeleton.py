@@ -359,9 +359,9 @@ class ESSeriesIndex(object):
                 })
 
 class BulkSeries(DlstatsCollection):
-    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[]):
+    def __init__(self,datasetCode,dimensionList={},attributeList={}):
         super().__init__()
-        self.data = data
+        self.data = []
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
