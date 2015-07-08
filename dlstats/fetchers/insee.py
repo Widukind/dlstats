@@ -122,7 +122,7 @@ class Insee(Skeleton):
         dataset['attribute_list'] = dict()
         dimension_list = collections.defaultdict(set)
         dp = dataset_page(code)
-        documents = BulkSeries(code)
+        series_container = []
         for keys in dp:
             # no series are available in this chunk
             if len(keys) == 0:
@@ -150,24 +150,34 @@ class Insee(Skeleton):
                 series[i]['revisions'] = []
             for k in dimensions_desc:
                 dimension_list[k].update(dimensions_desc[k])
-            for s in series:
-                documents.append(Series(provider=self.provider_name,
-                                  name = s['name'],
-                                  key = s['key'],
-                                  datasetCode = s['datasetCode'],
-                                  period_index = s['period_index'],
-                                  values = s['values'],
-                                  attributes = s['attributes'],
-                                  dimensions = s['dimensions'],
-                                  releaseDates = s['releaseDates'],
-                                  revisions = s['revisions'],
-                                  frequency = s['frequency']))
+            series_container.extend(series)
+        reverse_index = {}
+        new_dimension_list = {}
+        for d1 in dimension_list:
+            new_dimension_list[d1] = [[str(i), c] for i,c in enumerate(dimension_list[d1])]
+            reverse_index[d1] = {c: i for i,c in new_dimension_list[d1]}
+        print(new_dimension_list)
+        documents = BulkSeries(code,new_dimension_list)
+        for s in series_container:
+            for d in s['dimensions']:
+                s['dimensions'][d] = reverse_index[d][s['dimensions'][d]]
+            documents.append(Series(provider=self.provider_name,
+                                    name = s['name'],
+                                    key = s['key'],
+                                    datasetCode = s['datasetCode'],
+                                    period_index = s['period_index'],
+                                    values = s['values'],
+                                    attributes = s['attributes'],
+                                    dimensions = s['dimensions'],
+                                    releaseDates = s['releaseDates'],
+                                    revisions = s['revisions'],
+                                    frequency = s['frequency']))
         documents.bulk_update_database()
         effective_dimension_list = documents.bulk_update_elastic()
         dataset.update(dp.get_dataset())
         dataset['dimension_list'] = {}
         for k in dimension_list:
-            dataset['dimension_list'].update({k: [d for d in dimension_list[k]]})
+            dataset['dimension_list'].update({k: [d for d in new_dimension_list[k]]})
         dataset['attribute_list'] = {'flags': [ (v[0], v[1]) for v in attribute_list.items()]}
         document = Dataset(provider=self.provider_name,
                            name = dataset['name'],
@@ -179,6 +189,9 @@ class Insee(Skeleton):
         document.update_database()
         document.update_es_database(effective_dimension_list)
 
+    def add_dimensions_short_code(self,d):
+        return d
+        
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
         
@@ -594,10 +607,10 @@ if __name__ == "__main__":
     #    insee.get_categories(insee.initial_page)
     #    HPCI
     #    insee.get_data('158')
-    #insee.get_data('1427')
+    insee.get_data('1427')
     #insee.get_data('1430')
     #    insee.update_datasets()
-    insee.parse_agenda()             
+    # insee.parse_agenda()             
     #    insee.get_data("http://localhost:8800/insee/A.zip")
     #    insee.get_data("http://localhost:8800/insee/Q.zip")
     #    insee.get_data("http://localhost:8800/insee/M.zip")
