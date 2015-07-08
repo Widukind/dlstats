@@ -30,7 +30,8 @@ class WorldBank(Skeleton):
                            self.zipfile_.namelist()}}
         self.provider_name = 'World Bank'
         self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
-                           
+        self.dimension_reverse_index = {}
+        
     def upsert_dataset(self, datasetCode):
         
         if datasetCode=='GEM':
@@ -70,7 +71,11 @@ class WorldBank(Skeleton):
                                           {'Commodity Prices': commodity_prices_list}]
                                    
                     dimensionList_.extend(dimensionList_interm)             
-        dimensionList = dictionary_union(*dimensionList_)  
+        dimensionList = dictionary_union(*dimensionList_)
+        for d1 in dimensionList:
+            dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
+            self.dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
+
         document = Dataset(provider = self.provider_name, 
                            name = 'Global Economic Monitor' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
@@ -106,9 +111,9 @@ class WorldBank(Skeleton):
                         value = []
                         column = excel_file.sheet_by_name(sheet_name).col(column_index)
                         if name_series[:-5] in ['Commodity Prices']:
-                            dimensions['Commodity Prices'] = column[0].value 
+                            dimensions['Commodity Prices'] = self.dimension_reverse_index['Commodity Prices'][column[0].value] 
                         if name_series[:-5] not in ['Commodity Prices']:    
-                            dimensions['country'] = column[0].value 
+                            dimensions['country'] =  self.dimension_reverse_index['country'][column[0].value] 
                         column_value = column[1:-1]
                         for cell_value in column_value :
                             if cell_value.value:
