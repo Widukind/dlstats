@@ -215,7 +215,7 @@ class Insee(Skeleton):
                     series[i]['dimensions'] = dims
             elif fields[0] == 'IdBank':
                 for i in range(len(fields)-1):
-                    series[i]['key'] = "{}.{}".format(datasetCode,fields[i+1])
+                    series[i]['key'] = fields[i+1]
             elif fields[0] == 'Last update':
                 for i in range(len(fields)-1):
                     series[i]['releaseDates'] = datetime.datetime.strptime(fields[i+1],'%B %d, %Y')
@@ -293,7 +293,7 @@ class Insee(Skeleton):
                 k = 0
                 for i in range(s_offset,len(fields)):
                     if names[i] != 'Flags':
-                        if fields[i] != series[k]['key'].split('.')[1]:
+                        if fields[i] != series[k]['key']:
                             print('key error in Values.csv',fields[i],series[k]['key'])
                         else:
                             k += 1
@@ -514,7 +514,6 @@ class dataset_page(Insee):
                 if k in multiselect:
                     requests.append((multiselect[k],''))
             self.params.append(self.build_request_params(requests))
-
         
     def build_request_params(self,requests):
         """Builds request params to get variables page"""
@@ -606,8 +605,8 @@ if __name__ == "__main__":
     insee = Insee()
     #    insee.get_categories(insee.initial_page)
     #    HPCI
-    #    insee.get_data('158')
-    insee.get_data('1427')
+    insee.get_data('158')
+    #    insee.get_data('1427')
     #insee.get_data('1430')
     #    insee.update_datasets()
     # insee.parse_agenda()             
