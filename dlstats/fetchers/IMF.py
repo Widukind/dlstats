@@ -12,44 +12,51 @@ import pprint
 class IMF(Skeleton):
     def __init__(self):
         super().__init__(provider_name='IMF') 
-        self.urls = ['http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
-        'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
-        'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls']
+        self.urls = [
+            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
+#            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
+#        'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
+#        'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
+        ]
         self.readers = []
         self.releaseDates = []
         self.files_ = {}
-        for self.url in self.urls:
-            self.response= urllib.request.urlopen(self.url)
+        for url in self.urls:
+            self.response= urllib.request.urlopen(url)
             self.readers.append(csv.DictReader(codecs.iterdecode(self.response, 'latin-1'), delimiter='\t'))
-        self.date = ['October 2014', 'April 2014',  'April 2013', 'October 2013', 'April 2012',
-                'October 2012', 'April 2011', 'October 2011', 'April 2010', 'October 2010', 'April 2009',
-                'October 2009', 'April 2008', 'October 2008', 'April 2007', 'October 2007', 'September 2006']
+        self.date = [
+            'September 2006'
+#            'April 2007', 'October 2007', 'April 2008', 'October 2008', 'April 2009','October 2009',
+#            'April 2010', 'October 2010', 'April 2011', 'October 2011', 'April 2012','October 2012',
+#            'April 2013', 'October 2013', 'April 2014', 'October 2014', 'April 2015'
+            ]
         for self.count, self.value_date in enumerate(self.date):
             #print(self.count)
             self.files_[self.value_date] = self.readers[self.count]
             self.releaseDates.append(datetime.datetime.strptime(self.value_date, "%B %Y"))
         self.provider_name = 'IMF'
         self.provider = Provider(name=self.provider_name,website='http://http://www.imf.org/')
+        self.dimension_reverse_index = {}
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
             for co, v_date in enumerate(self.date):
-                print(v_date)
-                print(self.files_.keys)
+                #print(v_date)
+                #print(self.files_.keys)
                 reader = self.files_[v_date]
                 countries_list = []
                 ISO_list = []
@@ -62,6 +69,7 @@ class IMF(Skeleton):
                 CountryCode_ltuple = []
                 Subject_ltuple = []        
                 for count, row in enumerate(reader):
+                    self.dimension_reverse_index = {}
                     # last 2 rows are blank/metadata
                     # so get out when we hit a blank row
                     if row['Country']:
@@ -76,18 +84,23 @@ class IMF(Skeleton):
                         if [row['ISO'] , row['Country']] not in CountryCode_ltuple:  CountryCode_ltuple.append([row['ISO'] , row['Country']])
                         if [row['WEO Subject Code'] , row['Subject Descriptor']] not in Subject_ltuple:  Subject_ltuple.append([row['WEO Subject Code'] , row['Subject Descriptor']])
                             
-                dimensionList = {'Country Code': WEO_Country_Code_list,
-                               'ISO': CountryCode_ltuple,
-                               'Subject Code': Subject_ltuple,
-                               'Units': Units_list,
-                               'Scale': Scale_list}
+                dimensionList = { 'Country': countries_list,
+                                  'Country Code': WEO_Country_Code_list,
+                                  'ISO': CountryCode_ltuple,
+                                  'Subject Code': Subject_ltuple,
+                                  'Units': Units_list,
+                                  'Scale': Scale_list}
+                for d1 in dimensionList:
+                    if (d1 != 'Subject Code') and (d1 != 'ISO') :
+                        dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
+                        self.dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
                 attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
                 document = Dataset(provider = self.provider_name, 
                            name = 'World Economic Outlook' ,
                            datasetCode = 'WEO', lastUpdate = self.releaseDates[co],
                            dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
                            attributeList = attributeList) 
-                effective_dimension_list = self.update_series('WEO', dimensionList)    
+                effective_dimension_list = self.update_series('WEO', dimensionList)
                 document.update_database()
                 document.update_es_database(effective_dimension_list)
         else:
@@ -111,9 +124,8 @@ class IMF(Skeleton):
                 years = reader2.fieldnames[9:-1] 
                 period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')   
                 attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]} 
-                documents = BulkSeries(datasetCode,{})
+                documents = BulkSeries(datasetCode,dimensionList,attributeList)
                 for row in reader2:
-                    print(self.releaseDates[count])
                     dimensions = {}
                     value = []
                     if row['Country']:               
@@ -121,32 +133,48 @@ class IMF(Skeleton):
                         series_key = row['ISO'] 
                         for year in years:
                             value.append(row[year])               
-                        dimensions['Country Code'] = row['WEO Country Code']
+                        if row['WEO Country Code'] in self.dimension_reverse_index['Country Code']:
+                            dimensions['Country Code'] = self.dimension_reverse_index['Country Code'][row['WEO Country Code']]
+                        else:
+                            dimensions['Country Code'] = '0'
                         dimensions['ISO'] = row['ISO']
-                        dimensions['Country'] = row['Country']
-                        dimensions['Units'] = row['Units']
-                        dimensions['Scale'] = row['Scale']
+                        if row['Country'] in self.dimension_reverse_index['Country']:
+                            dimensions['Country'] = self.dimension_reverse_index['Country'][row['Country']]
+                        else:
+                            dimensions['Country'] = '0'
+                        if row['Units'] in self.dimension_reverse_index['Units']:
+                            dimensions['Units'] = self.dimension_reverse_index['Units'][row['Units']]
+                        else:
+                            dimensions['Units'] = '0'
+                        if row['Scale'] in self.dimension_reverse_index['Scale']:
+                            dimensions['Scale'] = self.dimension_reverse_index['Scale'][row['Scale']]
+                        else:
+                            dimensions['Scale'] = '0'
                         dimensions['Subject Code'] = row['WEO Subject Code']
                         attributes = {}
                         if row['Estimates Start After']:
                             estimation_start = int(row['Estimates Start After']);
                             attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
+                        release_dates = [self.releaseDates[count] for v in value]
                         documents.append(Series(provider=self.provider_name,
                                                 key= series_key,
                                                 name=series_name,
                                                 datasetCode= 'WEO',
                                                 period_index= period_index,
                                                 values=value,
-                                                releaseDates= [self.releaseDates[count]],
+                                                releaseDates= release_dates,
                                                 frequency='A',
                                                 attributes = attributes,
-                                                dimensions=dimensions))                                                
-                return(documents.bulk_update_database())
+                                                dimensions=dimensions))
+                documents.bulk_update_database()
+                return(documents.bulk_update_elastic())
         else:
             raise Exception("The name of dataset was not entered!")
 if __name__ == "__main__":
     import IMF
     w = IMF.IMF()
+    w.provider.update_database()
+    w.upsert_categories()
     w.upsert_dataset('WEO') 
 
 
