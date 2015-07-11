@@ -13,7 +13,9 @@ class IMF(Skeleton):
     def __init__(self):
         super().__init__(provider_name='IMF') 
         self.urls = [
-            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
+            'http://localhost:8800/imf//WEOSep2006all.xls',
+            'http://localhost:8800/imf/WEOApr2007all.xls'
+#            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
 #            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
 #        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
 #        'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
@@ -39,7 +41,7 @@ class IMF(Skeleton):
             self.response= urllib.request.urlopen(url)
             self.readers.append(csv.DictReader(codecs.iterdecode(self.response, 'latin-1'), delimiter='\t'))
         self.date = [
-            'September 2006'
+            'September 2006', 'April 2007'
 #            'April 2007', 'October 2007', 'April 2008', 'October 2008', 'April 2009','October 2009',
 #            'April 2010', 'October 2010', 'April 2011', 'October 2011', 'April 2012','October 2012',
 #            'April 2013', 'October 2013', 'April 2014', 'October 2014', 'April 2015'
@@ -50,24 +52,23 @@ class IMF(Skeleton):
             self.releaseDates.append(datetime.datetime.strptime(self.value_date, "%B %Y"))
         self.provider_name = 'IMF'
         self.provider = Provider(name=self.provider_name,website='http://http://www.imf.org/')
-        self.dimension_reverse_index = {}
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
+            countries_list = []
+            ISO_list = []
+            Subject_Notes_list = []
+            Units_list = []
+            Scale_list = []
+            WEO_Country_Code_list = []
+            Country_Series_specific_Notes_list = []
+            WEO_Subject_Code_list = [] 
+            CountryCode_ltuple = []
+            Subject_ltuple = []        
             for co, v_date in enumerate(self.date):
                 #print(v_date)
-                #print(self.files_.keys)
+                print(self.files_.keys)
                 reader = self.files_[v_date]
-                countries_list = []
-                ISO_list = []
-                Subject_Notes_list = []
-                Units_list = []
-                Scale_list = []
-                WEO_Country_Code_list = []
-                Country_Series_specific_Notes_list = []
-                WEO_Subject_Code_list = [] 
-                CountryCode_ltuple = []
-                Subject_ltuple = []        
                 for count, row in enumerate(reader):
                     self.dimension_reverse_index = {}
                     # last 2 rows are blank/metadata
@@ -84,25 +85,24 @@ class IMF(Skeleton):
                         if [row['ISO'] , row['Country']] not in CountryCode_ltuple:  CountryCode_ltuple.append([row['ISO'] , row['Country']])
                         if [row['WEO Subject Code'] , row['Subject Descriptor']] not in Subject_ltuple:  Subject_ltuple.append([row['WEO Subject Code'] , row['Subject Descriptor']])
                             
-                dimensionList = { 'Country': countries_list,
-                                  'Country Code': WEO_Country_Code_list,
-                                  'ISO': CountryCode_ltuple,
-                                  'Subject Code': Subject_ltuple,
-                                  'Units': Units_list,
-                                  'Scale': Scale_list}
-                for d1 in dimensionList:
-                    if (d1 != 'Subject Code') and (d1 != 'ISO') :
-                        dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
-                        self.dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
-                attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
-                document = Dataset(provider = self.provider_name, 
-                           name = 'World Economic Outlook' ,
-                           datasetCode = 'WEO', lastUpdate = self.releaseDates[co],
-                           dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
-                           attributeList = attributeList) 
-                effective_dimension_list = self.update_series('WEO', dimensionList)
-                document.update_database()
-                document.update_es_database(effective_dimension_list)
+            dimensionList = { 'Country': countries_list,
+                              'Country Code': WEO_Country_Code_list,
+                              'ISO': CountryCode_ltuple,
+                              'Subject Code': Subject_ltuple,
+                              'Units': Units_list,
+                              'Scale': Scale_list}
+            for d1 in dimensionList:
+                if (d1 != 'Subject Code') and (d1 != 'ISO') :
+                    dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
+            attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
+            document = Dataset(provider = self.provider_name, 
+                               name = 'World Economic Outlook' ,
+                               datasetCode = 'WEO', lastUpdate = self.releaseDates[co],
+                               dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
+                               attributeList = attributeList) 
+            effective_dimension_list = self.update_series('WEO', dimensionList)
+            document.update_database()
+            document.update_es_database(effective_dimension_list)
         else:
             raise Exception("The name of dataset was not entered!")
     def upsert_categories(self):
@@ -115,6 +115,10 @@ class IMF(Skeleton):
     def update_series(self,datasetCode,dimensionList):
         files_in = {} 
         readers2 =[]
+        dimension_reverse_index = {}
+        for d1 in dimensionList:
+            if (d1 != 'Subject Code') and (d1 != 'ISO') :
+                dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
         if datasetCode=='WEO':
             for url in self.urls:
                 response= urllib.request.urlopen(url)
@@ -133,23 +137,11 @@ class IMF(Skeleton):
                         series_key = row['ISO'] 
                         for year in years:
                             value.append(row[year])               
-                        if row['WEO Country Code'] in self.dimension_reverse_index['Country Code']:
-                            dimensions['Country Code'] = self.dimension_reverse_index['Country Code'][row['WEO Country Code']]
-                        else:
-                            dimensions['Country Code'] = '0'
+                        dimensions['Country Code'] = dimension_reverse_index['Country Code'][row['WEO Country Code']]
                         dimensions['ISO'] = row['ISO']
-                        if row['Country'] in self.dimension_reverse_index['Country']:
-                            dimensions['Country'] = self.dimension_reverse_index['Country'][row['Country']]
-                        else:
-                            dimensions['Country'] = '0'
-                        if row['Units'] in self.dimension_reverse_index['Units']:
-                            dimensions['Units'] = self.dimension_reverse_index['Units'][row['Units']]
-                        else:
-                            dimensions['Units'] = '0'
-                        if row['Scale'] in self.dimension_reverse_index['Scale']:
-                            dimensions['Scale'] = self.dimension_reverse_index['Scale'][row['Scale']]
-                        else:
-                            dimensions['Scale'] = '0'
+                        dimensions['Country'] = dimension_reverse_index['Country'][row['Country']]
+                        dimensions['Units'] = dimension_reverse_index['Units'][row['Units']]
+                        dimensions['Scale'] = dimension_reverse_index['Scale'][row['Scale']]
                         dimensions['Subject Code'] = row['WEO Subject Code']
                         attributes = {}
                         if row['Estimates Start After']:
