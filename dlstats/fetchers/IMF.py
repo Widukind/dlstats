@@ -8,6 +8,7 @@ import codecs
 import datetime
 import pandas
 import pprint
+from collections import OrderedDict
 
 class IMF(Skeleton):
     def __init__(self):
@@ -55,45 +56,30 @@ class IMF(Skeleton):
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
-            countries_list = []
-            ISO_list = []
-            Subject_Notes_list = []
-            Units_list = []
-            Scale_list = []
-            WEO_Country_Code_list = []
-            Country_Series_specific_Notes_list = []
-            WEO_Subject_Code_list = [] 
-            CountryCode_ltuple = []
-            Subject_ltuple = []        
+            WEO_Country_Code_list = OrderedDict()
+            country_list =  OrderedDict()
+            subject_list =  OrderedDict()
+            Units_list =  OrderedDict()
+            Scale_list =  OrderedDict()
             for co, v_date in enumerate(self.date):
                 #print(v_date)
                 print(self.files_.keys)
                 reader = self.files_[v_date]
                 for count, row in enumerate(reader):
-                    self.dimension_reverse_index = {}
                     # last 2 rows are blank/metadata
                     # so get out when we hit a blank row
                     if row['Country']:
-                        if row['Country'] not in countries_list: countries_list.append(row['Country'])
-                        if row['WEO Country Code'] not in WEO_Country_Code_list: WEO_Country_Code_list.append(row['WEO Country Code'])
-                        if row['ISO'] not in ISO_list: ISO_list.append(row['ISO']) 
-                        if row['Subject Notes'] not in Subject_Notes_list: Subject_Notes_list.append(row['Subject Notes'])
-                        if row['Units'] not in Units_list: Units_list.append(row['Units'])
-                        if row['Scale'] not in Scale_list: Scale_list.append(row['Scale'])
-                        if row['Country/Series-specific Notes'] not in Country_Series_specific_Notes_list: Country_Series_specific_Notes_list.append(row['Country/Series-specific Notes'])
-                        if row['WEO Subject Code'] not in WEO_Subject_Code_list: WEO_Subject_Code_list.append(row['WEO Subject Code'])
-                        if [row['ISO'] , row['Country']] not in CountryCode_ltuple:  CountryCode_ltuple.append([row['ISO'] , row['Country']])
-                        if [row['WEO Subject Code'] , row['Subject Descriptor']] not in Subject_ltuple:  Subject_ltuple.append([row['WEO Subject Code'] , row['Subject Descriptor']])
+                        if row['WEO Country Code'] not in WEO_Country_Code_list: WEO_Country_Code_list[row['WEO Country Code']] = row['WEO Country Code']
+                        if row['ISO'] not in country_list.keys(): country_list[row['ISO']] = row['Country'] 
+                        if row['Units'] not in Units_list.values(): Units_list[str(int(next(reversed(Units_list),0))+1)] = row['Units']
+                        if row['Scale'] not in Scale_list: Scale_list[row['Scale']] = row['Scale']
+                        if row['WEO Subject Code'] not in subject_list: subject_list[row['WEO Subject Code']] = row['Subject Descriptor']
                             
-            dimensionList = { 'Country': countries_list,
-                              'Country Code': WEO_Country_Code_list,
-                              'ISO': CountryCode_ltuple,
-                              'Subject Code': Subject_ltuple,
-                              'Units': Units_list,
-                              'Scale': Scale_list}
-            for d1 in dimensionList:
-                if (d1 != 'Subject Code') and (d1 != 'ISO') :
-                    dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
+            dimensionList = { 'Country': [[k,country_list[k]] for k in country_list],
+                              'WEO Country Code': [[k,WEO_Country_Code_list[k]] for k in WEO_Country_Code_list],
+                              'Subject': [[k,subject_list[k]] for k in subject_list],
+                              'Units': [[k,Units_list[k]] for k in Units_list],
+                              'Scale': [[k,Scale_list[k]] for k in Scale_list] }
             attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
             document = Dataset(provider = self.provider_name, 
                                name = 'World Economic Outlook' ,
@@ -115,10 +101,7 @@ class IMF(Skeleton):
     def update_series(self,datasetCode,dimensionList):
         files_in = {} 
         readers2 =[]
-        dimension_reverse_index = {}
-        for d1 in dimensionList:
-            if (d1 != 'Subject Code') and (d1 != 'ISO') :
-                dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
+        dimension_reverse_index_units = {c: i for i,c in dimensionList['Units']}
         if datasetCode=='WEO':
             for url in self.urls:
                 response= urllib.request.urlopen(url)
@@ -133,17 +116,16 @@ class IMF(Skeleton):
                     dimensions = {}
                     value = []
                     if row['Country']:               
-                        series_name = row['Subject Descriptor'] + '; ' + row['Country']
-                        series_key = row['ISO'] 
                         for year in years:
-                            value.append(row[year])               
-                        dimensions['Country Code'] = dimension_reverse_index['Country Code'][row['WEO Country Code']]
-                        dimensions['ISO'] = row['ISO']
-                        dimensions['Country'] = dimension_reverse_index['Country'][row['Country']]
-                        dimensions['Units'] = dimension_reverse_index['Units'][row['Units']]
-                        dimensions['Scale'] = dimension_reverse_index['Scale'][row['Scale']]
-                        dimensions['Subject Code'] = row['WEO Subject Code']
+                            value.append(row[year])
+                        dimensions['Country'] = row['ISO']
+                        dimensions['WEO Country Code'] = row['WEO Country Code']
+                        dimensions['Subject'] = row['WEO Subject Code']
+                        dimensions['Units'] = dimension_reverse_index_units[row['Units']]
+                        dimensions['Scale'] = row['Scale']
                         attributes = {}
+                        series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
+                        series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
                         if row['Estimates Start After']:
                             estimation_start = int(row['Estimates Start After']);
                             attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
