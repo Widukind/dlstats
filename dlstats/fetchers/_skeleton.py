@@ -287,7 +287,7 @@ class Series(DlstatsCollection):
                 'frequency': self.frequency}
 
     def update_database(self,mongo_id=None,key=None):
-        old_bson = self.db.series.find_one({'key': self.bson['key']})
+        old_bson = self.db.series.find_one({'provider': self.provider, 'datasetCode': self.datasetCode, 'key': self.key})
 
         if old_bson == None:
             return self.collection.insert(self.bson)
