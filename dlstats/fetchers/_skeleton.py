@@ -299,13 +299,15 @@ class Series(DlstatsCollection):
                 'frequency': self.frequency}
 
     def update_database(self,mongo_id=None,key=None):
-        old_bson = self.db.series.find_one({'key': self.bson['key']})
+        old_bson = self.db.series.find_one({'provider': self.provider, 'datasetCode': self.datasetCode, 'key': self.key})
 
         if old_bson == None:
             return self.collection.insert(self.bson)
         else:
             position = 0
             self.revisions = old_bson['revisions']
+            if self.revisions is None:
+                self.revisions = []
             old_start_period = pandas.Period(
                 old_bson['startDate'],freq=old_bson['frequency'])
             start_period = pandas.Period(
@@ -317,8 +319,6 @@ class Series(DlstatsCollection):
                 self.bson['startDate'] = old_bson['startDate']
                 for values in zip(old_bson['values'][offset:],self.values):
                     if values[0] != values[1]:
-                        if self.revisions is None:
-                            self.revisions = []
                         self.revisions.append(
                             {'value':values[0],
                              'position': offset+position,
@@ -330,8 +330,6 @@ class Series(DlstatsCollection):
                 offset = old_start_period - start_period
                 for values in zip(old_bson['values'],self.values[offset:]):
                     if values[0] != values[1]:
-                        if self.revisions is None:
-                            self.revisions = []
                         self.revisions.append(
                             {'value':values[0],
                              'position': offset+position,

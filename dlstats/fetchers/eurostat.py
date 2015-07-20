@@ -136,7 +136,7 @@ class Eurostat(Skeleton):
                 return [c['categoryCode']]
         datasets = []
         for code in self.selected_codes:
-            cc = self.db.categories.find_one({'provider': 'eurostat',
+            cc = self.db.categories.find_one({'provider': self.provider_name,
                                               'categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
@@ -310,8 +310,8 @@ class Eurostat(Skeleton):
                                     dimensions=dimensions
                                 ))
             self.lgr.debug('Instantiating Series: %s',key)
-            documents.bulk_update_database()
-            return( documents.bulk_update_elastic() ) 
+        documents.bulk_update_database()
+        return documents.bulk_update_elastic()  
 
 
     def update_eurostat(self):
@@ -320,4 +320,6 @@ class Eurostat(Skeleton):
 if __name__ == "__main__":
     import eurostat
     e = eurostat.Eurostat()
-    e.update_selected_dataset('namq_gdp_c')
+    e.update_categories_db()
+    e.update_selected_dataset('nama_gdp_p')
+    e.update_selected_dataset('nama_gdp_k')

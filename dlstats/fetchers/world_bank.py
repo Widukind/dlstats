@@ -28,8 +28,10 @@ class WorldBank(Skeleton):
         self.zipfile_ = zipfile.ZipFile(io.BytesIO(self.response.read()))  
         self.excelfile_ = {'GemDataEXTR':{name : self.zipfile_.read(name) for name in
                            self.zipfile_.namelist()}}
-        self.provider = Provider(name='World Bank',website='http://www.worldbank.org/')
-                           
+        self.provider_name = 'WorldBank'
+        self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
+        self.dimension_reverse_index = {}
+        
     def upsert_dataset(self, datasetCode):
         
         if datasetCode=='GEM':
@@ -69,8 +71,12 @@ class WorldBank(Skeleton):
                                           {'Commodity Prices': commodity_prices_list}]
                                    
                     dimensionList_.extend(dimensionList_interm)             
-        dimensionList = dictionary_union(*dimensionList_)  
-        document = Dataset(provider = 'WorldBank', 
+        dimensionList = dictionary_union(*dimensionList_)
+        for d1 in dimensionList:
+            dimensionList[d1] = [[str(i), c] for i,c in enumerate(dimensionList[d1])]
+            self.dimension_reverse_index[d1] = {c: i for i,c in dimensionList[d1]}
+
+        document = Dataset(provider = self.provider_name, 
                            name = 'Global Economic Monitor' ,
                            datasetCode = 'GEM', lastUpdate = self.releaseDates,
                            dimensionList = dimensionList,
@@ -80,7 +86,7 @@ class WorldBank(Skeleton):
         document.update_es_database(effective_dimension_list)
        
     def upsert_categories(self):
-        document = Category(provider = 'WorldBank', 
+        document = Category(provider = self.provider_name, 
                             name = 'GEM' , 
                             categoryCode ='GEM')
         return document.update_database()
@@ -105,9 +111,9 @@ class WorldBank(Skeleton):
                         value = []
                         column = excel_file.sheet_by_name(sheet_name).col(column_index)
                         if name_series[:-5] in ['Commodity Prices']:
-                            dimensions['Commodity Prices'] = column[0].value 
+                            dimensions['Commodity Prices'] = self.dimension_reverse_index['Commodity Prices'][column[0].value] 
                         if name_series[:-5] not in ['Commodity Prices']:    
-                            dimensions['country'] = column[0].value 
+                            dimensions['country'] =  self.dimension_reverse_index['country'][column[0].value] 
                         column_value = column[1:-1]
                         for cell_value in column_value :
                             if cell_value.value:
@@ -137,7 +143,7 @@ class WorldBank(Skeleton):
                         series_key += column[0].value + '.' + frequency
                         series_name = name_series[:-5] + '; ' + column[0].value + '; ' + freq_long_name[frequency]
                         documents = BulkSeries(datasetCode,{})
-                        documents.append(Series(provider='WorldBank',
+                        documents.append(Series(provider=self.provider_name,
                                                 key= series_key,
                                                 name=series_name,
                                                 datasetCode= 'GEM',
