@@ -20,12 +20,22 @@ import elasticsearch
 from .. import mongo_client
 from .. import elasticsearch_client
 
+
+lgr = logging.getLogger('Eurostat')
+lgr.setLevel(logging.INFO)
+fh = logging.FileHandler('Eurostat.log')
+fh.setLevel(logging.INFO)
+frmt = logging.Formatter(
+'%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+fh.setFormatter(frmt)
+lgr.addHandler(fh)
+
 class Skeleton(object):
     """Abstract base class for fetchers"""
-    def __init__(self, provider_name=None):
+    def __init__(self, db, provider_name=None):
         self.configuration = configuration
         self.provider_name = provider_name
-        self.db = mongo_client.widukind
+        self.db = db
         self.elasticsearch_client = elasticsearch_client
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
@@ -85,8 +95,8 @@ dimension_list_schema = {str: [All()]}
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
     """
-    def __init__(self):
-        self.db = mongo_client.widukind
+    def __init__(self, db=None):
+        self.db = db
         self.elasticsearch_client = elasticsearch_client
 
 class Provider(DlstatsCollection):
@@ -98,9 +108,10 @@ class Provider(DlstatsCollection):
     """
 
     def __init__(self,
+                 db=None,
                  name=None,
                  website=None):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.name=name
         self.website=website
@@ -124,7 +135,7 @@ class Provider(DlstatsCollection):
                 'website': self.website}
 
     def update_database(self,mongo_id=None,key=None):
-        return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
+        return self.db.providers.update_one({'name':self.bson['name']},self.bson,upsert=True)
 
 class Series(DlstatsCollection):
     """Abstract base class for time series
@@ -163,6 +174,7 @@ class Series(DlstatsCollection):
     """
 
     def __init__(self,
+                 db=None,
                  provider=None,
                  name=None,
                  key=None,
@@ -174,7 +186,7 @@ class Series(DlstatsCollection):
                  revisions=None,
                  frequency=None,
                  dimensions=None):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.collection = self.db.series
         self.provider = provider
@@ -357,9 +369,9 @@ class ESSeriesIndex(object):
                 })
 
 class BulkSeries(DlstatsCollection):
-    def __init__(self,datasetCode,dimensionList={},attributeList={}):
-        super().__init__()
-        self.data = []
+    def __init__(self,datasetCode,dimensionList={},attributeList={},data=[], db=None):
+        super().__init__(db=db)
+        self.data = data
         self.datasetCode = datasetCode
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
@@ -485,6 +497,7 @@ class Dataset(DlstatsCollection):
      ('provider', 'Test provider')]
     """
     def __init__(self,
+                 db=None,
                  provider=None,
                  datasetCode=None,
                  name=None,
@@ -493,7 +506,7 @@ class Dataset(DlstatsCollection):
                  docHref=None,
                  lastUpdate=None
                 ):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration=configuration
         self.provider=provider
         self.datasetCode=datasetCode
@@ -560,7 +573,7 @@ class Dataset(DlstatsCollection):
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
+        self.db.datasets.replace_one({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
     def update_es_database(self,effectiveDimensionList):
@@ -588,6 +601,7 @@ class Category(DlstatsCollection):
      ('provider', 'Test provider')]
     """
     def __init__(self,
+                 db=None,
                  provider=None,
                  name=None,
                  docHref=None,
@@ -596,7 +610,7 @@ class Category(DlstatsCollection):
                  lastUpdate=None,
                  exposed=False
                 ):
-        super().__init__()
+        super().__init__(db=db)
         self.configuration = configuration
         self.provider=provider
         self.name=name
@@ -647,10 +661,12 @@ class Category(DlstatsCollection):
     def update_database(self):
         in_base_category = self.db.categories.find_one(
             {'categoryCode': self.bson['categoryCode']})
+        lgr.info(in_base_category)
         if in_base_category is None:
-            _id_ = self.db.categories.insert(self.bson)
+            _id_ = self.db.categories.insert_one(self.bson)
+            _id_ = _id_.inserted_id
         else:
-            self.db.categories.update(
+            self.db.categories.replace_one(
                 {'_id': in_base_category['_id']},self.bson)
             _id_ = in_base_category['_id']
         return _id_

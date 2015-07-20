@@ -35,8 +35,8 @@ import pprint
 
 class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
-    def __init__(self):
-        super().__init__(provider_name='eurostat')
+    def __init__(self, db):
+        super().__init__(provider_name='eurostat', db = db)
         self.lgr = logging.getLogger('Eurostat')
         self.lgr.setLevel(logging.INFO)
         self.fh = logging.FileHandler('Eurostat.log')
@@ -49,11 +49,10 @@ class Eurostat(Skeleton):
                       self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         webpage = urllib.request.urlopen(
             self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            timeout=7)
+            timeout=20)
         table_of_contents = webpage.read()
         self.table_of_contents = lxml.etree.fromstring(table_of_contents)
-        self.provider_name = 'Eurostat'
-        self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
+        self.provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat', db= self.db)
         self.selected_codes = ['ei_bcs_cs']
 
     def update_categories_db(self):
@@ -102,23 +101,22 @@ class Eurostat(Skeleton):
                 if lastUpdate is not None and not isinstance(lastUpdate,
                                                              datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
+                self.lgr.debug('Instantiating Category: %s',code) 
                 if docHref is not None:
-                    document = Category(provider=self.provider_name,name=title,
+                    document = Category(provider='eurostat', db=self.db, name=title,
                                         docHref=doc_href,children=children,
-                                        categoryCode=code,lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
+                                        exposed=True, categoryCode=code,lastUpdate=lastUpdate)
                 else:
-                    document = Category(provider=self.provider_name,name=title,
+                    document = Category(provider='eurostat', db=self.db, name=title,
                                         children=children,categoryCode=code,
-                                        lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
+                                        exposed=True, lastUpdate=lastUpdate)
                 _id = document.update_database()
                 children_ids += [_id]
             return children_ids
 
         branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider=self.provider_name,name='root',children=_id,
+        document = Category(provider='eurostat', db = self.db, name='root',children=_id,
                             lastUpdate=None,categoryCode='eurostat_root')
         document.update_database()
 
@@ -247,7 +245,7 @@ class Eurostat(Skeleton):
         self.lgr.debug("docHref : %s", cat['docHref'])
         self.lgr.debug("attributeList : %s", attributes)
         self.lgr.debug("dimensionList : %s", dimensions)
-        document = Dataset(provider=self.provider_name,
+        document = Dataset(provider='eurostat', db=self.db,
                                  datasetCode=datasetCode,
                                  attributeList=attributes,
                                  dimensionList=dimensions,
@@ -258,7 +256,9 @@ class Eurostat(Skeleton):
         effectiveDimensionList = self.update_series(data_file,datasetCode,
                                                     dimensions,attributes,
                                                     document.bson['lastUpdate'])
-        document.update_es_database(effectiveDimensionList)
+        #The test suite make bulk_update_elastic always return True. It pretty much disbale the elasticsearch functionalities 
+        if effectiveDimensionList is not True:
+            document.update_es_database(effectiveDimensionList)
         
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
@@ -277,7 +277,7 @@ class Eurostat(Skeleton):
         dimensions_dict.update({d: {v[0]: v[1]
                                     for v in attributeList[d]}
                                 for d in attributeList})
-        documents = BulkSeries(datasetCode,dimensionList,attributeList)
+        documents = BulkSeries(datasetCode,dimensionList,attributeList,db=self.db)
         for key in raw_values:
             (start_year, start_subperiod,freq) = self.parse_date(
                 raw_dates[key][0])
@@ -297,7 +297,8 @@ class Eurostat(Skeleton):
             # forming name with long label of the dimensions
             name = "-".join([dimensions_dict[name][value]
                              for name,value in dimensions.items()])
-            documents.append(Series(provider=self.provider_name,
+            documents.append(Series(provider='eurostat',
+                                    db = self.db,
                                     key=key,
                                     name=name,
                                     datasetCode= datasetCode,
