@@ -648,7 +648,7 @@ class Category(DlstatsCollection):
         in_base_category = self.db.categories.find_one(
             {'categoryCode': self.bson['categoryCode']})
         if in_base_category is None:
-  	     	_id_ = self.db.categories.insert(self.bson)
+            _id_ = self.db.categories.insert(self.bson)
         else:
             self.db.categories.update(
                 {'_id': in_base_category['_id']},self.bson)
