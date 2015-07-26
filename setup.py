@@ -12,10 +12,10 @@ setup(name='dlstats',
     url='https://github.com/Widukind', 
       package_dir={'dlstats': 'dlstats', 'dlstats.fetchers': 'dlstats/fetchers'},
     packages=['dlstats', 'dlstats.fetchers'],
-    data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
-                ('/etc/systemd/system',['os_specific/dlstats.service']),
-                ('/etc/dlstats',['config/logging.conf']),
-                ('/etc/dlstats',['config/main.conf'])],
+#    data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
+#                ('/etc/systemd/system',['os_specific/dlstats.service']),
+#                ('/etc/dlstats',['config/logging.conf']),
+#                ('/etc/dlstats',['config/main.conf'])],
     install_requires=[
         'requests>=2.4.3',
         'pymongo>=2.7.2',
@@ -25,7 +25,7 @@ setup(name='dlstats',
         'xlrd>=0.8',
         'configobj>=5.0',
         'elasticsearch>=1.0.0,<2.0.0',
-        'ming>=0.5.0'
+#        'ming>=0.5.0'
       ]
 	)
 
