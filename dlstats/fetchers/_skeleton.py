@@ -364,17 +364,6 @@ class BulkSeries(DlstatsCollection):
         self.dimensionList = dimensionList
         dimensionList.update(attributeList)
         # check whether there is a label for the dimension codes
-        if len(dimensionList):
-            if len(list(dimensionList.items())[0][1][0]) == 2:
-                self.codeDict =  {d: {v[0]: v[1]
-                                      for v in dimensionList[d]}
-                                  for d in dimensionList}
-            else:
-                self.codeDict =  {d: {v: None
-                                      for v in dimensionList[d]}
-                                  for d in dimensionList}
-        else:
-            self.codeDict = {}
 
     def __iter__(self):
         return iter(self.data)
@@ -383,35 +372,50 @@ class BulkSeries(DlstatsCollection):
         self.data.append(series)
 
     class EffectiveDimensionList(object):
-        def __init__(self,codeDict):
+        def __init__(self,codeDict={},effective_dimension_list={}):
             self.codeDict = codeDict
-            # mode == 1: a single code; mode == 2: a short and a long code
-            if len(self.codeDict):
-                self.mode = 2
+            self.effective_dimension_dict = effective_dimension_list
+            
+        def load_previous_effective_dimension_dict(self,provider,datasetCode):
+            es = elasticsearch.Elasticsearch()
+            data = es.search(index = 'widukind', doc_type = 'datasets',
+                                                    body= { "filter":
+                                                            {"term":
+                                                             {"_id": provider + '.' + datasetCode}}})
+            if data['hits']['total'] == 0:
+                self.effective_dimension_dict = {}
             else:
-                self.mode = 1
-            self.effective_dimension_dict = {}
+                codeList = data['hits']['hits'][0]['_source']['codeList']
+                self.effective_dimension_dict = {d1: {d2[0]: d2[1] for d2 in codeList[d1]} for d1 in codeList} 
+                
+        def update_entry(self,dim_name,dim_short_id,dim_long_id):
+            if dim_name in self.effective_dimension_dict:
+                if not dim_long_id:
+                    dim_long_id = 'None'
+                if not dim_short_id:
+                    try:
+                        dim_short_id = next(key for key,value in self.effective_dimension_dict[dim_name].items() if value == dim_long_id)
+                    except StopIteration:
+                        dim_short_id = str(len(self.effective_dimension_dict[dim_name]))
+                        self.effective_dimension_dict[dim_name].update({dim_short_id: dim_long_id})
+                elif not dim_short_id in self.effective_dimension_dict[dim_name]:
+                    self.effective_dimension_dict[dim_name].update({dim_short_id: dim_long_id})
+            else:
+                if not dim_short_id:
+                    dim_short_id = '0'
+                self.effective_dimension_dict[dim_name] = {dim_short_id: dim_long_id}
+            return(dim_short_id)
 
         def update(self,dimensions):
             for d in dimensions:
                 if d in self.effective_dimension_dict:
                     if not dimensions[d] in self.effective_dimension_dict[d]:
-                        if self.mode == 2:
-                            self.effective_dimension_dict[d].update({dimensions[d]: self.codeDict[d][dimensions[d]]})
-                        else:
-                            self.effective_dimension_dict[d].update([dimensions[d]])
-                            
+                        self.effective_dimension_dict[d].update({dimensions[d]: self.codeDict[d][dimensions[d]]})
                 else:
-                    if self.mode == 2:
-                        self.effective_dimension_dict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
-                    else:
-                        self.effective_dimension_dict[d] = set([dimensions[d]])
+                    self.effective_dimension_dict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
                         
         def get(self):
-            if self.mode == 2:
-                return({d: list(self.effective_dimension_dict[d].items()) for d in self.effective_dimension_dict})
-            else:
-                return({d: list(self.effective_dimension_dict[d]) for d in self.effective_dimension_dict})
+            return({d: list(self.effective_dimension_dict[d].items()) for d in self.effective_dimension_dict})
 
     def bulk_update_database(self):
         mdb_bulk = self.db.series.initialize_ordered_bulk_op()
@@ -421,7 +425,7 @@ class BulkSeries(DlstatsCollection):
         return mdb_bulk.execute();
 
 
-    def bulk_update_elastic(self):
+    def bulk_update_elastic(self,codeDict,EffectiveDimensionList):
         es_bulk = []
 
         body = {
@@ -434,10 +438,10 @@ class BulkSeries(DlstatsCollection):
                                               {"term":
                                                {"_id": self.datasetCode}}}}})
         old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
-        effective_dimension_list = self.EffectiveDimensionList(self.codeDict)
+        effective_dimension_list = self.EffectiveDimensionList(codeDict,EffectiveDimensionList)
         
         for s in self.data:
-            es_index = ESSeriesIndex(s,self.codeDict)
+            es_index = ESSeriesIndex(s,codeDict)
             if s.key in old_es_index:
                 if es_index != old_es_index[s.key]:
                     op_dict = {
