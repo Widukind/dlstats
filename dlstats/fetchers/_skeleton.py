@@ -126,7 +126,7 @@ class Provider(DlstatsCollection):
     def update_database(self,mongo_id=None,key=None):
         return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
 
-class Series(DlstatsCollection):
+class SeriesMB(DlstatsCollection):
     """Abstract base class for time series
     >>> from datetime import datetime
     >>> series = Series(provider='Test provider',name='GDP in France',
@@ -356,66 +356,127 @@ class ESSeriesIndex(object):
                 'dimensions': self.dimensions
                 })
 
-class BulkSeries(DlstatsCollection):
-    def __init__(self,datasetCode,dimensionList={},attributeList={}):
+class Series(DlstatsCollection):
+    def __init__(self,dataset,bulk_size=1000):
         super().__init__()
-        self.data = []
-        self.datasetCode = datasetCode
-        self.dimensionList = dimensionList
-        dimensionList.update(attributeList)
-        # check whether there is a label for the dimension codes
+        self.provider_name = dataset.provider_name
+        self.dataset_code = dataset.dataset_code
+        self.dimension_list = dataset.dimension_list
+        self.last_update = dataset.last_update
+        self.bulk_size = bulk_size
+        self.dimension_dict = self.DimensionDict(dataset.dimension_list)
+        self.dataset = dataset
+        self.ser_list = []
 
+    def set_data_iterator(self,data_iterator):
+        self.data_iterator = data_iterator
+        
+    def process_series(self):
+        self.initialize_series()
+        count = 0
+        while True:
+            try:
+                self.ser_list.append( self.handle_one_series() )
+            except StopIteration:
+                break
+            count += 1
+            if count > self.bulk_size:
+                self.update_series_list()
+                count = 0
+        if count > 0:
+            self.update_series_list()
+        self.dataset.set_dimension_list( self.dimension_dict.get() )
+        
+    def update_series_list(self):
+        keys = [s['key'] for s in self.ser_list]
+        old_series = self.db.series.find({'provider': self.provider_name, 'datasetCode': self.dataset_code, 'key': {'$in': keys}})
+        old_series = {s['key']:s for s in old_series}
+        bulk = self.db.series.initialize_ordered_bulk_op()
+        for s in self.ser_list:
+            bson = SeriesMB(
+                provider=s['provider_name'],
+                name=s['name'],
+                key=s['key'],
+                datasetCode=s['dataset_code'],
+                period_index=s['period_index'], 
+                releaseDates=s['release_dates'], 
+                values=s['values'],
+                attributes=s['attributes'],
+                revisions=s['revisions'],
+                frequency=s['frequency'],
+                dimensions=s['dimensions']).bson
+            if s['key'] not in old_series:
+                bulk.insert(bson)
+            else:
+                old_bson = old_series[s['key']]
+                position = 0
+                bson['revisions'] = old_bson['revisions']
+                old_start_period = pandas.Period(
+                    old_bson['startDate'],freq=old_bson['frequency'])
+                start_period = pandas.Period(
+                    bson['startDate'],freq=bson['frequency'])
+                if bson['revisions'] is None:
+                    bson['revisions'] = []
+                    if start_period > old_start_period:
+                        # previous, longer, series is kept
+                        offset = start_period - old_start_period
+                        bson['numberOfPeriods'] += offset
+                        bson['startDate'] = old_bson['startDate']
+                        for values in zip(old_bson['values'][offset:],bson['values']):
+                            if values[0] != values[1]:
+                                bson['revisions'].append(
+                                    {'value':values[0],
+                                     'position': offset+position,
+                                     'releaseDates':
+                                     old_bson['releaseDates'][offset+position]})
+                            position += 1
+                else:
+                    # zero or more data are added at the beginning of the series
+                    offset = old_start_period - start_period
+                    for values in zip(old_bson['values'],bson['values'][offset:]):
+                        if values[0] != values[1]:
+                            bson['revisions'].append(
+                                {'value':values[0],
+                                 'position': offset+position,
+                                 'releaseDates':
+                                 old_bson['releaseDates'][position]})
+                        position += 1
+                bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
+        bulk.execute()
+        self.ser_list = []
+            
     def __iter__(self):
         return iter(self.data)
     
     def append(self,series):
         self.data.append(series)
 
-    class EffectiveDimensionList(object):
-        def __init__(self,codeDict={},effective_dimension_list={}):
-            self.codeDict = codeDict
-            self.effective_dimension_dict = effective_dimension_list
-            
-        def load_previous_effective_dimension_dict(self,provider,datasetCode):
-            es = elasticsearch.Elasticsearch()
-            data = es.search(index = 'widukind', doc_type = 'datasets',
-                                                    body= { "filter":
-                                                            {"term":
-                                                             {"_id": provider + '.' + datasetCode}}})
-            if data['hits']['total'] == 0:
-                self.effective_dimension_dict = {}
-            else:
-                codeList = data['hits']['hits'][0]['_source']['codeList']
-                self.effective_dimension_dict = {d1: {d2[0]: d2[1] for d2 in codeList[d1]} for d1 in codeList} 
-                
+    class DimensionDict(object):
+        def __init__(self,dimension_list = {}):
+            self.code_dict = {d1: {d2[0]: d2[1] for d2 in dimension_list[d1]} for d1 in dimension_list}
+
         def update_entry(self,dim_name,dim_short_id,dim_long_id):
-            if dim_name in self.effective_dimension_dict:
+            if dim_name in self.code_dict:
                 if not dim_long_id:
-                    dim_long_id = 'None'
-                if not dim_short_id:
+                    dim_short_id = 'None'
+                    if 'None' not in self.code_dict[dim_name]:
+                        self.code_dict[dim_name].update({'None': 'None'})
+                elif not dim_short_id:
                     try:
-                        dim_short_id = next(key for key,value in self.effective_dimension_dict[dim_name].items() if value == dim_long_id)
+                        dim_short_id = next(key for key,value in self.code_dict[dim_name].items() if value == dim_long_id)
                     except StopIteration:
-                        dim_short_id = str(len(self.effective_dimension_dict[dim_name]))
-                        self.effective_dimension_dict[dim_name].update({dim_short_id: dim_long_id})
-                elif not dim_short_id in self.effective_dimension_dict[dim_name]:
-                    self.effective_dimension_dict[dim_name].update({dim_short_id: dim_long_id})
+                        dim_short_id = str(len(self.code_dict[dim_name]))
+                        self.code_dict[dim_name].update({dim_short_id: dim_long_id})
+                elif not dim_short_id in self.code_dict[dim_name]:
+                    self.code_dict[dim_name].update({dim_short_id: dim_long_id})
             else:
                 if not dim_short_id:
                     dim_short_id = '0'
-                self.effective_dimension_dict[dim_name] = {dim_short_id: dim_long_id}
+                self.code_dict[dim_name] = {dim_short_id: dim_long_id}
             return(dim_short_id)
 
-        def update(self,dimensions):
-            for d in dimensions:
-                if d in self.effective_dimension_dict:
-                    if not dimensions[d] in self.effective_dimension_dict[d]:
-                        self.effective_dimension_dict[d].update({dimensions[d]: self.codeDict[d][dimensions[d]]})
-                else:
-                    self.effective_dimension_dict[d] = {dimensions[d]: self.codeDict[d][dimensions[d]]}
-                        
         def get(self):
-            return({d: list(self.effective_dimension_dict[d].items()) for d in self.effective_dimension_dict})
+            return({d: list(self.code_dict[d].items()) for d in self.code_dict})
 
     def bulk_update_database(self):
         mdb_bulk = self.db.series.initialize_ordered_bulk_op()
@@ -467,7 +528,7 @@ class BulkSeries(DlstatsCollection):
         res_es = self.elasticsearch_client.bulk(index = 'widukind', body = es_bulk, refresh = True)
         return effective_dimension_list
     
-class Dataset(DlstatsCollection):
+class DatasetMB(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
     >>> dataset = Dataset(provider='Test provider',name='GDP in France',
@@ -513,7 +574,7 @@ class Dataset(DlstatsCollection):
                               All(str, Length(min=1)),
                               'datasetCode':
                               All(str, Length(min=1)),
-                              Optional('docHref'):
+                              'docHref':
                               Any(None,str),
                               'lastUpdate':
                               typecheck(datetime),
@@ -522,24 +583,14 @@ class Dataset(DlstatsCollection):
                               'attributeList':
                               Any(None,attribute_list_schema)
                                },required=True)
-
-        if docHref is None:
-            self.validate = self.schema({'provider': self.provider,
-                                         'datasetCode': self.datasetCode,
-                                         'name': self.name,
-                                         'dimensionList': self.dimensionList,
-                                         'attributeList': self.attributeList,
-                                         'lastUpdate': self.lastUpdate
-                                         })
-        else:
-            self.validate = self.schema({'provider': self.provider,
-                                         'datasetCode': self.datasetCode,
-                                         'name': self.name,
-                                         'dimensionList': self.dimensionList,
-                                         'attributeList': self.attributeList,
-                                         'docHref': self.docHref,
-                                         'lastUpdate': self.lastUpdate
-                                        })
+        self.validate = self.schema({'provider': self.provider,
+                                     'datasetCode': self.datasetCode,
+                                     'name': self.name,
+                                     'dimensionList': self.dimensionList,
+                                     'attributeList': self.attributeList,
+                                     'docHref': self.docHref,
+                                     'lastUpdate': self.lastUpdate
+        })
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key])
@@ -555,24 +606,69 @@ class Dataset(DlstatsCollection):
                 'docHref': self.docHref,
                 'lastUpdate': self.lastUpdate}
 
-    def es_bson(self,effectiveDimensionList):
-        return {'provider': self.provider,
-                'name': self.name,
-                'datasetCode': self.datasetCode,
-                'codeList': effectiveDimensionList.get(),
-                'docHref': self.docHref,
-                'lastUpdate': self.lastUpdate}
-
     def update_database(self):
         self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
                                 self.bson,upsert=True)
 
-    def update_es_database(self,effectiveDimensionList):
-        es = elasticsearch.Elasticsearch(host = "localhost")
-        es.index(index = 'widukind', doc_type = 'datasets',
-                 id = self.provider+'.'+self.datasetCode,
-                 body = self.es_bson(effectiveDimensionList))
-                 
+class Dataset(DlstatsCollection):
+    def __init__(self,provider_name,dataset_code):
+        super().__init__()
+        self.provider_name = provider_name
+        self.dataset_code = dataset_code
+        self.name = None
+        self.doc_href = None
+        self.last_update = None
+        self.dimension_list = {}
+        self.attribute_list = {}
+        self.load_previous_version(provider_name,dataset_code)
+
+    def load_previous_version(self,provider_name,dataset_code):
+        dataset = self.db.datasets.find_one({'provider': provider_name,
+                                             'datasetCode': dataset_code})
+        if dataset:
+            self.name = dataset['name']
+            self.dimension_list = dataset['dimensionList']
+            self.attribute_list = dataset['attributeList']
+            self.doc_href = dataset['docHref']
+            self.last_update = dataset['lastUpdate']
+
+    def get_dimension_list(self):
+        return(self.dimension_list)
+
+    def get_effective_dimension_list(self):
+        return(self.effective_dimension_list)
+
+    def get_attribute_list(self):
+        return(self.attribute_list)
+
+    def set_last_update(self,last_update):
+        self.last_update = last_update
+
+    def set_name(self,name):
+        self.name = name
+
+    def set_doc_href(self,doc_href):
+        self.doc_href = doc_href;
+
+    def set_last_update(self,last_update):
+        self.last_update = last_update
+
+    def set_attribute_list(self,attribute_list):
+        self.attribute_list = attribute_list
+        
+    def set_dimension_list(self,dimension_list):
+        self.dimension_list = dimension_list
+        
+    def update_database(self):
+        dataset = DatasetMB(provider = self.provider_name, 
+                            name = self.name,
+                            datasetCode = self.dataset_code,
+                            lastUpdate = self.last_update,
+                            docHref = self.doc_href,
+                            dimensionList = self.dimension_list,
+                            attributeList = self.attribute_list)
+        dataset.update_database()
+    
 class Category(DlstatsCollection):
     """Abstract base class for categories
     >>> from datetime import datetime
@@ -658,6 +754,10 @@ class Category(DlstatsCollection):
                 {'_id': in_base_category['_id']},self.bson)
             _id_ = in_base_category['_id']
         return _id_
+
+class BulkSeries():
+    def init(self):
+        pass
 
 if __name__ == "__main__":
     import doctest

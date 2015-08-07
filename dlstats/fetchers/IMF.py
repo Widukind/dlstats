@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider, DlstatsCollection
+from dlstats.fetchers.make_elastic_index import ElasticIndex
 import urllib
 import xlrd
 import csv
@@ -44,19 +45,25 @@ class IMF(Skeleton):
             ]
             for u in weo_urls:
                 self.upsert_weo_issue(u)
-                # needed to be able to search Elasticsearch just after indexing
-                sleep(5)
+            es = ElasticIndex()
+            es.make_index('IMF','WEO')
         else:
             raise Exception("The name of dataset was not entered!")
         
     def upsert_weo_issue(self,url):
+        release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
+        dataset = Dataset('IMF','WEO')
+        print(dataset.dimension_list)
+        dataset.set_name('World Economic Outlook')
+        dataset.set_doc_href('http://www.imf.org/')
+        dataset.set_last_update(release_date)
+        dataset.set_attribute_list({'OBS_VALUE': [('e', 'Estimates Start After')]})
+        series = Series(dataset)
         response = urllib.request.urlopen(url)
         sheet = csv.DictReader(codecs.iterdecode(response, 'latin-1'), delimiter='\t')
-        releaseDate = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
-        
-        [effective_dimension_list, dataset_data] = self.update_series('WEO', sheet, releaseDate)
-        dataset_data.update_database()
-        dataset_data.update_es_database(effective_dimension_list)
+        series.set_data_iterator(sheet)
+        series.process_series()
+        dataset.update_database()
     
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
@@ -64,57 +71,47 @@ class IMF(Skeleton):
                             categoryCode ='WEO')
         return document.update_database()
         
+class Series(Series):
+    def initialize_series(self):
+        self.years = self.data_iterator.fieldnames[9:-1]
+        print(self.years)
+        self.period_index = pandas.period_range(self.years[0], self.years[-1] , freq = 'annual')   
 
-    def update_series(self,datasetCode,sheet,releaseDate):
-        if datasetCode=='WEO':
-            years = sheet.fieldnames[9:-1]
-            print(years)
-            period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')   
-            series = BulkSeries(datasetCode)
-            dimensionList = series.EffectiveDimensionList({})
-            # get exisisting effective dimensions in Elasticsearch datasets index
-            dimensionList.load_previous_effective_dimension_dict(self.provider_name,datasetCode)
-            attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]} 
-            for row in sheet:
-                value = []
-                if row['Country']:               
-                    attributes = {}
-                    dimensions = {}
-                    for year in years:
-                        value.append(row[year])
-                    dimensions['Country'] = dimensionList.update_entry('Country', row['ISO'], row['Country'])
-                    dimensions['WEO Country Code'] = dimensionList.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code'])
-                    dimensions['Subject'] = dimensionList.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
-                    dimensions['Units'] = dimensionList.update_entry('Units', '', row['Units'])
-                    dimensions['Scale'] = dimensionList.update_entry('Scale', row['Scale'], row['Scale'])
-                    series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
-                    series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
-                    if row['Estimates Start After']:
-                        estimation_start = int(row['Estimates Start After']);
-                        attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
-                    release_dates = [ releaseDate for v in value]
-                    series.append(Series(provider=self.provider_name,
-                                            key= series_key,
-                                            name=series_name,
-                                            datasetCode= 'WEO',
-                                            period_index= period_index,
-                                            values=value,
-                                            releaseDates= release_dates,
-                                            frequency='A',
-                                            attributes = attributes,
-                                            dimensions=dimensions))
-            attributeList = {'VALUE_STATUS': [('e', 'Estimated')]}
-            dataset = Dataset(provider = self.provider_name, 
-                               name = 'World Economic Outlook' ,
-                               datasetCode = 'WEO', lastUpdate = releaseDate,
-                               dimensionList = dimensionList.get(), docHref = "http://http://www.imf.org/",
-                               attributeList = attributeList) 
-            series.bulk_update_database()
-            codeDict = {d1: {d2[0]: d2[1] for d2 in dimensionList.get()[d1]} for d1 in dimensionList.get() }
-            return(series.bulk_update_elastic(codeDict,codeDict),dataset)
+    def handle_one_series(self):
+        series = {}
+        values = []
+        row = next(self.data_iterator)
+        if row['Country']:               
+            self.attributes = {}
+            dimensions = {}
+            for year in self.years:
+                values.append(row[year])
+            dimensions['Country'] = self.dimension_dict.update_entry('Country', row['ISO'], row['Country'])
+            dimensions['WEO Country Code'] = self.dimension_dict.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code'])
+            dimensions['Subject'] = self.dimension_dict.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
+            dimensions['Units'] = self.dimension_dict.update_entry('Units', '', row['Units'])
+            dimensions['Scale'] = self.dimension_dict.update_entry('Scale', row['Scale'], row['Scale'])
+            series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
+            series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
+            release_dates = [ self.last_update for v in values]
+            series['provider_name'] = self.provider_name
+            series['dataset_code'] = self.dataset_code
+            series['name'] = series_name
+            series['key'] = series_key
+            series['values'] = values
+            series['attributes'] = {}
+            if row['Estimates Start After']:
+                estimation_start = int(row['Estimates Start After']);
+                series['attributes'] = {'flag': [ '' if int(y) < estimation_start else 'e' for y in self.years]}
+            series['dimensions'] = dimensions
+            series['release_dates'] = release_dates
+            series['period_index'] = self.period_index
+            series['revisions'] = []
+            series['frequency'] = 'A'
+            return(series)
         else:
-            raise Exception("The name of dataset was not entered!")
-
+            raise StopIteration()
+        
 if __name__ == "__main__":
     import IMF
     w = IMF.IMF()

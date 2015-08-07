@@ -22,7 +22,9 @@ class ElasticIndex():
         es_dataset['name'] = mb_dataset['name']
         es_dataset['docHref'] = mb_dataset['docHref']
         es_dataset['lastUpdate'] = mb_dataset['lastUpdate']
-
+        es_dataset['provider'] = mb_dataset['provider']
+        es_dataset['datasetCode'] = mb_dataset['datasetCode']
+        
         es_series = self.elasticsearch_client.search(index = 'widukind', doc_type = 'series',
                             body= { "filter":
                                     { "term":
@@ -31,26 +33,39 @@ class ElasticIndex():
 
         mb_dimension_dict = {d1: {d2[0]: d2[1] for d2 in mb_dataset['dimensionList'][d1]} for d1 in mb_dataset['dimensionList']}
         # updating long names in ES index
-        es_dimension_list = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]] for d2 in es_dataset['codeList'][d1]} for d1 in es_dataset['codeList']}
-        
+        if 'codeList' in es_dataset:
+            es_dimension_dict = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]] for d2 in es_dataset['codeList'][d1]} for d1 in es_dataset['codeList']}
+        else:
+            es_dimension_dict = {}
+            
         es_bulk = EsBulk(mb_dimension_dict)
         for s in mb_series:
+            mb_dim = s['dimensions']
+            s['dimensions'] = {d: [mb_dim[d],mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim}
+        
             if s['key'] not in es_series_dict:
                 es_bulk.add_to_index(provider_name,dataset_code,s)
             else:
                 es_bulk.update_index(provider_name,dataset_code,s,es_series_dict[s['key']])
-#        es_bulk.update_database()
-        
+            dim = s['dimensions']
+            for d in dim:
+                if d not in es_dimension_dict:
+                    es_dimension_dict[d] = {dim[d][0]:dim[d][1]}
+                elif dim[d][0] not in es_dimension_dict[d]:
+                    es_dimension_dict[d].update({dim[d][0]:dim[d][1]})
+        es_bulk.update_database()
+        es_dataset['codeList'] = {d1: [[d2[0], d2[1]] for d2 in es_dimension_dict[d1].items()] for d1 in es_dimension_dict}
+        print(es_dataset)
+        self.elasticsearch_client.index(index = 'widukind',
+                                  doc_type='datasets',
+                                  id = provider_name + '.' + dataset_code,
+                                  body = es_dataset)
 class EsBulk():
     def __init__(self,mb_dimension_dict):
         self.es_bulk = []
         self.mb_dimension_dict = mb_dimension_dict
         
     def add_to_index(self,provider_name,dataset_code,s):
-        mb_dim = s['dimensions']
-        print(mb_dim)
-        dimensions = {d: [mb_dim[d],self.mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim}
-        
         op_dict = {
             "index": {
                 "_index": 'widukind',
@@ -63,9 +78,8 @@ class EsBulk():
                 'key': s['key'],
                 'name': s['name'],
                 'datasetCode': dataset_code,
-                'dimensions': dimensions
+                'dimensions': s['dimensions']
         }
-        print('add',bson)
         self.es_bulk.append(bson)
                                      
     def update_index(self,provider_name,dataset_code,s,es_s):
@@ -94,10 +108,9 @@ class EsBulk():
             }
             self.es_bulk.append(op_dict)
             self.es_bulk.append(new_bson)
-            print(new_bson)
             
     def update_database(self):
-        print(self.es_bulk)
+        res_es = Elasticsearch().bulk(index = 'widukind', body = self.es_bulk, refresh = True)
         
 if __name__ == "__main__":
     e = ElasticIndex()
