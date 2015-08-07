@@ -16,9 +16,7 @@ import logging
 import bson
 import pprint
 from collections import defaultdict
-import elasticsearch
 from .. import mongo_client
-from .. import elasticsearch_client
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
@@ -26,7 +24,7 @@ class Skeleton(object):
         self.configuration = configuration
         self.provider_name = provider_name
         self.db = mongo_client.widukind
-        self.elasticsearch_client = elasticsearch_client
+
     def upsert_categories(self,id):
         """Upsert the categories in MongoDB
         """
@@ -87,7 +85,6 @@ class DlstatsCollection(object):
     """
     def __init__(self):
         self.db = mongo_client.widukind
-        self.elasticsearch_client = elasticsearch_client
 
 class Provider(DlstatsCollection):
     """Abstract base class for providers
@@ -330,32 +327,6 @@ class SeriesMB(DlstatsCollection):
                 {'$set': self.bson})
         return old_bson['_id']
 
-class ESSeriesIndex(object):
-    def __init__(self,series,codeDict):
-        self.key = series.key
-        self.provider = series.provider
-        self.name = series.name
-        self.datasetCode = series.datasetCode
-        self.dimensions = {}
-
-        for key, value in series.dimensions.items():
-            if len(codeDict):
-                if value in codeDict[key]:
-                    self.dimensions[key] = [value, codeDict[key][value]]
-                else:
-                    self.dimensions[key] = [value, '']
-            else:
-                self.dimensions[key] = [value]
-
-    @property
-    def bson(self):
-        return({'provider': self.provider,
-                'key': self.key,
-                'name': self.name,
-                'datasetCode': self.datasetCode,
-                'dimensions': self.dimensions
-                })
-
 class Series(DlstatsCollection):
     def __init__(self,dataset,bulk_size=1000):
         super().__init__()
@@ -486,48 +457,6 @@ class Series(DlstatsCollection):
         return mdb_bulk.execute();
 
 
-    def bulk_update_elastic(self,codeDict,EffectiveDimensionList):
-        es_bulk = []
-
-        body = {
-                'created': datetime.today()
-        }
-        self.elasticsearch_client.index(index="widukind", doc_type='series', id=1, body=body)
-        es_data = self.elasticsearch_client.search(index = 'widukind', doc_type = 'series',
-                            body={"query" : { "filtered" :
-                                             { "filter":
-                                              {"term":
-                                               {"_id": self.datasetCode}}}}})
-        old_es_index = {e['_source']['key']: e for e in es_data['hits']['hits']}
-        effective_dimension_list = self.EffectiveDimensionList(codeDict,EffectiveDimensionList)
-        
-        for s in self.data:
-            es_index = ESSeriesIndex(s,codeDict)
-            if s.key in old_es_index:
-                if es_index != old_es_index[s.key]:
-                    op_dict = {
-                        "update": {
-                            "_index": 'widukind',
-                            "_type": 'series',
-                            "_id": s.key
-                        }
-                    }
-                    es_bulk.append(op_dict)
-            else:
-                op_dict = {
-                    "index": {
-                        "_index": 'widukind',
-                        "_type": 'series',
-                        "_id": s.key
-                    }
-                }
-                es_bulk.append(op_dict)
-            es_bulk.append(es_index.bson)
-            effective_dimension_list.update(s.dimensions)
-                                            
-        res_es = self.elasticsearch_client.bulk(index = 'widukind', body = es_bulk, refresh = True)
-        return effective_dimension_list
-    
 class DatasetMB(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
@@ -634,9 +563,6 @@ class Dataset(DlstatsCollection):
 
     def get_dimension_list(self):
         return(self.dimension_list)
-
-    def get_effective_dimension_list(self):
-        return(self.effective_dimension_list)
 
     def get_attribute_list(self):
         return(self.attribute_list)
