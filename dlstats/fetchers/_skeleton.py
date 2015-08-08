@@ -10,13 +10,13 @@ import pandas
 from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any
 from dlstats import configuration
 #from dlstats.misc_func import dictionary_union
-from ..misc_func import dictionary_union
+#from ..misc_func import dictionary_union
 from datetime import datetime
 import logging
 import bson
 import pprint
 from collections import defaultdict
-from .. import mongo_client
+from dlstats import mongo_client
 
 class Skeleton(object):
     """Abstract base class for fetchers"""
@@ -126,7 +126,7 @@ class Provider(DlstatsCollection):
 class SeriesMB(DlstatsCollection):
     """Abstract base class for time series
     >>> from datetime import datetime
-    >>> series = Series(provider='Test provider',name='GDP in France',
+    >>> series = SeriesMB(provider='Test provider',name='GDP in France',
     ...                 key='GDP_FR',datasetCode='nama_gdp_fr',
     ...                 values = ['2700', '2720', '2740', '2760'],
     ...                 releaseDates = [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)],
@@ -134,7 +134,7 @@ class SeriesMB(DlstatsCollection):
     ...                 attributes = {'OBS_VALUE': ['p']},
     ...                 revisions = [{'value': '2710', 'position':2,
     ...                 'releaseDates' : [datetime(2014,11,28)]}],
-    ...                 dimensions = [{'Seasonal adjustment':'wda'}])
+    ...                 dimensions = {'Seasonal adjustment':'wda'})
     >>> print(series)
     [('attributes', {'OBS_VALUE': ['p']}),
      ('datasetCode', 'nama_gdp_fr'),
@@ -142,9 +142,19 @@ class SeriesMB(DlstatsCollection):
      ('key', 'GDP_FR'),
      ('name', 'GDP in France'),
      ('period_index',
-      <class 'pandas.tseries.period.PeriodIndex'>
-    [1999Q1, ..., 2016Q4]
-    Length: 72, Freq: Q-DEC),
+      PeriodIndex(['1999Q1', '1999Q2', '1999Q3', '1999Q4', '2000Q1', '2000Q2',
+                 '2000Q3', '2000Q4', '2001Q1', '2001Q2', '2001Q3', '2001Q4',
+                 '2002Q1', '2002Q2', '2002Q3', '2002Q4', '2003Q1', '2003Q2',
+                 '2003Q3', '2003Q4', '2004Q1', '2004Q2', '2004Q3', '2004Q4',
+                 '2005Q1', '2005Q2', '2005Q3', '2005Q4', '2006Q1', '2006Q2',
+                 '2006Q3', '2006Q4', '2007Q1', '2007Q2', '2007Q3', '2007Q4',
+                 '2008Q1', '2008Q2', '2008Q3', '2008Q4', '2009Q1', '2009Q2',
+                 '2009Q3', '2009Q4', '2010Q1', '2010Q2', '2010Q3', '2010Q4',
+                 '2011Q1', '2011Q2', '2011Q3', '2011Q4', '2012Q1', '2012Q2',
+                 '2012Q3', '2012Q4', '2013Q1', '2013Q2', '2013Q3', '2013Q4',
+                 '2014Q1', '2014Q2', '2014Q3', '2014Q4', '2015Q1', '2015Q2',
+                 '2015Q3', '2015Q4', '2016Q1', '2016Q2', '2016Q3', '2016Q4'],
+                dtype='int64', freq='Q-DEC')),
      ('provider', 'Test provider'),
      ('releaseDates',
       [datetime.datetime(2013, 11, 28, 0, 0),
@@ -328,6 +338,36 @@ class SeriesMB(DlstatsCollection):
         return old_bson['_id']
 
 class Series(DlstatsCollection):
+    """Abstract base class for time series
+    >>> from datetime import datetime
+    >>> dataset = Dataset(provider_name='Test provider',
+    ...                   dataset_code='nama_gdp_fr')
+    >>> series = Series(dataset)
+    >>> series.process_series()
+    >>> print(series.ser_list)
+    [('attributes', {'OBS_VALUE': ['p']}),
+     ('datasetCode', 'nama_gdp_fr'),
+     ('dimensions', {'Seasonal adjustment': 'wda'}),
+     ('key', 'GDP_FR'),
+     ('name', 'GDP in France'),
+     ('period_index',
+      <class 'pandas.tseries.period.PeriodIndex'>
+    [1999Q1, ..., 2016Q4]
+    Length: 72, Freq: Q-DEC),
+     ('provider', 'Test provider'),
+     ('releaseDates',
+      [datetime.datetime(2013, 11, 28, 0, 0),
+       datetime.datetime(2014, 12, 28, 0, 0),
+       datetime.datetime(2015, 1, 28, 0, 0),
+       datetime.datetime(2015, 2, 28, 0, 0)]),
+     ('revisions',
+      [{'position': 2,
+        'releaseDates': [datetime.datetime(2014, 11, 28, 0, 0)],
+        'value': '2710'}]),
+     ('values', ['2700', '2720', '2740', '2760'])]
+    >>>
+    """
+
     def __init__(self,dataset,bulk_size=1000):
         super().__init__()
         self.provider_name = dataset.provider_name
@@ -338,9 +378,43 @@ class Series(DlstatsCollection):
         self.dimension_dict = self.DimensionDict(dataset.dimension_list)
         self.dataset = dataset
         self.ser_list = []
+        self.schema = Schema({'name':
+                              All(str, Length(min=1)),
+                              'provider':
+                              All(str, Length(min=1)),
+                              'key':
+                              All(str, Length(min=1)),
+                              'datasetCode':
+                              All(str, Length(min=1)),
+                              'startDate':
+                              date_validator,
+                              'endDate':
+                              date_validator,
+                              'values':
+                              [Any(str)],
+                              'releaseDates':
+                              [date_validator],
+                              'attributes':
+                              Any({},attributes),
+                              'revisions':
+                              Any(None,revision_schema),
+                              'dimensions':
+                              dimensions,
+                              'frequency': 
+                              All(str, Length(min=1)),
+                               },required=True)
 
     def set_data_iterator(self,data_iterator):
         self.data_iterator = data_iterator
+
+    def initialize_series(self):
+        pass
+
+#    def handle_one_series(self):
+#        """User provided function for parsing one series.
+#        """
+#        raise NotImplementedError("This method from the Series class must "
+#                                  "be implemented.")
         
     def process_series(self):
         self.initialize_series()
@@ -363,23 +437,15 @@ class Series(DlstatsCollection):
         old_series = self.db.series.find({'provider': self.provider_name, 'datasetCode': self.dataset_code, 'key': {'$in': keys}})
         old_series = {s['key']:s for s in old_series}
         bulk = self.db.series.initialize_ordered_bulk_op()
-        for s in self.ser_list:
-            bson = SeriesMB(
-                provider=s['provider_name'],
-                name=s['name'],
-                key=s['key'],
-                datasetCode=s['dataset_code'],
-                period_index=s['period_index'], 
-                releaseDates=s['release_dates'], 
-                values=s['values'],
-                attributes=s['attributes'],
-                revisions=s['revisions'],
-                frequency=s['frequency'],
-                dimensions=s['dimensions']).bson
-            if s['key'] not in old_series:
+        for bson in self.ser_list:
+            period_index = bson.pop('period_index')
+            bson['startDate'] = period_index[0].to_timestamp()
+            bson['endDate'] = period_index[-1].to_timestamp()
+            self.schema(bson)
+            if bson['key'] not in old_series:
                 bulk.insert(bson)
             else:
-                old_bson = old_series[s['key']]
+                old_bson = old_series[bson['key']]
                 position = 0
                 bson['revisions'] = old_bson['revisions']
                 old_start_period = pandas.Period(
@@ -460,20 +526,19 @@ class Series(DlstatsCollection):
 class DatasetMB(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
-    >>> dataset = Dataset(provider='Test provider',name='GDP in France',
+    >>> dataset = DatasetMB(provider='Test provider',name='GDP in France',
     ...                 datasetCode='nama_gdp_fr',
-    ...                 dimensionList=[{'name':'COUNTRY','values':[('FR','France'),('DE','Germany')]}],
-    ...                 attributeList=[{'OBS_VALUE': [('p', 'preliminary'), ('f', 'forecast')]}],
-    ...                 docHref='nauriset',
+    ...                 dimensionList={'name':[('CO','COUNTRY')],'values':[('FR','France'),('DE','Germany')]},
+    ...                 attributeList={'OBS_VALUE': [('p', 'preliminary'), ('f', 'forecast')]},
+    ...                 docHref='http://nauriset',
     ...                 lastUpdate=datetime(2014,12,2))
     >>> print(dataset)
-    [('attributeList',
-      [{'OBS_VALUE'
-        : [('p', 'preliminary'), ('f', 'forecast')]}]),
+    [('attributeList', {'OBS_VALUE': [('p', 'preliminary'), ('f', 'forecast')]}),
      ('datasetCode', 'nama_gdp_fr'),
      ('dimensionList',
-      [{'name': 'COUNTRY', 'values': [('FR', 'France'), ('DE', 'Germany')]}]),
-     ('docHref', 'nauriset'),
+      {'name': [('CO', 'COUNTRY')],
+       'values': [('FR', 'France'), ('DE', 'Germany')]}),
+     ('docHref', 'http://nauriset'),
      ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
      ('name', 'GDP in France'),
      ('provider', 'Test provider')]
@@ -687,4 +752,17 @@ class BulkSeries():
 
 if __name__ == "__main__":
     import doctest
+    class Series(Series):
+        def handle_one_series(self):
+            return({'provider' : 'Test provider',
+                    'name' : 'GDP in France',
+                    'key' : 'GDP_FR',
+                    'datasetCode' : 'nama_gdp_fr',
+                    'values' : ['2700', '2720', '2740', '2760'],
+                    'releaseDates' : [datetime(2013,11,28),datetime(2014,12,28),datetime(2015,1,28),datetime(2015,2,28)],
+                    'period_index' : pandas.period_range('1/1999', periods=72, freq='Q'),
+                    'attributes' : {'OBS_VALUE': ['p']},
+                    'revisions' : [{'value': '2710', 'position':2,
+                                    'releaseDates' : [datetime(2014,11,28)]}],
+                    'dimensions' : [{'Seasonal adjustment':'wda'}]})
     doctest.testmod()
