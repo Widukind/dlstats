@@ -23,7 +23,7 @@ class IMF(Skeleton):
         if datasetCode=='WEO':
             weo_urls = [
                 'http://localhost:8800/imf/WEOSep2006all.xls',
-                'http://localhost:8800/imf/WEOApr2007all.xls'
+                #                'http://localhost:8800/imf/WEOApr2007all.xls'
                 #            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
                 #            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
                 #        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
@@ -53,14 +53,13 @@ class IMF(Skeleton):
     def upsert_weo_issue(self,url):
         release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
         dataset = Dataset('IMF','WEO')
-        print(dataset.dimension_list)
         dataset.set_name('World Economic Outlook')
         dataset.set_doc_href('http://www.imf.org/')
         dataset.set_last_update(release_date)
         dataset.set_attribute_list({'OBS_VALUE': [('e', 'Estimates Start After')]})
         series = Series(dataset)
-        response = urllib.request.urlopen(url)
-        sheet = csv.DictReader(codecs.iterdecode(response, 'latin-1'), delimiter='\t')
+        datafile = urllib.request.urlopen(url).read().decode('latin-1').splitlines()
+        sheet = csv.DictReader(datafile, delimiter='\t')
         series.set_data_iterator(sheet)
         series.process_series()
         dataset.update_database()
@@ -94,8 +93,8 @@ class Series(Series):
             series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
             series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
             release_dates = [ self.last_update for v in values]
-            series['provider_name'] = self.provider_name
-            series['dataset_code'] = self.dataset_code
+            series['provider'] = self.provider_name
+            series['datasetCode'] = self.dataset_code
             series['name'] = series_name
             series['key'] = series_key
             series['values'] = values
@@ -104,7 +103,7 @@ class Series(Series):
                 estimation_start = int(row['Estimates Start After']);
                 series['attributes'] = {'flag': [ '' if int(y) < estimation_start else 'e' for y in self.years]}
             series['dimensions'] = dimensions
-            series['release_dates'] = release_dates
+            series['releaseDates'] = release_dates
             series['period_index'] = self.period_index
             series['revisions'] = []
             series['frequency'] = 'A'
