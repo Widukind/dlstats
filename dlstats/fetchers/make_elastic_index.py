@@ -55,7 +55,6 @@ class ElasticIndex():
                     es_dimension_dict[d].update({dim[d][0]:dim[d][1]})
         es_bulk.update_database()
         es_dataset['codeList'] = {d1: [[d2[0], d2[1]] for d2 in es_dimension_dict[d1].items()] for d1 in es_dimension_dict}
-        print(es_dataset)
         self.elasticsearch_client.index(index = 'widukind',
                                   doc_type='datasets',
                                   id = provider_name + '.' + dataset_code,
