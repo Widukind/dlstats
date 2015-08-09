@@ -125,12 +125,10 @@ class Provider(DlstatsCollection):
 
 class Series(DlstatsCollection):
     """Abstract base class for time series
-    >>> from datetime import datetime
     >>> dataset = Dataset(provider_name='Test provider',
     ...                   dataset_code='nama_gdp_fr')
     >>> series = Series(dataset)
-    >>> series.process_series()
-    >>> print(series.ser_list)
+    >>> print(series)
     [('attributes', {'OBS_VALUE': ['p']}),
      ('datasetCode', 'nama_gdp_fr'),
      ('dimensions', {'Seasonal adjustment': 'wda'}),
@@ -188,7 +186,9 @@ class Series(DlstatsCollection):
                               dimensions,
                               'frequency': 
                               All(str, Length(min=1)),
-                               },required=True)
+                              Optional('notes'):
+                              str
+                             },required=True)
 
     def set_data_iterator(self,data_iterator):
         self.data_iterator = data_iterator
@@ -196,11 +196,11 @@ class Series(DlstatsCollection):
     def initialize_series(self):
         pass
 
-#    def handle_one_series(self):
-#        """User provided function for parsing one series.
-#        """
-#        raise NotImplementedError("This method from the Series class must "
-#                                  "be implemented.")
+    def handle_one_series(self):
+        """User provided function for parsing one series.
+        """
+        raise NotImplementedError("This method from the Series class must "
+                                  "be implemented.")
         
     def process_series(self):
         self.initialize_series()

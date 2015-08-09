@@ -23,7 +23,7 @@ class IMF(Skeleton):
         if datasetCode=='WEO':
             weo_urls = [
                 'http://localhost:8800/imf/WEOSep2006all.xls',
-                #                'http://localhost:8800/imf/WEOApr2007all.xls'
+                'http://localhost:8800/imf/WEOApr2007all.xls'
                 #            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
                 #            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
                 #        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
@@ -107,6 +107,10 @@ class Series(Series):
             series['period_index'] = self.period_index
             series['revisions'] = []
             series['frequency'] = 'A'
+            if row['Subject Notes']:
+                series['notes'] = row['Subject Notes']
+            if row['Country/Series-specific Notes']:
+                row['Country/Series-specific Notes'] += '\n' + row['Country/Series-specific Notes']
             return(series)
         else:
             raise StopIteration()
