@@ -22,26 +22,24 @@ class IMF(Skeleton):
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
             weo_urls = [
-                'http://localhost:8800/imf/WEOSep2006all.xls',
-                'http://localhost:8800/imf/WEOApr2007all.xls'
-                #            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
-                #            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
-                #        'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
-                #        'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
+                'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
+                'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
             ]
             for u in weo_urls:
                 self.upsert_weo_issue(u)
