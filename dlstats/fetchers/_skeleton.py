@@ -216,7 +216,7 @@ class Series(DlstatsCollection):
                 count = 0
         if count > 0:
             self.update_series_list()
-        self.dataset.set_dimension_list( self.dimension_dict.get() )
+        self.dataset.set_dimension_list( self.dimension_dict.get_list() )
         
     def update_series_list(self):
         keys = [s['key'] for s in self.ser_list]
@@ -298,7 +298,10 @@ class Series(DlstatsCollection):
                 self.code_dict[dim_name] = {dim_short_id: dim_long_id}
             return(dim_short_id)
 
-        def get(self):
+        def get_dict(self):
+            return(self.code_dict)
+        
+        def get_list(self):
             return({d: list(self.code_dict[d].items()) for d in self.code_dict})
 
     def bulk_update_database(self):
