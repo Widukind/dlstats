@@ -10,6 +10,8 @@
 
 from dlstats.fetchers._skeleton import (Skeleton, Category, Series,
                                         BulkSeries, Dataset, Provider)
+from dlstats.fetchers.make_elastic_index import ElasticIndex
+
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
@@ -47,11 +49,11 @@ class Eurostat(Skeleton):
         self.lgr.addHandler(self.fh)
         self.lgr.info('Retrieving %s',
                       self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
-        webpage = urllib.request.urlopen(
-            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-            timeout=7)
-        table_of_contents = webpage.read()
-        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
+        #        webpage = urllib.request.urlopen(
+        #            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
+        #            timeout=7)
+        #        table_of_contents = webpage.read()
+        #        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
         self.provider_name = 'Eurostat'
         self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
@@ -178,8 +180,9 @@ class Eurostat(Skeleton):
                 ".//structure:Dimension",namespaces=nsmap)]
             al = [d.get("codelist")[3:] for d in concept_list.iterfind(
                 ".//structure:Attribute",namespaces=nsmap)]
-        attributes = {key: codes[key] for key in al}
-        dimensions = {key: codes[key] for key in dl}
+        # force key name tp lowercase
+        attributes = {key.lower(): codes[key] for key in al}
+        dimensions = {key.lower(): codes[key] for key in dl}
         return (attributes,dimensions)
     
     def parse_sdmx(self,file,dataset_code):
@@ -229,96 +232,114 @@ class Eurostat(Skeleton):
         return (raw_values, raw_dates, raw_attributes, raw_dimensions)
 
 
-
+    def make_url(self,datasetCode):
+        return("http://ec.europa.eu/eurostat/" +
+               "estat-navtree-portlet-prod/" +
+               "BulkDownloadListing?sort=1&file=data/" +
+               datasetCode + ".sdmx.zip")
+    
     def update_selected_dataset(self,datasetCode):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-        request = requests.get("http://ec.europa.eu/eurostat/" +
-                               "estat-navtree-portlet-prod/" +
-                               "BulkDownloadListing?sort=1&file=data/" +
-                               datasetCode + ".sdmx.zip")
+        print(self.make_url(datasetCode))
+        request = requests.get(self.make_url(datasetCode))
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
         dsd_file = files.read(datasetCode + ".dsd.xml")
         data_file = files.read(datasetCode + ".sdmx.xml")
         [attributes,dimensions] = self.parse_dsd(dsd_file,datasetCode)
+        dataset = Dataset(self.provider_name,datasetCode)
+        
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
         self.lgr.debug("docHref : %s", cat['docHref'])
         self.lgr.debug("attributeList : %s", attributes)
         self.lgr.debug("dimensionList : %s", dimensions)
-        document = Dataset(provider=self.provider_name,
-                                 datasetCode=datasetCode,
-                                 attributeList=attributes,
-                                 dimensionList=dimensions,
-                                 name = cat['name'],
-                                 docHref = cat['docHref'],
-                                 lastUpdate=cat['lastUpdate'])
-        id = document.update_database()
-        effectiveDimensionList = self.update_series(data_file,datasetCode,
-                                                    dimensions,attributes,
-                                                    document.bson['lastUpdate'])
-        document.update_es_database(effectiveDimensionList)
+        dataset.set_name(cat['name'])
+        dataset.set_doc_href(cat['docHref'])
+        dataset.set_last_update(cat['lastUpdate'])
+        dataset.set_attribute_list(attributes)
+        dataset.set_dimension_list(dimensions)
+        dataset.update_database()
+        series = Series(dataset)
+        parser = lxml.etree.XMLParser(ns_clean=True, recover=True,
+                                      encoding='utf-8') 
+        tree = lxml.etree.fromstring(data_file, parser)
+        # Anonymous namespace is not supported by lxml
+        nsmap = {}
+        for t in tree.nsmap:
+            if t != None:
+                nsmap[t] = tree.nsmap[t]
+        series.set_data_iterator(tree.iterfind(".//data:Series",
+                                               namespaces=nsmap))
+        series.process_series()
+        es = ElasticIndex()
+        es.make_index(self.provider_name,datasetCode)
         
+    def update_eurostat(self):
+        return self.update_categories_db()
+
+class Series(Series):
     def parse_date(self,str):
         m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
         if m.groups()[3]:
             return (m.groups()[3],None,'A')
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
-
-    def update_series(self,data_file,datasetCode,dimensionList,attributeList,
-                      lastUpdate):
-        (raw_values, raw_dates, raw_attributes,
-         raw_dimensions) = self.parse_sdmx(data_file,datasetCode)
-        dimensions_dict = {d: {v[0]:v[1]
-                               for v in dimensionList[d]}
-                           for d in dimensionList}
-        dimensions_dict.update({d: {v[0]: v[1]
-                                    for v in attributeList[d]}
-                                for d in attributeList})
-        documents = BulkSeries(datasetCode,dimensionList,attributeList)
-        for key in raw_values:
-            (start_year, start_subperiod,freq) = self.parse_date(
-                raw_dates[key][0])
-            (end_year,end_subperiod,freq) = self.parse_date(
-                raw_dates[key][-1])
-            if freq == "A":
-                period_index = pandas.period_range(start=start_year,
-                                                   end=end_year,freq=freq)
-            else:
-                period_index = pandas.period_range(
-                    start=start_year+freq+start_subperiod,
-                    end=end_year+freq+end_subperiod,
-                    freq=freq)
-            releaseDates = [lastUpdate for v in raw_values[key]]
-            dimensions_ = raw_dimensions[key]
-            dimensions = {name.upper(): value for name, value in dimensions_.items()}
-            # forming name with long label of the dimensions
-            name = "-".join([dimensions_dict[name][value]
-                             for name,value in dimensions.items()])
-            documents.append(Series(provider=self.provider_name,
-                                    key=key,
-                                    name=name,
-                                    datasetCode= datasetCode,
-                                    period_index=period_index,
-                                    values=raw_values[key],
-                                    attributes=raw_attributes[key],
-                                    releaseDates=releaseDates,
-                                    frequency=freq,
-                                    dimensions=dimensions
-                                ))
-            self.lgr.debug('Instantiating Series: %s',key)
-        documents.bulk_update_database()
-        return documents.bulk_update_elastic()  
-
-
-    def update_eurostat(self):
-        return self.update_categories_db()
-
+            
+    def handle_one_series(self):
+        attributes = defaultdict(list)
+        values = []
+        raw_dates = []
+        series = next(self.data_iterator)
+        # drop TIME FORMAT that isn't informative
+        dimensions = OrderedDict({key.lower(): value for key,value in series.attrib.items() if key != 'TIME_FORMAT'})
+        nobs = 1
+        for observation in series.iterchildren():
+            for k in attributes:
+                attributes[k] += [""]
+            attrib = observation.attrib
+            for a in attrib:
+                if a == "TIME_PERIOD":
+                    raw_dates.append(attrib[a])
+                elif a == "OBS_VALUE":
+                    values.append(attrib[a])
+                else:
+                    if not a in attributes.keys():
+                        attributes[a] = ["" for i in range(nobs)]
+                    attributes[a][-1] = attrib[a]
+            nobs += 1
+        bson = {}
+        bson['provider'] = self.provider_name
+        bson['datasetCode'] = self.dataset_code
+        bson['name'] =  "-".join([self.dimension_dict.get_dict()[n][v]
+                             for n,v in dimensions.items()])
+        bson['key'] = ".".join(dimensions.values())
+        bson['values'] = values
+        bson['attributes'] = attributes
+        bson['dimensions'] = dimensions
+        bson['releaseDates'] = [self.last_update for v in values]
+        (start_year, start_subperiod,freq) = self.parse_date(
+            raw_dates[0])
+        (end_year,end_subperiod,freq) = self.parse_date(
+            raw_dates[-1])
+        if freq == "A":
+            bson['period_index'] = pandas.period_range(start=start_year,
+                                                       end=end_year,freq=freq)
+        else:
+            bson['period_index'] = pandas.period_range(
+                start=start_year+freq+start_subperiod,
+                end=end_year+freq+end_subperiod,
+                freq=freq)
+        bson['revisions'] = []
+        bson['frequency'] = freq
+        return(bson)
+    
 if __name__ == "__main__":
-    import eurostat
-    e = eurostat.Eurostat()
-    e.update_categories_db()
-    e.update_selected_dataset('nama_gdp_p')
-    e.update_selected_dataset('nama_gdp_k')
+    class Eurostat(Eurostat):
+        def make_url(self,datasetCode):
+            return('http://localhost:8800/eurostat/namq_gdp_c.sdmx.zip')
+    e = Eurostat()
+#    e.update_categories_db()
+    e.update_selected_dataset('namq_gdp_c')
+#    e.update_selected_dataset('nama_gdp_k')
