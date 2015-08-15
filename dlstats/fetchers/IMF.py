@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider, DlstatsCollection
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, CodeDict
 from dlstats.fetchers.make_elastic_index import ElasticIndex
 import urllib
 import xlrd
@@ -17,7 +17,7 @@ class IMF(Skeleton):
     def __init__(self):
         super().__init__(provider_name='IMF') 
         self.provider_name = 'IMF'
-        self.provider = Provider(name=self.provider_name,website='http://http://www.imf.org/')
+        self.provider = Provider(name=self.provider_name,website='http://www.imf.org/')
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
@@ -42,55 +42,63 @@ class IMF(Skeleton):
                 'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
             ]
             for u in weo_urls:
-                self.upsert_weo_issue(u)
+                self.upsert_weo_issue(u,datasetCode)
             es = ElasticIndex()
-            es.make_index('IMF','WEO')
+            es.make_index(self.provider_name,datasetCode)
         else:
-            raise Exception("The name of dataset was not entered!")
+            raise Exception("This dataset is unknown" + dataCode)
         
-    def upsert_weo_issue(self,url):
-        release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
-        dataset = Dataset('IMF','WEO')
-        dataset.set_name('World Economic Outlook')
-        dataset.set_doc_href('http://www.imf.org/')
-        dataset.set_last_update(release_date)
-        dataset.set_attribute_list({'OBS_VALUE': [('e', 'Estimates Start After')]})
-        series = Series(dataset)
-        datafile = urllib.request.urlopen(url).read().decode('latin-1').splitlines()
-        sheet = csv.DictReader(datafile, delimiter='\t')
-        series.set_data_iterator(sheet)
-        series.process_series()
+    def upsert_weo_issue(self,url,dataset_code):
+        dataset = Dataset(self.provider_name,dataset_code)
+        weo_data = WeoData(dataset,url)
+        dataset.name = 'World Economic Outlook'
+        dataset.doc_href = 'http://www.imf.org/external/ns/cs.aspx?id=28'
+        dataset.last_update = weo_data.release_date
+        dataset.attribute_list.update(CodeDict({'flags': {'e': 'Estimated'}}))
+        dataset.series.data_iterator = weo_data
         dataset.update_database()
-    
+
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
                             name = 'WEO' , 
                             categoryCode ='WEO')
         return document.update_database()
         
-class Series(Series):
-    def initialize_series(self):
-        self.years = self.data_iterator.fieldnames[9:-1]
+class WeoData():
+    def __init__(self,dataset,url):
+        self.provider_name = dataset.provider_name
+        self.dataset_code = dataset.dataset_code
+        self.dimension_list = dataset.dimension_list
+        self.attribute_list = dataset.attribute_list
+        datafile = urllib.request.urlopen(url).read().decode('latin-1').splitlines()
+        self.sheet = csv.DictReader(datafile, delimiter='\t')
+        self.years = self.sheet.fieldnames[9:-1]
         print(self.years)
         self.period_index = pandas.period_range(self.years[0], self.years[-1] , freq = 'annual')   
+        self.release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
 
-    def handle_one_series(self):
-        series = {}
-        values = []
-        row = next(self.data_iterator)
+    def __next__(self):
+        row = next(self.sheet)
+        series = self.build_series(row)
+        if series is None:
+            raise StopIteration()            
+        return(series)
+        
+    def build_series(self,row):
         if row['Country']:               
-            self.attributes = {}
+            series = {}
+            values = []
             dimensions = {}
             for year in self.years:
                 values.append(row[year])
-            dimensions['Country'] = self.dimension_dict.update_entry('Country', row['ISO'], row['Country'])
-            dimensions['WEO Country Code'] = self.dimension_dict.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code'])
-            dimensions['Subject'] = self.dimension_dict.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
-            dimensions['Units'] = self.dimension_dict.update_entry('Units', '', row['Units'])
-            dimensions['Scale'] = self.dimension_dict.update_entry('Scale', row['Scale'], row['Scale'])
+            dimensions['Country'] = self.dimension_list.update_entry('Country', row['ISO'], row['Country'])
+            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code'])
+            dimensions['Subject'] = self.dimension_list.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
+            dimensions['Units'] = self.dimension_list.update_entry('Units', '', row['Units'])
+            dimensions['Scale'] = self.dimension_list.update_entry('Scale', row['Scale'], row['Scale'])
             series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
             series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
-            release_dates = [ self.last_update for v in values]
+            release_dates = [ self.release_date for v in values]
             series['provider'] = self.provider_name
             series['datasetCode'] = self.dataset_code
             series['name'] = series_name
@@ -111,7 +119,7 @@ class Series(Series):
                 row['Country/Series-specific Notes'] += '\n' + row['Country/Series-specific Notes']
             return(series)
         else:
-            raise StopIteration()
+            return None
         
 if __name__ == "__main__":
     import IMF

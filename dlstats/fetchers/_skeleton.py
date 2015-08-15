@@ -7,7 +7,7 @@
 import pymongo
 import datetime
 import pandas
-from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any
+from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any, Extra
 from dlstats import configuration
 #from dlstats.misc_func import dictionary_union
 #from ..misc_func import dictionary_union
@@ -152,15 +152,12 @@ class Series(DlstatsCollection):
     >>>
     """
 
-    def __init__(self,dataset,bulk_size=1000):
+    def __init__(self,provider_name,dataset_code,last_update,bulk_size=1000):
         super().__init__()
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.last_update = dataset.last_update
+        self.provider_name = provider_name
+        self.dataset_code = dataset_code
+        self.last_update = last_update
         self.bulk_size = bulk_size
-        self.dimension_dict = self.DimensionDict(dataset.dimension_list)
-        self.dataset = dataset
         self.ser_list = []
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
@@ -193,21 +190,11 @@ class Series(DlstatsCollection):
     def set_data_iterator(self,data_iterator):
         self.data_iterator = data_iterator
 
-    def initialize_series(self):
-        pass
-
-    def handle_one_series(self):
-        """User provided function for parsing one series.
-        """
-        raise NotImplementedError("This method from the Series class must "
-                                  "be implemented.")
-        
     def process_series(self):
-        self.initialize_series()
         count = 0
         while True:
             try:
-                self.ser_list.append( self.handle_one_series() )
+                self.ser_list.append( next(self.data_iterator))
             except StopIteration:
                 break
             count += 1
@@ -216,7 +203,6 @@ class Series(DlstatsCollection):
                 count = 0
         if count > 0:
             self.update_series_list()
-        self.dataset.set_dimension_list( self.dimension_dict.get_list() )
         
     def update_series_list(self):
         keys = [s['key'] for s in self.ser_list]
@@ -268,42 +254,6 @@ class Series(DlstatsCollection):
         bulk.execute()
         self.ser_list = []
             
-    def __iter__(self):
-        return iter(self.data)
-    
-    def append(self,series):
-        self.data.append(series)
-
-    class DimensionDict(object):
-        def __init__(self,dimension_list = {}):
-            self.code_dict = {d1: {d2[0]: d2[1] for d2 in dimension_list[d1]} for d1 in dimension_list}
-
-        def update_entry(self,dim_name,dim_short_id,dim_long_id):
-            if dim_name in self.code_dict:
-                if not dim_long_id:
-                    dim_short_id = 'None'
-                    if 'None' not in self.code_dict[dim_name]:
-                        self.code_dict[dim_name].update({'None': 'None'})
-                elif not dim_short_id:
-                    try:
-                        dim_short_id = next(key for key,value in self.code_dict[dim_name].items() if value == dim_long_id)
-                    except StopIteration:
-                        dim_short_id = str(len(self.code_dict[dim_name]))
-                        self.code_dict[dim_name].update({dim_short_id: dim_long_id})
-                elif not dim_short_id in self.code_dict[dim_name]:
-                    self.code_dict[dim_name].update({dim_short_id: dim_long_id})
-            else:
-                if not dim_short_id:
-                    dim_short_id = '0'
-                self.code_dict[dim_name] = {dim_short_id: dim_long_id}
-            return(dim_short_id)
-
-        def get_dict(self):
-            return(self.code_dict)
-        
-        def get_list(self):
-            return({d: list(self.code_dict[d].items()) for d in self.code_dict})
-
     def bulk_update_database(self):
         mdb_bulk = self.db.series.initialize_ordered_bulk_op()
         for s in self.data:
@@ -311,7 +261,45 @@ class Series(DlstatsCollection):
             s.update_database()
         return mdb_bulk.execute();
 
+class CodeDict():
+    def __init__(self,code_dict = {}):
+        self.code_dict = code_dict
+        self.schema = Schema({Extra: dict})
+        self.schema(code_dict)
+        
+    def update(self,arg):
+        self.schema(arg.code_dict)
+        self.code_dict.update(arg.code_dict)
+        
+    def update_entry(self,dim_name,dim_short_id,dim_long_id):
+        if dim_name in self.code_dict:
+            if not dim_long_id:
+                dim_short_id = 'None'
+                if 'None' not in self.code_dict[dim_name]:
+                    self.code_dict[dim_name].update({'None': 'None'})
+            elif not dim_short_id:
+                try:
+                    dim_short_id = next(key for key,value in self.code_dict[dim_name].items() if value == dim_long_id)
+                except StopIteration:
+                    dim_short_id = str(len(self.code_dict[dim_name]))
+                    self.code_dict[dim_name].update({dim_short_id: dim_long_id})
+            elif not dim_short_id in self.code_dict[dim_name]:
+                self.code_dict[dim_name].update({dim_short_id: dim_long_id})
+        else:
+            if not dim_short_id:
+                dim_short_id = '0'
+            self.code_dict[dim_name] = {dim_short_id: dim_long_id}
+        return(dim_short_id)
 
+    def get_dict(self):
+        return(self.code_dict)
+    
+    def get_list(self):
+        return({d: list(self.code_dict[d].items()) for d in self.code_dict})
+
+    def set_from_list(self,dimension_list):
+        self.code_dict = {d1: {d2[0]: d2[1] for d2 in dimension_list[d1]} for d1 in dimension_list}
+    
 class DatasetMB(DlstatsCollection):
     """Abstract base class for datasets
     >>> from datetime import datetime
@@ -401,54 +389,51 @@ class Dataset(DlstatsCollection):
         self.name = None
         self.doc_href = None
         self.last_update = None
-        self.dimension_list = {}
-        self.attribute_list = {}
+        self.dimension_list = CodeDict()
+        self.attribute_list = CodeDict()
         self.load_previous_version(provider_name,dataset_code)
+        self.schema = Schema({'name':
+                              All(str, Length(min=1)),
+                              'provider':
+                              All(str, Length(min=1)),
+                              'datasetCode':
+                              All(str, Length(min=1)),
+                              'docHref':
+                              Any(None,str),
+                              'lastUpdate':
+                              typecheck(datetime),
+                              'dimensionList':
+                              dimension_list_schema,
+                              'attributeList':
+                              Any(None,attribute_list_schema)
+                             },required=True)
+        self.series = Series(self.provider_name,
+                             self.dataset_code,
+                             self.last_update)
+
+    @property
+    def bson(self):
+        return {'provider': self.provider_name,
+                'name': self.name,
+                'datasetCode': self.dataset_code,
+                'dimensionList': self.dimension_list.get_list(),
+                'attributeList': self.attribute_list.get_list(),
+                'docHref': self.doc_href,
+                'lastUpdate': self.last_update}
 
     def load_previous_version(self,provider_name,dataset_code):
         dataset = self.db.datasets.find_one({'provider': provider_name,
                                              'datasetCode': dataset_code})
         if dataset:
-            self.name = dataset['name']
-            self.dimension_list = dataset['dimensionList']
-            self.attribute_list = dataset['attributeList']
-            self.doc_href = dataset['docHref']
-            self.last_update = dataset['lastUpdate']
-
-    def get_dimension_list(self):
-        return(self.dimension_list)
-
-    def get_attribute_list(self):
-        return(self.attribute_list)
-
-    def set_last_update(self,last_update):
-        self.last_update = last_update
-
-    def set_name(self,name):
-        self.name = name
-
-    def set_doc_href(self,doc_href):
-        self.doc_href = doc_href;
-
-    def set_last_update(self,last_update):
-        self.last_update = last_update
-
-    def set_attribute_list(self,attribute_list):
-        self.attribute_list = attribute_list
-        
-    def set_dimension_list(self,dimension_list):
-        self.dimension_list = dimension_list
+            # convert to dict of dict
+            self.dimension_list.set_from_list(dataset['dimensionList'])
+            self.attribute_list.set_from_list(dataset['attributeList'])
         
     def update_database(self):
-        dataset = DatasetMB(provider = self.provider_name, 
-                            name = self.name,
-                            datasetCode = self.dataset_code,
-                            lastUpdate = self.last_update,
-                            docHref = self.doc_href,
-                            dimensionList = self.dimension_list,
-                            attributeList = self.attribute_list)
-        dataset.update_database()
-    
+        self.series.process_series()
+        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
+                                self.bson,upsert=True)
+
 class Category(DlstatsCollection):
     """Abstract base class for categories
     >>> from datetime import datetime
