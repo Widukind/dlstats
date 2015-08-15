@@ -148,11 +148,13 @@ class Eurostat(Skeleton):
     def update_eurostat(self):
         return self.update_categories_db()
 
-    def update_selected_dataset(self,datasetCode):
+    def update_selected_dataset(self,datasetCode,testing_mode=False):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
         dataset = Dataset(self.provider_name,datasetCode)
+        if testing_mode:
+            dataset.testing_mode = True
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
         dataset.name = cat['name']
         dataset.doc_href = cat['docHref']
@@ -342,6 +344,6 @@ class EurostatData:
     
 if __name__ == "__main__":
     e = Eurostat()
-#    e.update_categories_db()
-    e.update_selected_dataset('namq_gdp_c')
+    #    e.update_categories_db()
+    e.update_selected_dataset('namq_gdp_c',testing_mode=True)
 #    e.update_selected_dataset('nama_gdp_k')

@@ -85,7 +85,8 @@ class DlstatsCollection(object):
     """
     def __init__(self):
         self.db = mongo_client.widukind
-
+        self.testing_mode = False
+        
 class Provider(DlstatsCollection):
     """Abstract base class for providers
     >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
@@ -121,7 +122,8 @@ class Provider(DlstatsCollection):
                 'website': self.website}
 
     def update_database(self,mongo_id=None,key=None):
-        return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
+        if not self.testing_mode:
+            return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
 
 class Series(DlstatsCollection):
     """Abstract base class for time series
@@ -255,11 +257,12 @@ class Series(DlstatsCollection):
         self.ser_list = []
             
     def bulk_update_database(self):
-        mdb_bulk = self.db.series.initialize_ordered_bulk_op()
-        for s in self.data:
-            s.collection = mdb_bulk
-            s.update_database()
-        return mdb_bulk.execute();
+        if not self.testing_mode:
+            mdb_bulk = self.db.series.initialize_ordered_bulk_op()
+            for s in self.data:
+                s.collection = mdb_bulk
+                s.update_database()
+            return mdb_bulk.execute();
 
 class CodeDict():
     def __init__(self,code_dict = {}):
@@ -378,8 +381,9 @@ class DatasetMB(DlstatsCollection):
                 'lastUpdate': self.lastUpdate}
 
     def update_database(self):
-        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
-                                self.bson,upsert=True)
+        if not self.testing_mode:
+            self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
+                                    self.bson,upsert=True)
 
 class Dataset(DlstatsCollection):
     def __init__(self,provider_name,dataset_code):
