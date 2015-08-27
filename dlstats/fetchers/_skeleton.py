@@ -370,7 +370,6 @@ class Series(DlstatsCollection):
                     if start_period > old_start_period:
                         # previous, longer, series is kept
                         offset = start_period - old_start_period
-                        bson['numberOfPeriods'] += offset
                         bson['startDate'] = old_bson['startDate']
                         for values in zip(old_bson['values'][offset:],bson['values']):
                             if values[0] != values[1]:
@@ -380,6 +379,15 @@ class Series(DlstatsCollection):
                                      'releaseDates':
                                      old_bson['releaseDates'][offset+position]})
                             position += 1
+                    if end_period < old_end_period:
+                        # observations not published any more are set to NA
+                        for p in range(end_period+1,old_end_period):
+                                bson['revisions'].append(
+                                    {'value': 'na',
+                                     'position': p - bson['startDate'],
+                                     'releaseDates':
+                                     old_bson['releaseDates'][offset+position]})
+                        
                 else:
                     # zero or more data are added at the beginning of the series
                     offset = old_start_period - start_period
