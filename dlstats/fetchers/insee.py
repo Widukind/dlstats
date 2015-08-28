@@ -124,7 +124,7 @@ class Insee(Skeleton):
         dataset.series.data_iterator = data
         dataset.name = data.dp.dataset_name
         dataset.doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + datasetCode
-        dataset.last_update = data.dp.lastUpdate)
+        dataset.last_update = data.dp.lastUpdate
         dataset.update_database()
         es = ElasticIndex()
         es.make_index(self.provider_name,datasetCode)
