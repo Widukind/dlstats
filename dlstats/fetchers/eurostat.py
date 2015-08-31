@@ -158,8 +158,10 @@ class Eurostat(Skeleton):
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
         dataset.name = cat['name']
         dataset.doc_href = cat['docHref']
-        dataset.lastUpdate = cat['lastUpdate']
-        data = EurostatData(self.provider_name,datasetCode,dataset.lastUpdate)
+        dataset.last_update = cat['lastUpdate']
+        data = EurostatData(self.provider_name,datasetCode,dataset.last_update)
+        dataset.dimension_list = data.dimension_list
+        dataset.attribute_list = data.attribute_list
         dataset.series.data_iterator = data
         dataset.update_database()
         es = ElasticIndex()
@@ -233,14 +235,11 @@ class EurostatData:
         (end_year,end_subperiod,freq) = self.parse_date(
             raw_dates[-1])
         if freq == "A":
-            bson['period_index'] = pandas.period_range(start=start_year,
-                                                       end=end_year,freq=freq)
+            bson['startDate'] = pandas.Period(start_year,freq='annual').ordinal
+            bson['endDate'] = pandas.Period(end_year,freq='annual').ordinal
         else:
-            bson['period_index'] = pandas.period_range(
-                start=start_year+freq+start_subperiod,
-                end=end_year+freq+end_subperiod,
-                freq=freq)
-        bson['revisions'] = []
+            bson['startDate'] = pandas.Period(start_year+freq+start_subperiod,freq=freq).ordinal
+            bson['endDate'] = pandas.Period(end_year+freq+end_subperiod,freq=freq).ordinal
         bson['frequency'] = freq
         return(bson)
     
@@ -345,5 +344,5 @@ class EurostatData:
 if __name__ == "__main__":
     e = Eurostat()
     #    e.update_categories_db()
-    e.update_selected_dataset('namq_gdp_c',testing_mode=True)
+    e.update_selected_dataset('nama_gdp_c')
 #    e.update_selected_dataset('nama_gdp_k')

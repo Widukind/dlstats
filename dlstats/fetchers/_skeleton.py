@@ -73,8 +73,8 @@ def typecheck(type, msg=None):
 
 
 #Schema definition in voluptuous
-revision_schema = [{Required('value'): Any(str), Required('position'): int,
-             Required('releaseDates'): [date_validator]}]
+revision_schema = {str: [{Required('value'): str,
+                          Required('releaseDates'): date_validator}]}
 dimensions = {str: str}
 attributes = {str: [str]}
 attribute_list_schema = {str: [(str,str)]}
@@ -304,16 +304,16 @@ class Series(DlstatsCollection):
                               'datasetCode':
                               All(str, Length(min=1)),
                               'startDate':
-                              date_validator,
+                              int,
                               'endDate':
-                              date_validator,
+                              int,
                               'values':
                               [Any(str)],
                               'releaseDates':
                               [date_validator],
                               'attributes':
                               Any({},attributes),
-                              'revisions':
+                              Optional('revisions'):
                               Any(None,revision_schema),
                               'dimensions':
                               dimensions,
@@ -351,54 +351,46 @@ class Series(DlstatsCollection):
         old_series = {s['key']:s for s in old_series}
         bulk = self.db.series.initialize_ordered_bulk_op()
         for bson in self.ser_list:
-            period_index = bson.pop('period_index')
-            bson['startDate'] = period_index[0].to_timestamp()
-            bson['endDate'] = period_index[-1].to_timestamp()
-            self.schema(bson)
             if bson['key'] not in old_series:
+                self.schema(bson)
                 bulk.insert(bson)
             else:
+                release_date = bson['releaseDates'][0]
                 old_bson = old_series[bson['key']]
-                position = 0
-                bson['revisions'] = old_bson['revisions']
-                old_start_period = pandas.Period(
-                    old_bson['startDate'],freq=old_bson['frequency'])
-                start_period = pandas.Period(
-                    bson['startDate'],freq=bson['frequency'])
-                if bson['revisions'] is None:
-                    bson['revisions'] = []
-                    if start_period > old_start_period:
-                        # previous, longer, series is kept
-                        offset = start_period - old_start_period
-                        bson['startDate'] = old_bson['startDate']
-                        for values in zip(old_bson['values'][offset:],bson['values']):
-                            if values[0] != values[1]:
-                                bson['revisions'].append(
-                                    {'value':values[0],
-                                     'position': offset+position,
-                                     'releaseDates':
-                                     old_bson['releaseDates'][offset+position]})
-                            position += 1
-                    if end_period < old_end_period:
-                        # observations not published any more are set to NA
-                        for p in range(end_period+1,old_end_period):
-                                bson['revisions'].append(
-                                    {'value': 'na',
-                                     'position': p - bson['startDate'],
-                                     'releaseDates':
-                                     old_bson['releaseDates'][offset+position]})
-                        
-                else:
-                    # zero or more data are added at the beginning of the series
-                    offset = old_start_period - start_period
-                    for values in zip(old_bson['values'],bson['values'][offset:]):
-                        if values[0] != values[1]:
-                            bson['revisions'].append(
-                                {'value':values[0],
-                                 'position': offset+position,
-                                 'releaseDates':
-                                 old_bson['releaseDates'][position]})
-                        position += 1
+                if 'revision'  in old_bson:
+                    bson['revisions'] = old_bson['revisions']
+                start_date = bson['startDate']
+                old_start_date = old_bson['startDate']
+                if start_date < old_start_date:
+                    # update all positions
+                    if 'revisions' in bson:
+                        offset = old_start_date - start_date
+                        ikeys = [int(k) for k in bson['revisions']]
+                        for p in sorted(ikeys,reverse=True):
+                            bson['revisions'][str(p+offset)] = bson['revisions'][str(p)] 
+                elif start_date > old_start_date:
+                    # previous, longer, series is kept
+                    # fill beginning with na
+                    for p in range(start_date-old_start_date):
+                        bson['values'].insert(0,'na')
+                        bson['releaseDates'].insert(0,release_date)
+                        for a in bson['attributes']:
+                            bson['attributes'][a].insert(0,"") 
+                    bson['startDate'] = old_bson['startDate']
+                for position,values in enumerate(zip(old_bson['values'],bson['values'])):
+                    if values[0] != values[1]:
+                        if 'revisions' not in bson:
+                            bson['revisions'] = defaultdict(list)
+                        bson['revisions'][str(position)].append(
+                            {'value':values[0],
+                             'releaseDates':old_bson['releaseDates'][position]})
+                if bson['endDate'] < old_bson['endDate']:
+                    for p in range(old_bson['endDate']-bson['endDate']):
+                        bson['values'].append('na')
+                        bson['releaseDates'].append(release_date)
+                        for a in bson['attributes']:
+                            bson['attributes'][a].append("")
+                self.schema(bson)
                 bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
         bulk.execute()
         self.ser_list = []

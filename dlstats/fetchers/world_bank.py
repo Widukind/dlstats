@@ -92,8 +92,8 @@ class GemData:
         series['attributes'] = {}
         series['dimensions'] = dimensions
         series['releaseDates'] = release_dates
-        series['period_index'] = self.period_index
-        series['revisions'] = []
+        series['startDate'] = self.start_date
+        series['endDate'] = self.end_date
         series['frequency'] = self.frequency
         return(series)
     
@@ -112,19 +112,20 @@ class GemData:
         print(self.sheet.name)
         if self.sheet.name == 'annual':    
             self.frequency = 'A'
-            start_period = str(int(start_period))
-            end_period = str(int(end_period))
+            self.start_date = pandas.Period(str(int(start_period)),freq='A').ordinal
+            self.end_date = pandas.Period(str(int(end_period)),freq='A').ordinal
         elif self.sheet.name == 'quarterly':    
             self.frequency = 'Q'
+            self.start_date = pandas.Period(start_period,freq='Q').ordinal
+            self.end_date = pandas.Period(end_period,freq='Q').ordinal
         elif self.sheet.name == 'monthly':    
             self.frequency = 'M'
-            start_period = start_period.replace('M','-')
-            end_period = end_period.replace('M','-')
+            self.start_date = pandas.Period(start_period.replace('M','-'),freq='M').ordinal
+            self.end_date = pandas.Period(end_period.replace('M','-'),freq='M').ordinal
         elif self.sheet.name == 'daily':    
             self.frequency = 'D'
-            start_period = self.translate_daily_dates(start_period)
-            end_period = self.translate_daily_dates(end_period)
-        self.period_index = pandas.period_range(start_period,end_period, freq = self.frequency)
+            self.start_date = self.translate_daily_dates(start_period).ordinal
+            self.end_date = self.translate_daily_dates(end_period).ordinal
 
     def translate_daily_dates(self,value):
             date = xlrd.xldate_as_tuple(value,self.excel_book.datemode)

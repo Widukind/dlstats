@@ -18,7 +18,7 @@ from json import loads
 import collections
 from numpy import prod
 import sys
-from pandas import period_range
+import pandas
 
 class Insee(Skeleton):   
     """Class for managing INSEE data in dlstats"""
@@ -124,7 +124,7 @@ class Insee(Skeleton):
         dataset.series.data_iterator = data
         dataset.name = data.dp.dataset_name
         dataset.doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + datasetCode
-        dataset.last_update = data.dp.lastUpdate)
+        dataset.last_update = data.dp.lastUpdate
         dataset.update_database()
         es = ElasticIndex()
         es.make_index(self.provider_name,datasetCode)
@@ -216,9 +216,10 @@ class InseeData():
                              'attributes': {'flags': z[1]},
                              'dimensions': z[0]['dimensions'],
                              'frequency': z[0]['frequency'],
-                             'period_index': z[0]['period_index'],
-                             'releaseDates': [z[0]['releaseDate'] for j in z[2]],
-                             'revisions' : []} for z in zip(series,attributes,values)])
+                             'startDate': z[0]['startDate'],
+                             'endDate': z[0]['endDate'],
+                             'releaseDates': [z[0]['releaseDate'] for j in z[2]]}
+                            for z in zip(series,attributes,values)])
                    
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
@@ -263,36 +264,26 @@ class InseeData():
                         s_offset = 2
             elif (fields[0] == 'Beginning date') or (fields[0] == 'Start date'):
                 for i in range(len(fields)-1):
-                    startDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
-                        date[1] = str(3*(int(date[1])-1)+1)
-                        series[i]['startDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
+                        series[i]['startDate'] = pandas.Period(date[3]+'Q'+ date[1],freq='quarterly').ordinal
                     else:
-                        series[i]['startDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
+                        series[i]['startDate'] = pandas.Period(fields[i+1],freq=series[i]['frequency']).ordinal
             elif (fields[0] == 'Ending date') or (fields[0] == 'End date'):
                 for i in range(len(fields)-1):
                     endDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
-                        date[1] = str(3*(int(date[1])-1)+1)
-                        series[i]['endDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
+                        series[i]['endDate'] = pandas.Period(date[3]+'Q'+date[1],freq='quarterly').ordinal
                     else:
-                        series[i]['endDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
+                        series[i]['endDate'] = pandas.Period(fields[i+1],freq=series[i]['frequency']).ordinal
             else:
                 for i in range(len(fields)-1):
                     series[i]['dimensions'][fields[0]] = self.dimension_list.update_entry(fields[0],'', fields[i+1])
 
             m += 1
-        for i in range(len(startDate)):
-            if series[i]['frequency'] == "Q":
-                d1 = startDate[i].split()
-                d2 = endData[i].split()
-                series[i]['period_index'] = period_range(d1[1]+' '+d1[3],d2[1]+' '+d2[3],freq="Q")
-            else:
-                series[i]['period_index'] = period_range(startDate[i],endDate[i],freq=series[i]['frequency'])
                 
         return (series,s_offset)
 

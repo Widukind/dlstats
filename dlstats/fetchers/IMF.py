@@ -24,22 +24,22 @@ class IMF(Skeleton):
             weo_urls = [
                 'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
                 'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
-                'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
+#                'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
             ]
             for u in weo_urls:
                 self.upsert_weo_issue(u,datasetCode)
@@ -74,7 +74,8 @@ class WeoData():
         self.sheet = csv.DictReader(datafile, delimiter='\t')
         self.years = self.sheet.fieldnames[9:-1]
         print(self.years)
-        self.period_index = pandas.period_range(self.years[0], self.years[-1] , freq = 'annual')   
+        self.start_date = pandas.Period(self.years[0],freq='annual')
+        self.end_date = pandas.Period(self.years[-1],freq='annual')
         self.release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
 
     def __next__(self):
@@ -110,8 +111,8 @@ class WeoData():
                 series['attributes'] = {'flag': [ '' if int(y) < estimation_start else 'e' for y in self.years]}
             series['dimensions'] = dimensions
             series['releaseDates'] = release_dates
-            series['period_index'] = self.period_index
-            series['revisions'] = []
+            series['startDate'] = self.start_date.ordinal
+            series['endDate'] = self.end_date.ordinal
             series['frequency'] = 'A'
             if row['Subject Notes']:
                 series['notes'] = row['Subject Notes']

@@ -7,7 +7,7 @@ Work In Progress
 
 """
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider
 import urllib
 import xlrd
 import codecs
