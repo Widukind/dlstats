@@ -373,7 +373,7 @@ class Series(DlstatsCollection):
                     # fill beginning with na
                     for p in range(start_date-old_start_date):
                         bson['values'].insert(0,'na')
-                        bson['releaseDates'].insert(0,release_date)
+                        bson['releaseDates'].insert(0,release_date) # release_date TO BE CHECKED ????
                         for a in bson['attributes']:
                             bson['attributes'][a].insert(0,"") 
                     bson['startDate'] = old_bson['startDate']
@@ -434,13 +434,13 @@ class CodeDict():
                 self.code_dict[dim_name].update({dim_short_id: dim_long_id})
         else:
             if not dim_short_id:
-                dim_short_id = '0'
+                dim_short_id = '0'   #??????
             self.code_dict[dim_name] = {dim_short_id: dim_long_id}
         return(dim_short_id)
 
     def get_dict(self):
         return(self.code_dict)
-    
+
     def get_list(self):
         return({d: list(self.code_dict[d].items()) for d in self.code_dict})
 

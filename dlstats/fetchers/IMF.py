@@ -43,8 +43,8 @@ class IMF(Skeleton):
             ]
             for u in weo_urls:
                 self.upsert_weo_issue(u,datasetCode)
-            es = ElasticIndex()
-            es.make_index(self.provider_name,datasetCode)
+            es = ElasticIndex()                                 # ????
+            es.make_index(self.provider_name,datasetCode)       # ????
         else:
             raise Exception("This dataset is unknown" + dataCode)
         
@@ -79,7 +79,7 @@ class WeoData():
         self.release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
 
     def __next__(self):
-        row = next(self.sheet)
+        row = next(self.sheet) 
         series = self.build_series(row)
         if series is None:
             raise StopIteration()            
@@ -93,7 +93,7 @@ class WeoData():
             for year in self.years:
                 values.append(row[year])
             dimensions['Country'] = self.dimension_list.update_entry('Country', row['ISO'], row['Country'])
-            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code'])
+            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code']) # put country name ????
             dimensions['Subject'] = self.dimension_list.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
             dimensions['Units'] = self.dimension_list.update_entry('Units', '', row['Units'])
             dimensions['Scale'] = self.dimension_list.update_entry('Scale', row['Scale'], row['Scale'])
