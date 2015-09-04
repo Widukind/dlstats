@@ -1,149 +1,127 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers.make_elastic_index import ElasticIndex
 import urllib
 import xlrd
 import csv
 import codecs
-import datetime
+from datetime import datetime
 import pandas
 import pprint
 from collections import OrderedDict
+from re import match
+from time import sleep
 
 class IMF(Skeleton):
     def __init__(self):
         super().__init__(provider_name='IMF') 
-        self.urls = [
-            'http://localhost:8800/imf//WEOSep2006all.xls',
-            'http://localhost:8800/imf/WEOApr2007all.xls'
-#            'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
-#            'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 
-#        'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
-#        'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
-        ]
-        self.readers = []
-        self.releaseDates = []
-        self.files_ = {}
-        for url in self.urls:
-            self.response= urllib.request.urlopen(url)
-            self.readers.append(csv.DictReader(codecs.iterdecode(self.response, 'latin-1'), delimiter='\t'))
-        self.date = [
-            'September 2006', 'April 2007'
-#            'April 2007', 'October 2007', 'April 2008', 'October 2008', 'April 2009','October 2009',
-#            'April 2010', 'October 2010', 'April 2011', 'October 2011', 'April 2012','October 2012',
-#            'April 2013', 'October 2013', 'April 2014', 'October 2014', 'April 2015'
-            ]
-        for self.count, self.value_date in enumerate(self.date):
-            #print(self.count)
-            self.files_[self.value_date] = self.readers[self.count]
-            self.releaseDates.append(datetime.datetime.strptime(self.value_date, "%B %Y"))
         self.provider_name = 'IMF'
-        self.provider = Provider(name=self.provider_name,website='http://http://www.imf.org/')
+        self.provider = Provider(name=self.provider_name,website='http://www.imf.org/')
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
-            WEO_Country_Code_list = OrderedDict()
-            country_list =  OrderedDict()
-            subject_list =  OrderedDict()
-            Units_list =  OrderedDict()
-            Scale_list =  OrderedDict()
-            for co, v_date in enumerate(self.date):
-                #print(v_date)
-                print(self.files_.keys)
-                reader = self.files_[v_date]
-                for count, row in enumerate(reader):
-                    # last 2 rows are blank/metadata
-                    # so get out when we hit a blank row
-                    if row['Country']:
-                        if row['WEO Country Code'] not in WEO_Country_Code_list: WEO_Country_Code_list[row['WEO Country Code']] = row['WEO Country Code']
-                        if row['ISO'] not in country_list.keys(): country_list[row['ISO']] = row['Country'] 
-                        if row['Units'] not in Units_list.values(): Units_list[str(int(next(reversed(Units_list),0))+1)] = row['Units']
-                        if row['Scale'] not in Scale_list: Scale_list[row['Scale']] = row['Scale']
-                        if row['WEO Subject Code'] not in subject_list: subject_list[row['WEO Subject Code']] = row['Subject Descriptor']
-                            
-            dimensionList = { 'Country': [[k,country_list[k]] for k in country_list],
-                              'WEO Country Code': [[k,WEO_Country_Code_list[k]] for k in WEO_Country_Code_list],
-                              'Subject': [[k,subject_list[k]] for k in subject_list],
-                              'Units': [[k,Units_list[k]] for k in Units_list],
-                              'Scale': [[k,Scale_list[k]] for k in Scale_list] }
-            attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]}
-            document = Dataset(provider = self.provider_name, 
-                               name = 'World Economic Outlook' ,
-                               datasetCode = 'WEO', lastUpdate = self.releaseDates[co],
-                               dimensionList = dimensionList, docHref = "http://http://www.imf.org/",
-                               attributeList = attributeList) 
-            effective_dimension_list = self.update_series('WEO', dimensionList)
-            document.update_database()
-            document.update_es_database(effective_dimension_list)
+            weo_urls = [
+                'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
+                'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
+#                'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
+            ]
+            for u in weo_urls:
+                self.upsert_weo_issue(u,datasetCode)
+            es = ElasticIndex()                                 # ????
+            es.make_index(self.provider_name,datasetCode)       # ????
         else:
-            raise Exception("The name of dataset was not entered!")
+            raise Exception("This dataset is unknown" + dataCode)
+        
+    def upsert_weo_issue(self,url,dataset_code):
+        dataset = Dataset(self.provider_name,dataset_code)
+        weo_data = WeoData(dataset,url)
+        dataset.name = 'World Economic Outlook'
+        dataset.doc_href = 'http://www.imf.org/external/ns/cs.aspx?id=28'
+        dataset.last_update = weo_data.release_date
+        dataset.attribute_list.update(CodeDict({'flags': {'e': 'Estimated'}}))
+        dataset.series.data_iterator = weo_data
+        dataset.update_database()
+
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
                             name = 'WEO' , 
                             categoryCode ='WEO')
         return document.update_database()
         
+class WeoData():
+    def __init__(self,dataset,url):
+        self.provider_name = dataset.provider_name
+        self.dataset_code = dataset.dataset_code
+        self.dimension_list = dataset.dimension_list
+        self.attribute_list = dataset.attribute_list
+        datafile = urllib.request.urlopen(url).read().decode('latin-1').splitlines()
+        self.sheet = csv.DictReader(datafile, delimiter='\t')
+        self.years = self.sheet.fieldnames[9:-1]
+        print(self.years)
+        self.start_date = pandas.Period(self.years[0],freq='annual')
+        self.end_date = pandas.Period(self.years[-1],freq='annual')
+        self.release_date = datetime.strptime(match(".*WEO(\w{7})",url).groups()[0], "%b%Y")
 
-    def update_series(self,datasetCode,dimensionList):
-        files_in = {} 
-        readers2 =[]
-        dimension_reverse_index_units = {c: i for i,c in dimensionList['Units']}
-        if datasetCode=='WEO':
-            for url in self.urls:
-                response= urllib.request.urlopen(url)
-                readers2.append(csv.DictReader(codecs.iterdecode(response, 'latin-1'), delimiter='\t'))                   
-            for count, value_date in enumerate(self.date):
-                reader2 = readers2[count]                         
-                years = reader2.fieldnames[9:-1] 
-                period_index = pandas.period_range(years[0], years[-1] , freq = 'annual')   
-                attributeList = {'OBS_VALUE': [('e', 'Estimates Start After')]} 
-                documents = BulkSeries(datasetCode,dimensionList,attributeList)
-                for row in reader2:
-                    dimensions = {}
-                    value = []
-                    if row['Country']:               
-                        for year in years:
-                            value.append(row[year])
-                        dimensions['Country'] = row['ISO']
-                        dimensions['WEO Country Code'] = row['WEO Country Code']
-                        dimensions['Subject'] = row['WEO Subject Code']
-                        dimensions['Units'] = dimension_reverse_index_units[row['Units']]
-                        dimensions['Scale'] = row['Scale']
-                        attributes = {}
-                        series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
-                        series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
-                        if row['Estimates Start After']:
-                            estimation_start = int(row['Estimates Start After']);
-                            attributes = {'flag': [ '' if int(y) < estimation_start else 'e' for y in years]}
-                        release_dates = [self.releaseDates[count] for v in value]
-                        documents.append(Series(provider=self.provider_name,
-                                                key= series_key,
-                                                name=series_name,
-                                                datasetCode= 'WEO',
-                                                period_index= period_index,
-                                                values=value,
-                                                releaseDates= release_dates,
-                                                frequency='A',
-                                                attributes = attributes,
-                                                dimensions=dimensions))
-                documents.bulk_update_database()
-                return(documents.bulk_update_elastic())
+    def __next__(self):
+        row = next(self.sheet) 
+        series = self.build_series(row)
+        if series is None:
+            raise StopIteration()            
+        return(series)
+        
+    def build_series(self,row):
+        if row['Country']:               
+            series = {}
+            values = []
+            dimensions = {}
+            for year in self.years:
+                values.append(row[year])
+            dimensions['Country'] = self.dimension_list.update_entry('Country', row['ISO'], row['Country'])
+            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code']) # put country name ????
+            dimensions['Subject'] = self.dimension_list.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
+            dimensions['Units'] = self.dimension_list.update_entry('Units', '', row['Units'])
+            dimensions['Scale'] = self.dimension_list.update_entry('Scale', row['Scale'], row['Scale'])
+            series_name = row['Subject Descriptor']+'.'+row['Country']+'.'+row['Units']
+            series_key = row['WEO Subject Code']+'.'+row['ISO']+'.'+dimensions['Units']
+            release_dates = [ self.release_date for v in values]
+            series['provider'] = self.provider_name
+            series['datasetCode'] = self.dataset_code
+            series['name'] = series_name
+            series['key'] = series_key
+            series['values'] = values
+            series['attributes'] = {}
+            if row['Estimates Start After']:
+                estimation_start = int(row['Estimates Start After']);
+                series['attributes'] = {'flag': [ '' if int(y) < estimation_start else 'e' for y in self.years]}
+            series['dimensions'] = dimensions
+            series['releaseDates'] = release_dates
+            series['startDate'] = self.start_date.ordinal
+            series['endDate'] = self.end_date.ordinal
+            series['frequency'] = 'A'
+            if row['Subject Notes']:
+                series['notes'] = row['Subject Notes']
+            if row['Country/Series-specific Notes']:
+                row['Country/Series-specific Notes'] += '\n' + row['Country/Series-specific Notes']
+            return(series)
         else:
-            raise Exception("The name of dataset was not entered!")
+            return None
+        
 if __name__ == "__main__":
     import IMF
     w = IMF.IMF()

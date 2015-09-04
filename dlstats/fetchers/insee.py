@@ -1,6 +1,7 @@
 # test limitation on line 98
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, BulkSeries
+from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers.make_elastic_index import ElasticIndex
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
@@ -17,7 +18,7 @@ from json import loads
 import collections
 from numpy import prod
 import sys
-from pandas import period_range
+import pandas
 
 class Insee(Skeleton):   
     """Class for managing INSEE data in dlstats"""
@@ -38,7 +39,7 @@ class Insee(Skeleton):
         :return: None"""
 
         fh = self.open_url_and_check(url)
-        soup = BeautifulSoup(fh)
+        soup = BeautifulSoup(fh,"lxml")
 #        soup = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/Insee - Databases - BDM - Macro-economic database.html"))
         ul = soup.find(id="contenu").find('ul','liens')
         children = []
@@ -78,7 +79,7 @@ class Insee(Skeleton):
             _id = document.update_database()
             return (code1,_id)
         fh = self.open_url_and_check(url)
-        page = BeautifulSoup(fh)
+        page = BeautifulSoup(fh,"lxml")
 #        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/1"))
         racine = page.find('ul',id='racine')
         children = []
@@ -115,90 +116,117 @@ class Insee(Skeleton):
         node = self.db.categories.find_one({'provider': self.provider_name, 'name': 'root'},{'_id': True})
         walktree(ObjectId(node['_id']))
     
-    def get_data(self,code):
+    def get_data(self,datasetCode):
         """Get dataset for a given code"""
 
-        dataset = dict()
-        dataset['attribute_list'] = dict()
-        dimension_list = collections.defaultdict(set)
-        dp = dataset_page(code)
-        series_container = []
-        for keys in dp:
-            # no series are available in this chunk
-            if len(keys) == 0:
-                continue
-            href = "http://www.bdm.insee.fr/bdm2/exporterSeries"
-            params = urllib.parse.urlencode([('periode', 'toutes'),
-                                             ('qualite', 'true'),
-                                             ('chrono', 'true'),
-                                             ('liste_formats', 'txt'),
-                                             ('request_locale','en')]+
-                                            [('idbank', k) for k in keys])
-            params = params.encode('utf-8')
-            fh = self.open_url_and_check(href,params)
-            #            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
-            buffer = BytesIO(fh.read())
-            file = zipfile.ZipFile(buffer)
-            (dimensions_desc,series,s_offset) = self.get_charact_csv(file,code)
-            (attributes,attribute_list,values) = self.get_values_csv(file,series,s_offset)
-            for i in range(len(values)):
-                series[i]['datasetCode'] = code
-                series[i]['values'] = values[i]
-                series[i]['attributes'] = dict()
-                series[i]['attributes'] = {'flags': attributes[i]}
-                series[i]['releaseDates'] = [series[i]['releaseDates'] for j in values[i]]
-                series[i]['revisions'] = []
-            for k in dimensions_desc:
-                dimension_list[k].update(dimensions_desc[k])
-            series_container.extend(series)
-        reverse_index = {}
-        new_dimension_list = {}
-        for d1 in dimension_list:
-            new_dimension_list[d1] = [[str(i), c] for i,c in enumerate(dimension_list[d1])]
-            reverse_index[d1] = {c: i for i,c in new_dimension_list[d1]}
-        print(new_dimension_list)
-        documents = BulkSeries(code,new_dimension_list)
-        for s in series_container:
-            for d in s['dimensions']:
-                s['dimensions'][d] = reverse_index[d][s['dimensions'][d]]
-            documents.append(Series(provider=self.provider_name,
-                                    name = s['name'],
-                                    key = s['key'],
-                                    datasetCode = s['datasetCode'],
-                                    period_index = s['period_index'],
-                                    values = s['values'],
-                                    attributes = s['attributes'],
-                                    dimensions = s['dimensions'],
-                                    releaseDates = s['releaseDates'],
-                                    revisions = s['revisions'],
-                                    frequency = s['frequency']))
-        documents.bulk_update_database()
-        effective_dimension_list = documents.bulk_update_elastic()
-        dataset.update(dp.get_dataset())
-        dataset['dimension_list'] = {}
-        for k in dimension_list:
-            dataset['dimension_list'].update({k: [d for d in new_dimension_list[k]]})
-        dataset['attribute_list'] = {'flags': [ (v[0], v[1]) for v in attribute_list.items()]}
-        document = Dataset(provider=self.provider_name,
-                           name = dataset['name'],
-                           datasetCode = dataset['datasetCode'],
-                           dimensionList = dataset['dimension_list'],
-                           attributeList = dataset['attribute_list'],
-                           docHref = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + code,
-                           lastUpdate = dataset['lastUpdate']) 
-        document.update_database()
-        document.update_es_database(effective_dimension_list)
+        dataset = Dataset(self.provider_name,datasetCode)
+        data = InseeData(self.provider_name,datasetCode)
+        dataset.series.data_iterator = data
+        dataset.name = data.dp.dataset_name
+        dataset.doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + datasetCode
+        dataset.last_update = data.dp.lastUpdate
+        dataset.update_database()
+        es = ElasticIndex()
+        es.make_index(self.provider_name,datasetCode)
 
-    def add_dimensions_short_code(self,d):
-        return d
+    def parse_agenda(self):
+        """Parse agenda of new releases and schedule jobs"""
         
+        DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
+        url = 'http://www.insee.fr/en/publics/presse/agenda.asp'
+        # url = "http://localhost:8800/insee/agenda.html"
+        fh = self.open_url_and_check(url)
+        agenda = BeautifulSoup(fh,"lxml")
+        ul = agenda.find('div',id='contenu').find('ul','liens')
+        for li in ul.find_all('li'):
+            href = li.find('a')['href']
+            groups = self.parse_theme(href)
+            text = li.find('p','info').string
+            date = datetime.datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
+            print(href,groups,text,date)
+            
+    def parse_theme(self,url):
+        """Find updated code groups"""
+        
+        #url = "http://localhost:8800/insee/industrial_production.html"
+        #fh = self.open_url_and_cxheck(url)
+        fh = self.open_url_and_check('http://www.insee.fr' + url)
+        theme = BeautifulSoup(fh,"lxml")
+        p = theme.find('div',id='savoirplus').find('p')
+        groups = []
+        print(p.find_all('a'))
+        for a in p.find_all('a'):
+            groups += [a.string[1:]]
+        return groups
+
+    def open_url_and_check(self,url,params=None):
+        try:
+            fh = urllib.request.urlopen(url,params)
+        except URLError as e:
+            if hasattr(e, 'reason'):
+                print("Couldn't complete the request")
+                print("Reason: ",e.reason)
+            else:
+                print("Couldn't reach the server")
+                print("Code: ",e.code)
+            raise
+        else:
+            return fh
+
+class InseeData():
+    def __init__(self,provider_name,dataset_code):
+        self.provider_name = provider_name
+        self.dataset_code = dataset_code
+        self.buffer = iter([])
+        self.dp = dataset_page(dataset_code)
+        self.dimension_list = CodeDict()
+        self.attribute_list = CodeDict()
+        
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return(next(self.buffer))
+        except StopIteration:
+            self.load_series_in_buffer()
+            return(next(self.buffer))
+
+    def load_series_in_buffer(self):
+        keys = next(self.dp)
+        href = "http://www.bdm.insee.fr/bdm2/exporterSeries"
+        params = urllib.parse.urlencode([('periode', 'toutes'),
+                                         ('qualite', 'true'),
+                                         ('chrono', 'true'),
+                                         ('liste_formats', 'txt'),
+                                         ('request_locale','en')]+
+                                        [('idbank', k) for k in keys])
+        params = params.encode('utf-8')
+        fh = Insee.open_url_and_check(self,href,params)
+        #            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
+        file_buffer = BytesIO(fh.read())
+        file = zipfile.ZipFile(file_buffer)
+        (series,s_offset) = self.get_charact_csv(file,self.dataset_code)
+        (attributes,values) = self.get_values_csv(file,series,s_offset)
+        self.buffer = iter([{'provider': self.provider_name,
+                             'datasetCode': self.dataset_code,
+                             'name': z[0]['name'],
+                             'key': z[0]['key'],
+                             'values': z[2],
+                             'attributes': {'flags': z[1]},
+                             'dimensions': z[0]['dimensions'],
+                             'frequency': z[0]['frequency'],
+                             'startDate': z[0]['startDate'],
+                             'endDate': z[0]['endDate'],
+                             'releaseDates': [z[0]['releaseDate'] for j in z[2]]}
+                            for z in zip(series,attributes,values)])
+                   
     def get_charact_csv(self,file,datasetCode):
         """Parse and store dataset parameters in Charact.csv"""
         
         series = []
         startDate = []
         endDate = []
-        dimensions_desc = collections.defaultdict(set)
         buffer = file.read('Charact.csv').decode(encoding='cp1252')
         lines = buffer.split('\r\n')
         m = 0
@@ -206,19 +234,16 @@ class Insee(Skeleton):
             fields = re.split(r"[;](?![ ])",line)
             if (fields[0] == 'Heading') or (fields[0] == 'Title'):
                 for i in range(len(fields)-1):
-                    series += [{'name': fields[i+1]}]
                     name_parts = fields[i+1].split(' - ')
-                    dims = {}
+                    series.append({'name': fields[i+1],'dimensions': {}})
                     for j in range(len(name_parts)):
-                        dims['code'+str(j+1)] = name_parts[j]
-                        dimensions_desc['code'+str(j+1)].add(name_parts[j])
-                    series[i]['dimensions'] = dims
+                        series[i]['dimensions']['code'+str(j+1)] = self.dimension_list.update_entry('code'+str(j+1),'',name_parts[j])
             elif fields[0] == 'IdBank':
                 for i in range(len(fields)-1):
                     series[i]['key'] = fields[i+1]
             elif fields[0] == 'Last update':
                 for i in range(len(fields)-1):
-                    series[i]['releaseDates'] = datetime.datetime.strptime(fields[i+1],'%B %d, %Y')
+                    series[i]['releaseDate'] = datetime.datetime.strptime(fields[i+1],'%B %d, %Y')
             elif fields[0] == 'Periodicity': 
                 for i in range(len(fields)-1):
                     if fields[i+1] == 'Annual':
@@ -239,38 +264,28 @@ class Insee(Skeleton):
                         s_offset = 2
             elif (fields[0] == 'Beginning date') or (fields[0] == 'Start date'):
                 for i in range(len(fields)-1):
-                    startDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
-                        date[1] = str(3*(int(date[1])-1)+1)
-                        series[i]['startDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
+                        series[i]['startDate'] = pandas.Period(date[3]+'Q'+ date[1],freq='quarterly').ordinal
                     else:
-                        series[i]['startDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
+                        series[i]['startDate'] = pandas.Period(fields[i+1],freq=series[i]['frequency']).ordinal
             elif (fields[0] == 'Ending date') or (fields[0] == 'End date'):
                 for i in range(len(fields)-1):
                     endDate.append(fields[i+1])
                     # Quaterly dates are in a special format
                     if series[i]['frequency'] == 'Q':
                         date = fields[i+1].split()
-                        date[1] = str(3*(int(date[1])-1)+1)
-                        series[i]['endDate'] = datetime.datetime.strptime(date[1]+' '+date[3],'%M %Y')
+                        series[i]['endDate'] = pandas.Period(date[3]+'Q'+date[1],freq='quarterly').ordinal
                     else:
-                        series[i]['endDate'] = datetime.datetime.strptime(fields[i+1],datefmt)
+                        series[i]['endDate'] = pandas.Period(fields[i+1],freq=series[i]['frequency']).ordinal
             else:
                 for i in range(len(fields)-1):
-                    series[i]['dimensions'][fields[0]] = fields[i+1]
-                    dimensions_desc[fields[0]].add(fields[i+1])
+                    series[i]['dimensions'][fields[0]] = self.dimension_list.update_entry(fields[0],'', fields[i+1])
+
             m += 1
-        for i in range(len(startDate)):
-            if series[i]['frequency'] == "Q":
-                d1 = startDate[i].split()
-                d2 = endData[i].split()
-                series[i]['period_index'] = period_range(d1[1]+' '+d1[3],d2[1]+' '+d2[3],freq="Q")
-            else:
-                series[i]['period_index'] = period_range(startDate[i],endDate[i],freq=series[i]['frequency'])
                 
-        return (dimensions_desc,series,s_offset)
+        return (series,s_offset)
 
     def get_values_csv(self,file,series,s_offset):
         """Parse and store values in Values.csv"""
@@ -317,53 +332,9 @@ class Insee(Skeleton):
                 s[s0[0]] = s0[1]
                 if len(fields) > 3:
                     s0 = fields[3].split(' : ')
-                    s[s0[0]]=s0[1]
+                    self.attribute_list.update_entry('flags',s0[0],s0[1])
             m += 1
-        return (f,s,v)
-
-    def parse_agenda(self):
-        """Parse agenda of new releases and schedule jobs"""
-        
-        DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
-        url = 'http://www.insee.fr/en/publics/presse/agenda.asp'
-        # url = "http://localhost:8800/insee/agenda.html"
-        fh = self.open_url_and_check(url)
-        agenda = BeautifulSoup(fh)
-        ul = agenda.find('div',id='contenu').find('ul','liens')
-        for li in ul.find_all('li'):
-            href = li.find('a')['href']
-            groups = self.parse_theme(href)
-            text = li.find('p','info').string
-            date = datetime.datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
-            print(href,groups,text,date)
-            
-    def parse_theme(self,url):
-        """Find updated code groups"""
-        
-        #url = "http://localhost:8800/insee/industrial_production.html"
-        #fh = self.open_url_and_check(url)
-        fh = self.open_url_and_check('http://www.insee.fr' + url)
-        theme = BeautifulSoup(fh)
-        p = theme.find('div',id='savoirplus').find('p')
-        groups = []
-        print(p.find_all('a'))
-        for a in p.find_all('a'):
-            groups += [a.string[1:]]
-        return groups
-
-    def open_url_and_check(self,url,params=None):
-        try:
-            fh = urllib.request.urlopen(url,params)
-        except URLError as e:
-            if hasattr(e, 'reason'):
-                print("Couldn't complete the request")
-                print("Reason: ",e.reason)
-            else:
-                print("Couldn't reach the server")
-                print("Code: ",e.code)
-            raise
-        else:
-            return fh
+        return (f,v)
 
 class dataset_page(Insee):
     """Iterator serves variable keys in chunks small enough for Insee web site."""
@@ -381,7 +352,7 @@ class dataset_page(Insee):
         # Parse parameters
         url = "http://www.bdm.insee.fr/bdm2/choixCriteres?request_locale=en&codeGroupe=" + dataset_code
         fh = Insee.open_url_and_check(self,url)
-        page = BeautifulSoup(fh)
+        page = BeautifulSoup(fh,"lxml")
         #        page = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/rub"))
         h1 = page.find('h1')
         self.dataset_name = h1.string
@@ -533,7 +504,7 @@ class dataset_page(Insee):
             raise StopIteration
         url = "http://www.bdm.insee.fr/bdm2/listeSeries"
         fh = self.open_url_and_check(url,self.params[self.iter])
-        page1 = BeautifulSoup(fh)
+        page1 = BeautifulSoup(fh,"lxml")
         #            page1 = BeautifulSoup(urllib.request.urlopen("http://localhost:8800/insee/3"))
         self.iter += 1
         tbody = page1.find("tbody")
@@ -605,8 +576,8 @@ if __name__ == "__main__":
     insee = Insee()
     #    insee.get_categories(insee.initial_page)
     #    HPCI
-    insee.get_data('158')
-    #    insee.get_data('1427')
+    #insee.get_data('158')
+    insee.get_data('1427')
     #insee.get_data('1430')
     #    insee.update_datasets()
     # insee.parse_agenda()             

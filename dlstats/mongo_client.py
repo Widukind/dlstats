@@ -1,7 +1,7 @@
 import ming
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
-from . import configuration
+from dlstats import configuration
 from dlstats.logger import logger
 try:
     mongo_client = MongoClient(**configuration['MongoDB'])
