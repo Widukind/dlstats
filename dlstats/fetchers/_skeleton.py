@@ -372,8 +372,9 @@ class Series(DlstatsCollection):
                     # previous, longer, series is kept
                     # fill beginning with na
                     for p in range(start_date-old_start_date):
+                        # insert in front of the values, releaseDates and attributes
                         bson['values'].insert(0,'na')
-                        bson['releaseDates'].insert(0,release_date) # release_date TO BE CHECKED ????
+                        bson['releaseDates'].insert(0,release_date)
                         for a in bson['attributes']:
                             bson['attributes'][a].insert(0,"") 
                     bson['startDate'] = old_bson['startDate']
@@ -425,6 +426,7 @@ class CodeDict():
                 if 'None' not in self.code_dict[dim_name]:
                     self.code_dict[dim_name].update({'None': 'None'})
             elif not dim_short_id:
+                # find the next (numerical) short id in self.code_dict[dim_name]
                 try:
                     dim_short_id = next(key for key,value in self.code_dict[dim_name].items() if value == dim_long_id)
                 except StopIteration:
@@ -434,7 +436,8 @@ class CodeDict():
                 self.code_dict[dim_name].update({dim_short_id: dim_long_id})
         else:
             if not dim_short_id:
-                dim_short_id = '0'   #??????
+                # numerical short id starts with 0
+                dim_short_id = '0'
             self.code_dict[dim_name] = {dim_short_id: dim_long_id}
         return(dim_short_id)
 
