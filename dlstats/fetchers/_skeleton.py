@@ -87,6 +87,18 @@ class DlstatsCollection(object):
         self.db = mongo_client.widukind
         self.testing_mode = False
         
+    def update_mongo_collection(self,collection,key,bson,log_level=logging.INFO):
+        lg = logging.getLogger(__name__)
+        if not self.testing_mode:
+            try:
+                result = self.db[collection].replace_one({key: bson[key]},bson,upsert=True)
+            except:
+                lg.critical(collection + '.update_database() failed for '+ bson[key])
+                return None
+            else:
+                lg.log(log_level,collection + ' ' + bson[key] + ' updated.')
+                return result
+        
 class Provider(DlstatsCollection):
     """Abstract base class for providers
     >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
@@ -97,12 +109,13 @@ class Provider(DlstatsCollection):
 
     def __init__(self,
                  name=None,
-                 website=None):
+                 website=None,
+                 testing_mode=False):
         super().__init__()
         self.configuration=configuration
         self.name=name
         self.website=website
-
+        
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
                               'website':
@@ -122,9 +135,8 @@ class Provider(DlstatsCollection):
                 'website': self.website}
 
     def update_database(self,mongo_id=None,key=None):
-        if not self.testing_mode:
-            return self.db.providers.update({'name':self.bson['name']},self.bson,upsert=True)
-
+        return self.update_mongo_collection('providers','name',self.bson)
+                
 class Category(DlstatsCollection):
     """Abstract base class for categories
     >>> from datetime import datetime
@@ -201,15 +213,8 @@ class Category(DlstatsCollection):
                 'lastUpdate': self.lastUpdate,
                 'exposed': self.exposed}
     def update_database(self):
-        in_base_category = self.db.categories.find_one(
-            {'categoryCode': self.bson['categoryCode']})
-        if in_base_category is None:
-            _id_ = self.db.categories.insert(self.bson)
-        else:
-            self.db.categories.update(
-                {'_id': in_base_category['_id']},self.bson)
-            _id_ = in_base_category['_id']
-        return _id_
+        # we will log to info when we switch to bulk update
+        return self.update_mongo_collection('categories','categoryCode',self.bson,log_level=logging.DEBUG)
 
 class Dataset(DlstatsCollection):
     """Abstract base class for datasets
@@ -271,8 +276,7 @@ class Dataset(DlstatsCollection):
     def update_database(self):
         self.series.process_series()
         self.schema(self.bson)
-        self.db.datasets.update({'datasetCode': self.bson['datasetCode']},
-                                self.bson,upsert=True)
+        return self.update_mongo_collection('datasets','datasetCode',self.bson)
 
 class Series(DlstatsCollection):
     """Abstract base class for time series
@@ -346,63 +350,58 @@ class Series(DlstatsCollection):
             self.update_series_list()
         
     def update_series_list(self):
-        keys = [s['key'] for s in self.ser_list]
-        old_series = self.db.series.find({'provider': self.provider_name, 'datasetCode': self.dataset_code, 'key': {'$in': keys}})
-        old_series = {s['key']:s for s in old_series}
-        bulk = self.db.series.initialize_ordered_bulk_op()
-        for bson in self.ser_list:
-            if bson['key'] not in old_series:
-                self.schema(bson)
-                bulk.insert(bson)
-            else:
-                release_date = bson['releaseDates'][0]
-                old_bson = old_series[bson['key']]
-                if 'revision'  in old_bson:
-                    bson['revisions'] = old_bson['revisions']
-                start_date = bson['startDate']
-                old_start_date = old_bson['startDate']
-                if start_date < old_start_date:
-                    # update all positions
-                    if 'revisions' in bson:
-                        offset = old_start_date - start_date
-                        ikeys = [int(k) for k in bson['revisions']]
-                        for p in sorted(ikeys,reverse=True):
-                            bson['revisions'][str(p+offset)] = bson['revisions'][str(p)] 
-                elif start_date > old_start_date:
-                    # previous, longer, series is kept
-                    # fill beginning with na
-                    for p in range(start_date-old_start_date):
-                        # insert in front of the values, releaseDates and attributes
-                        bson['values'].insert(0,'na')
-                        bson['releaseDates'].insert(0,release_date)
-                        for a in bson['attributes']:
-                            bson['attributes'][a].insert(0,"") 
-                    bson['startDate'] = old_bson['startDate']
-                for position,values in enumerate(zip(old_bson['values'],bson['values'])):
-                    if values[0] != values[1]:
-                        if 'revisions' not in bson:
-                            bson['revisions'] = defaultdict(list)
-                        bson['revisions'][str(position)].append(
-                            {'value':values[0],
-                             'releaseDates':old_bson['releaseDates'][position]})
-                if bson['endDate'] < old_bson['endDate']:
-                    for p in range(old_bson['endDate']-bson['endDate']):
-                        bson['values'].append('na')
-                        bson['releaseDates'].append(release_date)
-                        for a in bson['attributes']:
-                            bson['attributes'][a].append("")
-                self.schema(bson)
-                bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
-        bulk.execute()
-        self.ser_list = []
-            
-    def bulk_update_database(self):
-        if not self.testing_mode:
-            mdb_bulk = self.db.series.initialize_ordered_bulk_op()
-            for s in self.data:
-                s.collection = mdb_bulk
-                s.update_database()
-            return mdb_bulk.execute();
+        if self.testing_mode == False:
+            keys = [s['key'] for s in self.ser_list]
+            old_series = self.db.series.find({'provider': self.provider_name,
+                                              'datasetCode': self.dataset_code,
+                                              'key': {'$in': keys}})
+            old_series = {s['key']:s for s in old_series}
+            bulk = self.db.series.initialize_ordered_bulk_op()
+            for bson in self.ser_list:
+                if bson['key'] not in old_series:
+                    self.schema(bson)
+                    bulk.insert(bson)
+                else:
+                    release_date = bson['releaseDates'][0]
+                    old_bson = old_series[bson['key']]
+                    if 'revision'  in old_bson:
+                        bson['revisions'] = old_bson['revisions']
+                    start_date = bson['startDate']
+                    old_start_date = old_bson['startDate']
+                    if start_date < old_start_date:
+                        # update all positions
+                        if 'revisions' in bson:
+                            offset = old_start_date - start_date
+                            ikeys = [int(k) for k in bson['revisions']]
+                            for p in sorted(ikeys,reverse=True):
+                                bson['revisions'][str(p+offset)] = bson['revisions'][str(p)] 
+                    elif start_date > old_start_date:
+                        # previous, longer, series is kept
+                        # fill beginning with na
+                        for p in range(start_date-old_start_date):
+                            # insert in front of the values, releaseDates and attributes
+                            bson['values'].insert(0,'na')
+                            bson['releaseDates'].insert(0,release_date)
+                            for a in bson['attributes']:
+                                bson['attributes'][a].insert(0,"") 
+                        bson['startDate'] = old_bson['startDate']
+                    for position,values in enumerate(zip(old_bson['values'],bson['values'])):
+                        if values[0] != values[1]:
+                            if 'revisions' not in bson:
+                                bson['revisions'] = defaultdict(list)
+                            bson['revisions'][str(position)].append(
+                                {'value':values[0],
+                                 'releaseDates':old_bson['releaseDates'][position]})
+                    if bson['endDate'] < old_bson['endDate']:
+                        for p in range(old_bson['endDate']-bson['endDate']):
+                            bson['values'].append('na')
+                            bson['releaseDates'].append(release_date)
+                            for a in bson['attributes']:
+                                bson['attributes'][a].append("")
+                    self.schema(bson)
+                    bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
+            result = bulk.execute()
+            self.ser_list = []
 
 class CodeDict():
     """Class for handling code lists
@@ -438,7 +437,7 @@ class CodeDict():
             if not dim_short_id:
                 # numerical short id starts with 0
                 dim_short_id = '0'
-            self.code_dict[dim_name] = {dim_short_id: dim_long_id}
+                self.code_dict[dim_name] = {dim_short_id: dim_long_id}
         return(dim_short_id)
 
     def get_dict(self):
