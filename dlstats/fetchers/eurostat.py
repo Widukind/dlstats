@@ -47,8 +47,8 @@ class Eurostat(Skeleton):
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         self.fh.setFormatter(self.frmt)
         self.lgr.addHandler(self.fh)
-        self.lgr.info('Retrieving %s',
-                      self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
+        #        self.lgr.info('Retrieving %s',
+        #                      self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
         #        webpage = urllib.request.urlopen(
         #            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
         #            timeout=7)
@@ -57,6 +57,9 @@ class Eurostat(Skeleton):
         self.provider_name = 'Eurostat'
         self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
+
+    def upsert_provider_db(self):
+        self.provider.update_database();
 
     def update_categories_db(self):
         """Update the categories in MongoDB
@@ -343,6 +346,9 @@ class EurostatData:
     
 if __name__ == "__main__":
     e = Eurostat()
+    l = logging.getLogger('_skeleton')
+    l.setLevel(logging.INFO)
+    #    e.upsert_provider_db()
     #    e.update_categories_db()
-    e.update_selected_dataset('nama_gdp_c')
-#    e.update_selected_dataset('nama_gdp_k')
+    #    e.update_selected_dataset('nama_gdp_c')
+    e.update_selected_dataset('nama_gdp_k')

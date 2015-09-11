@@ -15,6 +15,8 @@ class WorldBank(Skeleton):
         super().__init__()         
         self.provider_name = 'WorldBank'
         self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
+        self.gem_url = 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' + \
+                            'GemDataEXTR.zip'
         
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
@@ -25,8 +27,7 @@ class WorldBank(Skeleton):
     def upsert_dataset(self, datasetCode):
         
         if datasetCode=='GEM':
-            self.upsert_gem('http://siteresources.worldbank.org/INTPROSPECTS/Resources/' + \
-                            'GemDataEXTR.zip',datasetCode)
+            self.upsert_gem(self.gem_url,datasetCode)
         else:
             raise Exception("This dataset is unknown" + dataCode)
         es = ElasticIndex()
@@ -73,9 +74,9 @@ class GemData:
         dimensions = {}
         col_header = self.sheet.cell_value(0,column)
         if self.series_name == 'Commodity Prices':
-            dimensions['Commodity'] = self.dimension_list.update_entry('Commodity','',col_header) 
+            dimensions['Commodity'] = self.dimension_list.update_entry('Commodity','',col_header)
         else:    
-            dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header) 
+            dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header,self.attribute_list) 
         values = [str(v) for v in self.sheet.col_values(column,start_rowx=1)]
         release_dates = [self.lastUpdate for v in values]
         series_key = self.series_name.replace(' ','_').replace(',', '')
@@ -108,8 +109,6 @@ class GemData:
         periods = self.sheet.col_slice(0, start_rowx=2)
         start_period = periods[0].value
         end_period = periods[-1].value
-        print(self.series_name)
-        print(self.sheet.name)
         if self.sheet.name == 'annual':    
             self.frequency = 'A'
             self.start_date = pandas.Period(str(int(start_period)),freq='A').ordinal
@@ -143,4 +142,5 @@ class GemData:
 if __name__ == "__main__":
     import world_bank
     w = world_bank.WorldBank()
+    w.gem_url = 'http://localhost:8800/worldbank/GemDataEXTR.zip'
     w.upsert_dataset('GEM')

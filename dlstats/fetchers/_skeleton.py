@@ -230,8 +230,8 @@ class Dataset(DlstatsCollection):
         self.name = None
         self.doc_href = None
         self.last_update = None
-        self.dimension_list = CodeDict()
-        self.attribute_list = CodeDict()
+        self.dimension_list = CodeDict({})
+        self.attribute_list = CodeDict({})
         self.load_previous_version(provider_name,dataset_code)
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
@@ -409,10 +409,10 @@ class CodeDict():
     >>> print(code_list)
     {'Country': {'FR': 'France'}}
     """    
-    def __init__(self,code_dict = {}):
-        self.code_dict = code_dict
+    def __init__(self,arg = {}):
+        self.code_dict = arg
         self.schema = Schema({Extra: dict})
-        self.schema(code_dict)
+        self.schema(self.code_dict)
         
     def update(self,arg):
         self.schema(arg.code_dict)

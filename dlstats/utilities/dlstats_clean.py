@@ -53,4 +53,7 @@ if datasetCode:
 db = MongoClient().widukind
 es = Elasticsearch()
 clean_mongo(db,filter,cleanProvider)
+filter.update({'provider': filter['provider'].lower()})
+if datasetCode:
+    filter.update({'datasetCode': filter['datasetCode'].lower()})
 clean_elastic(es,filter)
