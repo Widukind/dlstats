@@ -12,6 +12,8 @@ import pprint
 from collections import OrderedDict
 from re import match
 from time import sleep
+import requests
+from lxml import etree
 
 class IMF(Skeleton):
     def __init__(self):
@@ -21,32 +23,49 @@ class IMF(Skeleton):
         
     def upsert_dataset(self, datasetCode):
         if datasetCode=='WEO':
-            weo_urls = [
-                'http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
-                'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2008/01/weodata/WEOApr2008all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2008/02/weodata/WEOOct2008all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2010/02/weodata/WEOOct2010all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2011/01/weodata/WEOApr2011all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2011/02/weodata/WEOSep2011all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2012/01/weodata/WEOApr2012all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2012/02/weodata/WEOOct2012all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2013/01/weodata/WEOApr2013all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls',
-#                'http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls'
-            ]
             for u in weo_urls:
                 self.upsert_weo_issue(u,datasetCode)
             es = ElasticIndex()                                 # ????
             es.make_index(self.provider_name,datasetCode)       # ????
         else:
             raise Exception("This dataset is unknown" + dataCode)
+
+@properties
+def weo_urls():
+    """Procedure for fetching the list of links to the Excel files from the
+    WEO database
+    :returns: list --- list of links
+    >>> l = get_weo_links()
+    >>> print(l[:4])
+    ['http://www.imf.org/external/pubs/ft/weo/2015/01/weodata/WEOApr2015all.xls', 'http://www.imf.org/external/pubs/ft/weo/2014/02/weodata/WEOOct2014all.xls', 'http://www.imf.org/external/pubs/ft/weo/2014/01/weodata/WEOApr2014all.xls', 'http://www.imf.org/external/pubs/ft/weo/2013/02/weodata/WEOOct2013all.xls']
+    """
+
+    #We hardcode these links because their formats are different.
+    output = ['http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls',
+    'http://www.imf.org/external/pubs/ft/weo/2007/01/data/WEOApr2007all.xls',
+    'http://www.imf.org/external/pubs/ft/weo/2007/02/weodata/WEOOct2007all.xls']
+
+    webpage = requests.get('http://www.imf.org/external/ns/cs.aspx?id=28')
+    html = etree.HTML(webpage.text)
+    hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
+    links = [href.values() for href in hrefs]
+    #The last links of the WEO webpage lead to data we dont want to pull.
+    links = links[:-16]
+    #These are other links we don't want.
+    links.pop(-8)
+    links.pop(-10)
+    links = [link[0][:-10]+'download.aspx' for link in links]
+
+    output = []
+
+    for link in links:
+        webpage = requests.get(link)
+        html = etree.HTML(webpage.text)
+        final_link = html.xpath("//div[@id = 'content']//table//a['href']")
+        final_link = final_link[0].values()
+        output.append(link[:-13]+final_link[0])
+
+    return(output)
         
     def upsert_weo_issue(self,url,dataset_code):
         dataset = Dataset(self.provider_name,dataset_code)
