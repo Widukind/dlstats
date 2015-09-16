@@ -142,5 +142,4 @@ class GemData:
 if __name__ == "__main__":
     import world_bank
     w = world_bank.WorldBank()
-    w.gem_url = 'http://localhost:8800/worldbank/GemDataEXTR.zip'
     w.upsert_dataset('GEM')
