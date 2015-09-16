@@ -25,7 +25,7 @@ class Skeleton(object):
         self.provider_name = provider_name
         self.db = mongo_client.widukind
 
-    def upsert_categories(self,id):
+    def upsert_categories(self):
         """Upsert the categories in MongoDB
         """
         raise NotImplementedError("This method from the Skeleton class must"
