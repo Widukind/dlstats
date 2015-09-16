@@ -230,8 +230,8 @@ class Dataset(DlstatsCollection):
         self.name = None
         self.doc_href = None
         self.last_update = None
-        self.dimension_list = CodeDict({})
-        self.attribute_list = CodeDict({})
+        self.dimension_list = CodeDict(OrderedDict())
+        self.attribute_list = CodeDict(OrderedDict())
         self.load_previous_version(provider_name,dataset_code)
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
@@ -437,7 +437,7 @@ class CodeDict():
             if not dim_short_id:
                 # numerical short id starts with 0
                 dim_short_id = '0'
-                self.code_dict[dim_name] = {dim_short_id: dim_long_id}
+            self.code_dict[dim_name] = {dim_short_id: dim_long_id}
         return(dim_short_id)
 
     def get_dict(self):
