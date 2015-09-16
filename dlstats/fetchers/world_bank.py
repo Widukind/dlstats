@@ -76,7 +76,7 @@ class GemData:
         if self.series_name == 'Commodity Prices':
             dimensions['Commodity'] = self.dimension_list.update_entry('Commodity','',col_header)
         else:    
-            dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header,self.attribute_list) 
+            dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header) 
         values = [str(v) for v in self.sheet.col_values(column,start_rowx=1)]
         release_dates = [self.lastUpdate for v in values]
         series_key = self.series_name.replace(' ','_').replace(',', '')

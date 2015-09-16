@@ -30,7 +30,7 @@ class IMF(Skeleton):
         else:
             raise Exception("This dataset is unknown" + dataCode)
 
-@properties
+@property
 def weo_urls():
     """Procedure for fetching the list of links to the Excel files from the
     WEO database

@@ -15,7 +15,7 @@ from datetime import datetime
 import logging
 import bson
 import pprint
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from dlstats import mongo_client
 
 class Skeleton(object):
@@ -402,14 +402,14 @@ class Series(DlstatsCollection):
                     bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
             result = bulk.execute()
             self.ser_list = []
-
+            
 class CodeDict():
     """Class for handling code lists
     >>> code_list = {'Country': {'FR': 'France'}}
     >>> print(code_list)
     {'Country': {'FR': 'France'}}
     """    
-    def __init__(self,arg = {}):
+    def __init__(self,arg = OrderedDict()):
         self.code_dict = arg
         self.schema = Schema({Extra: dict})
         self.schema(self.code_dict)
