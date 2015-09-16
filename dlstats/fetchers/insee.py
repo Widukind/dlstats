@@ -28,7 +28,8 @@ class Insee(Skeleton):
         self.test_count = 0
         self.provider_name = 'INSEE'
         self.provider = Provider(name=self.provider_name,website='http://www.insee.fr')
-
+        self.data_url = "http://www.bdm.insee.fr/bdm2/exporterSeries"
+        
     def get_categories(self,url):
         """Gets categories for INSEE BDM
         
@@ -120,11 +121,12 @@ class Insee(Skeleton):
         """Get dataset for a given code"""
 
         dataset = Dataset(self.provider_name,datasetCode)
-        data = InseeData(self.provider_name,datasetCode)
+        data = InseeData(dataset,self.data_url)
         dataset.series.data_iterator = data
         dataset.name = data.dp.dataset_name
         dataset.doc_href = "http://www.bdm.insee.fr/bdm2/documentationGroupe?codeGroupe=" + datasetCode
         dataset.last_update = data.dp.lastUpdate
+        
         dataset.update_database()
         es = ElasticIndex()
         es.make_index(self.provider_name,datasetCode)
@@ -174,13 +176,14 @@ class Insee(Skeleton):
             return fh
 
 class InseeData():
-    def __init__(self,provider_name,dataset_code):
-        self.provider_name = provider_name
-        self.dataset_code = dataset_code
+    def __init__(self,dataset,data_url):
+        self.provider_name = dataset.provider_name
+        self.dataset_code = dataset.dataset_code
         self.buffer = iter([])
-        self.dp = dataset_page(dataset_code)
-        self.dimension_list = CodeDict()
-        self.attribute_list = CodeDict()
+        self.dp = dataset_page(self.dataset_code)
+        self.dimension_list = dataset.dimension_list
+        self.attribute_list = dataset.attribute_list
+        self.data_url = data_url
         
     def __iter__(self):
         return self
@@ -194,7 +197,6 @@ class InseeData():
 
     def load_series_in_buffer(self):
         keys = next(self.dp)
-        href = "http://www.bdm.insee.fr/bdm2/exporterSeries"
         params = urllib.parse.urlencode([('periode', 'toutes'),
                                          ('qualite', 'true'),
                                          ('chrono', 'true'),
@@ -202,7 +204,7 @@ class InseeData():
                                          ('request_locale','en')]+
                                         [('idbank', k) for k in keys])
         params = params.encode('utf-8')
-        fh = Insee.open_url_and_check(self,href,params)
+        fh = Insee.open_url_and_check(self,self.data_url,params)
         #            fh = urllib.request.urlopen("http://localhost:8800/insee/values.zip")
         file_buffer = BytesIO(fh.read())
         file = zipfile.ZipFile(file_buffer)
@@ -576,8 +578,8 @@ if __name__ == "__main__":
     insee = Insee()
     #    insee.get_categories(insee.initial_page)
     #    HPCI
-    #insee.get_data('158')
-    insee.get_data('1427')
+    insee.get_data('158')
+    #    insee.get_data('1427')
     #insee.get_data('1430')
     #    insee.update_datasets()
     # insee.parse_agenda()             
