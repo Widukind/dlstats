@@ -65,7 +65,8 @@ class IMF(Skeleton):
             final_link = final_link[0].values()
             output.append(link[:-13]+final_link[0])
 
-        return(output)
+        # we need to handle the issue in chronological order
+        return(sorted(output))
         
     def upsert_weo_issue(self,url,dataset_code):
         dataset = Dataset(self.provider_name,dataset_code)
