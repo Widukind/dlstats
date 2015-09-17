@@ -1,5 +1,6 @@
 import pymongo
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, helpers
+from collections import OrderedDict
 
 class ElasticIndex():
     def __init__(self):
@@ -8,7 +9,8 @@ class ElasticIndex():
 
     def make_index(self,provider_name,dataset_code):
         mb_dataset = self.db.datasets.find_one({'provider': provider_name, 'datasetCode': dataset_code})
-        mb_series = self.db.series.find({'provider': provider_name, 'datasetCode': dataset_code},{'key': 1, 'dimensions': 1, 'name': 1})
+        mb_series = self.db.series.find({'provider': provider_name, 'datasetCode': dataset_code},
+                                        {'key': 1, 'dimensions': 1, 'name': 1, 'frequency': 1})
     
         es_data = self.elasticsearch_client.search(index = 'widukind', doc_type = 'datasets',
                                                    body= { "filter":
@@ -24,6 +26,7 @@ class ElasticIndex():
         es_dataset['lastUpdate'] = mb_dataset['lastUpdate']
         es_dataset['provider'] = mb_dataset['provider']
         es_dataset['datasetCode'] = mb_dataset['datasetCode']
+        es_dataset['frequencies'] = mb_series.distinct('frequency')
         
         es_series = self.elasticsearch_client.search(index = 'widukind', doc_type = 'series',
                             body= { "filter":
@@ -38,7 +41,7 @@ class ElasticIndex():
         else:
             es_dimension_dict = {}
             
-        es_bulk = EsBulk(mb_dimension_dict)
+        es_bulk = EsBulk(self.elasticsearch_client,mb_dimension_dict)
         for s in mb_series:
             mb_dim = s['dimensions']
             s['dimensions'] = {d: [mb_dim[d],mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim}
@@ -60,31 +63,32 @@ class ElasticIndex():
                                   id = provider_name + '.' + dataset_code,
                                   body = es_dataset)
 class EsBulk():
-    def __init__(self,mb_dimension_dict):
+    def __init__(self,db,mb_dimension_dict):
+        self.db = db
         self.es_bulk = []
         self.mb_dimension_dict = mb_dimension_dict
         
     def add_to_index(self,provider_name,dataset_code,s):
-        op_dict = {
-            "index": {
+        bson = {"_op_type": 'index', 
                 "_index": 'widukind',
                 "_type": 'series',
-                "_id": provider_name + '.' + dataset_code + '.' + s['key']
-            }
-        }
-        self.es_bulk.append(op_dict)
-        bson = {'provider': provider_name,
+                "_id": provider_name + '.' + dataset_code + '.' + s['key'],
+                'provider': provider_name,
                 'key': s['key'],
                 'name': s['name'],
                 'datasetCode': dataset_code,
-                'dimensions': s['dimensions']
-        }
+                'dimensions': s['dimensions'],
+                'frequency': s['frequency']}
         self.es_bulk.append(bson)
                                      
     def update_index(self,provider_name,dataset_code,s,es_s):
         update = False
         mb_dim = s['dimensions']
-        new_bson = {}
+        new_bson = {"_op_type": 'update',
+                "_index": 'widukind',
+                "_type": 'series',
+                "_id": provider_name + '.' + dataset_code + '.' + s['key']}
+
         if es_s['name'] != s['name']:
             new_bson['name'] = s['name']
             update = True
@@ -98,19 +102,11 @@ class EsBulk():
                 update = True
                 
         if update:
-            op_dict = {
-                "update": {
-                    "_index": 'widukind',
-                    "_type": 'series',
-                    "_id": provider_name + '.' + dataset_code + '.' + s['key']
-                }
-            }
-            self.es_bulk.append(op_dict)
             self.es_bulk.append(new_bson)
             
     def update_database(self):
-        res_es = Elasticsearch().bulk(index = 'widukind', body = self.es_bulk, refresh = True)
+        res_es = helpers.bulk(self.db, self.es_bulk, index = 'widukind')
         
 if __name__ == "__main__":
     e = ElasticIndex()
-    e.make_index('IMF','WEO')
+    e.make_index('WorldBank','GEM')
