@@ -233,6 +233,7 @@ class Dataset(DlstatsCollection):
         self.dimension_list = CodeDict(OrderedDict())
         self.attribute_list = CodeDict(OrderedDict())
         self.load_previous_version(provider_name,dataset_code)
+        self.notes = ''
         self.schema = Schema({'name':
                               All(str, Length(min=1)),
                               'provider':
@@ -246,7 +247,9 @@ class Dataset(DlstatsCollection):
                               'dimensionList':
                               dimension_list_schema,
                               'attributeList':
-                              Any(None,attribute_list_schema)
+                              Any(None,attribute_list_schema),
+                              Optional('notes'):
+                              str
                              },required=True)
         self.series = Series(self.provider_name,
                              self.dataset_code,
@@ -257,13 +260,23 @@ class Dataset(DlstatsCollection):
                                ('dataset_code', self.dataset_code)])
     @property
     def bson(self):
-        return {'provider': self.provider_name,
-                'name': self.name,
-                'datasetCode': self.dataset_code,
-                'dimensionList': self.dimension_list.get_list(),
-                'attributeList': self.attribute_list.get_list(),
-                'docHref': self.doc_href,
-                'lastUpdate': self.last_update}
+        if self.notes:
+            return {'provider': self.provider_name,
+                    'name': self.name,
+                    'datasetCode': self.dataset_code,
+                    'dimensionList': self.dimension_list.get_list(),
+                    'attributeList': self.attribute_list.get_list(),
+                    'docHref': self.doc_href,
+                    'lastUpdate': self.last_update,
+                    'notes': self.notes}
+        else:
+            return {'provider': self.provider_name,
+                    'name': self.name,
+                    'datasetCode': self.dataset_code,
+                    'dimensionList': self.dimension_list.get_list(),
+                    'attributeList': self.attribute_list.get_list(),
+                    'docHref': self.doc_href,
+                    'lastUpdate': self.last_update}
 
     def load_previous_version(self,provider_name,dataset_code):
         dataset = self.db.datasets.find_one({'provider': provider_name,
