@@ -21,14 +21,26 @@ class ECB(Skeleton):
         self.provider_name = 'ECB'
         self.provider = Provider(name=self.provider_name,website='http://www.imf.org/')
         
-    def upsert_categories(self, id=None):
+    def upsert_categories(self):
         categories = sdmx.ecb.categories
         def walk_category(category):
             children_ids = []
             if 'flowrefs' in category:
+                children_ids_ = []
+                for flowref in category['flowrefs']:
+                    dataflow_info = sdmx.ecb.dataflows(flowref)
+                    key_family = list(dataflow_info.keys())[0]
+                    name = dataflow_info[key_family][2]['en']
+                    in_base_category_ = Category(provider='ECB',name=name,
+                                                categoryCode=key_family,
+                                                children=None,
+                                                docHref=None,
+                                                lastUpdate=datetime(2014,12,2),
+                                                exposed=True)
+                    children_ids_.append(in_base_category_.update_database())
                 in_base_category = Category(provider='ECB',name=category['name'],
                                             categoryCode=category['name'],
-                                            children=category['flowrefs'],
+                                            children=children_ids_,
                                             docHref=None,
                                             lastUpdate=datetime(2014,12,2),
                                             exposed=True)
@@ -41,13 +53,16 @@ class ECB(Skeleton):
                                             docHref=None,
                                             lastUpdate=datetime(2014,12,2),
                                             exposed=True)
-            return in_base_category.update_database()
+            try:
+                return in_base_category.update_database()
+            except NameError:
+                pass
         walk_category(categories)
 
     def upsert_dataset(self, dataset_code):
         dataset = Dataset(self.provider_name,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
-        ecb_data = ECB(dataset,url)
+        ecb_data = ECBData(dataset_code)
         dataset.name = cat['name']
         dataset.doc_href = cat['docHref']
         dataset.last_update = cat['lastUpdate']
@@ -59,8 +74,7 @@ class ECBData(object):
     def __init__(self,dataset_code):
         self.provider_name = 'ECB'
         self.dataset_code = dataset_code
-        #The slice [4:] removes the agencyID ECB_ in the string
-        self.key_familiy = list(sdmx.ecb.dataflows(dataset_code).keys())[0][4:]
+        self.key_family = list(sdmx.ecb.dataflows(dataset_code).keys())[0]
         self.codes = sdmx.ecb.codes(self.key_family)
         self.raw_data = sdmx.ecb.raw_data(self.dataset_code,{})
         self._keys_to_process = list(self.raw_data[0].keys())
@@ -83,4 +97,5 @@ class ECBData(object):
 
 if __name__ == '__main__':
     ecb = ECB()
-    ecb.upsert_dataset('2034468')
+    ecb.upsert_categories()
+    #ecb.upsert_dataset('2034468')
