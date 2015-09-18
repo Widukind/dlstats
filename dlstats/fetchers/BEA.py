@@ -23,25 +23,37 @@ class BEA(Skeleton):
         super().__init__(provider_name='BEA') 
         self.provider_name = 'BEA'
         self.provider = Provider(name=self.provider_name,website='www.bea.gov/')
+        self.sheet = 0
+        self.url = 0
+    def upsert_nipa(self):     
+        urls = ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.xls&Section=2']
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.xls&Section=3',
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.xls&Section=4',
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.xls&Section=5',
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.xls&Section=6',
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.xls&Section=7',
+                #'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.xls&Section=8']
+                
+        for self.url in urls:
+            response= urllib.request.urlopen(self.url)
+            reader = xlrd.open_workbook(file_contents = response.read())
+            for sheet_name in reader.sheet_names(): 
+                sheet = reader.sheet_by_name(sheet_name)
+                if  sheet_name != 'Contents':
+                    datasetCode = sheet_name
+                    self.upsert_dataset(datasetCode, sheet)
+                    
+                        
+    def upsert_dataset(self, datasetCode, sheet):    
         
-    def upsert_dataset(self, datasetCode):
-        if datasetCode=='BEA':
-            url = 'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.xls&Section=2'
-            
-            self.upsert_bea_issue(url,datasetCode)
-            es = ElasticIndex()                                 
-            es.make_index(self.provider_name,datasetCode)      
-        else:
-            raise Exception("This dataset is unknown" + dataCode)
-        
-    def upsert_bea_issue(self,url,dataset_code):
-        dataset = Dataset(self.provider_name,dataset_code)
-        bea_data = BeaData(dataset,url)
-        dataset.name = 'National Economic Accounts'
+        dataset = Dataset(self.provider_name,datasetCode)
+        bea_data = BeaData(dataset,self.url, self.sheet)
+        dataset.name = datasetCode
         dataset.doc_href = 'http://www.bea.gov/newsreleases/national/gdp/gdpnewsrelease.htm'
-        dataset.series.data_iterator = bea_data
+        #dataset.last_update = (datetime.strptime(sheet.col(0)[4].value[15:].strip(), "%B %d, %Y"))
+        dataset.series.data_iterator = BeaData
         dataset.update_database()
-
+        
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
                             name = 'BEA' , 
@@ -49,85 +61,91 @@ class BEA(Skeleton):
         return document.update_database() 
                 
 class BeaData():
-    def __init__(self,dataset,url):
+    def __init__(self,dataset,url, sheet):
         self.provider_name = dataset.provider_name
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
         self.response= urllib.request.urlopen(url)
         self.reader = xlrd.open_workbook(file_contents = self.response.read()) 
-
-    def __iter__(self):
-        return self
-
+        self.start_date = 1
+        self.end_date =  1
+        self.lastUpdate = 0
+        self.dimensions = {}
     def __next__(self):
-        return(self.build_series())
-        
-    def build_series(self,row):
         for sheet_name in self.reader.sheet_names():  
-            sheet = self.reader.sheet_by_name(sheet_name)
+            #sheet = self.reader.sheet_by_name(sheet_name)
             line_ = []
             concept = []
             concept_code = []
             year_row = []
-            dimensions = {}
-            series = {}
-            dataset_code = dataset.dataset_code
-            provider_name = dataset.provider_name
+            
+            
             if  sheet_name != 'Contents':
                 if 'Ann' in sheet_name:
                     frequency = 'annual'
                 else :
                     frequency = 'quarterly' 
-                line_draft = sheet.col(0) 
+                line_draft = self.sheet.col(0) 
                 for count_ in range(len(line_draft)):
-                    if type(line_draft[count_].value) is float : line_.append(line_draft[count_].value)
+                    if type(line_draft[count_].value) is float : 
+                        line_.append(line_draft[count_].value)
+                        line__ = line_draft[count_].value
+                        self.dimensions['line'] = self.dimension_list.update_entry('line','', line__)
                 # rows in the table
-                for count_i in range(8 ,len(sheet.col(0))): 
-                    if sheet.col(1)[count_i].value :
-                        concept.append(sheet.col(1)[count_i].value.replace(' ', ''))  
-                    if sheet.col(2)[count_i].value  :
-                        concept_code.append(sheet.col(2)[count_i].value.replace(' ', ''))                        
-                dimensions['concept'] = dimension_list.update_entry('concept',concept_code, concept)        
-                dimensions['line'] = dimension_list.update_entry('line','', line_)        
-                for count in range(len(sheet.row(7))):
-                    if isinstance(sheet.row(7)[count].value, float):
-                        year_row.append(int(sheet.row(7)[count].value))                
+                for count_i in range(8 ,len(self.sheet.col(0))): 
+                    if self.sheet.col(1)[count_i].value :
+                        concept.append(self.sheet.col(1)[count_i].value.replace(' ', '')) 
+                        concept_= self.sheet.col(1)[count_i].value.replace(' ', '')
+                    if self.sheet.col(2)[count_i].value  :
+                        concept_code.append(self.sheet.col(2)[count_i].value.replace(' ', '')) 
+                        concept_code_ = self.sheet.col(2)[count_i].value.replace(' ', '')
+                        self.dimensions['concept'] = self.dimension_list.update_entry('concept',concept_code_, concept_)
+                        
+                for count in range(len(self.sheet.row(7))):
+                    if isinstance(self.sheet.row(7)[count].value, float):
+                        year_row.append(int(self.sheet.row(7)[count].value))                
                 start_period = year_row[0]
                 end_period = year_row[-1]
                 if frequency == 'annual':    
-                    start_date = pandas.Period(str(int(start_period)),freq='A').ordinal
-                    end_date = pandas.Period(str(int(end_period)),freq='A').ordinal
+                    self.start_date = pandas.Period(str(int(start_period)),freq='A').ordinal
+                    self.end_date = pandas.Period(str(int(end_period)),freq='A').ordinal
                 elif frequency == 'quarterly':    
-                    start_date = pandas.Period(start_period,freq='Q').ordinal
-                    end_date = pandas.Period(end_period,freq='Q').ordinal
-                    
-                lastUpdate = (datetime.datetime.strptime(sheet.col(0)[4].value[15:].strip(), "%B %d, %Y"))  
+                    self.start_date = pandas.Period(start_period,freq='Q').ordinal
+                    self.end_date = pandas.Period(end_period,freq='Q').ordinal                 
+                self.lastUpdate = (datetime.strptime(self.sheet.col(0)[4].value[15:].strip(), "%B %d, %Y"))           
                 
-                for g in range(8 ,len(sheet.col(0))): 
-                    if sheet.col(1)[g].value :
-                        series_name = sheet.col(1)[g].value + frequency 
-                        series_key = 'BEA.' + sheet.col(1)[g].value + '; ' + sheet.col(2)[g].value
-                        series_value = [] 
-                        for r in range(3, len(sheet.row(g))):
-                            series_value.append(sheet.row(g)[r].value)        
-                series['values'] = series_value                
-                series['provider'] = provider_name        
-                series['datasetCode'] = dataset_code
-                series['name'] = series_name
-                series['key'] = series_key
-                series['startDate'] = start_date
-                series['endDate'] = end_date  
-                series['releaseDates'] = lastUpdate
-                series['dimensions'] = dimensions
-                series['frequency'] = frequency
-            return(series)
-        else:
-            return None        
+                for g in range(8 ,len(self.sheet.col(0))): 
+                    if self.sheet.col(1)[g].value :
+                        series = self.build_series(self.sheet,g,frequency)                                                 
+                        if series is None:
+                            raise StopIteration()            
+                                           
+    def build_series(self,sheet,g,frequency):  
+        series = {}
+           
+        series_name = self.sheet.col(1)[g].value + frequency 
+        series_key = 'BEA.' + self.sheet.col(1)[g].value + '; ' + self.sheet.col(2)[g].value
+        series_value = [] 
+        for r in range(3, len(self.sheet.row(g))):
+            series_value.append(self.sheet.row(g)[r].value)        
+        series['values'] = series_value                
+        series['provider'] = self.provider_name       
+        series['datasetCode'] = self.dataset_code
+        series['name'] = series_name
+        series['key'] = series_key
+        series['startDate'] = self.start_date
+        series['endDate'] = self.end_date  
+        series['releaseDates'] = self.lastUpdate
+        series['dimensions'] = self.dimensions
+        series['frequency'] = frequency
+        pprint.pprint(series)
+        return(series)
+     
             
 if __name__ == "__main__":
     import BEA
     w = BEA.BEA()
     w.provider.update_database()
     w.upsert_categories()
-    w.upsert_dataset('BEA') 
+    w.upsert_nipa()
