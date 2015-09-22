@@ -74,7 +74,7 @@ class IMF(Skeleton):
         dataset.name = 'World Economic Outlook'
         dataset.doc_href = 'http://www.imf.org/external/ns/cs.aspx?id=28'
         dataset.last_update = weo_data.release_date
-        dataset.attribute_list.update(CodeDict({'flags': {'e': 'Estimated'}}))
+        dataset.attribute_list.update_entry('flags','e','Estimated')
         dataset.series.data_iterator = weo_data
         dataset.update_database()
 
@@ -113,7 +113,7 @@ class WeoData():
             for year in self.years:
                 values.append(row[year])
             dimensions['Country'] = self.dimension_list.update_entry('Country', row['ISO'], row['Country'])
-            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['WEO Country Code']) # put country name ????
+            dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', row['WEO Country Code'], row['Country'])
             dimensions['Subject'] = self.dimension_list.update_entry('Subject', row['WEO Subject Code'], row['Subject Descriptor'])
             dimensions['Units'] = self.dimension_list.update_entry('Units', '', row['Units'])
             dimensions['Scale'] = self.dimension_list.update_entry('Scale', row['Scale'], row['Scale'])

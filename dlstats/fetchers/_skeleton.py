@@ -230,8 +230,8 @@ class Dataset(DlstatsCollection):
         self.name = None
         self.doc_href = None
         self.last_update = None
-        self.dimension_list = CodeDict(OrderedDict())
-        self.attribute_list = CodeDict(OrderedDict())
+        self.dimension_list = CodeDict()
+        self.attribute_list = CodeDict()
         self.load_previous_version(provider_name,dataset_code)
         self.notes = ''
         self.schema = Schema({'name':
@@ -422,8 +422,9 @@ class CodeDict():
     >>> print(code_list)
     {'Country': {'FR': 'France'}}
     """    
-    def __init__(self,arg = OrderedDict()):
-        self.code_dict = arg
+    def __init__(self):
+        # code_dict is a dict of OrderedDict
+        self.code_dict = {}
         self.schema = Schema({Extra: dict})
         self.schema(self.code_dict)
         
@@ -450,17 +451,17 @@ class CodeDict():
             if not dim_short_id:
                 # numerical short id starts with 0
                 dim_short_id = '0'
-            self.code_dict[dim_name] = {dim_short_id: dim_long_id}
+            self.code_dict[dim_name] = OrderedDict({dim_short_id: dim_long_id})
         return(dim_short_id)
 
     def get_dict(self):
         return(self.code_dict)
 
     def get_list(self):
-        return({d: list(self.code_dict[d].items()) for d in self.code_dict})
+        return({d1: list(d2.items()) for d1,d2 in self.code_dict.items()})
 
     def set_from_list(self,dimension_list):
-        self.code_dict = {d1: {d2[0]: d2[1] for d2 in dimension_list[d1]} for d1 in dimension_list}
+        self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     
 if __name__ == "__main__":
     import doctest
