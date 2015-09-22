@@ -460,6 +460,9 @@ class CodeDict():
     def get_list(self):
         return({d1: list(d2.items()) for d1,d2 in self.code_dict.items()})
 
+    def set_dict(self,arg):
+        self.code_dict = arg
+        
     def set_from_list(self,dimension_list):
         self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     

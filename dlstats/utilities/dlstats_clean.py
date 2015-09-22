@@ -26,7 +26,7 @@ def clean_elastic(es,filter):
                                     '_type': str(r['_type']),
                                     '_id': str(r['_id'])}})
         res1 = es.bulk(body=bulk)
-        print(res1)
+#        print(res1)
         
 provider = ''
 datasetCode = ''

@@ -48,6 +48,7 @@ class GemData:
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
+        self.last_update = []
         self.columns = iter([])
         self.sheets = iter([])
         self.response = urllib.request.urlopen(url)
@@ -78,7 +79,7 @@ class GemData:
         else:    
             dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header) 
         values = [str(v) for v in self.sheet.col_values(column,start_rowx=1)]
-        release_dates = [self.lastUpdate for v in values]
+        release_dates = [self.last_update for v in values]
         series_key = self.series_name.replace(' ','_').replace(',', '')
         # don't add a period if there is already one
         if series_key[-1] != '.':
@@ -133,7 +134,7 @@ class GemData:
     def update_file(self):
         fname = next(self.excel_filenames)
         self.series_name = fname[:-5]
-        self.lastUpdate = datetime.datetime(*self.zipfile.getinfo(fname).date_time[0:6])
+        self.last_update = datetime.datetime(*self.zipfile.getinfo(fname).date_time[0:6])
         self.excel_book = xlrd.open_workbook(file_contents = self.zipfile.read(fname))
         self.sheets = iter([s for s in self.excel_book.sheets()
                             if s.name not in ['Sheet1','Sheet2','Sheet3','Sheet4',

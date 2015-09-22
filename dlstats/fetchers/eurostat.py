@@ -162,28 +162,28 @@ class Eurostat(Skeleton):
         dataset.name = cat['name']
         dataset.doc_href = cat['docHref']
         dataset.last_update = cat['lastUpdate']
-        data = EurostatData(self.provider_name,datasetCode,dataset.last_update)
-        dataset.dimension_list = data.dimension_list
-        dataset.attribute_list = data.attribute_list
+        data = EurostatData(dataset)
         dataset.series.data_iterator = data
         dataset.update_database()
         es = ElasticIndex()
         es.make_index(self.provider_name,datasetCode)
 
 class EurostatData:
-    def __init__(self,provider_name,datasetCode,lastUpdate):
-        self.provider_name = provider_name
-        self.datasetCode = datasetCode
-        self.lastUpdate = lastUpdate
-        request = requests.get(self.make_url(datasetCode))
+    def __init__(self,dataset):
+        self.provider_name = dataset.provider_name
+        self.dataset_code = dataset.dataset_code
+        self.last_update = dataset.last_update
+        self.attribute_list = dataset.attribute_list
+        self.dimension_list = dataset.dimension_list
+        request = requests.get(self.make_url())
         buffer = BytesIO(request.content)
         files = zipfile.ZipFile(buffer)
-        dsd_file = files.read(datasetCode + ".dsd.xml")
-        data_file = files.read(datasetCode + ".sdmx.xml")
-        [attributes,dimensions] = self.parse_dsd(dsd_file,datasetCode)
-        self.attribute_list = CodeDict(attributes)
-        self.dimension_list = CodeDict(dimensions)
-
+        dsd_file = files.read(self.dataset_code + ".dsd.xml")
+        data_file = files.read(self.dataset_code + ".sdmx.xml")
+        [attributes,dimensions] = self.parse_dsd(dsd_file,self.dataset_code)
+        self.attribute_list.set_dict(attributes)
+        self.dimension_list.set_dict(dimensions)
+        
         parser = lxml.etree.XMLParser(ns_clean=True, recover=True,
                                       encoding='utf-8') 
         tree = lxml.etree.fromstring(data_file, parser)
@@ -207,7 +207,7 @@ class EurostatData:
         raw_dates = []
         series = next(self.series_iterator)
         # drop TIME FORMAT that isn't informative
-        dimensions = OrderedDict({key.lower(): value for key,value in series.attrib.items() if key != 'TIME_FORMAT'})
+        dimensions = OrderedDict([(key.lower(), value) for key,value in series.attrib.items() if key != 'TIME_FORMAT'])
         nobs = 1
         for observation in series.iterchildren():
             for k in attributes:
@@ -225,14 +225,14 @@ class EurostatData:
             nobs += 1
         bson = {}
         bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.datasetCode
+        bson['datasetCode'] = self.dataset_code
         bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())
         bson['values'] = values
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
-        bson['releaseDates'] = [self.lastUpdate for v in values]
+        bson['releaseDates'] = [self.last_update for v in values]
         (start_year, start_subperiod,freq) = self.parse_date(
             raw_dates[0])
         (end_year,end_subperiod,freq) = self.parse_date(
@@ -255,7 +255,7 @@ class EurostatData:
         for t in tree.nsmap:
             if t != None:
                 nsmap[t] = tree.nsmap[t]
-        code_desc = {}
+        code_desc = OrderedDict()
         for code_lists in tree.iterfind("{*}CodeLists",
                                        namespaces=nsmap):
             for code_list in code_lists.iterfind(
@@ -265,7 +265,7 @@ class EurostatData:
                 name = name[3:]
                 # a dot "." can't be part of a JSON field name
                 name = re.sub(r"\.","",name)
-                dimension = {}
+                dimension = OrderedDict()
                 for code in code_list.iterfind(".//structure:Code",
                                                      namespaces=nsmap):
                     key = code.get("value")
@@ -281,8 +281,8 @@ class EurostatData:
             al = [d.get("codelist")[3:] for d in concept_list.iterfind(
                 ".//structure:Attribute",namespaces=nsmap)]
         # force key name tp lowercase
-        attributes = {key.lower(): code_desc[key] for key in al}
-        dimensions = {key.lower(): code_desc[key] for key in dl}
+        attributes = OrderedDict([(key.lower(), code_desc[key]) for key in al])
+        dimensions = OrderedDict([(key.lower(), code_desc[key]) for key in dl])
         return (attributes,dimensions)
     
     def parse_sdmx(self,file,dataset_code):
@@ -338,11 +338,11 @@ class EurostatData:
         else:
             return (m.groups()[0],m.groups()[2],m.groups()[1])
 
-    def make_url(self,datasetCode):
+    def make_url(self):
         return("http://ec.europa.eu/eurostat/" +
                "estat-navtree-portlet-prod/" +
                "BulkDownloadListing?sort=1&file=data/" +
-               datasetCode + ".sdmx.zip")
+               self.dataset_code + ".sdmx.zip")
     
 if __name__ == "__main__":
     e = Eurostat()
