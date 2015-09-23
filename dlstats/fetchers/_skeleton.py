@@ -93,7 +93,7 @@ class DlstatsCollection(object):
             try:
                 result = self.db[collection].replace_one({key: bson[key]},bson,upsert=True)
             except:
-                lg.critical(collection + '.update_database() failed for '+ bson[key])
+                lg.critical(collection + '.update_database() failed for '+ bson[key]+result)
                 return None
             else:
                 lg.log(log_level,collection + ' ' + bson[key] + ' updated.')
@@ -179,7 +179,7 @@ class Category(DlstatsCollection):
                               'provider':
                               All(str, Length(min=1)),
                               'children':
-                              Any(None,[typecheck(bson.objectid.ObjectId)]),
+                              Any([None,typecheck(bson.objectid.ObjectId)]),
                               'docHref':
                               Any(None,str),
                               'lastUpdate':

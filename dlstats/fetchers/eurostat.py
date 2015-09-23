@@ -33,30 +33,16 @@ import math
 import requests
 import zipfile
 import pprint
-
+import bson
 
 class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     def __init__(self):
         super().__init__(provider_name='eurostat')
-        self.lgr = logging.getLogger('Eurostat')
-        self.lgr.setLevel(logging.INFO)
-        self.fh = logging.FileHandler('Eurostat.log')
-        self.fh.setLevel(logging.INFO)
-        self.frmt = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        self.fh.setFormatter(self.frmt)
-        self.lgr.addHandler(self.fh)
-        #        self.lgr.info('Retrieving %s',
-        #                      self.configuration['Fetchers']['Eurostat']['url_table_of_contents'])
-        #        webpage = urllib.request.urlopen(
-        #            self.configuration['Fetchers']['Eurostat']['url_table_of_contents'],
-        #            timeout=7)
-        #        table_of_contents = webpage.read()
-        #        self.table_of_contents = lxml.etree.fromstring(table_of_contents)
         self.provider_name = 'Eurostat'
         self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
         self.selected_codes = ['ei_bcs_cs']
+        self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
 
     def upsert_provider_db(self):
         self.provider.update_database();
@@ -82,7 +68,7 @@ class Eurostat(Skeleton):
                 lastUpdate = None
                 lastModified = None
                 code = None
-                children = None
+                children = []
                 for element in branch.iterchildren():
                     if element.tag[-5:] == 'title':
                         if element.attrib.values()[0] == 'en':
@@ -111,17 +97,18 @@ class Eurostat(Skeleton):
                     document = Category(provider=self.provider_name,name=title,
                                         docHref=doc_href,children=children,
                                         categoryCode=code,lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
                 else:
                     document = Category(provider=self.provider_name,name=title,
                                         children=children,categoryCode=code,
                                         lastUpdate=lastUpdate)
-                    self.lgr.debug('Instantiating Category: %s',code) 
-                _id = document.update_database()
-                children_ids += [_id]
+                res = document.update_database()
+                children_ids += [bson.objectid.ObjectId(res.upserted_id)]
             return children_ids
 
-        branch = self.table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch')
+        webpage = urllib.request.urlopen(self.url_table_of_contents,
+                                         timeout=7)
+        table_of_contents = lxml.etree.fromstring(webpage.read())
+        branch = table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch',namespaces=table_of_contents.nsmap)
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
         document = Category(provider=self.provider_name,name='root',children=_id,
                             lastUpdate=None,categoryCode='eurostat_root')
@@ -352,3 +339,4 @@ if __name__ == "__main__":
     #    e.update_categories_db()
     #    e.update_selected_dataset('nama_gdp_c')
     e.update_selected_dataset('nama_gdp_k')
+    #e.update_selected_dataset('namq_10_a10_e')
