@@ -18,14 +18,15 @@ setup(name='dlstats',
 #                ('/etc/dlstats',['config/main.conf'])],
     install_requires=[
         'requests>=2.4.3',
-        'pymongo>=2.7.2',
+        'pymongo>=3.0.0',
         'pandas>=0.12',
         'docopt>=0.6.0',
         'voluptuous>=0.8',
         'xlrd>=0.8',
         'configobj>=5.0',
-        'elasticsearch>=1.0.0,<2.0.0',
-#        'ming>=0.5.0'
+        'beautifulsoup4>=4.4.0',
+        'lxml>=3.4.0',
+        'elasticsearch>=1.0.0,<2.0.0'
       ]
 	)
 
