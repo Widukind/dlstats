@@ -20,12 +20,13 @@ class WorldBank(Skeleton):
         
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
-                            name = 'GEM' , 
-                            categoryCode ='GEM')
+                            name = 'GEM', 
+                            categoryCode ='GEM',
+                            children = None)
         return document.update_database()
 
     def upsert_dataset(self, datasetCode):
-        
+        #TODO return the _id field of the corresponding dataset. Update the category accordingly.
         if datasetCode=='GEM':
             self.upsert_gem(self.gem_url,datasetCode)
         else:
