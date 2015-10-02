@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 .. module:: _commons
-    :synopsis: Module containing an abstract base class for all the fetchers
+    :synopsis: Code imported by the different fetchers
 """
 import pymongo
 import datetime
