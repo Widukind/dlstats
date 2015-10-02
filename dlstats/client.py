@@ -41,8 +41,10 @@ def upsert_dataset(id):
 def upsert_a_series(id):
     print(send_to_socket('upsert_series '+id))
 
+def close():
+    print(send_to_socket('close'))
 
-commands = {'list_fetchers':list_fetchers,'upsert_catetgories':upsert_categories, 'upsert_a_series':upsert_a_series, 'upsert_dataset':upsert_dataset}
+commands = {'list_fetchers':list_fetchers,'upsert_catetgories':upsert_categories, 'upsert_a_series':upsert_a_series, 'upsert_dataset':upsert_dataset,'close':close}
 
 if __name__ == '__main__':
     arguments = docopt(__doc__, version=version.version)

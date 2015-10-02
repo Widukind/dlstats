@@ -38,7 +38,7 @@ logger = get_logger(dlstats.configuration)
 
 def list_fetchers():
     fetchers = [fetcher for fetcher in dir(dlstats.fetchers) if not fetcher.startswith('_')]
-    return (', '.join(fetchers))
+    return ('\n'.join(fetchers))
 
 def upsert_categories(scheduled_time,fetcher,id):
     fetcher = getattr(dlstats.fetchers,fetcher)
@@ -58,34 +58,37 @@ def event_loop(configuration):
     if os.path.exists( socket_path ):
           os.remove( socket_path )
     server = socket.socket( socket.AF_UNIX, socket.SOCK_STREAM )
-    server.bind(socket_path)
+    try:
+        server.bind(socket_path)
+    except FileNotFoundError:
+        os.makedirs(configuration['General']['socket_directory'])
     server.listen(5)
-    commands = {'list_fetchers':list_fetchers,'upsert_categories': upsert_categories, 'upsert_dataset': upsert_dataset}
+    commands = {'list_fetchers':list_fetchers,
+                'upsert_categories': upsert_categories,
+                'upsert_dataset': upsert_dataset}
     exit_sentinel = False
     while True: 
         connection, address = server.accept()
         while True:
             data = connection.recv( 512 ).decode()
             data_ = data.split(' ')
-            data__  = []
-            for argument in data_:
-                if len(argument.split('_')) > 1:
-                    data__.append(argument.split('_'))
-                else:
-                    data__.append(argument)
             command = data_[0]
             if len(data_) > 1:
                 args = data_[1:end]
             else:
                 args = None
-            if not command or command == 'close':
+            if not command:
                 break
             else:
                 logger.info('Received command: %s', data)
-                if command == 'quit':
+                if command == 'close':
+                    connection.send('Closing dlstats server'.encode())
                     exit_sentinel = True
                 elif command in commands.keys():
-                    connection.send(commands[command](*args).encode())
+                    if args is not None:
+                        connection.send(commands[command](*args).encode())
+                    else:
+                        connection.send(commands[command]().encode())
                 else:
                     connection.send('Unrecognized command: '+data)
         connection.close()
