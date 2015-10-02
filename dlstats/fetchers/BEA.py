@@ -89,8 +89,8 @@ class BeaData():
                 
                 data_vertic = [[sheet.cell_value(r,c) for r in range(8,sheet.nrows)] for c in range(sheet.ncols)] 
                 for i in range(len(data_vertic[1])):
-                self.dimensions['concept'] = self.dimension_list.update_entry('concept',data_vertic[2][i],data_vertic[1][i])
-                self.dimensions['line'] = self.dimension_list.update_entry('line','', data_vertic[0][i])
+                    self.dimensions['concept'] = self.dimension_list.update_entry('concept',data_vertic[2][i],data_vertic[1][i])
+                    self.dimensions['line'] = self.dimension_list.update_entry('line','', data_vertic[0][i])
 
                 year = [[sheet.cell_value(7,c).value for c in range(3,sheet.ncols) ]]               
                 start_period = year[0][0]
