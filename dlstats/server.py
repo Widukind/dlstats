@@ -37,7 +37,7 @@ def get_logger(configuration):
 logger = get_logger(dlstats.configuration)
 
 def list_fetchers():
-    fetchers = [fetcher for fetcher in dir(dlstats.fetchers) if not fetcher.startswith('_')]
+    fetchers = [fetcher for fetcher in dlstats.fetchers.__all__ if not fetcher.startswith('_')]
     return ('\n'.join(fetchers))
 
 def upsert_categories(scheduled_time,fetcher,id):
