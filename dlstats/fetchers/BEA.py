@@ -86,27 +86,15 @@ class BeaData():
                     frequency = 'annual'
                 else :
                     frequency = 'quarterly' 
-                line_draft = self.sheet.col(0) 
-                for count_ in range(len(line_draft)):
-                    if type(line_draft[count_].value) is float : 
-                        line_.append(line_draft[count_].value)
-                        line__ = line_draft[count_].value
-                        self.dimensions['line'] = self.dimension_list.update_entry('line','', line__)
-                # rows in the table
-                for count_i in range(8 ,len(self.sheet.col(0))): 
-                    if self.sheet.col(1)[count_i].value :
-                        concept.append(self.sheet.col(1)[count_i].value.replace(' ', '')) 
-                        concept_= self.sheet.col(1)[count_i].value.replace(' ', '')
-                    if self.sheet.col(2)[count_i].value  :
-                        concept_code.append(self.sheet.col(2)[count_i].value.replace(' ', '')) 
-                        concept_code_ = self.sheet.col(2)[count_i].value.replace(' ', '')
-                        self.dimensions['concept'] = self.dimension_list.update_entry('concept',concept_code_, concept_)
-                        
-                for count in range(len(self.sheet.row(7))):
-                    if isinstance(self.sheet.row(7)[count].value, float):
-                        year_row.append(int(self.sheet.row(7)[count].value))                
-                start_period = year_row[0]
-                end_period = year_row[-1]
+                
+                data_vertic = [[sheet.cell_value(r,c) for r in range(8,sheet.nrows)] for c in range(sheet.ncols)] 
+                for i in range(len(data_vertic[1])):
+                self.dimensions['concept'] = self.dimension_list.update_entry('concept',data_vertic[2][i],data_vertic[1][i])
+                self.dimensions['line'] = self.dimension_list.update_entry('line','', data_vertic[0][i])
+
+                year = [[sheet.cell_value(7,c).value for c in range(3,sheet.ncols) ]]               
+                start_period = year[0][0]
+                end_period = year[0][-1]
                 if frequency == 'annual':    
                     self.start_date = pandas.Period(str(int(start_period)),freq='A').ordinal
                     self.end_date = pandas.Period(str(int(end_period)),freq='A').ordinal
