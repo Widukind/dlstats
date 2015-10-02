@@ -8,7 +8,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._skeleton import (Skeleton, Category, Series,
+from dlstats.fetchers._commons import (Skeleton, Category, Series,
                                         Dataset, Provider, CodeDict)
 from dlstats.fetchers.make_elastic_index import ElasticIndex
 
@@ -34,6 +34,8 @@ import requests
 import zipfile
 import pprint
 import bson
+
+__all__ = ['Eurostat']
 
 class Eurostat(Skeleton):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
@@ -333,7 +335,7 @@ class EurostatData:
     
 if __name__ == "__main__":
     e = Eurostat()
-    l = logging.getLogger('_skeleton')
+    l = logging.getLogger('_commons')
     l.setLevel(logging.INFO)
     #    e.upsert_provider_db()
     #    e.update_categories_db()

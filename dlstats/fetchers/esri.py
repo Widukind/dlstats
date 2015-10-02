@@ -4,7 +4,7 @@ Created on Fri Apr 24 09:53:55 2015
 
 
 """
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._commons import Skeleton, Category, Series, BulkSeries, Dataset, Provider
 import urllib
 import codecs
 import datetime

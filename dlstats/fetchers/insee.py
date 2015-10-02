@@ -1,6 +1,6 @@
 # test limitation on line 98
 
-from dlstats.fetchers._skeleton import Skeleton, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict
 from dlstats.fetchers.make_elastic_index import ElasticIndex
 from bs4 import BeautifulSoup
 import urllib.request
