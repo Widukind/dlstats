@@ -5,8 +5,7 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict
-from dlstats.fetchers.make_elastic_index import ElasticIndex
+from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import urllib
 import xlrd
 import csv

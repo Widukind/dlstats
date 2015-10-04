@@ -8,10 +8,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._commons import (Skeleton, Category, Series,
-                                        Dataset, Provider, CodeDict)
-from dlstats.fetchers.make_elastic_index import ElasticIndex
-
+from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
