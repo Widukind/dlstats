@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import urllib
 import xlrd
 import csv
@@ -14,7 +14,7 @@ from time import sleep
 import requests
 from lxml import etree
 
-class IMF(Skeleton):
+class IMF(Fetcher):
     def __init__(self):
         super().__init__(provider_name='IMF') 
         self.provider_name = 'IMF'

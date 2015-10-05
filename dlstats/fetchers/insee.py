@@ -1,6 +1,6 @@
 # test limitation on line 98
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
@@ -19,7 +19,7 @@ from numpy import prod
 import sys
 import pandas
 
-class Insee(Skeleton):   
+class Insee(Fetcher):   
     """Class for managing INSEE data in dlstats"""
     def __init__(self):
         super().__init__()

@@ -8,7 +8,7 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
@@ -34,7 +34,7 @@ import bson
 
 __all__ = ['Eurostat']
 
-class Eurostat(Skeleton):
+class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     def __init__(self):
         super().__init__(provider_name='eurostat')

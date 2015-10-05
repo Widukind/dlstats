@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict
 from dlstats.fetchers.make_elastic_index import ElasticIndex
 import urllib
 import xlrd
@@ -15,7 +15,7 @@ from time import sleep
 import sdmx
 
 
-class ECB(Skeleton):
+class ECB(Fetcher):
     def __init__(self):
         super().__init__(provider_name='ECB') 
         self.provider_name = 'ECB'

@@ -4,7 +4,7 @@ Created on Fri Apr 24 09:53:55 2015
 
 
 """
-from dlstats.fetchers._commons import Skeleton, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._commons import Fetcher, Category, Series, BulkSeries, Dataset, Provider
 import urllib
 import codecs
 import datetime
@@ -14,7 +14,7 @@ import csv
 import pprint
 
 
-class esri(Skeleton):
+class esri(Fetcher):
     def __init__(self):
         super().__init__(provider_name='esri') 
 

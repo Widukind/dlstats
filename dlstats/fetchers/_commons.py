@@ -19,7 +19,7 @@ from elasticsearch import Elasticsearch, helpers
 from collections import defaultdict, OrderedDict
 from dlstats import mongo_client
 
-class Skeleton(object):
+class Fetcher(object):
     """Abstract base class for fetchers"""
     def __init__(self, provider_name=None):
         self.configuration = configuration
@@ -29,22 +29,22 @@ class Skeleton(object):
     def upsert_categories(self):
         """Upsert the categories in MongoDB
         """
-        raise NotImplementedError("This method from the Skeleton class must"
+        raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     def upsert_series(self):
         """Upsert all the series in MongoDB
         """
-        raise NotImplementedError("This method from the Skeleton class must"
+        raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     def upsert_a_series(self,id):
         """Upsert the series in MongoDB
         """
-        raise NotImplementedError("This method from the Skeleton class must"
+        raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     def upsert_dataset(self,id):
         """Upsert a dataset in MongoDB
         """
-        raise NotImplementedError("This method from the Skeleton class must"
+        raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     def insert_provider(self):
         """Insert the provider in MongoDB
