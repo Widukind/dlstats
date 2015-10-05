@@ -142,8 +142,7 @@ class WeoData():
             return None
         
 if __name__ == "__main__":
-    import IMF
-    w = IMF.IMF()
+    w = IMF()
     w.provider.update_database()
     w.upsert_categories()
     w.upsert_dataset('WEO') 
