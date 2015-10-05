@@ -160,7 +160,7 @@ class Category(DlstatsCollection):
                  provider=None,
                  name=None,
                  docHref=None,
-                 children=None,
+                 children=[None],
                  categoryCode=None,
                  lastUpdate=None,
                  exposed=False
@@ -181,9 +181,9 @@ class Category(DlstatsCollection):
                               All(str, Length(min=1)),
                               'children':
                               Any([None,typecheck(bson.objectid.ObjectId)]),
-                              'docHref':
+                              Optional('docHref'):
                               Any(None,str),
-                              'lastUpdate':
+                              Optional('lastUpdate'):
                               Any(None,typecheck(datetime)),
                               'categoryCode':
                               All(str, Length(min=1)),

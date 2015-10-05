@@ -80,7 +80,8 @@ class IMF(Skeleton):
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
                             name = 'WEO' , 
-                            categoryCode ='WEO')
+                            categoryCode ='WEO',
+                            exposed = True)
         return document.update_database()
         
 class WeoData():
