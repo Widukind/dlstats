@@ -16,7 +16,8 @@ def _get_filename():
     elif os.name == 'mac':
         return ("%s/Library/Application Support/%s" % (os.environ["HOME"], appname+'/main.conf'))
     elif os.name == 'nt':
-        return ("%s\Application Data\%s" % (os.environ["HOMEPATH"], appname+'/main.conf'))
+        #TODO: Trouver une meilleure méthode
+        return ("%s/%s" % (os.environ["APPDATA"], appname+'/main.conf'))
     else:
         raise UnsupportedOSError(os.name)
 
