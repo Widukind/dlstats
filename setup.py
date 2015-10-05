@@ -1,21 +1,17 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-from setuptools import setup
+
+from setuptools import setup, find_packages
 from dlstats import version
-import os
 
 setup(name='dlstats',
 	version=version.version,
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
-    url='https://github.com/Widukind', 
-      package_dir={'dlstats': 'dlstats', 'dlstats.fetchers': 'dlstats/fetchers'},
-    packages=['dlstats', 'dlstats.fetchers'],
-#    data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
-#                ('/etc/systemd/system',['os_specific/dlstats.service']),
-#                ('/etc/dlstats',['config/logging.conf']),
-#                ('/etc/dlstats',['config/main.conf'])],
+    url='https://github.com/Widukind/dlstats', 
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         'requests>=2.4.3',
         'pymongo>=3.0.0',
@@ -27,15 +23,24 @@ setup(name='dlstats',
         'beautifulsoup4>=4.4.0',
         'lxml>=3.4.0',
         'elasticsearch>=1.0.0,<2.0.0'
-      ]
+    ],
+	tests_require=[
+		'nose>=1.0'
+		'coverage',
+		'flake8'
+	],
+	test_suite='nose.collector',	
+	entry_points={
+		'console_scripts': [
+			'dlstats-server = dlstats.server:main',
+		],
+	},		
 	)
 
+"""
 try:
     with open('/etc/systemd/system/dlstats.service'):
             os.chmod('/etc/systemd/system/dlstats.service', 0o755)
-
-    with open('/usr/local/bin/dlstats_server.py'):
-            os.chmod('/usr/local/bin/dlstats_server.py', 0o755)
 
     with open('/etc/dlstats/main.conf'):
             os.chmod('/etc/dlstats/main.conf', 0o755)
@@ -45,4 +50,4 @@ try:
 except PermissionError:
     print("You should run the installation script as root if you want the "
           "default configuration files")
-        
+"""        

@@ -97,5 +97,8 @@ def event_loop(configuration):
     server.close()
     logger.info('Quitting event_loop')
 
+def main():
+    event_loop(dlstats.configuration)    
+
 if __name__ == "__main__":
-    event_loop(dlstats.configuration)
+    main()
