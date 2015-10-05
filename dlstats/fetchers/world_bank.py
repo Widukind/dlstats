@@ -1,5 +1,5 @@
 
-from dlstats.fetchers._commons import Skeleton, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import io
 import zipfile
 import urllib.request
@@ -9,7 +9,7 @@ import pandas
 import pprint
 
 
-class WorldBank(Skeleton):
+class WorldBank(Fetcher):
     def __init__(self):
         super().__init__()         
         self.provider_name = 'WorldBank'
