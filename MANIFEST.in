@@ -1,0 +1,5 @@
+include README.rst
+include LICENSE
+include SOURCES
+recursive-include dlstats *
+global-exclude *.pyc
