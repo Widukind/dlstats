@@ -1,9 +1,11 @@
-==========
- WIDUKIND
-==========
+========
+WIDUKIND
+========
 
 This is a database of international macroeconomic data collected on
 public web servers of statistical offices worldwide.
+
+|Build Status|
 
 REQUIREMENTS
 ============
@@ -38,3 +40,9 @@ INSTALLATION
 1. clone this git project
 
    `git clone git@github.com:Widukind/dlstats
+
+.. |Build Status| image:: https://travis-ci.org/Widukind/dlstats.svg?branch=master
+   :target: https://travis-ci.org/Widukind/dlstats
+   :alt: Travis Build Status
+   
+   
