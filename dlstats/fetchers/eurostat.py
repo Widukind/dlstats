@@ -8,7 +8,6 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
@@ -31,6 +30,8 @@ import requests
 import zipfile
 import pprint
 import bson
+
+from ._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 
 __all__ = ['Eurostat']
 

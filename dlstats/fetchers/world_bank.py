@@ -1,5 +1,5 @@
 
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from ._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
 import io
 import zipfile
 import urllib.request

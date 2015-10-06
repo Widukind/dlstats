@@ -8,16 +8,15 @@ import pymongo
 import datetime
 import pandas
 from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any, Extra
-from dlstats import configuration
-#from dlstats.misc_func import dictionary_union
-#from ..misc_func import dictionary_union
 from datetime import datetime
 import logging
 import bson
 import pprint
 from elasticsearch import Elasticsearch, helpers
 from collections import defaultdict, OrderedDict
-from dlstats import mongo_client
+
+from .. import mongo_client
+from .. import configuration
 
 class Fetcher(object):
     """Abstract base class for fetchers"""
