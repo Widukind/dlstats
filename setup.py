@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
-from dlstats import version
 
 setup(name='dlstats',
-	version=version.version,
+	version="0.0.1",
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
@@ -37,17 +36,4 @@ setup(name='dlstats',
 	},		
 	)
 
-"""
-try:
-    with open('/etc/systemd/system/dlstats.service'):
-            os.chmod('/etc/systemd/system/dlstats.service', 0o755)
-
-    with open('/etc/dlstats/main.conf'):
-            os.chmod('/etc/dlstats/main.conf', 0o755)
-
-    with open('/etc/dlstats/logging.conf'):
-            os.chmod('/etc/dlstats/logging.conf', 0o755)
-except PermissionError:
-    print("You should run the installation script as root if you want the "
-          "default configuration files")
-"""        
+        
