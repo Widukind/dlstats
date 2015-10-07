@@ -20,10 +20,10 @@ from .. import configuration
 
 class Fetcher(object):
     """Abstract base class for fetchers"""
-    def __init__(self, provider_name=None):
+    def __init__(self, provider_name=None, db=None):
         self.configuration = configuration
         self.provider_name = provider_name
-        self.db = mongo_client.widukind
+        self.db = db or mongo_client.widukind
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB
@@ -83,8 +83,8 @@ dimension_list_schema = {str: [All()]}
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
     """
-    def __init__(self):
-        self.db = mongo_client.widukind
+    def __init__(self, db=None):
+        self.db = db or mongo_client.widukind
         self.testing_mode = False
         
     def update_mongo_collection(self,collection,key,bson,log_level=logging.INFO):
@@ -110,8 +110,9 @@ class Provider(DlstatsCollection):
     def __init__(self,
                  name=None,
                  website=None,
-                 testing_mode=False):
-        super().__init__()
+                 testing_mode=False,
+                 db=None):
+        super().__init__(db=db)
         self.configuration=configuration
         self.name=name
         self.website=website
@@ -162,9 +163,9 @@ class Category(DlstatsCollection):
                  children=[None],
                  categoryCode=None,
                  lastUpdate=None,
-                 exposed=False
-                ):
-        super().__init__()
+                 exposed=False,
+                 db=None):
+        super().__init__(db=db)
         self.configuration = configuration
         self.provider=provider
         self.name=name
@@ -223,8 +224,8 @@ class Dataset(DlstatsCollection):
     >>> print(dataset)
     [('provider_name', 'Test provider'), ('dataset_code', 'nama_gdp_fr')]
     """
-    def __init__(self,provider_name,dataset_code):
-        super().__init__()
+    def __init__(self, provider_name, dataset_code, db=None):
+        super().__init__(db=db)
         self.provider_name = provider_name
         self.dataset_code = dataset_code
         self.name = None
@@ -253,7 +254,8 @@ class Dataset(DlstatsCollection):
                              },required=True)
         self.series = Series(self.provider_name,
                              self.dataset_code,
-                             self.last_update)
+                             self.last_update,
+                             db=self.db)
 
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -305,8 +307,8 @@ class Series(DlstatsCollection):
      ('last_update', datetime.datetime(2015, 8, 15, 0, 0))]
     """
 
-    def __init__(self,provider_name,dataset_code,last_update,bulk_size=1000):
-        super().__init__()
+    def __init__(self, provider_name, dataset_code, last_update,bulk_size=1000, db=None):
+        super().__init__(db=db)
         self.provider_name = provider_name
         self.dataset_code = dataset_code
         self.last_update = last_update
@@ -467,9 +469,9 @@ class CodeDict():
         self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     
 class ElasticIndex():
-    def __init__(self):
-        self.db = pymongo.MongoClient().widukind
-        self.elasticsearch_client = Elasticsearch()
+    def __init__(self, db=None, es_client=None):
+        self.db = db or mongo_client.widukind
+        self.elasticsearch_client = es_client or Elasticsearch()
 
     def make_index(self,provider_name,dataset_code):
         mb_dataset = self.db.datasets.find_one({'provider': provider_name, 'datasetCode': dataset_code})
