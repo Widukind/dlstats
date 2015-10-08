@@ -88,15 +88,21 @@ class DlstatsCollection(object):
         self.testing_mode = False
         
     def update_mongo_collection(self,collection,key,bson,log_level=logging.INFO):
-        lg = logging.getLogger(__name__)
+        lgr = logging.getLogger(__name__)
+        lgr.setLevel(log_level)
+        fh = logging.FileHandler(configuration['General']['logging_directory']+'/dlstats.log')
+        fh.setLevel(log_level)
+        frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(frmt)
+        lgr.addHandler(fh)
         if not self.testing_mode:
             try:
                 result = self.db[collection].replace_one({key: bson[key]},bson,upsert=True)
             except:
-                lg.critical(collection + '.update_database() failed for '+ bson[key]+result)
+                lgr.critical(collection + '.update_database() failed for '+ bson[key]+result)
                 return None
             else:
-                lg.log(log_level,collection + ' ' + bson[key] + ' updated.')
+                lgr.log(log_level,collection + ' ' + bson[key] + ' updated.')
                 return result
         
 class Provider(DlstatsCollection):
