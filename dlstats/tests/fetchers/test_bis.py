@@ -6,35 +6,10 @@ import urllib.request
 from dlstats.fetchers.bis import BIS, load_zip_file
 
 import unittest
-from ..base import RESOURCES_DIR
+from ..base import BaseFetcherDBTest, RESOURCES_DIR
 
-def get_mongo_db():
-    from pymongo import MongoClient
-    uri = os.environ.get("MONGODB_URL", "mongodb://localhost/widukind_test")
-    #TODO: tz_aware
-    client = MongoClient(uri)
-    return client.get_default_database()    
 
-def get_es_db():
-    from urllib.parse import urlparse
-    from elasticsearch import Elasticsearch
-    url = urlparse(os.environ.get("ES_URL", "http://localhost:9200"))
-    es = Elasticsearch([{"host":url.hostname, "port":url.port}])
-    return es
-
-def clean_mongodb(db=None):
-    db = db or get_mongo_db()
-    for col in ["categories", "providers", "datasets", "series"]:
-        try:
-            db.drop_collection(col)
-        except:
-            pass
-
-def clean_es():
-    es = get_es_db()    
-    #TODO: remove index
-
-class Bis_Lbs_Diss_FetcherTestCase(unittest.TestCase):
+class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
     """
     TODO: 
     
@@ -54,17 +29,6 @@ class Bis_Lbs_Diss_FetcherTestCase(unittest.TestCase):
         5.3 series
     """
     
-    def _collections_is_empty(self):
-        self.assertEqual(self.db.categories.count(), 0)
-        self.assertEqual(self.db.providers.count(), 0)
-        self.assertEqual(self.db.datasets.count(), 0)
-        self.assertEqual(self.db.series.count(), 0)
-    
-    def setUp(self):
-        unittest.TestCase.setUp(self)
-        self.db = get_mongo_db()
-        clean_mongodb(self.db)
-        self.es = get_es_db()
     
     def test_from_csv_local(self):
         """Fetch from csv file in tests/resources directory"""

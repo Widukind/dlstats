@@ -29,11 +29,6 @@ setup(name='dlstats',
 		'flake8'
 	],
 	test_suite='nose.collector',	
-	entry_points={
-		'console_scripts': [
-			'dlstats-server = dlstats.server:main',
-		],
-	},		
-	)
+)
 
         
