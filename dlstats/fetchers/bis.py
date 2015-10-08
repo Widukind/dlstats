@@ -5,7 +5,7 @@ from zipfile import ZipFile
 import zipfile
 import urllib.request
 import csv
-from email.utils import parsedate_to_datetime
+import datetime
 
 import pandas
 
@@ -51,16 +51,17 @@ class BIS(Fetcher):
         fetcher_data = LBS_DISS_Data(dataset, url)
         
         dataset.name = 'Locational Banking Statistics - disseminated data'
-        dataset.doc_href = 'http://www.bis.org'
+        dataset.doc_href = 'http://www.bis.org/statistics/bankstats.htm'
         dataset.last_update = fetcher_data.release_date
-        
-        #TODO: dataset.attribute_list.update_entry('flags','e','Estimated') ???
         
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
         
 
 class LBS_DISS_Data():
+    """
+    @see: http://www.bis.org/statistics/dsd_lbs.pdf
+    """
     
     def __init__(self, dataset, url):
         
@@ -72,7 +73,8 @@ class LBS_DISS_Data():
         csv_text = load_zip_file(url)
         csv_file = io.TextIOWrapper(io.BytesIO(csv_text), newline="\n")
         next(csv_file)
-        self.release_date = parsedate_to_datetime(csv_file.readline().replace("Retrieved on,", ""))
+        txt_date = csv_file.readline().replace("Retrieved on,", "").strip()
+        self.release_date = datetime.datetime.strptime(txt_date, "%a %b %d %H:%M:%S %Z %Y")
         next(csv_file)
         next(csv_file)
         self.sheet = csv.DictReader(csv_file)
