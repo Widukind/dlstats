@@ -32,6 +32,8 @@ class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
     
     def test_from_csv_local(self):
         """Fetch from csv file in tests/resources directory"""
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:Bis_Lbs_Diss_FetcherTestCase.test_from_csv_local
 
         self._collections_is_empty()
 
@@ -53,20 +55,14 @@ class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
         w.upsert_dataset('LBS-DISS')
         dataset = self.db.datasets.find_one({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
         self.assertIsNotNone(dataset)
-        self.assertEqual(len(dataset["dimensionList"]), 13)
+        self.assertEqual(len(dataset["dimensionList"]), 12)
 
         series = self.db.series.find({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
         self.assertEqual(series.count(), 25)
 
-        #TODO
-        """        
-        es_data = self.es.search(index='widukind', doc_type='datasets',
-                                    body= { "filter":
-                                           { "term":
-                                            { "_id": "BIS" + '.' + "LBS-DISS"}}})
-        """
+        #TODO: ES tests        
         
-        
+    @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
     def test_from_csv_remote(self):
         """Fetch from csv file in remote site"""
 
