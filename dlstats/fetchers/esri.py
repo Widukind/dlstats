@@ -4,7 +4,7 @@ Created on Fri Apr 24 09:53:55 2015
 
 
 """
-from ._commons import Fetcher, Category, Series, BulkSeries, Dataset, Provider
+from dlstats.fetchers._commons import Fetcher, Category, Series, BulkSeries, Dataset, Provider
 import urllib
 import codecs
 import datetime
