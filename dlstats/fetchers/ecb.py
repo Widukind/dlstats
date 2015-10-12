@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict
 from .make_elastic_index import ElasticIndex
 import urllib
 import xlrd

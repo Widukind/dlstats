@@ -15,8 +15,8 @@ import pprint
 from elasticsearch import Elasticsearch, helpers
 from collections import defaultdict, OrderedDict
 
-from .. import mongo_client
-from .. import configuration
+from dlstats import mongo_client
+from dlstats import configuration
 
 class Fetcher(object):
     """Abstract base class for fetchers"""

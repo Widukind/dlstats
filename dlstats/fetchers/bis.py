@@ -9,8 +9,8 @@ import datetime
 
 import pandas
 
-from .. import constants
-from ._commons import Fetcher, Category, Dataset, Provider, ElasticIndex
+from dlstats import constants
+from dlstats.fetchers._commons import Fetcher, Category, Dataset, Provider, ElasticIndex
 
 def load_zip_file(url):
     response = urllib.request.urlopen(url)
@@ -79,7 +79,7 @@ class LBS_DISS_Data():
         next(csv_file)
         self.sheet = csv.DictReader(csv_file)
         
-        self.dimension_keys = self.sheet.fieldnames[:13]
+        self.dimension_keys = self.sheet.fieldnames[:12]
         
         self.periods = self.sheet.fieldnames[13:]
         self.start_date = pandas.Period(self.periods[0], freq='quarter')

@@ -1,4 +1,4 @@
-from . import configuration
+from dlstats import configuration
 from dlstats.logger import logger
 import elasticsearch
 
