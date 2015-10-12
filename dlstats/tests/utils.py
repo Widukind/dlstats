@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import os
+
 from dlstats import constants
 
 def get_mongo_db():
