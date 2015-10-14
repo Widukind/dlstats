@@ -3,32 +3,19 @@
 import os
 import urllib.request
 
-from dlstats.fetchers.bis import BIS, load_zip_file
+from dlstats.fetchers.bis import BIS, LBS_DISS_Data, load_zip_file
+from dlstats import constants
 
 import unittest
-from ..base import BaseFetcherDBTest, RESOURCES_DIR
+from ..base import BaseTest, BaseDBTest, RESOURCES_DIR
 
+class BaseFetcherTestCase(BaseTest):
+    """Fetchers tests without DB"""
 
-class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
-    """
-    TODO: 
-    
-    1. open and verify mongodb and ES index
-        - connection error
-        - access right error
-    2. download file or load file
-        - local: file not found
-        - remote: 404 error, connect error
-    3. Search update file (filename or attribute file or text in file)    
-        3.1. Verify updated data    
-    4. parse file
-        - parse error
-    5. Create/Update mongodb:
-        5.1 categories
-        5.2 datasets
-        5.3 series
-    """
-    
+class BaseDBFetcherTestCase(BaseDBTest):
+    """Fetchers tests with DB"""
+
+class Bis_Lbs_Diss_FetcherTestCase(BaseDBTest):
     
     def test_from_csv_local(self):
         """Fetch from csv file in tests/resources directory"""
@@ -42,25 +29,50 @@ class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
 
         w = BIS(db=self.db,
                 es_client=None, #TODO: 
-                settings={"BIS_LBS_DISS_URL": "file:" + urllib.request.pathname2url(csv_file)})
+                #settings={"BIS_LBS_DISS_URL": "file:" + urllib.request.pathname2url(csv_file)}
+                )
+                
+        @property
+        def _url(self):
+            return "file:" + urllib.request.pathname2url(csv_file)        
+        setattr(LBS_DISS_Data, 'url', _url)
 
         w.provider.update_database()
-        provider = self.db.providers.find_one({"name": w.provider_name})
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": w.provider_name})
         self.assertIsNotNone(provider)
         
         w.upsert_categories()
-        category = self.db.categories.find_one({"categoryCode": "LBS-DISS"})
+        category = self.db[constants.COL_CATEGORIES].find_one({"provider": w.provider_name, 
+                                                               "categoryCode": "LBS-DISS"})
         self.assertIsNotNone(category)
         
         w.upsert_dataset('LBS-DISS')
-        dataset = self.db.datasets.find_one({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": w.provider_name, 
+                                                            "datasetCode": "LBS-DISS"})
         self.assertIsNotNone(dataset)
         self.assertEqual(len(dataset["dimensionList"]), 12)
 
-        series = self.db.series.find({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
+        series = self.db[constants.COL_SERIES].find({"provider": w.provider_name, 
+                                                     "datasetCode": "LBS-DISS"})
         self.assertEqual(series.count(), 25)
+        
+        '''Search one serie by key'''
+        serie = self.db[constants.COL_SERIES].find_one({"provider": w.provider_name, 
+                                                        "datasetCode": "LBS-DISS",
+                                                        "key": "Q:F:C:A:CHF:A:5J:A:5A:A:1C:N"})
+        self.assertIsNotNone(serie)
+        
+        d = serie['dimensions']
+        self.assertEqual(d["Frequency"], 'Q')
+        self.assertEqual(d["Measure"], 'F')
+        self.assertEqual(d["Balance sheet position"], 'C')
+        
+        serie = self.db[constants.COL_SERIES].find_one({"provider": w.provider_name, 
+                                                        "datasetCode": "LBS-DISS",
+                                                        "key": "Q:F:C:A:JPY:F:5J:A:5A:A:5J:N"})
+        self.assertIsNotNone(serie)
 
-        #TODO: ES tests        
+        #TODO: meta_datas tests  
         
     @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
     def test_from_csv_remote(self):
@@ -72,20 +84,21 @@ class Bis_Lbs_Diss_FetcherTestCase(BaseFetcherDBTest):
                 es_client=None, #TODO: 
                 #settings={"BIS_LBS_DISS_URL": "file:" + urllib.request.pathname2url(csv_file)}
                 )
-
+        
         w.provider.update_database()
-        provider = self.db.providers.find_one({"name": w.provider_name})
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": w.provider_name})
         self.assertIsNotNone(provider)
         
         w.upsert_categories()
-        category = self.db.categories.find_one({"categoryCode": "LBS-DISS"})
+        category = self.db[constants.COL_CATEGORIES].find_one({"categoryCode": "LBS-DISS"})
         self.assertIsNotNone(category)
         
         w.upsert_dataset('LBS-DISS')
-        dataset = self.db.datasets.find_one({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
         self.assertIsNotNone(dataset)
+        self.assertTrue(len(dataset["dimensionList"]), 12)
 
-        series = self.db.series.find({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
+        series = self.db[constants.COL_SERIES].find({"provider": w.provider_name, "datasetCode": "LBS-DISS"})
         self.assertTrue(series.count() > 1)
         
     
