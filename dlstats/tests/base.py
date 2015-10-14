@@ -10,10 +10,14 @@ from . import utils
 
 RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
-class BaseFetcherTest(unittest.TestCase):
-    pass
+class BaseTest(unittest.TestCase):
+    
+    def setUp(self):
+        unittest.TestCase.setUp(self)
 
-class BaseFetcherDBTest(BaseFetcherTest):
+class BaseDBTest(BaseTest):
+    """Tests with MongoDB or ElasticSearch
+    """
 
     def _collections_is_empty(self):
         self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 0)
@@ -30,3 +34,4 @@ class BaseFetcherDBTest(BaseFetcherTest):
         utils.clean_mongodb(self.db)
         utils.clean_es()
 
+#class BaseFetcherDBTest(BaseTest):
