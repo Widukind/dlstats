@@ -4,7 +4,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dlstats',
-	version="0.0.1",
+	version="0.1.0",
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
@@ -15,7 +15,6 @@ setup(name='dlstats',
         'requests>=2.4.3',
         'pymongo>=3.0.0',
         'pandas>=0.12',
-        'docopt>=0.6.0',
         'voluptuous>=0.8',
         'xlrd>=0.8',
         'configobj>=5.0',
