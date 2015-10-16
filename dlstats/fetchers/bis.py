@@ -78,6 +78,8 @@ class LBS_DISS_Data():
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
         
+        self.frequency = 'Q'
+        
         csv_text = load_zip_file(self.url)
         csv_file = io.TextIOWrapper(io.BytesIO(csv_text), newline="\n")
         
@@ -100,8 +102,8 @@ class LBS_DISS_Data():
         self.dimension_keys = self.sheet.fieldnames[:period_position]
         self.periods = self.sheet.fieldnames[period_position+1:]
         
-        self.start_date = pandas.Period(self.periods[0], freq='quarter')
-        self.end_date = pandas.Period(self.periods[-1], freq='quarter')
+        self.start_date = pandas.Period(self.periods[0], freq=self.frequency)
+        self.end_date = pandas.Period(self.periods[-1], freq=self.frequency)
         
     @property
     def url(self):
@@ -146,7 +148,7 @@ class LBS_DISS_Data():
             series['releaseDates'] = release_dates
             series['startDate'] = self.start_date.ordinal
             series['endDate'] = self.end_date.ordinal
-            series['frequency'] = 'Q'
+            series['frequency'] = self.frequency
             return(series)
         else:
             return None
