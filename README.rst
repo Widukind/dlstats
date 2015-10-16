@@ -5,13 +5,14 @@ WIDUKIND
 This is a database of international macroeconomic data collected on
 public web servers of statistical offices worldwide.
 
-|Build Status|
+|Build Status| |Build Doc| |Coveralls|
 
 REQUIREMENTS
 ============
 
 Debian packages
 ---------------
+
 - python3.4
 - libpython3.4-dev
 - mongodb
@@ -19,23 +20,26 @@ Debian packages
 - libxml2-dev
 - libsxlt-dev
 - libz-dev
+
 python modules
 --------------
+
 - configobj
-- ming
 - elasticsearch
 - pandas
 - voluptuous
 - lxml
-- sdmx
+- pysdmx
 - beautifulsoup4
 - xlrd
+- requests
     
 INSTALLATION
 ============
 
 1. create a python virtual environment
-`python -m venv widukind-venv
+
+    python -m venv widukind-venv
 
 1. clone this git project
 
@@ -45,4 +49,10 @@ INSTALLATION
    :target: https://travis-ci.org/Widukind/dlstats
    :alt: Travis Build Status
    
+.. |Build Doc| image:: https://readthedocs.org/projects/widukind/badge/?version=latest
+   :target: http://widukind.readthedocs.org/en/latest/?badge=latest
+   :alt: Documentation Status   
    
+.. |Coveralls| image:: https://coveralls.io/repos/Widukind/dlstats/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/Widukind/dlstats?branch=master
+   :alt: Coverage   
