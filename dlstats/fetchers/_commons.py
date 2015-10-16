@@ -27,29 +27,47 @@ def create_or_update_indexes(db, force_mode=False):
     
     if not force_mode and UPDATE_INDEXES:
         return
+
+    db[constants.COL_PROVIDERS].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx", unique=True)
     
-    db[constants.COL_PROVIDERS].create_indexes([IndexModel([("name", ASCENDING)], name="name_idx", unique=True)]) 
-
-    db[constants.COL_CATEGORIES].create_indexes([
-        IndexModel([("provider", ASCENDING), ("categoryCode", ASCENDING)], name="provider_categoryCode_idx", unique=True),
-    ])
-
+    db[constants.COL_CATEGORIES].create_index([
+        ("provider", ASCENDING), 
+        ("categoryCode", ASCENDING)], 
+        name="provider_categoryCode_idx", unique=True)
+     
     #TODO: lastUpdate DESCENDING ?
-    db[constants.COL_DATASETS].create_indexes([
-        IndexModel([("provider", ASCENDING), ("datasetCode", ASCENDING)], name="provider_datasetCode_idx", unique=True),
-        IndexModel([("name", ASCENDING)], name="name_idx"),
-        IndexModel([("lastUpdate", DESCENDING)], name="lastUpdate_idx"),
-    ])
+    db[constants.COL_DATASETS].create_index([
+            ("provider", ASCENDING), 
+            ("datasetCode", ASCENDING)], 
+            name="provider_datasetCode_idx", unique=True)
+        
+    db[constants.COL_DATASETS].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx")
+    
+    db[constants.COL_DATASETS].create_index([
+        ("lastUpdate", DESCENDING)], 
+        name="lastUpdate_idx")
 
-    db[constants.COL_SERIES].create_indexes([
-        IndexModel([("provider", ASCENDING), 
-                    ("datasetCode", ASCENDING), 
-                    ("key", ASCENDING)], name="provider_datasetCode_key_idx", unique=True),
+    db[constants.COL_SERIES].create_index([
+        ("provider", ASCENDING), 
+        ("datasetCode", ASCENDING), 
+        ("key", ASCENDING)], 
+        name="provider_datasetCode_key_idx", unique=True)
 
-        IndexModel([("key", ASCENDING)], name="key_idx"),
-        IndexModel([("name", ASCENDING)], name="name_idx"),
-        IndexModel([("frequency", DESCENDING)], name="frequency_idx"),
-    ])
+    db[constants.COL_SERIES].create_index([
+        ("key", ASCENDING)], 
+        name="key_idx")
+        
+    db[constants.COL_SERIES].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx")
+    
+    db[constants.COL_SERIES].create_index([
+        ("frequency", DESCENDING)], 
+        name="frequency_idx")
     
     UPDATE_INDEXES = True
 
