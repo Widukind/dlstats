@@ -23,7 +23,7 @@ before_install:
  
 install:
   - pip install -U pip
-  - pip install coveralls nose coverage
+  - pip install coveralls nose coverage flake8
   - pip install -r requirements.txt
   - pip install --no-deps -e .
 
@@ -33,16 +33,18 @@ before_script:
   - pip freeze
   - java -version
   - mongo --version
+  - curl -XPUT localhost:9200
   - curl -XPUT localhost:9200/widukind?pretty
   
 script:
   - nosetests -s -v dlstats
-
+  - flake8 --exit-zero dlstats
+  
 branches:
   only:
     - master
     
-after_success: coveralls --verbose
+after_script: coveralls --verbose
 
 notifications:
   email: true

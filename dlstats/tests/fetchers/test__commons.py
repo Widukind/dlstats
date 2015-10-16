@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import os
 import uuid
 from datetime import datetime
 from random import choice, randint
 
 from voluptuous import MultipleInvalid
+
+from pymongo.errors import DuplicateKeyError
 
 from dlstats import constants
 from dlstats.fetchers._commons import (Fetcher, 
@@ -18,14 +21,70 @@ from dlstats.fetchers._commons import (Fetcher,
 
 import unittest
 
-from ..base import BaseTest, BaseDBTest, RESOURCES_DIR
+from dlstats.tests.base import BaseTest, BaseDBTest, RESOURCES_DIR
 
-class FakeDatas():
+class FakeDataset(Dataset):
     
-    def __init__(self, provider=None, datasetCode=None, max_record=10):
+    def download(self, urls):
+        """Download all sources for this Dataset
         
-        self.provider = provider
-        self.datasetCode = datasetCode
+        :param dict urls: URLS dict - key = final filename
+        
+        :return: :class:`dict`
+        
+        >>> fetcher = Fetcher(provider_name="test")
+        >>> dataset = Dataset(fetcher=fetcher)
+        >>> urls = ['http://localhost/file1.zip', http://localhost/file2.zip']
+        >>> dataset.download(urls)
+        {
+            'file1.zip': '/tmp/dfkr56ert98/file1.zip',
+            'file2.zip': '/tmp/dfkr56ert98/file2.zip',
+        }        
+        
+        >>> from urllib.parse import urlparse
+        >>> url = 'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11'
+        >>> u = urlparse(url)
+        >>> u
+        ParseResult(scheme='http', netloc='www.bea.gov', path='//national/nipaweb/GetCSV.asp', params='', query='GetWhat=SS_Data/SectionAll_xls.zip&Section=11', fragment='')
+        >>> u.path
+        '//national/nipaweb/GetCSV.asp'        
+        """
+        #urllib.request.url2pathname()
+        files = {}
+        for url in urls:
+            filename = os.path.basename(url)
+            files[filename] = url        
+        return files
+        
+class FakeDatas():
+    """Fake data for series
+
+
+    - use:
+    
+        f = Fetcher(provider_name="p1", 
+                    db=self.db, es_client=self.es)
+        
+        d = Dataset(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        
+        d.dimension_list.update_entry("country", "country", "country")
+        
+        datas = FakeDatas(provider_name="p1", dataset_code="d1")
+        d.series.data_iterator = datas
+        
+        result = d.update_database()
+    """
+    
+    def __init__(self, provider_name=None, dataset_code=None, max_record=10):
+        
+        self.provider_name = provider_name
+        self.dataset_code = dataset_code
         self.max_record = max_record
         
         self.rows = []
@@ -38,9 +97,10 @@ class FakeDatas():
             
             key = str(uuid.uuid4())
             self.keys.append(key)
-            
-            bson = dict(provider=self.provider, 
-                        datasetCode=self.datasetCode,
+
+            '''Mongo format attribute names'''
+            bson = dict(provider=self.provider_name, 
+                        datasetCode=self.dataset_code,
                         key=key, 
                         name=key,
                         frequency=choice(['A', 'Q']),
@@ -59,6 +119,28 @@ class FakeDatas():
                             'Country': 'AFG', 
                             'Scale': 'Billions'
                         })
+            """
+            bson = dict(provider_name=self.provider_name, 
+                        dataset_code=self.dataset_code,
+                        key=key, 
+                        name=key,
+                        frequency=choice(['A', 'Q']),
+                        start_date=randint(10, 100),
+                        end_date=randint(10, 100),                    
+                        values=[str(randint(i, 100)) for i in range(1, 10)],
+                        release_dates=[
+                            datetime(2013,11,28),
+                            datetime(2014,12,28),
+                            datetime(2015,1,28),
+                            datetime(2015,2,28)
+                        ],
+                        attributes={},
+                        revisions={},                  
+                        dimensions={
+                            'Country': 'AFG', 
+                            'Scale': 'Billions'
+                        })
+            """
             self.rows.append(bson)
     
     def __next__(self):
@@ -129,8 +211,6 @@ class DlstatsCollectionTestCase(BaseTest):
 
 class CategoryTestCase(BaseTest):
     
-    #TODO: test_update_database()
-    
     def test_constructor(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:CategoryTestCase.test_constructor
@@ -161,8 +241,6 @@ class CategoryTestCase(BaseTest):
         #print(c.schema(c.bson))
     
 class ProviderTestCase(BaseTest):
-
-    #TODO: test_update_database()
 
     def test_constructor(self):
 
@@ -235,9 +313,9 @@ class SeriesTestCase(BaseTest):
             
         f = Fetcher(provider_name="p1")
             
-        s = Series(provider="p1", 
-                   datasetCode="d1", 
-                   lastUpdate=None, 
+        s = Series(provider_name="p1", 
+                   dataset_code="d1", 
+                   last_update=None, 
                    bulk_size=1, 
                    fetcher=f)
         
@@ -245,8 +323,6 @@ class SeriesTestCase(BaseTest):
 
         
 class SerieEntryTestCase(BaseTest):
-    
-    #TODO: test_update_database()
     
     def test_constructor(self):
 
@@ -258,9 +334,9 @@ class SerieEntryTestCase(BaseTest):
         f = Fetcher(provider_name="p1")
             
         '''SerieEntry Instance populate from init'''        
-        s = SerieEntry(provider="p1", 
-                       datasetCode="d1", 
-                       #lastUpdate=datetime.now(), 
+        s = SerieEntry(provider_name="p1", 
+                       dataset_code="d1", 
+                       #last_update=datetime.now(), 
                        key='GDP_FR', 
                        name='GDP in France',
                        frequency='Q',
@@ -271,6 +347,7 @@ class SerieEntryTestCase(BaseTest):
         '''SerieEntry Instance populate from bson datas'''        
         s = SerieEntry(fetcher=f)
         
+        '''Mongo attribute names'''
         bson = dict(provider="p1", 
                     datasetCode="d1", 
                     key='GDP_FR', 
@@ -281,6 +358,7 @@ class SerieEntryTestCase(BaseTest):
         s.schema(s.bson)        
         
         '''Same test with more datas'''
+        '''Mongo attribute names'''
         bson = dict(provider="p1", 
                     datasetCode="d1",
                     key='GDP_FR', 
@@ -318,11 +396,49 @@ class SerieEntryTestCase(BaseTest):
             
 class DBCategoryTestCase(BaseDBTest):
     
+    #TODO: test indexes keys and properties
+    def test_indexes(self):
+        pass
+    
+    def test_unique_constraint(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_unique_constraint
+    
+        self._collections_is_empty()
+    
+        f = Fetcher(provider_name="p1", db=self.db, es_client=self.es)
+        
+        c = Category(provider="p1", 
+                     name="cat1", 
+                     categoryCode="c1",
+                     docHref='http://www.example.com',
+                     fetcher=f)
+        result = c.update_database()
+        self.assertIsNotNone(result)
+
+        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 1)
+        
+        with self.assertRaises(DuplicateKeyError):
+            existing_category = dict(provider="p1", categoryCode="c1")
+            self.db[constants.COL_CATEGORIES].insert(existing_category)
+
+        c = Category(provider="p1", 
+                     name="cat2", 
+                     categoryCode="c2",
+                     fetcher=f)
+        result = c.update_database()
+        self.assertIsNotNone(result)
+
+        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 2)
+    
     def test_update_database(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_update_database
     
         self._collections_is_empty()
+        
+        from dlstats.fetchers._commons import create_or_update_indexes
+        create_or_update_indexes(self.db)
     
         f = Fetcher(provider_name="p1", db=self.db, es_client=self.es)
         
@@ -342,6 +458,7 @@ class DBCategoryTestCase(BaseDBTest):
         1 1 None 
         {'ok': 1, 'electionId': ObjectId('56169d19f3ceb180160a3d25'), 'updatedExisting': True, 'n': 1, 'nModified': 1, 'lastOp': Timestamp(1444825463, 1)}
         """
+        self.assertIsNotNone(result)
         self.assertEqual(result.matched_count, 0)
         self.assertEqual(result.modified_count, 0)
         self.assertIsNotNone(result.upserted_id)
@@ -361,6 +478,36 @@ class DBCategoryTestCase(BaseDBTest):
     
 class DBProviderTestCase(BaseDBTest):
 
+    #TODO: test indexes keys and properties
+    def test_indexes(self):
+        pass
+    
+    def test_unique_constraint(self):
+
+        self._collections_is_empty()
+
+        f = Fetcher(provider_name="p1", 
+                    db=self.db, es_client=self.es)
+
+        p = Provider(name="p1", 
+                     website="http://www.example.com", 
+                     fetcher=f)
+        p.update_database()
+
+        self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 1)
+        
+        existing_provider = dict(name="p1")
+        
+        with self.assertRaises(DuplicateKeyError):
+            self.db[constants.COL_PROVIDERS].insert(existing_provider)
+
+        p = Provider(name="p2", 
+                     website="http://www.example.com",
+                     fetcher=f)
+        p.update_database()
+
+        self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 2)
+
     def test_update_database(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_update_database
@@ -374,6 +521,7 @@ class DBProviderTestCase(BaseDBTest):
                      website="http://www.example.com", 
                      fetcher=f)
         result = p.update_database()
+        self.assertIsNotNone(result)
 
         self.assertEqual(result.matched_count, 0)
         self.assertEqual(result.modified_count, 0)
@@ -385,8 +533,43 @@ class DBProviderTestCase(BaseDBTest):
         self.assertEqual(bson["name"], "p1")
         self.assertEqual(bson["website"], "http://www.example.com")
 
-
 class DBDatasetTestCase(BaseDBTest):
+
+    #TODO: test indexes keys and properties
+    def test_indexes(self):
+        pass
+    
+    def test_unique_constraint(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_unique_constraint
+    
+        self._collections_is_empty()
+        
+        f = Fetcher(provider_name="p1", 
+                    db=self.db, es_client=self.es)
+
+        d = Dataset(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("country", "country", "country")
+
+        datas = FakeDatas(provider_name="p1", 
+                          dataset_code="d1")
+        d.series.data_iterator = datas
+
+        result = d.update_database()
+        self.assertIsNotNone(result)
+        
+        self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
+                        
+        with self.assertRaises(DuplicateKeyError):
+            existing_dataset = dict(provider="p1", datasetCode="d1")
+            self.db[constants.COL_DATASETS].insert(existing_dataset)
+
 
     def test_update_database(self):
 
@@ -406,11 +589,12 @@ class DBDatasetTestCase(BaseDBTest):
                     is_load_previous_version=False)
         d.dimension_list.update_entry("country", "country", "country")
 
-        datas = FakeDatas(provider="p1", 
-                          datasetCode="d1")
+        datas = FakeDatas(provider_name="p1", 
+                          dataset_code="d1")
         d.series.data_iterator = datas
 
         result = d.update_database()
+        self.assertIsNotNone(result)
         
         #print(result.raw)
 
@@ -432,31 +616,57 @@ class DBDatasetTestCase(BaseDBTest):
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
-    
-    
 class DBSeriesTestCase(BaseDBTest):
     
-    def test_build_series(self):        
+    #TODO: test indexes keys and properties
+    def test_indexes(self):
+        pass
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_build_series
+    def test_unique_constraint(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_unique_constraint
+    
+        self._collections_is_empty()
+
+        f = Fetcher(provider_name="p1", 
+                    db=self.db, es_client=self.es)
+        
+        s = SerieEntry(provider_name=f.provider_name, 
+                       dataset_code="d1", 
+                       key='GDP_FR', 
+                       name='GDP in France',
+                       frequency='Q',
+                       dimensions={'Country': 'FR'}, 
+                       fetcher=f)
+        id = s.update_serie()
+        self.assertIsNotNone(id)
+        
+        self.assertEqual(self.db[constants.COL_SERIES].count(), 1)
+                        
+        with self.assertRaises(DuplicateKeyError):
+            existing_serie = dict(provider="p1", datasetCode="d1", key="GDP_FR")
+            self.db[constants.COL_SERIES].insert(existing_serie)
+    
+    def test_process_series(self):        
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_process_series
 
         self._collections_is_empty()
     
         provider_name = "p1"
-        datasetCode = "d1"
+        dataset_code = "d1"
     
         f = Fetcher(provider_name=provider_name, 
                     db=self.db, es_client=self.es)
         
-        s = Series(provider=f.provider_name, 
-                   datasetCode=datasetCode, 
-                   lastUpdate=None, 
+        s = Series(provider_name=f.provider_name, 
+                   dataset_code=dataset_code, 
+                   last_update=None, 
                    bulk_size=1, 
                    fetcher=f)
-        
 
-        datas = FakeDatas(provider=provider_name, 
-                          datasetCode=datasetCode)
+        datas = FakeDatas(provider_name=provider_name, 
+                          dataset_code=dataset_code)
         s.data_iterator = datas
         s.process_series()
         
@@ -465,12 +675,12 @@ class DBSeriesTestCase(BaseDBTest):
 
         '''Count series for this provider and dataset'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": datasetCode})
+                                                     "datasetCode": dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
         '''Count series for this provider and dataset and in keys[]'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": datasetCode,
+                                                     "datasetCode": dataset_code,
                                                      "key": {"$in": datas.keys}})
         
         self.assertEqual(series.count(), datas.max_record)

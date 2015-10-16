@@ -4,10 +4,10 @@
 .. module:: _commons
     :synopsis: Code imported by the different fetchers
 """
+import os
 import pymongo
-import datetime
-import pandas
-from voluptuous import Required, All, Length, Range, Schema, Invalid, Object, Optional, Any, Extra
+from pymongo import IndexModel, ASCENDING, DESCENDING
+from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra
 from datetime import datetime
 import logging
 import bson
@@ -19,6 +19,40 @@ from dlstats import mongo_client
 from dlstats import configuration
 from dlstats import constants
 
+UPDATE_INDEXES = False
+
+def create_or_update_indexes(db, force_mode=False):
+    
+    global UPDATE_INDEXES
+    
+    if not force_mode and UPDATE_INDEXES:
+        return
+    
+    db[constants.COL_PROVIDERS].create_indexes([IndexModel([("name", ASCENDING)], name="name_idx", unique=True)]) 
+
+    db[constants.COL_CATEGORIES].create_indexes([
+        IndexModel([("provider", ASCENDING), ("categoryCode", ASCENDING)], name="provider_categoryCode_idx", unique=True),
+    ])
+
+    #TODO: lastUpdate DESCENDING ?
+    db[constants.COL_DATASETS].create_indexes([
+        IndexModel([("provider", ASCENDING), ("datasetCode", ASCENDING)], name="provider_datasetCode_idx", unique=True),
+        IndexModel([("name", ASCENDING)], name="name_idx"),
+        IndexModel([("lastUpdate", DESCENDING)], name="lastUpdate_idx"),
+    ])
+
+    db[constants.COL_SERIES].create_indexes([
+        IndexModel([("provider", ASCENDING), 
+                    ("datasetCode", ASCENDING), 
+                    ("key", ASCENDING)], name="provider_datasetCode_key_idx", unique=True),
+
+        IndexModel([("key", ASCENDING)], name="key_idx"),
+        IndexModel([("name", ASCENDING)], name="name_idx"),
+        IndexModel([("frequency", DESCENDING)], name="frequency_idx"),
+    ])
+    
+    UPDATE_INDEXES = True
+
 class Fetcher(object):
     """Abstract base class for all fetchers"""
     
@@ -27,11 +61,11 @@ class Fetcher(object):
                  db=None, 
                  es_client=None):
         """
-        :param provider_name: :class:`str` - Provider Name
-        :param db: Instance of :class:`~pymongo.database.Database`        
-        :param es_client: Instance of :class:`~elasticsearch.Elasticsearch` 
+        :param str provider_name: Provider Name
+        :param pymongo.database.Database db: MongoDB Database instance        
+        :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
 
-        Raises :class:`AttributeError` or :class:`TypeError`
+        :raises ValueError: if provider_name is None        
         """        
         if not provider_name:
             raise ValueError("provider_name is required")
@@ -40,6 +74,8 @@ class Fetcher(object):
         self.db = db or mongo_client.widukind
         self.es_client = es_client or Elasticsearch()
         self.provider = None
+        
+        create_or_update_indexes(self.db)
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB
@@ -62,7 +98,7 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     
-    def upsert_dataset(self, dataset_code):
+    def upsert_dataset(self, dataset_code, datas=None):
         """Upsert a dataset in MongoDB
         
         :param dataset_code: :class:`str` - ID of :class:`Dataset`
@@ -127,27 +163,24 @@ class DlstatsCollection(object):
             raise TypeError("Bad type for fetcher")
         
         self.fetcher = fetcher
-        self.testing_mode = False
         
     def update_mongo_collection(self, collection, key, bson, log_level=logging.INFO):
         lgr = logging.getLogger(__name__)
-        """
         lgr.setLevel(log_level)
-        fh = logging.FileHandler(configuration['General']['logging_directory']+'/dlstats.log')
+        filepath = os.path.abspath(os.path.join(configuration['General']['logging_directory'], 'dlstats.log'))
+        fh = logging.FileHandler(filepath)
         fh.setLevel(log_level)
         frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(frmt)
         lgr.addHandler(fh)
-        """
-        if not self.testing_mode:
-            try:
-                result = self.fetcher.db[collection].replace_one({key: bson[key]}, bson, upsert=True)
-            except:
-                lgr.critical(collection + '.update_database() failed for '+ bson[key]+result)
-                return None
-            else:
-                lgr.log(log_level,collection + ' ' + bson[key] + ' updated.')
-                return result
+        try:
+            result = self.fetcher.db[collection].replace_one({key: bson[key]}, bson, upsert=True)
+        except Exception as err:
+            lgr.critical('%s.update_database() failed for %s [%s]' % (collection, bson[key]+result, str(err)))
+            return None
+        else:
+            lgr.log(log_level,collection + ' ' + bson[key] + ' updated.')
+            return result
         
 class Provider(DlstatsCollection):
     """Abstract base class for providers
@@ -162,12 +195,10 @@ class Provider(DlstatsCollection):
     def __init__(self,
                  name=None,
                  website=None,
-                 testing_mode=False,
                  fetcher=None):
         """
         :param name: :class:`str` - Provider Name
         :param website: :class:`str` - Provider Web Site
-        :param testing_mode: :class:`bool` - Testing Mode
         :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
         """        
         super().__init__(fetcher=fetcher)
@@ -309,23 +340,21 @@ class Dataset(DlstatsCollection):
                  fetcher=None, 
                  is_load_previous_version=True):
         """
-        :param provider: :class:`str` - Provider name
+        :param provider_name: :class:`str` - Provider name
         :param dataset_code: :class:`str` - Dataset code
+        :param name: :class:`str` - Dataset name
+        :param doc_href: :class:`str` - Dataset link
+        :param last_update: :class:`datetime.datetime` - Dataset Last updated 
         :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        :param is_load_previous_version: :class:`bool` - load previous version (default True)
         """        
         super().__init__(fetcher=fetcher)
-        #TODO: modifier attribut provider_name en provider pour cohérence schéma
         self.provider_name = provider_name
-        #TODO: modifier attribut dataset_code en datasetCode pour cohérence schéma
         self.dataset_code = dataset_code
         self.name = name
-        #TODO: modifier attribut doc_href en docHref pour cohérence schéma
         self.doc_href = doc_href
-        #TODO: modifier attribut last_update en lastUpdate pour cohérence schéma
         self.last_update = last_update
-        #TODO: modifier attribut dimension_list en dimensionList pour cohérence schéma
         self.dimension_list = CodeDict()
-        #TODO: modifier attribut attribute_list en attributeList pour cohérence schéma
         self.attribute_list = CodeDict()
         
         if is_load_previous_version:
@@ -354,27 +383,18 @@ class Dataset(DlstatsCollection):
                                ('dataset_code', self.dataset_code)])
     @property
     def bson(self):
-        #FIXME: mettre plutôt notes à None ou ''
-        if self.notes:
-            return {'provider': self.provider_name,
-                    'name': self.name,
-                    'datasetCode': self.dataset_code,
-                    'dimensionList': self.dimension_list.get_list(),
-                    'attributeList': self.attribute_list.get_list(),
-                    'docHref': self.doc_href,
-                    'lastUpdate': self.last_update,
-                    'notes': self.notes}
-        else:
-            return {'provider': self.provider_name,
-                    'name': self.name,
-                    'datasetCode': self.dataset_code,
-                    'dimensionList': self.dimension_list.get_list(),
-                    'attributeList': self.attribute_list.get_list(),
-                    'docHref': self.doc_href,
-                    'lastUpdate': self.last_update}
+        return {'provider': self.provider_name,
+                'name': self.name,
+                'datasetCode': self.dataset_code,
+                'dimensionList': self.dimension_list.get_list(),
+                'attributeList': self.attribute_list.get_list(),
+                'docHref': self.doc_href,
+                'lastUpdate': self.last_update,
+                'notes': self.notes}
 
-    def load_previous_version(self,provider_name,dataset_code):
-        dataset = self.fetcher.db.datasets.find_one({'provider': provider_name,
+    def load_previous_version(self, provider_name, dataset_code):
+        dataset = self.fetcher.db.datasets.find_one(
+                                            {'provider': provider_name,
                                              'datasetCode': dataset_code})
         if dataset:
             # convert to dict of dict
@@ -391,21 +411,20 @@ class SerieEntry(DlstatsCollection):
     """Abstract base class for one time serie
     """
     
-    __slots__ = ("provider", "datasetCode", "key", "name", "startDate", 
-                 "endDate", "values", "releaseDates", "attributes",
+    __slots__ = ("provider_name", "dataset_code", "key", "name", "start_date", 
+                 "end_date", "values", "release_dates", "attributes",
                  "revisions", "dimensions", "frequency", "notes",
                  "fetcher", "schema")
     
     def __init__(self, 
-                 provider=None, 
-                 datasetCode=None, 
-                 #TODO: unused ? : #lastUpdate=None,
+                 provider_name=None, 
+                 dataset_code=None, 
                  key=None,
                  name=None,
-                 startDate=0,
-                 endDate=0,
+                 start_date=0,
+                 end_date=0,
                  values=[],
-                 releaseDates=[],
+                 release_dates=[],
                  attributes={},
                  revisions={},
                  dimensions={},
@@ -413,15 +432,14 @@ class SerieEntry(DlstatsCollection):
                  notes=None,   
                  fetcher=None):
         super().__init__(fetcher=fetcher)
-        self.provider = provider
+        self.provider_name = provider_name
         self.key = key
         self.name = name
-        self.datasetCode = datasetCode
-        #TODO: unused ? : self.lastUpdate = lastUpdate
-        self.startDate = startDate
-        self.endDate = endDate
+        self.dataset_code = dataset_code
+        self.start_date = start_date
+        self.end_date = end_date
         self.values = values
-        self.releaseDates = releaseDates
+        self.release_dates = release_dates
         self.attributes = attributes
         self.revisions = revisions
         self.dimensions = dimensions
@@ -447,15 +465,14 @@ class SerieEntry(DlstatsCollection):
 
     def populate(self, bson):
         """Populate current object with bson entry from MongoDB"""
-        self.provider = bson.get('provider')
+        self.provider_name = bson.get('provider')
         self.key = bson.get('key')
         self.name = bson.get('name')
-        self.datasetCode = bson.get('datasetCode')
-        #TODO: unused ? : self.lastUpdate = bson.get('lastUpdate')
-        self.startDate = bson.get('startDate', 0)
-        self.endDate = bson.get('endDate', 0)
+        self.dataset_code = bson.get('datasetCode')
+        self.start_date = bson.get('startDate', 0)
+        self.end_date = bson.get('endDate', 0)
         self.values = bson.get('values', [])
-        self.releaseDates = bson.get('releaseDates', [])
+        self.release_dates = bson.get('releaseDates', [])
         self.attributes = bson.get('attributes', {})
         self.revisions = bson.get('revisions', {})
         self.dimensions = bson.get('dimensions', {})
@@ -464,26 +481,25 @@ class SerieEntry(DlstatsCollection):
 
     @property
     def bson(self):
-        return {'provider': self.provider,
+        return {'provider': self.provider_name,
                 'key': self.key,
                 'name': self.name,
-                'datasetCode': self.datasetCode,
-                #'lastUpdate': self.lastUpdate,
-                'startDate': self.startDate,
-                'endDate': self.endDate,
+                'datasetCode': self.dataset_code,
+                'startDate': self.start_date,
+                'endDate': self.end_date,
                 'values': self.values,
-                'releaseDates': self.releaseDates,
+                'releaseDates': self.release_dates,
                 'attributes': self.attributes,
                 'revisions': self.revisions,
                 'dimensions': self.dimensions,
                 'frequency': self.frequency,
                 'notes': self.notes}
 
-    def update_serie(self, is_bulk=False):
+    def update_serie(self, old_bson=None, is_bulk=False):
         
-        old_bson = self.fetcher.db[constants.COL_SERIES].find_one({
-                                        'provider': self.provider,
-                                        'datasetCode': self.datasetCode,
+        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
+                                        'provider': self.provider_name,
+                                        'datasetCode': self.dataset_code,
                                         'key': self.key})
                 
         col = self.fetcher.db[constants.COL_SERIES]
@@ -550,29 +566,29 @@ class Series(DlstatsCollection):
     """Abstract base class for time series"""
     
     def __init__(self, 
-                 provider=None, 
-                 datasetCode=None, 
-                 lastUpdate=None, 
+                 provider_name=None, 
+                 dataset_code=None, 
+                 last_update=None, 
                  bulk_size=1000, 
                  fetcher=None):
         """        
-        :param provider: :class:`str` - Provider name
-        :param datasetCode: :class:`str` - Dataset code
-        :param lastUpdate: :class:`datetime.datetime` - Last updated date
+        :param provider_name: :class:`str` - Provider name
+        :param dataset_code: :class:`str` - Dataset code
+        :param last_update: :class:`datetime.datetime` - Last updated date
         :param bulk_size: :class:`int` - Batch size for mongo bulk update
         :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
         """        
         super().__init__(fetcher=fetcher)
-        self.provider = provider
-        self.datasetCode = datasetCode
-        self.lastUpdate = lastUpdate
+        self.provider_name = provider_name
+        self.dataset_code = dataset_code
+        self.last_update = last_update
         self.bulk_size = bulk_size
         self.ser_list = []
     
     def __repr__(self):
-        return pprint.pformat([('provider', self.provider),
-                               ('datasetCode', self.datasetCode),
-                               ('lastUpdate', self.lastUpdate)])
+        return pprint.pformat([('provider_name', self.provider_name),
+                               ('datasetCode', self.dataset_code),
+                               ('lastUpdate', self.last_update)])
 
     def process_series(self):
         count = 0
@@ -598,8 +614,8 @@ class Series(DlstatsCollection):
         keys = [s.key for s in self.ser_list]
 
         old_series = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider': self.provider,
-                                        'datasetCode': self.datasetCode,
+                                        'provider': self.provider_name,
+                                        'datasetCode': self.dataset_code,
                                         'key': {'$in': keys}})
 
         old_series = {s['key']:s for s in old_series}
@@ -612,7 +628,7 @@ class Series(DlstatsCollection):
                 bulk.insert(bson)
             else:
                 old_bson = old_series[serie.key]
-                bson = serie.update_serie(is_bulk=True)                
+                bson = serie.update_serie(old_bson=old_bson, is_bulk=True)                
                 bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
         
         result = bulk.execute()         
