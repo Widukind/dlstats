@@ -3,19 +3,15 @@
 import os
 import urllib.request
 
-from dlstats.fetchers.bis import BIS, LBS_DISS_Data, load_zip_file
+from dlstats.fetchers.bis import BIS, LBS_DISS_Data
 from dlstats import constants
 
 import unittest
-from ..base import BaseTest, BaseDBTest, RESOURCES_DIR
 
-class BaseFetcherTestCase(BaseTest):
-    """Fetchers tests without DB"""
+from dlstats.tests.base import RESOURCES_DIR
+from dlstats.tests.fetchers.base import BaseDBFetcherTestCase
 
-class BaseDBFetcherTestCase(BaseDBTest):
-    """Fetchers tests with DB"""
-
-class Bis_Lbs_Diss_FetcherTestCase(BaseDBTest):
+class Bis_Lbs_Diss_FetcherTestCase(BaseDBFetcherTestCase):
     
     def test_from_csv_local(self):
         """Fetch from csv file in tests/resources directory"""
@@ -27,10 +23,7 @@ class Bis_Lbs_Diss_FetcherTestCase(BaseDBTest):
         csv_file = os.path.abspath(os.path.join(RESOURCES_DIR, "full_BIS_LBS_DISS_csv.zip"))
         self.assertTrue(os.path.exists(csv_file))
 
-        w = BIS(db=self.db,
-                es_client=None, #TODO: 
-                #settings={"BIS_LBS_DISS_URL": "file:" + urllib.request.pathname2url(csv_file)}
-                )
+        w = BIS(db=self.db, es_client=self.es)
                 
         @property
         def _url(self):

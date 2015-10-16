@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 from dlstats.fetchers import eurostat
 
-from ..base import RESOURCES_DIR
+from dlstats.tests.base import RESOURCES_DIR
 
 """
 class EurostatTestCase(unittest.TestCase):

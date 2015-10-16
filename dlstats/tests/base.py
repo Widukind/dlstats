@@ -4,9 +4,10 @@ import os
 import unittest
 
 from dlstats import constants
+from dlstats.fetchers._commons import create_or_update_indexes
 
-from . import resources
-from . import utils
+from dlstats.tests import resources
+from dlstats.tests import utils
 
 RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
@@ -33,5 +34,8 @@ class BaseDBTest(BaseTest):
         
         utils.clean_mongodb(self.db)
         utils.clean_es()
+                
+        create_or_update_indexes(self.db, force_mode=True)
+        
 
 #class BaseFetcherDBTest(BaseTest):
