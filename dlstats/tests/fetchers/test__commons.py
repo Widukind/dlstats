@@ -398,7 +398,30 @@ class DBCategoryTestCase(BaseDBTest):
     
     #TODO: test indexes keys and properties
     def test_indexes(self):
-        pass
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_unique_constraint
+
+        indexes = self.db[constants.COL_CATEGORIES].index_information()
+        
+        self.assertEqual(len(indexes), 2)
+        
+        
+        """
+        >>> pp(c.widukind.providers.index_information())
+
+        {'_id_': {'key': [('_id', 1)], 'ns': 'widukind.providers', 'v': 1},
+         'name_idx': {'key': [('name', 1)],
+                      'ns': 'widukind.providers',
+                      'unique': True,
+                      'v': 1}}        
+        
+        >>> for i in list(c.widukind.datasets.index_information().items()): print(i)
+
+        ('lastUpdate_idx', {'key': [('lastUpdate', -1)], 'v': 1, 'ns': 'widukind.datasets'})
+        ('provider_datasetCode_idx', {'key': [('provider', 1), ('datasetCode', 1)], 'v': 1, 'ns': 'widukind.datasets', 'unique': True})
+        ('name_idx', {'key': [('name', 1)], 'v': 1, 'ns': 'widukind.datasets'})
+        ('_id_', {'key': [('_id', 1)], 'v': 1, 'ns': 'widukind.datasets'})                      
+        """
     
     def test_unique_constraint(self):
 
@@ -448,19 +471,9 @@ class DBCategoryTestCase(BaseDBTest):
                      docHref='http://www.example.com',
                      fetcher=f)
         result = c.update_database()
-        """
-        print(result.matched_count, result.modified_count, result.upserted_id, result.raw_result)
-        > created:
-        0 0 561e4b96f3ceb180160a3db0 
-        {'electionId': ObjectId('56169d19f3ceb180160a3d25'), 'nModified': 0, 'updatedExisting': False, 'ok': 1, 'lastOp': Timestamp(1444826006, 3), 'n': 1, 'upserted': ObjectId('561e4b96f3ceb180160a3db0')}                
-
-        > updated:
-        1 1 None 
-        {'ok': 1, 'electionId': ObjectId('56169d19f3ceb180160a3d25'), 'updatedExisting': True, 'n': 1, 'nModified': 1, 'lastOp': Timestamp(1444825463, 1)}
-        """
         self.assertIsNotNone(result)
         self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, 0)
+        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
         self.assertIsNotNone(result.upserted_id)
 
         bson = self.db[constants.COL_CATEGORIES].find_one({"provider": "p1", "categoryCode": "c1"})
@@ -483,6 +496,8 @@ class DBProviderTestCase(BaseDBTest):
         pass
     
     def test_unique_constraint(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_unique_constraint
 
         self._collections_is_empty()
 
@@ -524,7 +539,7 @@ class DBProviderTestCase(BaseDBTest):
         self.assertIsNotNone(result)
 
         self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, 0)
+        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
         self.assertIsNotNone(result.upserted_id)
 
         bson = self.db[constants.COL_PROVIDERS].find_one({"name": "p1"})
@@ -599,7 +614,7 @@ class DBDatasetTestCase(BaseDBTest):
         #print(result.raw)
 
         self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, 0)
+        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
         self.assertIsNotNone(result.upserted_id)
 
         bson = self.db[constants.COL_DATASETS].find_one({"provider": "p1", "datasetCode": "d1"})
