@@ -30,10 +30,10 @@ before_script:
   - java -version
   - mongo --version
   - curl -XGET localhost:9200?pretty
-  - curl -XPUT localhost:9200/widukind?pretty
+  #- curl -XPUT localhost:9200/widukind?pretty
   
 script:
-  - nosetests -s -v dlstats
+  - nosetests --with-coverage -s -v dlstats
   - flake8 --exit-zero dlstats
   
 branches:
