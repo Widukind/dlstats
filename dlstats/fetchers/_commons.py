@@ -184,6 +184,7 @@ class DlstatsCollection(object):
         
     def update_mongo_collection(self, collection, key, bson, log_level=logging.INFO):
         lgr = logging.getLogger(__name__)
+        """
         lgr.setLevel(log_level)
         filepath = os.path.abspath(os.path.join(configuration['General']['logging_directory'], 'dlstats.log'))
         fh = logging.FileHandler(filepath)
@@ -191,6 +192,7 @@ class DlstatsCollection(object):
         frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(frmt)
         lgr.addHandler(fh)
+        """
         try:
             result = self.fetcher.db[collection].replace_one({key: bson[key]}, bson, upsert=True)
         except Exception as err:
@@ -411,7 +413,7 @@ class Dataset(DlstatsCollection):
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
-        dataset = self.fetcher.db.datasets.find_one(
+        dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
                                             {'provider': provider_name,
                                              'datasetCode': dataset_code})
         if dataset:
@@ -628,6 +630,8 @@ class Series(DlstatsCollection):
             self.update_series_list()
 
     def update_series_list(self):
+        
+        #TODO: gestion erreur bulk (BulkWriteError)
 
         keys = [s.key for s in self.ser_list]
 
@@ -714,11 +718,11 @@ class ElasticIndex():
 
     def make_index(self, provider_name, dataset_code):
         
-        mb_dataset = self.db.datasets.find_one({'provider': provider_name, 'datasetCode': dataset_code})
-        mb_series = self.db.series.find({'provider': provider_name, 'datasetCode': dataset_code},
+        mb_dataset = self.db[constants.COL_DATASETS].find_one({'provider': provider_name, 'datasetCode': dataset_code})
+        mb_series = self.db[constants.COL_SERIES].find({'provider': provider_name, 'datasetCode': dataset_code},
                                         {'key': 1, 'dimensions': 1, 'name': 1, 'frequency': 1})
     
-        es_data = self.elasticsearch_client.search(index = 'widukind', doc_type = 'datasets',
+        es_data = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'datasets',
                                                    body= { "filter":
                                                            { "term":
                                                              { "_id": provider_name + '.' + dataset_code}}})
@@ -734,7 +738,7 @@ class ElasticIndex():
         es_dataset['datasetCode'] = mb_dataset['datasetCode']
         es_dataset['frequencies'] = mb_series.distinct('frequency')
         
-        es_series = self.elasticsearch_client.search(index = 'widukind', doc_type = 'series',
+        es_series = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'series',
                             body= { "filter":
                                     { "term":
                                       { "provider": provider_name.lower(), "datasetCode": dataset_code.lower()}}})
@@ -764,7 +768,7 @@ class ElasticIndex():
                     es_dimension_dict[d].update({dim[d][0]:dim[d][1]})
         es_bulk.update_database()
         es_dataset['codeList'] = {d1: [[d2[0], d2[1]] for d2 in es_dimension_dict[d1].items()] for d1 in es_dimension_dict}
-        self.elasticsearch_client.index(index = 'widukind',
+        self.elasticsearch_client.index(index = constants.ES_INDEX,
                                   doc_type='datasets',
                                   id = provider_name + '.' + dataset_code,
                                   body = es_dataset)
@@ -777,7 +781,7 @@ class EsBulk():
         
     def add_to_index(self,provider_name,dataset_code,s):
         bson = {"_op_type": 'index', 
-                "_index": 'widukind',
+                "_index": constants.ES_INDEX,
                 "_type": 'series',
                 "_id": provider_name + '.' + dataset_code + '.' + s['key'],
                 'provider': provider_name,
@@ -792,7 +796,7 @@ class EsBulk():
         update = False
         mb_dim = s['dimensions']
         new_bson = {"_op_type": 'update',
-                "_index": 'widukind',
+                "_index": constants.ES_INDEX,
                 "_type": 'series',
                 "_id": provider_name + '.' + dataset_code + '.' + s['key']}
 
@@ -812,7 +816,7 @@ class EsBulk():
             self.es_bulk.append(new_bson)
             
     def update_database(self):
-        res_es = helpers.bulk(self.db, self.es_bulk, index = 'widukind')
+        res_es = helpers.bulk(self.db, self.es_bulk, index = constants.ES_INDEX)
 
 if __name__ == "__main__":
     import doctest
