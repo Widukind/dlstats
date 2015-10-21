@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+ES_INDEX = "widukind"
+
 COL_CATEGORIES = "categories"
 
 COL_PROVIDERS = "providers"
