@@ -22,6 +22,30 @@ class BaseDBTest(BaseTest):
     """Tests with MongoDB or ElasticSearch
     """
     
+    ES_INDEX = "widukind_test"
+    
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        
+        self.BACKUP_ES_INDEX = constants.ES_INDEX
+        constants.ES_INDEX = self.ES_INDEX
+        
+        self.db = utils.get_mongo_db()
+        self.es = utils.get_es_db()
+
+        self._releases_verify_ok()
+        
+        utils.clean_mongodb(self.db)
+        #utils.clean_es()
+        self._clean_elasticsearch()
+                
+        create_or_update_indexes(self.db, force_mode=True)
+
+    def tearDown(self):
+        BaseTest.tearDown(self)
+        constants.ES_INDEX = self.BACKUP_ES_INDEX
+
+    
     def _release_mongodb(self):
         """Verify MongoDB and pymongo release
         
@@ -78,6 +102,7 @@ class BaseDBTest(BaseTest):
         
         from elasticsearch import VERSION #(1, 6, 0)
         #TODO: required
+        
             
     def _releases_verify_ok(self):
 
@@ -96,19 +121,18 @@ class BaseDBTest(BaseTest):
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
+        
+    def _clean_elasticsearch(self):
+        
+        # Création de l'index - FIXME: utiliser un index de test
+        try:
+            self.es.indices.delete(index=constants.ES_INDEX)
+            #self.es.indices.delete_template(name='*', ignore=404)
+        except:
+            pass
+
+        try:
+            self.es.indices.create(constants.ES_INDEX)
+        except:
+            pass
     
-    def setUp(self):
-        unittest.TestCase.setUp(self)
-        
-        self.db = utils.get_mongo_db()
-        self.es = utils.get_es_db()
-
-        self._releases_verify_ok()
-        
-        utils.clean_mongodb(self.db)
-        utils.clean_es()
-                
-        create_or_update_indexes(self.db, force_mode=True)
-        
-
-#class BaseFetcherDBTest(BaseTest):
