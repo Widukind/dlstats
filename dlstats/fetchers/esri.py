@@ -27,23 +27,26 @@ class Esri(Fetcher):
         super().__init__()         
         self.provider_name = 'esri'
         self.provider = Provider(name=self.provider_name,website='http://www.esri.cao.go.jp/index-e.html')
-        self.url_amount = []
-        url_list_amount = ['mg1442','mk1442','jg1442','jk1442','mfy1442','mcy1442','jfy1442','jcy1442']
-        for index in url_list_amount:
-            self.url_amount.append('http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2014/qe144_2/__icsFiles/afieldfile/2015/03/04/gaku-'+index+'.csv')
-        #read the url links for deflator parts
-        self.url_deflator = []
-        url_list_deflator = ['def-qg1442','def-qk1442','rdef-qg1442','rdef-qk1442']
-        for index in url_list_deflator :
-            self.url_deflator.append('http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2014/qe144_2/__icsFiles/afieldfile/2015/03/04/'+index+'.csv')
-        self.url_all = url_amount + url_deflator 
+
+        #parsing the Esri page
+        url = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2015/qe152_2/gdemenuea.html'
+        webpage = requests.get(url)
+        html = etree.HTML(webpage.text)     
+        tables = html.xpath("//table[@class = 'tableBase']")
+        hrefs = tables[0].xpath (".//a")
+        links = [href.values() for href in hrefs]
+        gdp_urls = ['http://www.esri.cao.go.jp' + links[i][0][20:]  for i in range(8)]
+        hrefs_ = tables[1].xpath(".//a")
+        links_ = [href_.values() for href_ in hrefs_]
+        deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
+        self.url_all = gdp_urls + deflator_urls
         self.datasetCode_list = ['Nominal Gross Domestic Product (original series)',
+                'Annual Nominal GDP (fiscal year)',                
                 'Nominal Gross Domestic Product (seasonally adjusted series)',
+                'Annual Nominal GDP (calendar year)',
                 'Real Gross Domestic Product (original series)',
-                'Real Gross Domestic Product (seasonally adjusted series)',
-                'Annual Nominal GDP (fiscal year)',
-                'Annual Nominal GDP (calendar year)' ,
                 'Annual Real GDP (fiscal year)',
+                'Real Gross Domestic Product (seasonally adjusted series)',
                 'Annual Real GDP (calendar year)',
                 'Deflators (quarter:original series)',
                 'Deflators (quarter:seasonally adjusted series)' ,
@@ -112,7 +115,12 @@ class EsriData():
                 else:
                     if str(self.panda_csv.icol(column_ind-1)[4]) == "nan":
                         self.panda_csv.icol(column_ind)[3] = str(self.panda_csv.icol(column_ind-2)[4])+'_'+str(self.panda_csv.icol(column_ind)[5])            
-      
+
+        lent = len(self.panda_csv.irow(0))
+        if str(self.panda_csv.irow(0)[lent-1]) == "(%)":
+            self.currency = str(self.panda_csv.irow(0)[lent-2])
+        else:
+            self.currency = str(self.panda_csv.irow(0)[lent-1])
         
         
     def __next__(self):
@@ -129,12 +137,10 @@ class EsriData():
         
         dimensions = {}
         series = {}
-        series_value = [] 
-        
-        series_name = str(column[3]) + self.frequency 
+        series_value = []       
+        series_name = str(column[3]) + self.frequency +'_ ' +self.currency
         series_key = 'esri.' + str(column[3]) + '; ' + self.frequency
-        dimensions['concept'] = self.dimension_list.update_entry('concept','',str(column[3]))  
-        
+        dimensions['concept'] = self.dimension_list.update_entry('concept','',str(column[3]))
         for r in range(6, len(column)):
             series_value.append(str(column[r]))    
         release_dates = [self.releaseDate for v in series_value] 
