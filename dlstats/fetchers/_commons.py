@@ -616,9 +616,7 @@ class Series(DlstatsCollection):
             try:
                 # append result from __next__ method in fetchers
                 # one iteration by serie
-                bson = next(self.data_iterator)
-                serie = SeriesEntry(fetcher=self.fetcher)
-                serie.populate(bson)
+                serie = next(self.data_iterator)
                 self.ser_list.append(serie)
             except StopIteration:
                 break
