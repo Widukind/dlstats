@@ -10,6 +10,7 @@ from voluptuous import MultipleInvalid
 from pymongo.errors import DuplicateKeyError
 
 from dlstats import constants
+from dlstats import schemas
 from dlstats.fetchers._commons import (Fetcher, 
                                        CodeDict, 
                                        DlstatsCollection, 
@@ -161,9 +162,9 @@ class FetcherTestCase(BaseTest):
         # nosetests -s -v dlstats.tests.fetchers.test__commons:FetcherTestCase.test_constructor
 
         with self.assertRaises(ValueError):
-            Fetcher()
+            Fetcher(is_indexes=False)
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         self.assertIsNotNone(f.provider_name)        
         self.assertIsNotNone(f.db) 
         self.assertIsNotNone(f.es_client)
@@ -173,7 +174,7 @@ class FetcherTestCase(BaseTest):
         
         # nosetests -s -v dlstats.tests.fetchers.test__commons:FetcherTestCase.test_not_implemented_methods
         
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         
         with self.assertRaises(NotImplementedError):
             f.upsert_categories()
@@ -206,7 +207,7 @@ class DlstatsCollectionTestCase(BaseTest):
         with self.assertRaises(TypeError):
             DlstatsCollection(fetcher="abc")
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
 class CategoryTestCase(BaseTest):
@@ -218,7 +219,7 @@ class CategoryTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Category()
                     
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
 
         with self.assertRaises(MultipleInvalid):
             Category(fetcher=f)
@@ -238,8 +239,6 @@ class CategoryTestCase(BaseTest):
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
     
-        #print(c.schema(c.bson))
-    
 class ProviderTestCase(BaseTest):
 
     def test_constructor(self):
@@ -249,7 +248,7 @@ class ProviderTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Provider()
             
-        f = Fetcher(provider_name="p1")            
+        f = Fetcher(provider_name="p1", is_indexes=False)            
 
         with self.assertRaises(MultipleInvalid):
             Provider(fetcher=f)
@@ -274,7 +273,7 @@ class DatasetTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Dataset(is_load_previous_version=False)
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
                 
         d = Dataset(provider_name="p1", 
                     dataset_code="d1",
@@ -300,8 +299,6 @@ class DatasetTestCase(BaseTest):
         #TODO: last_update        
         d.last_update = datetime.now()
                 
-        #print(d.schema(d.bson))
-
 class SeriesTestCase(BaseTest):
     
     def test_constructor(self):
@@ -311,7 +308,7 @@ class SeriesTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Series()
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
             
         s = Series(provider_name="p1", 
                    dataset_code="d1", 
@@ -331,7 +328,7 @@ class SerieEntryTestCase(BaseTest):
         with self.assertRaises(ValueError):
             SerieEntry()
 
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
             
         '''SerieEntry Instance populate from init'''        
         s = SerieEntry(provider_name="p1", 
@@ -342,7 +339,7 @@ class SerieEntryTestCase(BaseTest):
                        frequency='Q',
                        dimensions={'Country': 'FR'}, 
                        fetcher=f)
-        s.schema(s.bson)
+        schemas.serie_entry_schema(s.bson)
 
         '''SerieEntry Instance populate from bson datas'''        
         s = SerieEntry(fetcher=f)
@@ -355,7 +352,7 @@ class SerieEntryTestCase(BaseTest):
                     frequency='Q',
                     dimensions={'Country': 'FR'} )
         s.populate(bson)
-        s.schema(s.bson)        
+        schemas.serie_entry_schema(s.bson)
         
         '''Same test with more datas'''
         '''Mongo attribute names'''
@@ -392,7 +389,7 @@ class SerieEntryTestCase(BaseTest):
                     })
         s = SerieEntry(fetcher=f)
         s.populate(bson)
-        s.schema(s.bson)
+        schemas.serie_entry_schema(s.bson)
             
 class DBCategoryTestCase(BaseDBTest):
     
@@ -486,8 +483,6 @@ class DBCategoryTestCase(BaseDBTest):
         self.assertEqual(bson["children"], [None])
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
-    
-        #print(c.schema(c.bson))
     
 class DBProviderTestCase(BaseDBTest):
 
