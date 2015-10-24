@@ -17,7 +17,7 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Category, 
                                        Dataset, 
                                        Series,
-                                       SerieEntry)
+                                       SeriesEntry)
 
 import unittest
 
@@ -322,19 +322,19 @@ class SeriesTestCase(BaseTest):
         self.assertFalse(hasattr(s, "data_iterator"))
 
         
-class SerieEntryTestCase(BaseTest):
+class SeriesEntryTestCase(BaseTest):
     
     def test_constructor(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:SerieEntryTestCase.test_constructor
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesEntryTestCase.test_constructor
 
         with self.assertRaises(ValueError):
-            SerieEntry()
+            SeriesEntry()
 
         f = Fetcher(provider_name="p1")
             
-        '''SerieEntry Instance populate from init'''        
-        s = SerieEntry(provider_name="p1", 
+        '''SeriesEntry Instance populate from init'''        
+        s = SeriesEntry(provider_name="p1", 
                        dataset_code="d1", 
                        #last_update=datetime.now(), 
                        key='GDP_FR', 
@@ -344,8 +344,8 @@ class SerieEntryTestCase(BaseTest):
                        fetcher=f)
         s.schema(s.bson)
 
-        '''SerieEntry Instance populate from bson datas'''        
-        s = SerieEntry(fetcher=f)
+        '''SeriesEntry Instance populate from bson datas'''        
+        s = SeriesEntry(fetcher=f)
         
         '''Mongo attribute names'''
         bson = dict(provider="p1", 
@@ -390,7 +390,7 @@ class SerieEntryTestCase(BaseTest):
                         'Country': 'AFG', 
                         'Scale': 'Billions'
                     })
-        s = SerieEntry(fetcher=f)
+        s = SeriesEntry(fetcher=f)
         s.populate(bson)
         s.schema(s.bson)
             
@@ -646,7 +646,7 @@ class DBSeriesTestCase(BaseDBTest):
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
         
-        s = SerieEntry(provider_name=f.provider_name, 
+        s = SeriesEntry(provider_name=f.provider_name, 
                        dataset_code="d1", 
                        key='GDP_FR', 
                        name='GDP in France',
