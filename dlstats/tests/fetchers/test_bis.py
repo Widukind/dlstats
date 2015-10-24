@@ -363,7 +363,8 @@ class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
         # manual Data for iterator
         fetcher_data = bis.BIS_Data(dataset, 
                                     filename=DATASETS[self.dataset_code]['filename'],
-                                    store_filepath=os.path.dirname(self.filepath))
+                                    store_filepath=os.path.dirname(self.filepath),
+                                    fetcher=self.fetcher)
         
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
@@ -538,7 +539,7 @@ class LightBISDatasetsDBTestCase(BaseDBFetcherTestCase):
         category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
                                                                "categoryCode": self.dataset_code})
         self.assertIsNotNone(category)
-        
+
         self.fetcher.upsert_dataset(self.dataset_code)
         
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 

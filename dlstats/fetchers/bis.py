@@ -85,7 +85,7 @@ import requests
 
 from dlstats import constants
 from dlstats import logger
-from dlstats.fetchers._commons import Fetcher, Category, Dataset, Provider
+from dlstats.fetchers._commons import Fetcher, Category, Dataset, Provider, SeriesEntry
 
 __all__ = ['BIS']
 
@@ -364,7 +364,8 @@ class BIS(Fetcher):
         
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
-                                filename=DATASETS[dataset_code]['filename'])
+                                filename=DATASETS[dataset_code]['filename'],
+                                fetcher=self)
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
@@ -395,10 +396,10 @@ class BIS(Fetcher):
             #TODO: attention, plus de retour du result pymongo
             document.update_database()                            
 
-class BIS_Data():
+class BIS_Data(Fetcher):
     
-    def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):
-        
+    def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True, fetcher=None):
+
         self.dataset = dataset
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
@@ -414,9 +415,10 @@ class BIS_Data():
         self.periods = None
         self.start_date = None
         self.end_date = None
-        
+
         self.rows = None
-        
+        self.fetcher = fetcher
+                
         if is_autoload:
             self._load_datas()
         
@@ -469,7 +471,7 @@ class BIS_Data():
                                                                  self.dataset.dataset_code,
                                                                  series_key))
 
-        series = {}
+        series = SeriesEntry(fetcher=self.fetcher)
         values = [row[period] for period in self.periods]
         dimensions = {}
         
@@ -482,17 +484,17 @@ class BIS_Data():
 
         release_dates = [self.release_date for v in values]
 
-        series['provider'] = self.dataset.provider_name
-        series['datasetCode'] = self.dataset.dataset_code
-        series['name'] = series_name
-        series['key'] = series_key
-        series['values'] = values
-        series['attributes'] = {}
-        series['dimensions'] = dimensions
-        series['releaseDates'] = release_dates
-        series['startDate'] = self.start_date.ordinal
-        series['endDate'] = self.end_date.ordinal
-        series['frequency'] = self.frequency
+        series.provider_name = self.dataset.provider_name
+        series.dataset_code = self.dataset.dataset_code
+        series.name = series_name
+        series.key = series_key
+        series.values = values
+        series.attributes = {}
+        series.dimensions = dimensions
+        series.release_dates = release_dates
+        series.start_date = self.start_date.ordinal
+        series.end_date = self.end_date.ordinal
+        series.frequency = self.frequency
         return(series)
         
     

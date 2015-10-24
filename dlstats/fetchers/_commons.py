@@ -427,7 +427,7 @@ class Dataset(DlstatsCollection):
         return self.update_mongo_collection(constants.COL_DATASETS,
                                             'datasetCode', self.bson)
 
-class SerieEntry(DlstatsCollection):
+class SeriesEntry(DlstatsCollection):
     """Abstract base class for one time serie
     """
     
@@ -465,6 +465,7 @@ class SerieEntry(DlstatsCollection):
         self.dimensions = dimensions
         self.frequency = frequency
         self.notes = notes
+        self.fetcher = fetcher
         
         # schema for on serie
         self.schema = Schema({
@@ -516,7 +517,7 @@ class SerieEntry(DlstatsCollection):
                 'notes': self.notes}
 
     def update_serie(self, old_bson=None, is_bulk=False):
-        
+
         old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
                                         'provider': self.provider_name,
                                         'datasetCode': self.dataset_code,
@@ -575,10 +576,10 @@ class SerieEntry(DlstatsCollection):
                     bson['releaseDates'].append(release_date)
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
-                        
+
             self.schema(bson)
             if is_bulk:
-                #FIXME: doit retourné un SerieEntry mis à jour ?
+                #FIXME: doit retourné un SeriesEntry mis à jour ?
                 return bson
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
 
@@ -616,9 +617,7 @@ class Series(DlstatsCollection):
             try:
                 # append result from __next__ method in fetchers
                 # one iteration by serie
-                bson = next(self.data_iterator)
-                serie = SerieEntry(fetcher=self.fetcher)
-                serie.populate(bson)
+                serie = next(self.data_iterator)
                 self.ser_list.append(serie)
             except StopIteration:
                 break
