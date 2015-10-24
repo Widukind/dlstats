@@ -10,6 +10,7 @@ from voluptuous import MultipleInvalid
 from pymongo.errors import DuplicateKeyError
 
 from dlstats import constants
+from dlstats import schemas
 from dlstats.fetchers._commons import (Fetcher, 
                                        CodeDict, 
                                        DlstatsCollection, 
@@ -238,8 +239,6 @@ class CategoryTestCase(BaseTest):
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
     
-        #print(c.schema(c.bson))
-    
 class ProviderTestCase(BaseTest):
 
     def test_constructor(self):
@@ -300,8 +299,6 @@ class DatasetTestCase(BaseTest):
         #TODO: last_update        
         d.last_update = datetime.now()
                 
-        #print(d.schema(d.bson))
-
 class SeriesTestCase(BaseTest):
     
     def test_constructor(self):
@@ -342,7 +339,7 @@ class SerieEntryTestCase(BaseTest):
                        frequency='Q',
                        dimensions={'Country': 'FR'}, 
                        fetcher=f)
-        s.schema(s.bson)
+        schemas.serie_entry_schema(s.bson)
 
         '''SerieEntry Instance populate from bson datas'''        
         s = SerieEntry(fetcher=f)
@@ -355,7 +352,7 @@ class SerieEntryTestCase(BaseTest):
                     frequency='Q',
                     dimensions={'Country': 'FR'} )
         s.populate(bson)
-        s.schema(s.bson)        
+        schemas.serie_entry_schema(s.bson)
         
         '''Same test with more datas'''
         '''Mongo attribute names'''
@@ -392,7 +389,7 @@ class SerieEntryTestCase(BaseTest):
                     })
         s = SerieEntry(fetcher=f)
         s.populate(bson)
-        s.schema(s.bson)
+        schemas.serie_entry_schema(s.bson)
             
 class DBCategoryTestCase(BaseDBTest):
     
@@ -486,8 +483,6 @@ class DBCategoryTestCase(BaseDBTest):
         self.assertEqual(bson["children"], [None])
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
-    
-        #print(c.schema(c.bson))
     
 class DBProviderTestCase(BaseDBTest):
 
