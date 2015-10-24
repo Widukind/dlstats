@@ -465,6 +465,7 @@ class SeriesEntry(DlstatsCollection):
         self.dimensions = dimensions
         self.frequency = frequency
         self.notes = notes
+        self.fetcher = fetcher
         
         # schema for on serie
         self.schema = Schema({
@@ -516,7 +517,7 @@ class SeriesEntry(DlstatsCollection):
                 'notes': self.notes}
 
     def update_serie(self, old_bson=None, is_bulk=False):
-        
+
         old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
                                         'provider': self.provider_name,
                                         'datasetCode': self.dataset_code,
@@ -575,7 +576,7 @@ class SeriesEntry(DlstatsCollection):
                     bson['releaseDates'].append(release_date)
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
-                        
+
             self.schema(bson)
             if is_bulk:
                 #FIXME: doit retourné un SeriesEntry mis à jour ?
