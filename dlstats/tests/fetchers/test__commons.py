@@ -162,9 +162,9 @@ class FetcherTestCase(BaseTest):
         # nosetests -s -v dlstats.tests.fetchers.test__commons:FetcherTestCase.test_constructor
 
         with self.assertRaises(ValueError):
-            Fetcher()
+            Fetcher(is_indexes=False)
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         self.assertIsNotNone(f.provider_name)        
         self.assertIsNotNone(f.db) 
         self.assertIsNotNone(f.es_client)
@@ -174,7 +174,7 @@ class FetcherTestCase(BaseTest):
         
         # nosetests -s -v dlstats.tests.fetchers.test__commons:FetcherTestCase.test_not_implemented_methods
         
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         
         with self.assertRaises(NotImplementedError):
             f.upsert_categories()
@@ -207,7 +207,7 @@ class DlstatsCollectionTestCase(BaseTest):
         with self.assertRaises(TypeError):
             DlstatsCollection(fetcher="abc")
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
 class CategoryTestCase(BaseTest):
@@ -219,7 +219,7 @@ class CategoryTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Category()
                     
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
 
         with self.assertRaises(MultipleInvalid):
             Category(fetcher=f)
@@ -248,7 +248,7 @@ class ProviderTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Provider()
             
-        f = Fetcher(provider_name="p1")            
+        f = Fetcher(provider_name="p1", is_indexes=False)            
 
         with self.assertRaises(MultipleInvalid):
             Provider(fetcher=f)
@@ -273,7 +273,7 @@ class DatasetTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Dataset(is_load_previous_version=False)
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
                 
         d = Dataset(provider_name="p1", 
                     dataset_code="d1",
@@ -308,7 +308,7 @@ class SeriesTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Series()
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
             
         s = Series(provider_name="p1", 
                    dataset_code="d1", 
@@ -328,7 +328,7 @@ class SerieEntryTestCase(BaseTest):
         with self.assertRaises(ValueError):
             SerieEntry()
 
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
             
         '''SerieEntry Instance populate from init'''        
         s = SerieEntry(provider_name="p1", 
