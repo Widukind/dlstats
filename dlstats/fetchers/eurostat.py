@@ -31,7 +31,7 @@ import zipfile
 import pprint
 import bson
 
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
 
 __all__ = ['Eurostat']
 

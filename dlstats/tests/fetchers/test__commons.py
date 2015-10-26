@@ -13,9 +13,9 @@ from dlstats import constants
 from dlstats.fetchers._commons import (Fetcher, 
                                        CodeDict, 
                                        DlstatsCollection, 
-                                       Provider,
-                                       Category, 
-                                       Dataset, 
+                                       Providers,
+                                       Categories, 
+                                       Datasets, 
                                        Series,
                                        SeriesEntry)
 
@@ -23,7 +23,7 @@ import unittest
 
 from dlstats.tests.base import BaseTest, BaseDBTest, RESOURCES_DIR
 
-class FakeDataset(Dataset):
+class FakeDataset(Datasets):
     
     def download(self, urls):
         """Download all sources for this Dataset
@@ -33,7 +33,7 @@ class FakeDataset(Dataset):
         :return: :class:`dict`
         
         >>> fetcher = Fetcher(provider_name="test")
-        >>> dataset = Dataset(fetcher=fetcher)
+        >>> dataset = Datasets(fetcher=fetcher)
         >>> urls = ['http://localhost/file1.zip', http://localhost/file2.zip']
         >>> dataset.download(urls)
         {
@@ -65,7 +65,7 @@ class FakeDatas():
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
         
-        d = Dataset(provider_name="p1", 
+        d = Datasets(provider_name="p1", 
                     dataset_code="d1",
                     name="d1 Name",
                     last_update=datetime.now(),
@@ -219,14 +219,14 @@ class CategoryTestCase(BaseTest):
         # nosetests -s -v dlstats.tests.fetchers.test__commons:CategoryTestCase.test_constructor
         
         with self.assertRaises(ValueError):
-            Category()
+            Categories()
                     
         f = Fetcher(provider_name="p1")
 
         with self.assertRaises(MultipleInvalid):
-            Category(fetcher=f)
+            Categories(fetcher=f)
         
-        c = Category(provider="p1", 
+        c = Categories(provider="p1", 
                      name="cat1", 
                      categoryCode="c1",
                      docHref='http://www.example.com',
@@ -250,14 +250,14 @@ class ProviderTestCase(BaseTest):
         # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_constructor
 
         with self.assertRaises(ValueError):
-            Provider()
+            Providers()
             
         f = Fetcher(provider_name="p1")            
 
         with self.assertRaises(MultipleInvalid):
-            Provider(fetcher=f)
+            Providers(fetcher=f)
                 
-        p = Provider(name="p1", 
+        p = Providers(name="p1", 
                      website="http://www.example.com", 
                      fetcher=f)
         
@@ -275,11 +275,11 @@ class DatasetTestCase(BaseTest):
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DatasetTestCase.test_constructor
         
         with self.assertRaises(ValueError):
-            Dataset(is_load_previous_version=False)
+            Datasets(is_load_previous_version=False)
             
         f = Fetcher(provider_name="p1")
                 
-        d = Dataset(provider_name="p1", 
+        d = Datasets(provider_name="p1", 
                     dataset_code="d1",
                     name="d1 Name",
                     doc_href="http://www.example.com",
@@ -434,7 +434,7 @@ class DBCategoryTestCase(BaseDBTest):
     
         f = Fetcher(provider_name="p1", db=self.db, es_client=self.es)
         
-        c = Category(provider="p1", 
+        c = Categories(provider="p1", 
                      name="cat1", 
                      categoryCode="c1",
                      docHref='http://www.example.com',
@@ -448,7 +448,7 @@ class DBCategoryTestCase(BaseDBTest):
             existing_category = dict(provider="p1", categoryCode="c1")
             self.db[constants.COL_CATEGORIES].insert(existing_category)
 
-        c = Category(provider="p1", 
+        c = Categories(provider="p1", 
                      name="cat2", 
                      categoryCode="c2",
                      fetcher=f)
@@ -468,7 +468,7 @@ class DBCategoryTestCase(BaseDBTest):
     
         f = Fetcher(provider_name="p1", db=self.db, es_client=self.es)
         
-        c = Category(provider="p1", 
+        c = Categories(provider="p1", 
                      name="cat1", 
                      categoryCode="c1",
                      docHref='http://www.example.com',
@@ -507,7 +507,7 @@ class DBProviderTestCase(BaseDBTest):
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
 
-        p = Provider(name="p1", 
+        p = Providers(name="p1", 
                      website="http://www.example.com", 
                      fetcher=f)
         p.update_database()
@@ -519,7 +519,7 @@ class DBProviderTestCase(BaseDBTest):
         with self.assertRaises(DuplicateKeyError):
             self.db[constants.COL_PROVIDERS].insert(existing_provider)
 
-        p = Provider(name="p2", 
+        p = Providers(name="p2", 
                      website="http://www.example.com",
                      fetcher=f)
         p.update_database()
@@ -535,7 +535,7 @@ class DBProviderTestCase(BaseDBTest):
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
 
-        p = Provider(name="p1", 
+        p = Providers(name="p1", 
                      website="http://www.example.com", 
                      fetcher=f)
         result = p.update_database()
@@ -566,7 +566,7 @@ class DBDatasetTestCase(BaseDBTest):
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
 
-        d = Dataset(provider_name="p1", 
+        d = Datasets(provider_name="p1", 
                     dataset_code="d1",
                     name="d1 Name",
                     last_update=datetime.now(),
@@ -599,7 +599,7 @@ class DBDatasetTestCase(BaseDBTest):
         f = Fetcher(provider_name="p1", 
                     db=self.db, es_client=self.es)
 
-        d = Dataset(provider_name="p1", 
+        d = Datasets(provider_name="p1", 
                     dataset_code="d1",
                     name="d1 Name",
                     last_update=datetime.now(),

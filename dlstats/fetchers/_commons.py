@@ -202,12 +202,12 @@ class DlstatsCollection(object):
             lgr.log(log_level,collection + ' ' + bson[key] + ' updated.')
             return result
         
-class Provider(DlstatsCollection):
+class Providers(DlstatsCollection):
     """Abstract base class for providers
     
     Inherit from :class:`DlstatsCollection`
     
-    >>> provider = Provider(name='Eurostat',website='http://ec.europa.eu/eurostat')
+    >>> provider = Providers(name='Eurostat',website='http://ec.europa.eu/eurostat')
     >>> print(provider)
     [('name', 'Eurostat'), ('website', 'http://ec.europa.eu/eurostat')]
     """
@@ -249,12 +249,12 @@ class Provider(DlstatsCollection):
                                             'name', 
                                             self.bson)
                 
-class Category(DlstatsCollection):
+class Categories(DlstatsCollection):
     """Abstract base class for categories
     
     >>> from datetime import datetime
     >>> f = Fetcher(provider_name='Test provider')
-    >>> category = Category(provider='Test provider',name='GDP',
+    >>> category = Categories(provider='Test provider',name='GDP',
     ...                 categoryCode='nama_gdp',
     ...                 children=[bson.objectid.ObjectId.from_datetime(datetime(2014,12,3))],
     ...                 docHref='http://www.perdu.com',
@@ -342,11 +342,11 @@ class Category(DlstatsCollection):
                                             self.bson, 
                                             log_level=logging.DEBUG)
 
-class Dataset(DlstatsCollection):
+class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
     >>> from datetime import datetime
-    >>> dataset = Dataset('Test provider','nama_gdp_fr')
+    >>> dataset = Datasets('Test provider','nama_gdp_fr')
     >>> print(dataset)
     [('provider_name', 'Test provider'), ('dataset_code', 'nama_gdp_fr')]
     """

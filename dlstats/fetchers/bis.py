@@ -85,7 +85,7 @@ import requests
 
 from dlstats import constants
 from dlstats import logger
-from dlstats.fetchers._commons import Fetcher, Category, Dataset, Provider, SeriesEntry
+from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers, SeriesEntry
 
 __all__ = ['BIS']
 
@@ -342,9 +342,9 @@ class BIS(Fetcher):
                          db=db, 
                          es_client=es_client)
         
-        self.provider = Provider(name=self.provider_name, 
-                                 website='http://www.bis.org', 
-                                 fetcher=self)
+        self.provider = Providers(name=self.provider_name, 
+                                  website='http://www.bis.org', 
+                                  fetcher=self)
 
     def upsert_dataset(self, dataset_code, datas=None):
         
@@ -356,11 +356,11 @@ class BIS(Fetcher):
             raise Exception("This dataset is unknown" + dataset_code)
         
         #TODO: faire un DatasetBis pour inclure le Downloader à l'init comme callback ?
-        dataset = Dataset(provider_name=self.provider_name, 
-                          dataset_code=dataset_code, 
-                          name=DATASETS[dataset_code]['name'], 
-                          doc_href=DATASETS[dataset_code]['doc_href'],
-                          fetcher=self)
+        dataset = Datasets(provider_name=self.provider_name, 
+                           dataset_code=dataset_code, 
+                           name=DATASETS[dataset_code]['name'], 
+                           doc_href=DATASETS[dataset_code]['doc_href'],
+                           fetcher=self)
         
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
@@ -387,11 +387,11 @@ class BIS(Fetcher):
     def upsert_categories(self):
         
         for dataset_code in DATASETS.keys():
-            document = Category(provider=self.provider_name, 
-                                name=DATASETS[dataset_code]['name'], 
-                                categoryCode=dataset_code,
-                                exposed=True,
-                                fetcher=self)
+            document = Categories(provider=self.provider_name, 
+                                  name=DATASETS[dataset_code]['name'], 
+                                  categoryCode=dataset_code,
+                                  exposed=True,
+                                  fetcher=self)
             
             #TODO: attention, plus de retour du result pymongo
             document.update_database()                            
