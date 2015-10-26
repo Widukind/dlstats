@@ -85,7 +85,7 @@ import requests
 
 from dlstats import constants
 from dlstats import logger
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers, SeriesEntry
+from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
 
 __all__ = ['BIS']
 
@@ -471,7 +471,6 @@ class BIS_Data(Fetcher):
                                                                  self.dataset.dataset_code,
                                                                  series_key))
 
-        series = SeriesEntry(fetcher=self.fetcher)
         values = [row[period] for period in self.periods]
         dimensions = {}
         
@@ -484,18 +483,18 @@ class BIS_Data(Fetcher):
 
         release_dates = [self.release_date for v in values]
 
-        series.provider_name = self.dataset.provider_name
-        series.dataset_code = self.dataset.dataset_code
-        series.name = series_name
-        series.key = series_key
-        series.values = values
-        series.attributes = {}
-        series.dimensions = dimensions
-        series.release_dates = release_dates
-        series.start_date = self.start_date.ordinal
-        series.end_date = self.end_date.ordinal
-        series.frequency = self.frequency
-        return(series)
+        data = {'provider': self.dataset.provider_name,
+                'datasetCode': self.dataset.dataset_code,
+                'name': series_name,
+                'key': series_key,
+                'values': values,
+                'attributes': {},
+                'dimensions': dimensions,
+                'releaseDates': release_dates,
+                'startDate': self.start_date.ordinal,
+                'endDate': self.end_date.ordinal,
+                'frequency': self.frequency}
+        return(data)
         
     
 def download_all_sources():
