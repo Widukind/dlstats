@@ -99,20 +99,19 @@ class FakeDatas():
             self.keys.append(key)
 
             '''Mongo format attribute names'''
+            n = 9
+            frequency = choice(['A','Q']) 
+            start_date = randint(10,100)
+            end_date = start_date + n - 1
             data = {'provider': self.provider_name, 
                     'datasetCode': self.dataset_code,
                     'key': key, 
-                    'name': str(key),
-                    'frequency': choice(['A','Q']),
-                    'startDate': randint(10, 100),
-                    'endDate': randint(10, 100),
-                    'values': [str(randint(i, 100)) for i in range(1,10)],
-                    'releaseDates': [
-                        datetime(2013,11,28),
-                        datetime(2014,12,28),
-                        datetime(2015,1,28),
-                        datetime(2015,2,28)
-                    ],
+                    'name': key,
+                    'frequency': frequency,
+                    'startDate': start_date,
+                    'endDate': end_date,
+                    'values': [str(randint(i+1, 100)) for i in range(n)],
+                    'releaseDates': [ datetime(2013,11,28) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
                     'dimensions': {
@@ -123,17 +122,12 @@ class FakeDatas():
             data = {'provider': self.provider_name, 
                     'datasetCode': self.dataset_code,
                     'key': key, 
-                    'name': str(key),
-                    'frequency': choice(['A','Q']),
-                    'startDate': randint(10, 100),
-                    'endDate': randint(10, 100),
-                    'values': [str(randint(i, 100)) for i in range(1,10)],
-                    'releaseDates': [
-                        datetime(2013,11,28),
-                        datetime(2014,12,28),
-                        datetime(2015,1,28),
-                        datetime(2015,2,28)
-                    ],
+                    'name': key,
+                    'frequency': frequency,
+                    'startDate': start_date,
+                    'endDate': end_date,
+                    'values': [str(randint(i+1, 100)) for i in range(n)],
+                    'releaseDates': [ datetime(2013,11,28) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
                     'dimensions': {
