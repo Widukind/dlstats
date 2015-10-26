@@ -422,51 +422,34 @@ class Datasets(DlstatsCollection):
             self.attribute_list.set_from_list(dataset['attributeList'])
         
     def update_database(self):
-        self.series.process_series()        
+        self.series.process_series_data()        
         self.schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
                                             'datasetCode', self.bson)
 
-class SeriesEntry(DlstatsCollection):
-    """Abstract base class for one time serie
-    """
-    
-    __slots__ = ("provider_name", "dataset_code", "key", "name", "start_date", 
-                 "end_date", "values", "release_dates", "attributes",
-                 "revisions", "dimensions", "frequency", "notes",
-                 "fetcher", "schema")
+class Series(DlstatsCollection):
+    """Abstract base class for time series"""
     
     def __init__(self, 
                  provider_name=None, 
                  dataset_code=None, 
-                 key=None,
-                 name=None,
-                 start_date=0,
-                 end_date=0,
-                 values=[],
-                 release_dates=[],
-                 attributes={},
-                 revisions={},
-                 dimensions={},
-                 frequency=None,
-                 notes=None,   
+                 last_update=None, 
+                 bulk_size=1000, 
                  fetcher=None):
+        """        
+        :param provider_name: :class:`str` - Provider name
+        :param dataset_code: :class:`str` - Dataset code
+        :param last_update: :class:`datetime.datetime` - Last updated date
+        :param bulk_size: :class:`int` - Batch size for mongo bulk update
+        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        """        
         super().__init__(fetcher=fetcher)
         self.provider_name = provider_name
-        self.key = key
-        self.name = name
         self.dataset_code = dataset_code
-        self.start_date = start_date
-        self.end_date = end_date
-        self.values = values
-        self.release_dates = release_dates
-        self.attributes = attributes
-        self.revisions = revisions
-        self.dimensions = dimensions
-        self.frequency = frequency
-        self.notes = notes
-        self.fetcher = fetcher
-        
+        self.last_update = last_update
+        self.bulk_size = bulk_size
+        # temporary storage necessary to get old_bson in bulks
+        self.series_list = []
         # schema for on serie
         self.schema = Schema({
             'name': All(str, Length(min=1)),
@@ -483,49 +466,65 @@ class SeriesEntry(DlstatsCollection):
             'frequency': All(str, Length(min=1)),
             Optional('notes'): Any(None, str)
         },required=True)
+    
+    def __repr__(self):
+        return pprint.pformat([('provider_name', self.provider_name),
+                               ('datasetCode', self.dataset_code),
+                               ('lastUpdate', self.last_update)])
 
-    def populate(self, bson):
-        """Populate current object with bson entry from MongoDB"""
-        self.provider_name = bson.get('provider')
-        self.key = bson.get('key')
-        self.name = bson.get('name')
-        self.dataset_code = bson.get('datasetCode')
-        self.start_date = bson.get('startDate', 0)
-        self.end_date = bson.get('endDate', 0)
-        self.values = bson.get('values', [])
-        self.release_dates = bson.get('releaseDates', [])
-        self.attributes = bson.get('attributes', {})
-        self.revisions = bson.get('revisions', {})
-        self.dimensions = bson.get('dimensions', {})
-        self.frequency = bson.get('frequency', {})
-        self.notes = bson.get('notes')
+    def process_series_data(self):
+        count = 0
+        while True:
+            try:
+                # append result from __next__ method in fetchers
+                # one iteration by serie
+                data = next(self.data_iterator)
+                self.series_list.append(data)
+            except StopIteration:
+                break
+            count += 1
+            if count > self.bulk_size:
+                self.update_series_list()
+                count = 0
+        if count > 0:
+            self.update_series_list()
 
-    @property
-    def bson(self):
-        return {'provider': self.provider_name,
-                'key': self.key,
-                'name': self.name,
-                'datasetCode': self.dataset_code,
-                'startDate': self.start_date,
-                'endDate': self.end_date,
-                'values': self.values,
-                'releaseDates': self.release_dates,
-                'attributes': self.attributes,
-                'revisions': self.revisions,
-                'dimensions': self.dimensions,
-                'frequency': self.frequency,
-                'notes': self.notes}
+    def update_series_list(self):
 
-    def update_serie(self, old_bson=None, is_bulk=False):
+        #TODO: gestion erreur bulk (BulkWriteError)
 
-        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
+        keys = [s['key'] for s in self.series_list]
+
+        old_series = self.fetcher.db[constants.COL_SERIES].find({
                                         'provider': self.provider_name,
                                         'datasetCode': self.dataset_code,
-                                        'key': self.key})
+                                        'key': {'$in': keys}})
+
+        old_series = {s['key']:s for s in old_series}
+        
+        bulk = self.fetcher.db[constants.COL_SERIES].initialize_ordered_bulk_op()
+
+        for data in self.series_list:                    
+            if not data['key'] in old_series:
+                bson = self.update_series(data,is_bulk=True)                                
+                bulk.insert(bson)
+            else:
+                bson = self.update_series(data,
+                                          old_bson=old_series[data['key']],
+                                          is_bulk=True)                
+                bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
+        
+        result = bulk.execute()         
+        self.series_list = []
+        return result
+            
+    def update_series(self, bson, old_bson=None, is_bulk=False):
+        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
+            'provider': self.provider_name,
+            'datasetCode': self.dataset_code,
+            'key': bson['key']})
                 
         col = self.fetcher.db[constants.COL_SERIES]
-        
-        bson = self.bson
         
         if not old_bson:
             self.schema(bson)
@@ -579,83 +578,9 @@ class SeriesEntry(DlstatsCollection):
 
             self.schema(bson)
             if is_bulk:
-                #FIXME: doit retourné un SeriesEntry mis à jour ?
                 return bson
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
 
-class Series(DlstatsCollection):
-    """Abstract base class for time series"""
-    
-    def __init__(self, 
-                 provider_name=None, 
-                 dataset_code=None, 
-                 last_update=None, 
-                 bulk_size=1000, 
-                 fetcher=None):
-        """        
-        :param provider_name: :class:`str` - Provider name
-        :param dataset_code: :class:`str` - Dataset code
-        :param last_update: :class:`datetime.datetime` - Last updated date
-        :param bulk_size: :class:`int` - Batch size for mongo bulk update
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
-        """        
-        super().__init__(fetcher=fetcher)
-        self.provider_name = provider_name
-        self.dataset_code = dataset_code
-        self.last_update = last_update
-        self.bulk_size = bulk_size
-        self.ser_list = []
-    
-    def __repr__(self):
-        return pprint.pformat([('provider_name', self.provider_name),
-                               ('datasetCode', self.dataset_code),
-                               ('lastUpdate', self.last_update)])
-
-    def process_series(self):
-        count = 0
-        while True:
-            try:
-                # append result from __next__ method in fetchers
-                # one iteration by serie
-                serie = next(self.data_iterator)
-                self.ser_list.append(serie)
-            except StopIteration:
-                break
-            count += 1
-            if count > self.bulk_size:
-                self.update_series_list()
-                count = 0
-        if count > 0:
-            self.update_series_list()
-
-    def update_series_list(self):
-        
-        #TODO: gestion erreur bulk (BulkWriteError)
-
-        keys = [s.key for s in self.ser_list]
-
-        old_series = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider': self.provider_name,
-                                        'datasetCode': self.dataset_code,
-                                        'key': {'$in': keys}})
-
-        old_series = {s['key']:s for s in old_series}
-        
-        bulk = self.fetcher.db[constants.COL_SERIES].initialize_ordered_bulk_op()
-
-        for serie in self.ser_list:                    
-            if not serie.key in old_series:
-                bson = serie.update_serie(is_bulk=True)                                
-                bulk.insert(bson)
-            else:
-                old_bson = old_series[serie.key]
-                bson = serie.update_serie(old_bson=old_bson, is_bulk=True)                
-                bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
-        
-        result = bulk.execute()         
-        self.ser_list = []
-        return result
-            
 class CodeDict():
     """Class for handling code lists
     

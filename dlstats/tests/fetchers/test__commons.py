@@ -16,8 +16,7 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Providers,
                                        Categories, 
                                        Datasets, 
-                                       Series,
-                                       SeriesEntry)
+                                       Series)
 
 import unittest
 
@@ -100,61 +99,56 @@ class FakeDatas():
             self.keys.append(key)
 
             '''Mongo format attribute names'''
-            s = SeriesEntry(provider_name=self.provider_name, 
-                            dataset_code=self.dataset_code,
-                            key=key, 
-                            name=str(key),
-                            frequency=choice(['A','Q']),
-                            start_date=randint(10, 100),
-                            end_date=randint(10, 100),
-                            values=[str(randint(i, 100)) for i in range(1,10)],
-                            release_dates=[
-                                datetime(2013,11,28),
-                                datetime(2014,12,28),
-                                datetime(2015,1,28),
-                                datetime(2015,2,28)
-                            ],
-                            attributes={},
-                            revisions={},
-                            fetcher=self.fetcher,   
-                            dimensions={
-                                'Country': 'AFG', 
-                            'Scale': 'Billions'
-                            })
+            data = {'provider': self.provider_name, 
+                    'datasetCode': self.dataset_code,
+                    'key': key, 
+                    'name': str(key),
+                    'frequency': choice(['A','Q']),
+                    'startDate': randint(10, 100),
+                    'endDate': randint(10, 100),
+                    'values': [str(randint(i, 100)) for i in range(1,10)],
+                    'releaseDates': [
+                        datetime(2013,11,28),
+                        datetime(2014,12,28),
+                        datetime(2015,1,28),
+                        datetime(2015,2,28)
+                    ],
+                    'attributes': {},
+                    'revisions': {},
+                    'dimensions': {
+                        'Country': 'AFG', 
+                        'Scale': 'Billions'
+                    }}
             """
-            s = SeriesEntry(provider_name=self.provider_name, 
-                            dataset_code=self.dataset_code,
-                            key=key, 
-                            name=key,
-                            frequency=choice(['A', 'Q']),
-                            start_date=randint(10, 100),
-                            end_date=randint(10, 100),                    
-                            values=[str(randint(i, 100)) for i in range(1, 10)],
-                            release_dates=[
-                                datetime(2013,11,28),
-                                datetime(2014,12,28),
-                                datetime(2015,1,28),
-                                datetime(2015,2,28)
-                            ],
-                            attributes={},
-                            revisions={},                  
-                            fetcher=self.fetcher,   
-                            dimensions={
-                               'Country': 'AFG', 
-                               'Scale': 'Billions'
-                           )
+            data = {'provider': self.provider_name, 
+                    'datasetCode': self.dataset_code,
+                    'key': key, 
+                    'name': str(key),
+                    'frequency': choice(['A','Q']),
+                    'startDate': randint(10, 100),
+                    'endDate': randint(10, 100),
+                    'values': [str(randint(i, 100)) for i in range(1,10)],
+                    'releaseDates': [
+                        datetime(2013,11,28),
+                        datetime(2014,12,28),
+                        datetime(2015,1,28),
+                        datetime(2015,2,28)
+                    ],
+                    'attributes': {},
+                    'revisions': {},
+                    'dimensions': {
+                        'Country': 'AFG', 
+                        'Scale': 'Billions'
+                    }}
             """
-            self.rows.append(s)
+            self.rows.append(data)
     
     def __next__(self):
         row = next(self._rows_iter) 
-        series = self.build_series(row)
-        if series is None:
+        if row is None:
             raise StopIteration()
-        return(series)
+        return(row)
     
-    def build_series(self, row):
-        return row
 
 
 class FetcherTestCase(BaseTest):
@@ -323,79 +317,6 @@ class SeriesTestCase(BaseTest):
                    fetcher=f)
         
         self.assertFalse(hasattr(s, "data_iterator"))
-
-        
-class SeriesEntryTestCase(BaseTest):
-    
-    def test_constructor(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesEntryTestCase.test_constructor
-
-        with self.assertRaises(ValueError):
-            SeriesEntry()
-
-        f = Fetcher(provider_name="p1")
-            
-        '''SeriesEntry Instance populate from init'''        
-        s = SeriesEntry(provider_name="p1", 
-                       dataset_code="d1", 
-                       #last_update=datetime.now(), 
-                       key='GDP_FR', 
-                       name='GDP in France',
-                       frequency='Q',
-                       dimensions={'Country': 'FR'}, 
-                       fetcher=f)
-        s.schema(s.bson)
-
-        '''SeriesEntry Instance populate from bson datas'''        
-        s = SeriesEntry(fetcher=f)
-        
-        '''Mongo attribute names'''
-        bson = dict(provider="p1", 
-                    datasetCode="d1", 
-                    key='GDP_FR', 
-                    name='GDP in France',
-                    frequency='Q',
-                    dimensions={'Country': 'FR'} )
-        s.populate(bson)
-        s.schema(s.bson)        
-        
-        '''Same test with more datas'''
-        '''Mongo attribute names'''
-        bson = dict(provider="p1", 
-                    datasetCode="d1",
-                    key='GDP_FR', 
-                    name='GDP in France',
-                    frequency='A',
-                    startDate=10,
-                    endDate=50,                    
-                    values=[
-                        'n/a',
-                        '2700', 
-                        '2720', 
-                        '2740', 
-                        '2760'
-                    ],
-                    releaseDates=[
-                        datetime(2013,11,28),
-                        datetime(2014,12,28),
-                        datetime(2015,1,28),
-                        datetime(2015,2,28)
-                    ],
-                    attributes={
-                        'flag': ["", "", "e", "e"],  
-                    },
-                    revisions={
-                        '33': [{'releaseDates': datetime(2014, 10, 1, 0, 0), 'value': '1,148.113'}],
-                        '34': [{'releaseDates': datetime(2014, 10, 1, 0, 0), 'value': '1,248.663'}],
-                    },                  
-                    dimensions={
-                        'Country': 'AFG', 
-                        'Scale': 'Billions'
-                    })
-        s = SeriesEntry(fetcher=f)
-        s.populate(bson)
-        s.schema(s.bson)
             
 class DBCategoryTestCase(BaseDBTest):
     
@@ -642,34 +563,9 @@ class DBSeriesTestCase(BaseDBTest):
     def test_indexes(self):
         pass
 
-    def test_unique_constraint(self):
+    def test_process_series_data(self):        
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_unique_constraint
-    
-        self._collections_is_empty()
-
-        f = Fetcher(provider_name="p1", 
-                    db=self.db, es_client=self.es)
-        
-        s = SeriesEntry(provider_name=f.provider_name, 
-                       dataset_code="d1", 
-                       key='GDP_FR', 
-                       name='GDP in France',
-                       frequency='Q',
-                       dimensions={'Country': 'FR'}, 
-                       fetcher=f)
-        id = s.update_serie()
-        self.assertIsNotNone(id)
-        
-        self.assertEqual(self.db[constants.COL_SERIES].count(), 1)
-                        
-        with self.assertRaises(DuplicateKeyError):
-            existing_serie = dict(provider="p1", datasetCode="d1", key="GDP_FR")
-            self.db[constants.COL_SERIES].insert(existing_serie)
-    
-    def test_process_series(self):        
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_process_series
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_process_series_data
 
         self._collections_is_empty()
     
@@ -689,7 +585,7 @@ class DBSeriesTestCase(BaseDBTest):
                           dataset_code=dataset_code,
                           fetcher=f)
         s.data_iterator = datas
-        s.process_series()
+        s.process_series_data()
         
         '''Count All series'''
         self.assertEqual( self.db[constants.COL_SERIES].count(), datas.max_record)
