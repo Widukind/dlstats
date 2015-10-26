@@ -10,7 +10,7 @@ import urllib.request
 from urllib.parse import urlparse
 from urllib.request import url2pathname, pathname2url
 
-from dlstats.fetchers._commons import Dataset
+from dlstats.fetchers._commons import Datasets
 from dlstats.fetchers import bis
 from dlstats import constants
 
@@ -178,7 +178,7 @@ def load_fake_datas(select_dataset_code=None):
         if select_dataset_code and select_dataset_code != dataset_code:
             continue
         
-        _dataset = Dataset(provider_name=bis.PROVIDER_NAME, 
+        _dataset = Datasets(provider_name=bis.PROVIDER_NAME, 
                     dataset_code=dataset_code, 
                     name=dataset['name'], 
                     doc_href=dataset['doc_href'], 
@@ -354,11 +354,11 @@ class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
         self.assertIsNotNone(category)
         
         #Patch self.fetcher.upsert_dataset('LBS-DISS') - start
-        dataset = Dataset(provider_name=self.fetcher.provider_name, 
-                          dataset_code=self.dataset_code, 
-                          name=DATASETS[self.dataset_code]['name'], 
-                          doc_href=DATASETS[self.dataset_code]['doc_href'], 
-                          fetcher=self.fetcher)
+        dataset = Datasets(provider_name=self.fetcher.provider_name, 
+                           dataset_code=self.dataset_code, 
+                           name=DATASETS[self.dataset_code]['name'], 
+                           doc_href=DATASETS[self.dataset_code]['doc_href'], 
+                           fetcher=self.fetcher)
 
         # manual Data for iterator
         fetcher_data = bis.BIS_Data(dataset, 

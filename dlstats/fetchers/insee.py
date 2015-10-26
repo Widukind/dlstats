@@ -1,6 +1,6 @@
 # test limitation on line 98
 
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
 from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
