@@ -182,7 +182,7 @@ class DlstatsCollection(object):
         
         self.fetcher = fetcher
         
-    def update_mongo_collection(self, collection, key, bson, log_level=logging.INFO):
+    def update_mongo_collection(self, collection, keys, bson, log_level=logging.INFO):
         lgr = logging.getLogger(__name__)
         """
         lgr.setLevel(log_level)
@@ -193,13 +193,14 @@ class DlstatsCollection(object):
         fh.setFormatter(frmt)
         lgr.addHandler(fh)
         """
+        key = {k: bson[k] for k in keys}
         try:
-            result = self.fetcher.db[collection].replace_one({key: bson[key]}, bson, upsert=True)
+            result = self.fetcher.db[collection].replace_one(key, bson, upsert=True)
         except Exception as err:
-            lgr.critical('%s.update_database() failed for %s [%s]' % (collection, bson[key]+result, str(err)))
+            lgr.critical('%s.update_database() failed for %s [%s]' % (collection, str(key) +result, str(err)))
             return None
         else:
-            lgr.log(log_level,collection + ' ' + bson[key] + ' updated.')
+            lgr.log(log_level,collection + ' ' + str(key) + ' updated.')
             return result
         
 class Providers(DlstatsCollection):
@@ -246,7 +247,7 @@ class Providers(DlstatsCollection):
     def update_database(self):
         self.schema(self.bson)
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
-                                            'name', 
+                                            ['name'], 
                                             self.bson)
                 
 class Categories(DlstatsCollection):
@@ -338,7 +339,7 @@ class Categories(DlstatsCollection):
         # we will log to info when we switch to bulk update
         self.schema(self.bson)
         return self.update_mongo_collection(constants.COL_CATEGORIES, 
-                                            'categoryCode', 
+                                            ['provider', 'categoryCode'],
                                             self.bson, 
                                             log_level=logging.DEBUG)
 
@@ -425,7 +426,8 @@ class Datasets(DlstatsCollection):
         self.series.process_series_data()        
         self.schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            'datasetCode', self.bson)
+                                            ['provider', 'datasetCode'],
+                                            self.bson)
 
 class Series(DlstatsCollection):
     """Abstract base class for time series"""
