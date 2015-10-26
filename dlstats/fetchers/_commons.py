@@ -14,6 +14,7 @@ import bson
 import pprint
 from elasticsearch import Elasticsearch, helpers
 from collections import defaultdict, OrderedDict
+from copy import deepcopy
 
 from dlstats import mongo_client
 from dlstats import configuration
@@ -163,7 +164,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = {str: [{Required('value'): str,
-                          Required('releaseDates'): date_validator}]}
+                          Required('releaseDate'): date_validator}]}
 
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
@@ -506,13 +507,15 @@ class Series(DlstatsCollection):
         
         bulk = self.fetcher.db[constants.COL_SERIES].initialize_ordered_bulk_op()
 
-        for data in self.series_list:                    
-            if not data['key'] in old_series:
+        for data in self.series_list:
+            key = data['key']
+            if not key in old_series:
                 bson = self.update_series(data,is_bulk=True)                                
                 bulk.insert(bson)
             else:
+                old_bson = old_series[key]
                 bson = self.update_series(data,
-                                          old_bson=old_series[data['key']],
+                                          old_bson=old_bson,
                                           is_bulk=True)                
                 bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
         
@@ -521,60 +524,78 @@ class Series(DlstatsCollection):
         return result
             
     def update_series(self, bson, old_bson=None, is_bulk=False):
+        # gets either last_update passed to Datasets or the one provided
+        # in the bson
+        last_update = self.last_update
+        if 'lastUpdate' in bson:
+            last_update = bson.pop('lastUpdate')
+
         old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
             'provider': self.provider_name,
             'datasetCode': self.dataset_code,
             'key': bson['key']})
                 
         col = self.fetcher.db[constants.COL_SERIES]
-        
+
         if not old_bson:
+            bson['releaseDates'] = [last_update for v in bson['values']]
             self.schema(bson)
             if is_bulk:
                 return bson
             return col.insert(bson)
         else:
-            release_date = bson['releaseDates'][0]
-            
-            if 'revision' in old_bson:
+            revisions_is_present = False
+            if 'revisions' in old_bson and len(old_bson['revisions']) > 0:
                 bson['revisions'] = old_bson['revisions']
-            
+                revisions_is_present = True
+
             start_date = bson['startDate']
             old_start_date = old_bson['startDate']
+            bson['releaseDates'] = deepcopy(old_bson['releaseDates'])
             
+            iv1 = iv2 = 0
             if start_date < old_start_date:
+                # index of old_bson values in bson values 
+                iv2 = old_start_date - start_date
                 # update all positions
-                if 'revisions' in bson:
+                if revisions_is_present:
                     offset = old_start_date - start_date
                     ikeys = [int(k) for k in bson['revisions']]
                     for p in sorted(ikeys,reverse=True):
                         bson['revisions'][str(p+offset)] = bson['revisions'][str(p)]
-                         
+                        bson['revisions'].pop(str(p))
+                # add last_update in fron of releaseDates
+                bson['releaseDates'] = [last_update for r in range(iv2)] + bson['releaseDates']
+                        
             elif start_date > old_start_date:
+                iv1 = start_date - old_start_date
                 # previous, longer, series is kept
                 # fill beginning with na
                 for p in range(start_date-old_start_date):
                     # insert in front of the values, releaseDates and attributes
                     bson['values'].insert(0,'na')
-                    bson['releaseDates'].insert(0,release_date)
+                    bson['releaseDates'].insert(0,last_update)
                     for a in bson['attributes']:
                         bson['attributes'][a].insert(0,"") 
                 
                 bson['startDate'] = old_bson['startDate']
                 
-            for position,values in enumerate(zip(old_bson['values'],bson['values'])):
-                
+            for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
                 if values[0] != values[1]:
-                    if 'revisions' not in bson:
-                        bson['revisions'] = defaultdict(list)
-                    bson['revisions'][str(position)].append(
-                        {'value':values[0],
-                         'releaseDates':old_bson['releaseDates'][position]})
-                    
+                    bson['releaseDates'][position+iv2] = last_update
+                    if not revisions_is_present:
+                        bson['revisions'] = {}
+                        revisions_is_present = True
+                    rev = {'value':values[0],
+                           'releaseDate':old_bson['releaseDates'][position+iv1]}
+                    if str(position+iv2) in bson['revisions']:
+                        bson['revisions'][str(position+iv2)].append(rev)
+                    else:
+                        bson['revisions'][str(position+iv2)] = [rev]
             if bson['endDate'] < old_bson['endDate']:
                 for p in range(old_bson['endDate']-bson['endDate']):
                     bson['values'].append('na')
-                    bson['releaseDates'].append(release_date)
+                    bson['releaseDates'].append(last_udpate)
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
 

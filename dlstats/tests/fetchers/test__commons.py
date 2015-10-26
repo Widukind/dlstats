@@ -4,6 +4,7 @@ import os
 import uuid
 from datetime import datetime
 from random import choice, randint
+from copy import deepcopy
 
 from voluptuous import MultipleInvalid
 
@@ -111,7 +112,6 @@ class FakeDatas():
                     'startDate': start_date,
                     'endDate': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
-                    'releaseDates': [ datetime(2013,11,28) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
                     'dimensions': {
@@ -127,7 +127,6 @@ class FakeDatas():
                     'startDate': start_date,
                     'endDate': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
-                    'releaseDates': [ datetime(2013,11,28) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
                     'dimensions': {
@@ -571,7 +570,7 @@ class DBSeriesTestCase(BaseDBTest):
         
         s = Series(provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
-                   last_update=None, 
+                   last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
 
@@ -596,6 +595,97 @@ class DBSeriesTestCase(BaseDBTest):
         
         self.assertEqual(series.count(), datas.max_record)
         
+    def test_revisions(self):        
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_revisions
+
+        self._collections_is_empty()
+    
+        provider_name = "p1"
+        dataset_code = "d1"
+    
+        f = Fetcher(provider_name=provider_name, 
+                    db=self.db, es_client=self.es)
+        
+        s1 = Series(provider_name=f.provider_name, 
+                    dataset_code=dataset_code, 
+                    last_update=datetime(2013,4,1), 
+                    bulk_size=1, 
+                    fetcher=f)
+        datas1 = FakeDatas(provider_name=provider_name, 
+                           dataset_code=dataset_code,
+                           fetcher=f)
+        s1.data_iterator = datas1
+        s1.process_series_data()
+
+        test_key = datas1.rows[0]['key']
+        first_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+
+        s2 = Series(provider_name=f.provider_name, 
+                    dataset_code=dataset_code, 
+                    last_update=datetime(2014,4,1), 
+                    bulk_size=1, 
+                    fetcher=f)
+        datas2 = FakeDatas(provider_name=provider_name, 
+                           dataset_code=dataset_code,
+                           fetcher=f)
+        datas2.keys = datas1.keys
+        for i,r in enumerate(datas2.rows):
+            r['key'] = datas2.keys[i]
+            r['frequency'] = datas1.rows[i]['frequency']
+            r['startDate'] = datas1.rows[i]['startDate']
+            r['endDate'] = datas1.rows[i]['endDate']
+        datas2.rows[0]['values'] = deepcopy(datas1.rows[0]['values'])
+        datas2.rows[0]['values'][1] = str(float(datas2.rows[0]['values'][1]) + 1.5)
+        datas2.rows[0]['values'][8] = str(float(datas2.rows[0]['values'][8]) - 0.9)
+        s2.data_iterator = datas2
+        s2.process_series_data()
+
+        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
+        test_key = datas2.keys[0]
+        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+        self.assertEqual(len(test_series['revisions']),2)
+        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
+        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
+        self.assertEqual(test_series['releaseDates'][1],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][8],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
+        self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
+
+        s3 = Series(provider_name=f.provider_name, 
+                    dataset_code=dataset_code, 
+                    last_update=datetime(2014,4,1), 
+                    bulk_size=1, 
+                    fetcher=f)
+        datas3 = FakeDatas(provider_name=provider_name, 
+                           dataset_code=dataset_code,
+                           fetcher=f)
+        datas3.keys = datas1.keys
+        for i,r in enumerate(datas3.rows):
+            r['key'] = datas3.keys[i]
+            r['frequency'] = datas1.rows[i]['frequency']
+            r['startDate'] = datas1.rows[i]['startDate']
+            r['endDate'] = datas1.rows[i]['endDate']
+        datas3.rows[0]['startDate'] = datas1.rows[0]['startDate'] - 2;    
+        datas3.rows[0]['values'] = [ '10', '10'] + datas1.rows[0]['values']
+        datas3.rows[0]['values'][3] = str(float(datas3.rows[0]['values'][3]) + 1.5)
+        datas3.rows[0]['values'][10] = str(float(datas3.rows[0]['values'][10]) - 0.9)
+        s3.data_iterator = datas3
+        s3.process_series_data()
+
+        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
+        test_key = datas3.keys[0]
+        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+        self.assertEqual(len(test_series['revisions']),2)
+        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
+        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
+        self.assertEqual(len(test_series['releaseDates']),len(test_series['values']))
+        self.assertEqual(test_series['releaseDates'][3],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][0:2],[datetime(2014,4,1) for i in range(2)])
+        self.assertEqual(test_series['releaseDates'][2],datetime(2013,4,1))
+        self.assertEqual(test_series['releaseDates'][4:10],[datetime(2013,4,1) for i in range(6)])
+
             
 if __name__ == '__main__':
     unittest.main()
