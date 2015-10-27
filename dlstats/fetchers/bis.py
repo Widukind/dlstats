@@ -445,7 +445,7 @@ class BIS_Data(Fetcher):
         kwargs['date_format'] = "%a %b %d %H:%M:%S %Z %Y"
         kwargs['headers_line'] = DATASETS[self.dataset.dataset_code]['lines']['headers']
         self.rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
-
+        
         self.dataset.last_update = self.release_date
             
         self.start_date = pandas.Period(self.periods[0], freq=self.frequency)
@@ -481,7 +481,6 @@ class BIS_Data(Fetcher):
             
         series_name = "-".join([row[d] for d in self.dimension_keys])
 
-        release_dates = [self.release_date for v in values]
 
         data = {'provider': self.dataset.provider_name,
                 'datasetCode': self.dataset.dataset_code,
@@ -490,7 +489,7 @@ class BIS_Data(Fetcher):
                 'values': values,
                 'attributes': {},
                 'dimensions': dimensions,
-                'releaseDates': release_dates,
+                'lastUpdate': self.release_date,
                 'startDate': self.start_date.ordinal,
                 'endDate': self.end_date.ordinal,
                 'frequency': self.frequency}
