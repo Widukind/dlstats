@@ -77,7 +77,8 @@ class Fetcher(object):
     def __init__(self, 
                  provider_name=None, 
                  db=None, 
-                 es_client=None):
+                 es_client=None,
+                 is_indexes=True):
         """
         :param str provider_name: Provider Name
         :param pymongo.database.Database db: MongoDB Database instance        
@@ -93,7 +94,8 @@ class Fetcher(object):
         self.es_client = es_client or Elasticsearch()
         self.provider = None
         
-        create_or_update_indexes(self.db)
+        if is_indexes:
+            create_or_update_indexes(self.db)
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB

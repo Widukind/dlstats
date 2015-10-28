@@ -153,7 +153,7 @@ class FetcherTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Fetcher()
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         self.assertIsNotNone(f.provider_name)        
         self.assertIsNotNone(f.db) 
         self.assertIsNotNone(f.es_client)
@@ -163,7 +163,7 @@ class FetcherTestCase(BaseTest):
         
         # nosetests -s -v dlstats.tests.fetchers.test__commons:FetcherTestCase.test_not_implemented_methods
         
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         
         with self.assertRaises(NotImplementedError):
             f.upsert_categories()
@@ -196,7 +196,7 @@ class DlstatsCollectionTestCase(BaseTest):
         with self.assertRaises(TypeError):
             DlstatsCollection(fetcher="abc")
 
-        f = Fetcher(provider_name="test")
+        f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
 class CategoryTestCase(BaseTest):
@@ -208,7 +208,7 @@ class CategoryTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Categories()
                     
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
 
         with self.assertRaises(MultipleInvalid):
             Categories(fetcher=f)
@@ -239,7 +239,7 @@ class ProviderTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Providers()
             
-        f = Fetcher(provider_name="p1")            
+        f = Fetcher(provider_name="p1", is_indexes=False)
 
         with self.assertRaises(MultipleInvalid):
             Providers(fetcher=f)
@@ -264,7 +264,7 @@ class DatasetTestCase(BaseTest):
         with self.assertRaises(ValueError):
             Datasets(is_load_previous_version=False)
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
                 
         d = Datasets(provider_name="p1", 
                     dataset_code="d1",
