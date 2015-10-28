@@ -7,10 +7,8 @@
 import os
 import pymongo
 from pymongo import IndexModel, ASCENDING, DESCENDING
-from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra
 from datetime import datetime
 import logging
-import bson
 import pprint
 from elasticsearch import Elasticsearch, helpers
 from collections import defaultdict, OrderedDict
@@ -19,6 +17,7 @@ from copy import deepcopy
 from dlstats import mongo_client
 from dlstats import configuration
 from dlstats import constants
+from dlstats.fetchers import schemas
 
 UPDATE_INDEXES = False
 
@@ -139,33 +138,6 @@ class Fetcher(object):
         es = ElasticIndex(db=self.db, es_client=self.es_client)
         es.make_index(self.provider_name, dataset_code)
         
-
-def date_validator(value):
-    """Custom validator (only a few types are natively implemented in voluptuous)
-    """
-    if isinstance(value, datetime):
-        return value
-    else:
-        raise Invalid('Input date was not of type datetime')
-
-def typecheck(type, msg=None):
-    """Coerce a value to a type.
-
-    If the type constructor throws a ValueError, the value will be marked as
-    Invalid.
-    """
-    def validator(value):
-        if not isinstance(value,type):
-            raise Invalid(msg or ('expected %s' % type.__name__))
-        else:
-            return value
-    return validator
-
-
-#Schema definition in voluptuous
-revision_schema = {str: [{Required('value'): str,
-                          Required('releaseDate'): date_validator}]}
-
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
     """
@@ -227,16 +199,11 @@ class Providers(DlstatsCollection):
         self.name = name
         self.website = website
         
-        self.schema = Schema({
-            'name': All(str, Length(min=1)),
-            'website': All(str, Length(min=9))
-        },required=True)
+        self.validate = schemas.provider_schema({
+             'name': self.name,
+             'website': self.website
+         })
 
-        self.validate = self.schema({
-            'name': self.name,
-            'website': self.website
-        })
-        
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
@@ -246,7 +213,7 @@ class Providers(DlstatsCollection):
                 'website': self.website}
 
     def update_database(self):
-        self.schema(self.bson)
+        schemas.provider_schema(self.bson)
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
                                             ['name'], 
                                             self.bson)
@@ -301,18 +268,7 @@ class Categories(DlstatsCollection):
         self.lastUpdate = lastUpdate
         self.exposed = exposed
         
-        self.schema = Schema({
-            'name': All(str, Length(min=1)),
-            'provider': All(str, Length(min=1)),
-            'children': Any([None,typecheck(bson.objectid.ObjectId)]), 
-            Optional('docHref'): Any(None,str),
-            Optional('lastUpdate'): Any(None,typecheck(datetime)),
-            'categoryCode': All(str, Length(min=1)),
-            'exposed': typecheck(bool)
-          }, required=True
-        )
-        
-        self.validate = self.schema({
+        self.validate = schemas.category_schema({
             'provider': self.provider,
             'categoryCode': self.categoryCode,
             'name': self.name,
@@ -338,7 +294,7 @@ class Categories(DlstatsCollection):
         
     def update_database(self):
         # we will log to info when we switch to bulk update
-        self.schema(self.bson)
+        schemas.category_schema(self.bson)
         return self.update_mongo_collection(constants.COL_CATEGORIES, 
                                             ['provider', 'categoryCode'],
                                             self.bson, 
@@ -384,17 +340,6 @@ class Datasets(DlstatsCollection):
             
         self.notes = ''
         
-        self.schema = Schema({
-            'name': All(str, Length(min=1)),
-            'provider': All(str, Length(min=1)),
-            'datasetCode': All(str, Length(min=1)),
-            'docHref': Any(None,str),
-            'lastUpdate': typecheck(datetime),
-            'dimensionList': {str: [All()]},
-            'attributeList': Any(None, {str: [(str,str)]}),
-            Optional('notes'): str
-         },required=True)
-
         self.series = Series(self.provider_name,
                              self.dataset_code,
                              self.last_update,
@@ -425,7 +370,7 @@ class Datasets(DlstatsCollection):
         
     def update_database(self):
         self.series.process_series_data()        
-        self.schema(self.bson)
+        schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
                                             ['provider', 'datasetCode'],
                                             self.bson)
@@ -454,21 +399,6 @@ class Series(DlstatsCollection):
         # temporary storage necessary to get old_bson in bulks
         self.series_list = []
         # schema for on serie
-        self.schema = Schema({
-            'name': All(str, Length(min=1)),
-            'provider': All(str, Length(min=1)),
-            'key': All(str, Length(min=1)),
-            'datasetCode': All(str, Length(min=1)),
-            'startDate': int,
-            'endDate': int,
-            'values': [Any(str)],
-            'releaseDates': [date_validator],
-            'attributes': Any({}, {str: [str]}),
-            Optional('revisions'): Any(None, revision_schema),
-            'dimensions': {str: str},
-            'frequency': All(str, Length(min=1)),
-            Optional('notes'): Any(None, str)
-        },required=True)
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -539,7 +469,7 @@ class Series(DlstatsCollection):
 
         if not old_bson:
             bson['releaseDates'] = [last_update for v in bson['values']]
-            self.schema(bson)
+            schemas.series_schema(bson)
             if is_bulk:
                 return bson
             return col.insert(bson)
@@ -599,7 +529,7 @@ class Series(DlstatsCollection):
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
 
-            self.schema(bson)
+            schemas.series_schema(bson)
             if is_bulk:
                 return bson
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
@@ -615,11 +545,10 @@ class CodeDict():
     def __init__(self):
         # code_dict is a dict of OrderedDict
         self.code_dict = {}
-        self.schema = Schema({Extra: dict})
-        self.schema(self.code_dict)
+        schemas.codedict_schema(self.code_dict)
         
     def update(self,arg):
-        self.schema(arg.code_dict)
+        schemas.codedict_schema(arg.code_dict)
         self.code_dict.update(arg.code_dict)
         
     def update_entry(self,dim_name,dim_short_id,dim_long_id):
