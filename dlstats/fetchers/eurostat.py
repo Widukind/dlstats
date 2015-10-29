@@ -8,46 +8,34 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-import threading
 from collections import OrderedDict, defaultdict
 import lxml.etree
-import urllib
-from pandas.tseries.offsets import *
+#from pandas.tseries.offsets import *
 import pandas
 import datetime
 from io import BytesIO, StringIO, TextIOWrapper
-import urllib.request
-import gzip
-import re
-import pymongo
-import logging
-from multiprocessing import Pool
-import sdmx
-import datetime
-import time
-import math
 import requests
+import re
+import logging
 import zipfile
-import pprint
 import bson
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
 
 __all__ = ['Eurostat']
 
 class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
-    def __init__(self):
-        super().__init__(provider_name='eurostat')
+    def __init__(self, db=None, es_client=None):
+        super().__init__(provider_name='Eurostat', 
+                         db=db, 
+                         es_client=es_client)
         self.provider_name = 'Eurostat'
-        self.provider = Provider(name=self.provider_name,website='http://ec.europa.eu/eurostat')
+        self.provider = Providers(name=self.provider_name,website='http://ec.europa.eu/eurostat',fetcher=self)
         self.selected_codes = ['ei_bcs_cs']
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
 
-    def upsert_provider_db(self):
-        self.provider.update_database();
-
-    def update_categories_db(self):
+    def upsert_categories(self):
         """Update the categories in MongoDB
 
         If a category doesn't exit, it is created
@@ -94,27 +82,30 @@ class Eurostat(Fetcher):
                                                              datetime.datetime):
                     lastUpdate = datetime.datetime(lastUpdate)
                 if docHref is not None:
-                    document = Category(provider=self.provider_name,name=title,
-                                        docHref=doc_href,children=children,
-                                        categoryCode=code,lastUpdate=lastUpdate)
+                    document = Categories(provider=self.provider_name,name=title,
+                                          docHref=doc_href,children=children,
+                                          categoryCode=code,lastUpdate=lastUpdate,
+                                          fetcher=self)
                 else:
-                    document = Category(provider=self.provider_name,name=title,
-                                        children=children,categoryCode=code,
-                                        lastUpdate=lastUpdate)
+                    document = Categories(provider=self.provider_name,name=title,
+                                          children=children,categoryCode=code,
+                                          lastUpdate=lastUpdate,fetcher=self)
                 res = document.update_database()
                 children_ids += [bson.objectid.ObjectId(res.upserted_id)]
             return children_ids
 
-        webpage = urllib.request.urlopen(self.url_table_of_contents,
-                                         timeout=7)
-        table_of_contents = lxml.etree.fromstring(webpage.read())
+        table_of_contents = lxml.etree.fromstring(self.get_table_of_content())
         branch = table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch',namespaces=table_of_contents.nsmap)
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Category(provider=self.provider_name,name='root',children=_id,
-                            lastUpdate=None,categoryCode='eurostat_root')
+        document = Categories(provider=self.provider_name,name='root',children=_id,
+                              lastUpdate=None,categoryCode='eurostat_root',fetcher=self)
         document.update_database()
 
-
+    def get_table_of_content(self):
+        webpage = requests.get(self.url_table_of_content,
+                     timeout=7)
+        return webpage.read()
+        
     def get_selected_datasets(self):
         """Collects the dataset codes that are in table of contents,
         below the ones indicated in "selected_codes" provided in configuration
@@ -135,25 +126,20 @@ class Eurostat(Fetcher):
             datasets += walktree1(cc['_id'])
         return datasets
 
-    def update_eurostat(self):
-        return self.update_categories_db()
-
-    def update_selected_dataset(self,datasetCode,testing_mode=False):
+    def upsert_dataset(self,datasetCode):
         """Updates data in Database for selected datasets
         :dset: datasetCode
         :returns: None"""
-        dataset = Dataset(self.provider_name,datasetCode)
-        if testing_mode:
-            dataset.testing_mode = True
         cat = self.db.categories.find_one({'categoryCode': datasetCode})
+        dataset = Datasets(self.provider_name,
+                           datasetCode,
+                           last_update=cat['lastUpdate'],
+                           fetcher=self)
         dataset.name = cat['name']
         dataset.doc_href = cat['docHref']
-        dataset.last_update = cat['lastUpdate']
-        data = EurostatData(dataset)
-        dataset.series.data_iterator = data
+        data_iterator = EurostatData(dataset)
+        dataset.series.data_iterator = data_iterator
         dataset.update_database()
-        es = ElasticIndex()
-        es.make_index(self.provider_name,datasetCode)
 
 class EurostatData:
     def __init__(self,dataset):
@@ -217,16 +203,16 @@ class EurostatData:
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())
         bson['values'] = values
+        bson['lastUpdate'] = self.last_update
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
-        bson['releaseDates'] = [self.last_update for v in values]
         (start_year, start_subperiod,freq) = self.parse_date(
             raw_dates[0])
         (end_year,end_subperiod,freq) = self.parse_date(
             raw_dates[-1])
         if freq == "A":
-            bson['startDate'] = pandas.Period(start_year,freq='annual').ordinal
-            bson['endDate'] = pandas.Period(end_year,freq='annual').ordinal
+            bson['startDate'] = pandas.Period(start_year,freq=freq).ordinal
+            bson['endDate'] = pandas.Period(end_year,freq=freq).ordinal
         else:
             bson['startDate'] = pandas.Period(start_year+freq+start_subperiod,freq=freq).ordinal
             bson['endDate'] = pandas.Period(end_year+freq+end_subperiod,freq=freq).ordinal
@@ -338,5 +324,5 @@ if __name__ == "__main__":
     #    e.upsert_provider_db()
     #    e.update_categories_db()
     #    e.update_selected_dataset('nama_gdp_c')
-    e.update_selected_dataset('nama_gdp_k')
+    e.upsert_dataset('nama_gdp_k')
     #e.update_selected_dataset('namq_10_a10_e')
