@@ -230,7 +230,7 @@ class BISUtilsTestCase(BaseFetcherTestCase):
             fileobj = io.StringIO(datas, newline="\n")
             rows, headers, release_date, dimension_keys, periods = bis.local_read_csv(fileobj=fileobj)
             #len(dimension_keys)
-            print(headers)
+            #print(headers)
             self.assertTrue('KEY' in headers)
             
             line1 = bis.csv_dict(headers, next(rows))
@@ -363,8 +363,7 @@ class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
         # manual Data for iterator
         fetcher_data = bis.BIS_Data(dataset, 
                                     filename=DATASETS[self.dataset_code]['filename'],
-                                    store_filepath=os.path.dirname(self.filepath),
-                                    fetcher=self.fetcher)
+                                    store_filepath=os.path.dirname(self.filepath))
         
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
