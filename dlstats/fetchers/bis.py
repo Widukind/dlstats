@@ -364,8 +364,7 @@ class BIS(Fetcher):
         
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
-                                filename=DATASETS[dataset_code]['filename'],
-                                fetcher=self)
+                                filename=DATASETS[dataset_code]['filename'])
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
@@ -396,9 +395,9 @@ class BIS(Fetcher):
             #TODO: attention, plus de retour du result pymongo
             document.update_database()                            
 
-class BIS_Data(Fetcher):
+class BIS_Data():
     
-    def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True, fetcher=None):
+    def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):
 
         self.dataset = dataset
         self.dimension_list = dataset.dimension_list
@@ -417,7 +416,6 @@ class BIS_Data(Fetcher):
         self.end_date = None
 
         self.rows = None
-        self.fetcher = fetcher
                 
         if is_autoload:
             self._load_datas()
