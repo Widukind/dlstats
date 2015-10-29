@@ -6,7 +6,7 @@ Created on Thu Sep 10 11:35:26 2015
 """
 
 from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
-#from make_elastic_index import ElasticIndex
+from dlstats import constants
 import urllib
 import xlrd
 import csv
@@ -21,10 +21,10 @@ import zipfile
 import io
 
 class BEA(Fetcher):
-    def __init__(self):
-        super().__init__(provider_name='BEA') 
+    def __init__(self, db=None, es_client=None):
+        super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
         self.provider_name = 'BEA'
-        self.provider = Provider(name=self.provider_name,website='www.bea.gov/')
+        self.provider = Provider(name = 'BEA' ,website='www.bea.gov/',fetcher=self)
         self.url = 'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11'
     def upsert_nipa(self):  
         
@@ -51,6 +51,7 @@ class BEA(Fetcher):
         dataset.last_update = bea_data.release_date
         dataset.series.data_iterator = bea_data
         dataset.update_database()
+        self.update_metas(datasetCode)
         
     def upsert_categories(self):
         document = Category(provider = self.provider_name, 
