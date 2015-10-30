@@ -269,12 +269,12 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
 
 def make_url(self):
     import tempfile
-    return 'file://' + os.path.abspath(os.path.join(tempfile.gettempdir(), 
-                                                    self.provider_name, 
-                                                    self.dataset_code,
-                                                    "tests",
-                                                    self.dataset_code+'.sdmx.zip'))
-
+    filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
+                                            self.provider_name, 
+                                            self.dataset_code,
+                                            "tests",
+                                            self.dataset_code+'.sdmx.zip'))
+    return "file:%s" % pathname2url(filepath)
 
 def local_get(url, *args, **kwargs):
     "Fetch a stream from local files."
