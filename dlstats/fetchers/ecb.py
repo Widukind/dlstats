@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
 import urllib
 import xlrd
 import csv
@@ -15,10 +15,10 @@ import sdmx
 
 
 class ECB(Fetcher):
-    def __init__(self):
+    def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='ECB') 
         self.provider_name = 'ECB'
-        self.provider = Provider(name=self.provider_name,website='http://www.imf.org/')
+        self.provider = Providers(name=self.provider_name,website='http://www.imf.org/',fetcher=self)
         
     def upsert_categories(self):
         categories = sdmx.ecb.categories
@@ -37,21 +37,22 @@ class ECB(Fetcher):
                                                 lastUpdate=datetime(2014,12,2),
                                                 exposed=True)
                     children_ids_.append(in_base_category_.update_database())
-                in_base_category = Category(provider='ECB',name=category['name'],
+                in_base_category = Categories(provider='ECB',name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids_,
                                             docHref=None,
                                             lastUpdate=datetime(2014,12,2),
-                                            exposed=True)
+                                            exposed=True,
+                                            fetcher=self)
             if 'subcategories' in category:
                 for subcategory in category['subcategories']:
                     children_ids.append(walk_category(subcategory))
-                in_base_category = Category(provider='ECB',name=category['name'],
+                in_base_category = Categories(provider='ECB',name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids,
                                             docHref=None,
                                             lastUpdate=datetime(2014,12,2),
-                                            exposed=True)
+                                            exposed=True,fetcher=self)
             try:
                 return in_base_category.update_database()
             except NameError:
@@ -59,13 +60,10 @@ class ECB(Fetcher):
         walk_category(categories)
 
     def upsert_dataset(self, dataset_code):
-        dataset = Dataset(self.provider_name,dataset_code)
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
         ecb_data = ECBData(dataset_code)
-        dataset.name = cat['name']
-        dataset.doc_href = cat['docHref']
-        dataset.last_update = cat['lastUpdate']
-        dataset.series.data_iterator = ecb_data
+        dataset = Datasets(self.provider_name,dataset_code,last_update=cat['lastUpdate'],
+                          doc_href=cat['docHref'],name=cat['name'],data_iterator=ecb_data)
         dataset.update_database()
 
 
@@ -96,5 +94,5 @@ class ECBData(object):
 
 if __name__ == '__main__':
     ecb = ECB()
-    ecb.upsert_categories()
-    #ecb.upsert_dataset('2034468')
+    #ecb.upsert_categories()
+    ecb.upsert_dataset('2034468')
