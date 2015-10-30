@@ -25,45 +25,44 @@ class BEA(Fetcher):
         super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
         self.provider_name = 'BEA'
         self.provider = Providers(name = self.provider_name ,website='www.bea.gov/',fetcher=self)
-        self.url = ''
-        self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
-                    'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11' }
-    
-    def international_data(self):
-        url = {'International transactions(ITA)':
-        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip'
-        ,'International services':
-        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip'
-        ,'International investment position(IIP)':
-        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'} 
-    
-    def industry_data(self):
-        url = {'Industry data_GDP by industry_Q':
-        'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip'
-        ,'Industry data_GDP by industry_A':
-        'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip'} 
-                   
+        #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
+        #            'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
+         #           'Industry data_GDP by industry_Q': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
+          #          'Industry data_GDP by industry_A': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
+           #         'International transactions(ITA)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
+            #        'International services': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
+             #       'International investment position(IIP)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'}
+         
+        self.urls= ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
+                     'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
+                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
+                     'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
+                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
+                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
+                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip']
                     
     def upsert_nipa(self):  
-        for url_key in self.urls.keys() :
-            self.url = self.urls[url_key]
-            
+        for self.url in self.urls:
+            #self.url = self.urls[url_key]
+            print(self.url)
             response = urllib.request.urlopen(self.url)
             zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
-            excel_filenames = iter(zipfile_.namelist())
-            fname = next(excel_filenames)
+            #excel_filenames = iter(zipfile_.namelist())
+            #fname = next(excel_filenames)
     
-            if fname is None:
-                raise StopIteration()
+            #if fname is None:
+            #    raise StopIteration()
             for section in zipfile_.namelist():
                 #print(section)
-                excel_book = xlrd.open_workbook(file_contents = zipfile_.read(section)) 
-                for sheet_name in excel_book.sheet_names(): 
-                    sheet = excel_book.sheet_by_name(sheet_name)
-                    if  sheet_name != 'Contents':
-                        datasetCode = sheet_name
-                        self.upsert_dataset(datasetCode, sheet)                    
-                    
+                if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
+                    excel_book = xlrd.open_workbook(file_contents = zipfile_.read(section)) 
+                    for sheet_name in excel_book.sheet_names(): 
+                        sheet = excel_book.sheet_by_name(sheet_name)
+                        if  sheet_name != 'Contents':
+                            datasetCode = sheet_name
+                            self.upsert_dataset(datasetCode, sheet)                    
+                # else :
+                #ToDO: lip_PrevT3a, lip_PrevT3b, lip_PrevT3c          
                     
                         
     def upsert_dataset(self, datasetCode, sheet):    
@@ -94,20 +93,42 @@ class BeaData():
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
-        
-        str = sheet.cell_value(2,0)
+        print(dataset.name)
+        str = sheet.cell_value(2,0) #released Date
         info = []
-        if 'Quartely' in str :
-            self.frequency = 'Q' 
-        else : 
+        #retrieve frequency from url        
+        if 'AllTablesQTR' in url :
+            self.frequency = 'Q'
+        if  'AllTables.' in url : 
             self.frequency = 'A'
-        years = [int(s) for s in str.split() if s.isdigit()]       
+        #retrieve frequency from sheet name  
+        if 'Qtr' in sheet.name :
+            self.frequency = 'Q' 
+        if 'Ann'  in sheet.name or 'Annual' in sheet.name:
+            self.frequency = 'A'
+        print( url)
+        if 'Section' in  url :
+            release_datesheet = sheet.cell_value(4,0)[15:] 
+        else :
+            release_datesheet = sheet.cell_value(3,0)[14:] 
+        if 'ITA-XLS' in url or 'IIP-XLS' in url :
+            release_datesheet = sheet.cell_value(3,0)[14:].split('-')[0]
+            
+        years = [int(s) for s in str.split() if s.isdigit()] 
+        #To DO: start years and end_dates
         self.start_date = pandas.Period(years[0],freq = self.frequency).ordinal
         self.end_date = pandas.Period(years[1],freq = self.frequency).ordinal
-        self.release_date = datetime.strptime(sheet.cell_value(5,0)[13:].strip(), "%m/%d/%Y %H:%M:%S %p") 
-        self.dimensions = {}
-               
-        row_start = sheet.col_values(0).index(1)
+        self.release_date = datetime.strptime(release_datesheet.strip(), "%B %d, %Y") 
+        self.dimensions = {} 
+        
+        if 'Section' in  url :
+            row_start = sheet.col_values(0).index(1)
+        else:     
+            col_values_ = [cell.strip(' ') for cell in sheet.col_values(0)]
+            if 'A1' in col_values_:
+                row_start = col_values_.index('A1')
+            else :    
+                row_start = col_values_.index('1')         
         self.row_range = iter(range(row_start, sheet.nrows))
         if '' in sheet.col_values(1)[row_start:] :
             row_info = sheet.col_values(1).index('',row_start,sheet.nrows)+1
@@ -130,9 +151,11 @@ class BeaData():
         dimensions = {}
         series = {}
         series_value = [] 
-        
+        #TO DO: Syncronize for all series
         series_name = row[1].value + self.frequency 
         series_key = 'BEA.' + self.sheet.col(0)[0].value + '; ' + row[1].value
+        print(row[2].value)
+        print(row[1].value)
         dimensions['concept'] = self.dimension_list.update_entry('concept',row[2].value,row[1].value)  
         dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
         for r in range(3, len(row)):
