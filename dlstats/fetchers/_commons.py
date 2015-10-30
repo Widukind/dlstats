@@ -317,6 +317,7 @@ class Datasets(DlstatsCollection):
                  name=None,
                  doc_href=None,
                  last_update=None,
+                 bulk_size=1000,
                  fetcher=None, 
                  is_load_previous_version=True):
         """
@@ -334,6 +335,7 @@ class Datasets(DlstatsCollection):
         self.name = name
         self.doc_href = doc_href
         self.last_update = last_update
+        self.bulk_size = bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
         
@@ -342,9 +344,10 @@ class Datasets(DlstatsCollection):
             
         self.notes = ''
         
-        self.series = Series(self.provider_name,
-                             self.dataset_code,
-                             self.last_update,
+        self.series = Series(provider_name=self.provider_name, 
+                             dataset_code=self.dataset_code, 
+                             last_update=self.last_update, 
+                             bulk_size=self.bulk_size, 
                              fetcher=self.fetcher)
 
     def __repr__(self):
