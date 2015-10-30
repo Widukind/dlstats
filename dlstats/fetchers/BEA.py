@@ -24,27 +24,52 @@ class BEA(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
         self.provider_name = 'BEA'
-        self.provider = Provider(name = 'BEA' ,website='www.bea.gov/',fetcher=self)
-        self.url = 'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11'
+        self.provider = Providers(name = self.provider_name ,website='www.bea.gov/',fetcher=self)
+        self.url = ''
+        self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
+                    'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11' }
+    
+    def international_data(self):
+        url = {'International transactions(ITA)':
+        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip'
+        ,'International services':
+        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip'
+        ,'International investment position(IIP)':
+        'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'} 
+    
+    def industry_data(self):
+        url = {'Industry data_GDP by industry_Q':
+        'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip'
+        ,'Industry data_GDP by industry_A':
+        'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip'} 
+                   
+                    
     def upsert_nipa(self):  
-        
-        response = urllib.request.urlopen(self.url)
-        zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
-        excel_filenames = iter(zipfile_.namelist())
-        fname = next(excel_filenames)
-              
-        for section in zipfile_.namelist():
-            excel_book = xlrd.open_workbook(file_contents = zipfile_.read(section)) 
-            for sheet_name in excel_book.sheet_names(): 
-                sheet = excel_book.sheet_by_name(sheet_name)
-                if  sheet_name != 'Contents':
-                    datasetCode = sheet_name
-                    self.upsert_dataset(datasetCode, sheet)
+        for url_key in self.urls.keys() :
+            self.url = self.urls[url_key]
+            
+            response = urllib.request.urlopen(self.url)
+            zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
+            excel_filenames = iter(zipfile_.namelist())
+            fname = next(excel_filenames)
+    
+            if fname is None:
+                raise StopIteration()
+            for section in zipfile_.namelist():
+                #print(section)
+                excel_book = xlrd.open_workbook(file_contents = zipfile_.read(section)) 
+                for sheet_name in excel_book.sheet_names(): 
+                    sheet = excel_book.sheet_by_name(sheet_name)
+                    if  sheet_name != 'Contents':
+                        datasetCode = sheet_name
+                        self.upsert_dataset(datasetCode, sheet)                    
+                    
                     
                         
     def upsert_dataset(self, datasetCode, sheet):    
         
-        dataset = Dataset(self.provider_name,datasetCode)
+        dataset = Datasets(self.provider_name,datasetCode,
+                           fetcher=self)
         bea_data = BeaData(dataset,self.url, sheet)
         dataset.name = datasetCode
         dataset.doc_href = 'http://www.bea.gov/newsreleases/national/gdp/gdpnewsrelease.htm'
@@ -52,12 +77,14 @@ class BEA(Fetcher):
         dataset.series.data_iterator = bea_data
         dataset.update_database()
         self.update_metas(datasetCode)
+
         
     def upsert_categories(self):
-        document = Category(provider = self.provider_name, 
+        document = Categories(provider = self.provider_name, 
                             name = 'BEA' , 
                             categoryCode ='BEA',
-                            children = [None] )
+                            children = [None],
+                            fetcher=self )
         return document.update_database() 
                 
 class BeaData():
@@ -97,8 +124,7 @@ class BeaData():
         if series is None:
             raise StopIteration()            
         return(series) 
-                               
-           
+                                       
                                            
     def build_series(self,row):  
         dimensions = {}
@@ -111,7 +137,7 @@ class BeaData():
         dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
         for r in range(3, len(row)):
             series_value.append(str(row[r].value))  
-        release_dates = [self.release_date for v in series_value] 
+        #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
         series['provider'] = self.provider_name       
         series['datasetCode'] = self.dataset_code
@@ -119,13 +145,12 @@ class BeaData():
         series['key'] = series_key
         series['startDate'] = self.start_date
         series['endDate'] = self.end_date  
-        series['releaseDates'] = release_dates
+        series['lastUpdate'] = self.release_date
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}
         return(series)
-     
-            
+
 if __name__ == "__main__":
     w = BEA()
     w.provider.update_database()
