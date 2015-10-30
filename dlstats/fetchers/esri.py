@@ -5,8 +5,7 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
-
-from dlstats.fetchers._commons import Fetcher, Category, Series, Dataset, Provider, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
 import urllib
 import xlrd
 import csv
@@ -23,10 +22,10 @@ from lxml import etree
 
 
 class Esri(Fetcher):
-    def __init__(self):
-        super().__init__()         
+    def __init__(self, db=None, es_client=None):
+        super().__init__(provider_name='esri',  db=db, es_client=es_client)         
         self.provider_name = 'esri'
-        self.provider = Provider(name=self.provider_name,website='http://www.esri.cao.go.jp/index-e.html')
+        self.provider = Providers(name=self.provider_name,website='http://www.esri.cao.go.jp/index-e.html',fetcher=self)
 
         #parsing the Esri page
         url = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2015/qe152_2/gdemenuea.html'
@@ -53,10 +52,11 @@ class Esri(Fetcher):
                 'Deflators (fiscal year)',
                 'Deflators (calendar year)']
     def upsert_categories(self):
-        document = Category(provider = self.provider_name, 
+        document = Categories(provider = self.provider_name, 
                             name = 'esri', 
                             categoryCode ='esri',
-                            children = [None])
+                            children = [None],
+                            fetcher=self )
         return document.update_database()
         
     def esri_issue(self):
@@ -66,11 +66,11 @@ class Esri(Fetcher):
 
     def upsert_dataset(self, datasetCode):
         self.upsert_sna(self.url,datasetCode)                  
-        es = ElasticIndex()
-        es.make_index(self.provider_name,datasetCode)
+        self.update_metas(datasetCode)
 
     def upsert_sna(self, url, dataset_code):
-        dataset = Dataset(self.provider_name,dataset_code)
+        dataset = Datasets(self.provider_name,dataset_code,
+                           fetcher=self)
         sna_data = EsriData(dataset,url)
         dataset.name = dataset_code
         dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
@@ -101,7 +101,7 @@ class EsriData():
         start_date = self.panda_csv.icol(0)[6][:4]
         self.end_date = pandas.Period(end_date,freq = self.frequency).ordinal    
         self.start_date = pandas.Period(start_date,freq = self.frequency).ordinal
-        self.column_range = iter(range(len(self.panda_csv.irow(5))))
+        self.column_range = iter(range(1, len(self.panda_csv.irow(5))))
        #generating name of the series             
         columns =self.panda_csv.columns
         for column_ind in range(columns.size):
@@ -138,12 +138,14 @@ class EsriData():
         dimensions = {}
         series = {}
         series_value = []       
-        series_name = str(column[3]) + self.frequency +'_ ' +self.currency
+        series_name = str(column[3])+'_ ' + self.frequency +'_ ' +self.currency
         series_key = 'esri.' + str(column[3]) + '; ' + self.frequency
+        print(column[3])
         dimensions['concept'] = self.dimension_list.update_entry('concept','',str(column[3]))
+        print(dimensions['concept'])
         for r in range(6, len(column)):
             series_value.append(str(column[r]))    
-        release_dates = [self.releaseDate for v in series_value] 
+        #release_dates = [self.releaseDate for v in series_value] 
         series['values'] = series_value                
         series['provider'] = self.provider_name       
         series['datasetCode'] = self.dataset_code
@@ -151,7 +153,7 @@ class EsriData():
         series['key'] = series_key
         series['startDate'] = self.start_date
         series['endDate'] = self.end_date  
-        series['releaseDates'] = release_dates
+        series['lastUpdate'] = self.releaseDate
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}
