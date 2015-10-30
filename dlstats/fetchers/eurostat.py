@@ -32,7 +32,7 @@ class Eurostat(Fetcher):
                          es_client=es_client)
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,website='http://ec.europa.eu/eurostat',fetcher=self)
-        self.selected_codes = ['ei_bcs_cs']
+        self.selected_codes = ['irt']
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
 
     def upsert_categories(self):
@@ -102,9 +102,9 @@ class Eurostat(Fetcher):
         document.update_database()
 
     def get_table_of_content(self):
-        webpage = requests.get(self.url_table_of_content,
+        webpage = requests.get(self.url_table_of_contents,
                      timeout=7)
-        return webpage.read()
+        return webpage.content
         
     def get_selected_datasets(self):
         """Collects the dataset codes that are in table of contents,
@@ -112,8 +112,8 @@ class Eurostat(Fetcher):
         :returns: list of codes"""
         def walktree1(id):
             datasets1 = []
-            c = self.db.categories.find_one({'_id': id})
-            if 'children' in c:
+            c = self.db.categories.find_one({'_id': bson.objectid.ObjectId(id)})
+            if 'children' in c and len(c['children']) > 0:
                 for child in  c['children']:
                     datasets1 += walktree1(child)
                 return datasets1
@@ -125,6 +125,11 @@ class Eurostat(Fetcher):
                                               'categoryCode': code})
             datasets += walktree1(cc['_id'])
         return datasets
+
+    def upsert_selected_datasets(self):
+        datasets = self.get_selected_datasets()
+        for d in datasets:
+            self.upsert_dataset(d)
 
     def upsert_dataset(self,datasetCode):
         """Updates data in Database for selected datasets
@@ -321,8 +326,8 @@ if __name__ == "__main__":
     e = Eurostat()
     l = logging.getLogger('_commons')
     l.setLevel(logging.INFO)
-    #    e.upsert_provider_db()
-    #    e.update_categories_db()
+    e.upsert_categories()
+    e.upsert_selected_datasets()
     #    e.update_selected_dataset('nama_gdp_c')
-    e.upsert_dataset('nama_gdp_k')
+    #    e.upsert_dataset('nama_gdp_k')
     #e.update_selected_dataset('namq_10_a10_e')

@@ -522,6 +522,12 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
 
         self.assertEqual(series.count(), SERIES_COUNT)
 
+        self.fetcher.selected_codes = ['eurostat_root']
+
+        self.fetcher.get_selected_datasets()
+
+        self.fetcher.upsert_selected_datasets()
+        
     def test_nama_10_gdp(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_nama_10_gdp
