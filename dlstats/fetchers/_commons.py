@@ -18,6 +18,7 @@ from dlstats import mongo_client
 from dlstats import configuration
 from dlstats import constants
 from dlstats.fetchers import schemas
+from dlstats import logger
 
 UPDATE_INDEXES = False
 
@@ -454,7 +455,13 @@ class Series(DlstatsCollection):
                                           is_bulk=True)                
                 bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
         
-        result = bulk.execute()         
+        try:
+            result = bulk.execute()
+        except pymongo.errors.BulkWriteError as err:
+            logger.critical(str(err.details))
+            pprint.pprint(err.details)
+            raise
+                 
         self.series_list = []
         return result
             
