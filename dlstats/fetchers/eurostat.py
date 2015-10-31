@@ -131,13 +131,13 @@ class Eurostat(Fetcher):
         for d in datasets:
             self.upsert_dataset(d)
 
-    def upsert_dataset(self,datasetCode):
+    def upsert_dataset(self,dataset_code):
         """Updates data in Database for selected datasets
-        :dset: datasetCode
+        :dset: dataset_code
         :returns: None"""
-        cat = self.db.categories.find_one({'categoryCode': datasetCode})
+        cat = self.db.categories.find_one({'categoryCode': dataset_code})
         dataset = Datasets(self.provider_name,
-                           datasetCode,
+                           dataset_code,
                            last_update=cat['lastUpdate'],
                            fetcher=self)
         dataset.name = cat['name']
@@ -145,7 +145,9 @@ class Eurostat(Fetcher):
         data_iterator = EurostatData(dataset)
         dataset.series.data_iterator = data_iterator
         dataset.update_database()
+        self.update_metas(dataset_code)
 
+        
 class EurostatData:
     def __init__(self,dataset):
         self.provider_name = dataset.provider_name
@@ -325,6 +327,7 @@ class EurostatData:
 if __name__ == "__main__":
     e = Eurostat()
     e.upsert_categories()
+    #    e.selected_codes = ['nama_10']
     e.upsert_selected_datasets()
     #    e.update_selected_dataset('nama_gdp_c')
     #    e.upsert_dataset('nama_gdp_k')
