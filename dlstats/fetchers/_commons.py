@@ -6,8 +6,12 @@
 """
 import os
 import pymongo
+<<<<<<< HEAD
 from pymongo import IndexModel, ASCENDING, DESCENDING
 from pymongo import ReturnDocument
+=======
+from pymongo import IndexModel, ASCENDING, DESCENDING, ReturnDocument
+>>>>>>> fix call to find_one_and_replace()
 from datetime import datetime
 import logging
 import pprint
