@@ -33,7 +33,7 @@ class Eurostat(Fetcher):
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,website='http://ec.europa.eu/eurostat',fetcher=self)
         self.selected_codes = ['irt']
-         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
+        self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
 
     def upsert_categories(self):
         """Update the categories in MongoDB
