@@ -33,7 +33,7 @@ class Eurostat(Fetcher):
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,website='http://ec.europa.eu/eurostat',fetcher=self)
         self.selected_codes = ['irt']
-        self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
+         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
 
     def upsert_categories(self):
         """Update the categories in MongoDB
@@ -91,19 +91,19 @@ class Eurostat(Fetcher):
                                           children=children,categoryCode=code,
                                           lastUpdate=lastUpdate,fetcher=self)
                 res = document.update_database()
-                children_ids += [bson.objectid.ObjectId(res.upserted_id)]
+                children_ids += [bson.objectid.ObjectId(res['_id'])]
             return children_ids
 
-        table_of_contents = lxml.etree.fromstring(self.get_table_of_content())
+        table_of_contents = lxml.etree.fromstring(self.get_table_of_contents())
         branch = table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch',namespaces=table_of_contents.nsmap)
         _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
         document = Categories(provider=self.provider_name,name='root',children=_id,
                               lastUpdate=None,categoryCode='eurostat_root',fetcher=self)
         document.update_database()
 
-    def get_table_of_content(self):
+    def get_table_of_contents(self):
         webpage = requests.get(self.url_table_of_contents,
-                     timeout=7)
+                               timeout=7)
         return webpage.content
         
     def get_selected_datasets(self):
@@ -324,8 +324,6 @@ class EurostatData:
     
 if __name__ == "__main__":
     e = Eurostat()
-    l = logging.getLogger('_commons')
-    l.setLevel(logging.INFO)
     e.upsert_categories()
     e.upsert_selected_datasets()
     #    e.update_selected_dataset('nama_gdp_c')
