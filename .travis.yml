@@ -19,8 +19,9 @@ before_install:
  
 install:
   - pip install -U pip
-  - pip install coveralls nose coverage flake8
+  - pip install coveralls
   - pip install -r requirements.txt
+  - pip install -r requirements-tests.txt
   - pip install --no-deps -e .
 
 before_script:
