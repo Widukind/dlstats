@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from random import choice, randint
 from copy import deepcopy
+from bson import ObjectId
 
 from voluptuous import MultipleInvalid
 
@@ -387,11 +388,10 @@ class DBCategoryTestCase(BaseDBTest):
                      categoryCode="c1",
                      docHref='http://www.example.com',
                      fetcher=f)
-        result = c.update_database()
-        self.assertIsNotNone(result)
-        self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
-        self.assertIsNotNone(result.upserted_id)
+        id = c.update_database()
+        self.assertIsNotNone(id)
+        self.assertIsInstance(id, str)
+        self.db[constants.COL_CATEGORIES].find_one({'_id': ObjectId(id)})
 
         bson = self.db[constants.COL_CATEGORIES].find_one({"provider": "p1", "categoryCode": "c1"})
         self.assertIsNotNone(bson)
@@ -452,13 +452,11 @@ class DBProviderTestCase(BaseDBTest):
         p = Providers(name="p1", 
                      website="http://www.example.com", 
                      fetcher=f)
-        result = p.update_database()
-        self.assertIsNotNone(result)
-
-        self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
-        self.assertIsNotNone(result.upserted_id)
-
+        id = p.update_database()
+        self.assertIsNotNone(id)
+        self.assertIsInstance(id, str)
+        self.db[constants.COL_PROVIDERS].find_one({'_id': ObjectId(id)})
+        
         bson = self.db[constants.COL_PROVIDERS].find_one({"name": "p1"})
         self.assertIsNotNone(bson)
         
@@ -527,14 +525,12 @@ class DBDatasetTestCase(BaseDBTest):
                           fetcher=f)
         d.series.data_iterator = datas
 
-        result = d.update_database()
-        self.assertIsNotNone(result)
+        id = d.update_database()
+        self.assertIsNotNone(id)
+        self.assertIsInstance(id, str)
+        self.db[constants.COL_DATASETS].find_one({'_id': ObjectId(id)})
         
         #print(result.raw)
-
-        self.assertEqual(result.matched_count, 0)
-        self.assertEqual(result.modified_count, None) #TODO: MongoDB 3.0 - return 0
-        self.assertIsNotNone(result.upserted_id)
 
         bson = self.db[constants.COL_DATASETS].find_one({"provider": "p1", "datasetCode": "d1"})
         self.assertIsNotNone(bson)
