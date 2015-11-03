@@ -60,3 +60,19 @@ try:
     __all__.append('BEA')
 except ImportError:
     pass
+
+try:
+    from dlstats.fetchers.ecb import ECB
+    FETCHERS['ECB'] = ECB
+    #TODO: FETCHERS_DATASETS['ECB'] = None
+    __all__.append('ECB')
+except ImportError:
+    pass
+
+try:
+    from dlstats.fetchers.esri import Esri
+    FETCHERS['ESRI'] = Esri
+    #TODO: FETCHERS_DATASETS['ESRI'] = None
+    __all__.append('Esri')
+except ImportError:
+    pass
