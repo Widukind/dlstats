@@ -7,6 +7,7 @@
 import os
 import pymongo
 from pymongo import IndexModel, ASCENDING, DESCENDING
+from pymongo import ReturnDocument
 from datetime import datetime
 import logging
 import pprint
@@ -159,6 +160,8 @@ class DlstatsCollection(object):
         self.fetcher = fetcher
         
     def update_mongo_collection(self, collection, keys, bson, log_level=logging.INFO):
+        """Return always one ID (str format)  
+        """
         lgr = logging.getLogger(__name__)
         """
         lgr.setLevel(log_level)
@@ -171,9 +174,11 @@ class DlstatsCollection(object):
         """
         key = {k: bson[k] for k in keys}
         try:
-            result = self.fetcher.db[collection].replace_one(key, bson, upsert=True)
+            result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
+                                                                      return_document=ReturnDocument.AFTER)
+            result = str(result['_id'])
         except Exception as err:
-            lgr.critical('%s.update_database() failed for %s [%s]' % (collection, str(key) +result, str(err)))
+            lgr.critical('%s.update_database() failed for %s - %s [%s]' % (collection, str(key), result, str(err)))
             return None
         else:
             lgr.log(log_level,collection + ' ' + str(key) + ' updated.')
