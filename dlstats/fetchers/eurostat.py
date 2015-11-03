@@ -194,8 +194,8 @@ class Eurostat(Fetcher):
                     document = Categories(provider=self.provider_name,name=title,
                                           children=children,categoryCode=code,
                                           lastUpdate=lastUpdate,fetcher=self)
-                res = document.update_database()
-                children_ids += [bson.objectid.ObjectId(res['_id'])]
+                id = document.update_database()
+                children_ids += [bson.objectid.ObjectId(id)]
             return children_ids
 
         table_of_contents = lxml.etree.fromstring(self.get_table_of_contents())
@@ -290,7 +290,7 @@ class EurostatData:
         # TODO: timeout, replace
         download = Downloader(url=self.dataset_url, filename=self.filename, store_filepath=store_filepath)
             
-        return(extract_zip_file(download.get_filepath()))
+        return(extract_zip_file(download.get_filepath(force_replace=True)))
 
     def process_data(self):
         filepaths = self._load_datas()
