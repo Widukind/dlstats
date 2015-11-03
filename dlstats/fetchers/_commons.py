@@ -18,6 +18,7 @@ from dlstats import mongo_client
 from dlstats import configuration
 from dlstats import constants
 from dlstats.fetchers import schemas
+from dlstats import logger
 
 UPDATE_INDEXES = False
 
@@ -602,11 +603,16 @@ class ElasticIndex():
         mb_dataset = self.db[constants.COL_DATASETS].find_one({'provider': provider_name, 'datasetCode': dataset_code})
         mb_series = self.db[constants.COL_SERIES].find({'provider': provider_name, 'datasetCode': dataset_code},
                                         {'key': 1, 'dimensions': 1, 'name': 1, 'frequency': 1})
-    
-        es_data = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'datasets',
-                                                   body= { "filter":
-                                                           { "term":
-                                                             { "_id": provider_name + '.' + dataset_code}}})
+
+        try:    
+            es_data = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'datasets',
+                                                       body= { "filter":
+                                                               { "term":
+                                                                 { "_id": provider_name + '.' + dataset_code}}})
+        except Exception as err:
+            logger.critical(err)
+            raise
+        
         if es_data['hits']['total'] == 0:
             es_dataset = {}
         else:
@@ -619,10 +625,15 @@ class ElasticIndex():
         es_dataset['datasetCode'] = mb_dataset['datasetCode']
         es_dataset['frequencies'] = mb_series.distinct('frequency')
         
-        es_series = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'series',
-                            body= { "filter":
-                                    { "term":
-                                      { "provider": provider_name.lower(), "datasetCode": dataset_code.lower()}}})
+        try:
+            es_series = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'series',
+                                body= { "filter":
+                                        { "term":
+                                          { "provider": provider_name.lower(), "datasetCode": dataset_code.lower()}}})
+        except Exception as err:
+            logger.critical(err)
+            raise
+        
         es_series_dict = {e['_source']['key']: e['_source'] for e in es_series['hits']['hits']}
 
         mb_dimension_dict = {d1: {d2[0]: d2[1] for d2 in mb_dataset['dimensionList'][d1]} for d1 in mb_dataset['dimensionList']}
@@ -659,8 +670,14 @@ class EsBulk():
         self.db = db
         self.es_bulk = []
         self.mb_dimension_dict = mb_dimension_dict
+
+    def flush_db(self):
+        if len(self.es_bulk) > 200:
+            self.update_database()
+            self.es_bulk = []
         
     def add_to_index(self,provider_name,dataset_code,s):
+        self.flush_db()
         bson = {"_op_type": 'index', 
                 "_index": constants.ES_INDEX,
                 "_type": 'series',
@@ -674,6 +691,7 @@ class EsBulk():
         self.es_bulk.append(bson)
                                      
     def update_index(self,provider_name,dataset_code,s,es_s):
+        self.flush_db()
         update = False
         mb_dim = s['dimensions']
         new_bson = {"_op_type": 'update',
@@ -697,7 +715,7 @@ class EsBulk():
             self.es_bulk.append(new_bson)
             
     def update_database(self):
-        res_es = helpers.bulk(self.db, self.es_bulk, index = constants.ES_INDEX)
+        return helpers.bulk(self.db, self.es_bulk, index = constants.ES_INDEX)
 
 if __name__ == "__main__":
     import doctest
