@@ -9,7 +9,9 @@ def clean_mongo(db,filter,cleanProvider):
     result = db.datasets.delete_many(filter)
     print(result.deleted_count,' documents deleted in Mongo collection datasets with ',filter)
     result = db.series.delete_many(filter)
-    print(result.deleted_count,' document deleted in Mongo collection series with ',filter)
+    print(result.deleted_count,' documents deleted in Mongo collection series with ',filter)
+    result = db.categories.delete_many(filter)
+    print(result.deleted_count,' documents deleted in Mongo collection categories with ',filter)
 
 def clean_elastic(es,filter):
     res = es.search(index = 'widukind', scroll='1m', search_type='scan', size=1000, body={'_source': 'false','filter': {'term': filter}})
