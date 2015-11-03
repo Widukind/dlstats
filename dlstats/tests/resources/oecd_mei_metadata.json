@@ -1,0 +1,132 @@
+{
+    "header": {
+        "id": "fca64b8f-cd96-4464-8839-2ca1018474c6",
+        "test": false,
+        "prepared": "2015-10-29T06:39:18.634125Z",
+        "sender": {
+            "id": "OECD",
+            "name": "Organisation for Economic Co-operation and Development"
+        },
+        "links": [{
+            "href": "http://stats.oecd.org:80/sdmx-json/metadata/MEI",
+            "rel": "request"
+        }]
+    },
+    "structure": {
+        "links": [{
+            "href": "http://stats.oecd.org:80/sdmx-json/metadata/MEI",
+            "rel": "dataflow"
+        }],
+        "name": "Main Economic Indicators Publication",
+        "description": "Main Economic Indicators Publication",
+        "dimensions": {
+            "observation": [{
+                "keyPosition": 0,
+                "id": "LOCATION",
+                "name": "Country",
+                "values": [{
+                    "id": "TEST",
+                    "name": "Test"
+                }],
+                "role": "REF_AREA"
+            },
+            {
+                "keyPosition": 1,
+                "id": "SUBJECT",
+                "name": "Subject",
+                "values": [{
+                    "id": "BPFAFD01",
+                    "name": "Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives"
+                }]
+            },
+            {
+                "keyPosition": 2,
+                "id": "MEASURE",
+                "name": "Measure",
+                "values": [{
+                    "id": "MEI",
+                    "name": "Main Economic Indicators"
+                }]
+            },
+            {
+                "keyPosition": 3,
+                "id": "FREQUENCY",
+                "name": "Frequency",
+                "values": [{
+                    "id": "A",
+                    "name": "Annual"
+                },
+                {
+                    "id": "Q",
+                    "name": "Quarterly"
+                },
+                {
+                    "id": "M",
+                    "name": "Monthly"
+                }],
+                "role": "FREQ"
+            },
+            {
+                "keyPosition": 4,
+                "id": "TIME_PERIOD",
+                "name": "Time",
+                "values": [{
+                    "id": "1955",
+                    "name": "1955"
+                },
+                {
+                    "id": "1955-Q1",
+                    "name": "Q1-1955"
+                },
+                {
+                    "id": "1961-08",
+                    "name": "Aug-1961"
+                }],
+                "role": "TIME_PERIOD"
+            }]
+        },
+        "attributes": {
+            "dataSet": [{
+                "id": "UNIT",
+                "name": "Unit",
+                "values": [{
+                    "id": "1",
+                    "name": "RATIOS"
+                }]
+            },
+            {
+                "id": "POWERCODE",
+                "name": "Unit multiplier",
+                "values": [{
+                    "id": "0",
+                    "name": "units"
+                }]
+            },
+            {
+                "id": "REFERENCEPERIOD",
+                "name": "Reference period",
+                "values": [{
+                    "id": "2013_100",
+                    "name": "2013=100"
+                }]
+            }],
+            "observation": [{
+                "id": "TIME_FORMAT",
+                "name": "Time format",
+                "values": [{
+                    "id": "P1Y",
+                    "name": "Annual"
+                }]
+            },
+            {
+                "id": "OBS_STATUS",
+                "name": "Observation status",
+                "values": [{
+                    "id": "B",
+                    "name": "Break"
+                }]
+            }]
+        },
+        "annotations": []
+    }
+}

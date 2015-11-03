@@ -40,7 +40,8 @@ setup(name='dlstats',
 	tests_require=[
 		'nose>=1.0'
 		'coverage',
-		'flake8'
+		'flake8',
+        'httpretty'
 	],
 	test_suite='nose.collector',	
 )
