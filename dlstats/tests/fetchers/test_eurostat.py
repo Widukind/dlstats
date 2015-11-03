@@ -30,8 +30,7 @@ DATASETS['nama_10_gdp']["name"] = "nama_10_gdp"
 DATASETS['nama_10_gdp']["doc_href"] = None
 DATASETS['nama_10_gdp']["last_update"] = datetime.datetime(2015,10,26)
 DATASETS['nama_10_gdp']["filename"] = "nama_10_gdp"
-DATASETS['nama_10_gdp']["sdmx"] = """
-<?xml version="1.0" encoding="UTF-8"?>
+DATASETS['nama_10_gdp']["sdmx"] = """<?xml version="1.0" encoding="UTF-8"?>
 <CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:data="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:nama_10_gdp_DSD:compact" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:nama_10_gdp_DSD:compact EUROSTAT_nama_10_gdp_Compact.xsd http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact SDMXCompactData.xsd">
 <Header>
 <ID>nama_10_gdp</ID>
@@ -55,8 +54,7 @@ DATASETS['nama_10_gdp']["sdmx"] = """
 </CompactData>
 """
 
-DATASETS['nama_10_gdp']["dsd"] = """
-<?xml version="1.0" encoding="UTF-8"?>
+DATASETS['nama_10_gdp']["dsd"] = """<?xml version="1.0" encoding="UTF-8"?>
 <Structure xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:cross="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/cross" xmlns:generic="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/generic" xmlns:query="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/query" xmlns:structure="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/structure" xmlns:utility="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/utility" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd">
 <Header>
 <ID>nama_10_gdp_DSD</ID>
@@ -320,9 +318,6 @@ def get_filepath(dataset_code):
     
     return filepath
 
-
-        
-
 def load_fake_datas(select_dataset_code=None):
     """Load datas from DATASETS dict
     
@@ -356,7 +351,7 @@ def load_fake_datas(select_dataset_code=None):
     #pprint(results)
     return results
 
-def get_table_of_content(self):
+def get_table_of_contents(self):
     return TABLE_OF_CONTENT
 
 class EurostatDatasetsTestCase(BaseFetcherTestCase):
@@ -433,7 +428,7 @@ class EurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
                            fetcher=self.fetcher)
 
         # manual Data for iterator
-        fetcher_data = eurostat.EurostatData(dataset) 
+        fetcher_data = eurostat.EurostatData(dataset,filename=self.dataset_code) 
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
@@ -491,7 +486,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
         
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_content', get_table_of_content)    
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
     def _common_tests(self):
 
         self._collections_is_empty()
@@ -522,12 +517,6 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
 
         self.assertEqual(series.count(), SERIES_COUNT)
 
-        self.fetcher.selected_codes = ['eurostat_root']
-
-        self.fetcher.get_selected_datasets()
-
-        self.fetcher.upsert_selected_datasets()
-        
     def test_nama_10_gdp(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_nama_10_gdp
@@ -535,6 +524,31 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
         self.dataset_code = 'nama_10_gdp'        
 
         self._common_tests()
+
+    @mock.patch('requests.get', local_get)
+    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
+    def test_selected_datasets(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_datasets()
+
+        self.fetcher.upsert_categories()
+
+        self.fetcher.selected_codes = ['nama_10_gdp']
+
+        datasets = self.fetcher.get_selected_datasets()
+
+        for d in datasets:
+            # Write czv/zip file in local directory
+            filepath = get_filepath(d)
+            self.assertTrue(os.path.exists(filepath))
+            # Replace dataset url by local filepath
+            DATASETS[d]['url'] = "file:%s" % pathname2url(filepath)
+
+        self.fetcher.upsert_selected_datasets()
+        
+        
+        
 
         #TODO: meta_datas tests  
 
