@@ -18,7 +18,7 @@ class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='ECB') 
         self.provider_name = 'ECB'
-        self.provider = Providers(name=self.provider_name,website='http://www.imf.org/',fetcher=self)
+        self.provider = Providers(name=self.provider_name,website='http://www.ecb.europa.eu/',fetcher=self)
         
     def upsert_categories(self):
         categories = sdmx.ecb.categories
@@ -35,7 +35,8 @@ class ECB(Fetcher):
                                                 children=None,
                                                 docHref=None,
                                                 lastUpdate=datetime(2014,12,2),
-                                                exposed=True)
+                                                exposed=True,
+                                                fetcher=self)
                     children_ids_.append(in_base_category_.update_database())
                 in_base_category = Categories(provider='ECB',name=category['name'],
                                             categoryCode=category['name'],

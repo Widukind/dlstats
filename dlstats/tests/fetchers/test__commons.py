@@ -400,7 +400,7 @@ class DBCategoryTestCase(BaseDBTest):
         self.assertEqual(bson["name"], "cat1")
         self.assertEqual(bson["provider"], "p1")
         self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertEqual(bson["children"], [None])
+        self.assertEqual(bson["children"], None)
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
     
