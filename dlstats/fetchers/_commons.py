@@ -679,6 +679,7 @@ class ElasticIndex():
                     es_dimension_dict[d].update({dim[d][0]:dim[d][1]})
         es_bulk.update_database()
         es_dataset['codeList'] = {d1: [[d2[0], d2[1]] for d2 in es_dimension_dict[d1].items()] for d1 in es_dimension_dict}
+        schemas.es_dataset_schema(es_dataset)
         self.elasticsearch_client.index(index = constants.ES_INDEX,
                                   doc_type='datasets',
                                   id = provider_name + '.' + dataset_code,
@@ -707,6 +708,7 @@ class EsBulk():
                 'datasetCode': dataset_code,
                 'dimensions': s['dimensions'],
                 'frequency': s['frequency']}
+        schemas.es_series_schema(bson)
         self.es_bulk.append(bson)
                                      
     def update_index(self,provider_name,dataset_code,s,es_s):
@@ -731,6 +733,7 @@ class EsBulk():
                 update = True
                 
         if update:
+            schemas.es_series_schema(bson)
             self.es_bulk.append(new_bson)
             
     def update_database(self):
