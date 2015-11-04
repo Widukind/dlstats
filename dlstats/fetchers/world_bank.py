@@ -13,7 +13,10 @@ class WorldBank(Fetcher):
     def __init__(self):
         super().__init__()         
         self.provider_name = 'WorldBank'
-        self.provider = Provider(name=self.provider_name,website='http://www.worldbank.org/')
+        self.provider = Provider(name=self.provider_name,
+                                 long_name='World Bank',
+                                 region='world',
+                                 website='http://www.worldbank.org/')
         self.gem_url = 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' + \
                             'GemDataEXTR.zip'
         

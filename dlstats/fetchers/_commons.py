@@ -196,6 +196,8 @@ class Providers(DlstatsCollection):
 
     def __init__(self,
                  name=None,
+                 long_name=None,
+                 region=None,
                  website=None,
                  fetcher=None):
         """
@@ -205,11 +207,15 @@ class Providers(DlstatsCollection):
         """        
         super().__init__(fetcher=fetcher)
         self.name = name
+        self.long_name = long_name
+        self.region = region
         self.website = website
-        
+
         self.validate = schemas.provider_schema({
-             'name': self.name,
-             'website': self.website
+            'name': self.name,
+            'longName': self.long_name,
+            'region': self.region,
+            'website': self.website
          })
 
     def __repr__(self):
@@ -218,6 +224,8 @@ class Providers(DlstatsCollection):
     @property
     def bson(self):
         return {'name': self.name,
+                'longName': self.long_name,
+                'region': self.region,
                 'website': self.website}
 
     def update_database(self):
