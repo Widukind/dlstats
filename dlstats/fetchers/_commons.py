@@ -252,7 +252,7 @@ class Categories(DlstatsCollection):
                  provider=None,
                  name=None,
                  docHref=None,
-                 children=[None],
+                 children=None,
                  categoryCode=None,
                  lastUpdate=None,
                  exposed=False,
