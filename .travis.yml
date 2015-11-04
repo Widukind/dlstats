@@ -1,0 +1,51 @@
+language: python
+
+python:
+  #- "3.2"
+  #- "3.3"
+  - "3.4"
+  #- "3.5"
+
+services:
+  - mongodb
+  - elasticsearch
+  
+env:
+  - MONGODB_URL=mongodb://localhost/widukind_test
+  
+before_install:
+ - "sudo apt-get update -qq"
+ - "sudo apt-get install -y build-essential ca-certificates language-pack-en python-dev cython"
+ 
+install:
+  - pip install -U pip
+  - pip install coveralls
+  - pip install -r requirements.txt
+  - pip install -r requirements-tests.txt
+  - pip install --no-deps -e .
+
+before_script:
+  - sleep 5
+  - env
+  - pip freeze
+  - java -version
+  - mongo --version
+  - curl -XGET localhost:9200?pretty
+  #- curl -XPUT localhost:9200/widukind?pretty
+  
+script:
+  - nosetests --with-coverage -s -v dlstats
+  - flake8 --exit-zero dlstats
+  
+branches:
+  only:
+    - master
+    
+after_script: coveralls --verbose
+
+notifications:
+  email: true
+  on_success: always
+  on_failure: always
+
+  

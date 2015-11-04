@@ -1,13 +1,8 @@
-import ming
-import os
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
-from . import configuration
+from dlstats import configuration
 from dlstats.logger import logger
-
-if os.environ['DLSTATS_TEST_ENVIRONMENT'] == 'False':
+try:
     mongo_client = MongoClient(**configuration['MongoDB'])
-else:
-    logger.info('Creating a database in RAM.')
-    datastore = ming.create_datastore('mim://')
-    mongo_client = datastore.conn
+except ConnectionFailure: # Be careful. MongoClient don't throw that exception in the latest versions of pymongo
+    logger.error('Could not connect to MongoDB. Creating a database in RAM.')

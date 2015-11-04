@@ -1,47 +1,49 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-from setuptools import setup
-from dlstats import version
-import os
+
+from setuptools import setup, find_packages
+
+def rq(s):
+    return s.strip("\"'")
+
+def version(filepath):
+	import re
+	import os
+	re_vers = re.compile(r'VERSION\s*=.*?\((.*?)\)')
+	here = os.path.abspath(os.path.dirname(__file__))
+	with open(os.path.join(here, filepath)) as fp:
+		for line in fp:
+			m = re_vers.match(line.strip())
+			if m:
+				v = list(map(rq, m.groups()[0].split(', ')))
+				return "{0}.{1}.{2}".format(*v[0:3])
 
 setup(name='dlstats',
-	version=version.version,
+	version=version('dlstats/version.py'),
     description='A python module that provides an interface between statistics providers and pandas.',
     author='Widukind team',
     author_email='dev@michaelmalter.fr',
-    url='https://github.com/Widukind', 
-      package_dir={'dlstats': 'dlstats', 'dlstats.fetchers': 'dlstats/fetchers'},
-    packages=['dlstats', 'dlstats.fetchers'],
-    data_files=[('/usr/local/bin',['dlstats/dlstats_server.py']),
-                ('/etc/systemd/system',['os_specific/dlstats.service']),
-                ('/etc/dlstats',['config/logging.conf']),
-                ('/etc/dlstats',['config/main.conf'])],
+    url='https://github.com/Widukind/dlstats', 
+    packages=find_packages(),
+    include_package_data=True,
     install_requires=[
         'requests>=2.4.3',
-        'pymongo>=2.7.2',
+        'pymongo>=3.0.0',
         'pandas>=0.12',
-        'docopt>=0.6.0',
         'voluptuous>=0.8',
         'xlrd>=0.8',
         'configobj>=5.0',
-        'elasticsearch>=1.0.0,<2.0.0',
-        'ming>=0.5.0'
-      ]
-	)
+        'beautifulsoup4>=4.4.0',
+        'lxml>=3.4.0',
+        'elasticsearch>=1.0.0,<2.0.0'
+    ],
+	tests_require=[
+		'nose>=1.0'
+		'coverage',
+		'flake8',
+        'httpretty'
+	],
+	test_suite='nose.collector',	
+)
 
-try:
-    with open('/etc/systemd/system/dlstats.service'):
-            os.chmod('/etc/systemd/system/dlstats.service', 0o755)
-
-    with open('/usr/local/bin/dlstats_server.py'):
-            os.chmod('/usr/local/bin/dlstats_server.py', 0o755)
-
-    with open('/etc/dlstats/main.conf'):
-            os.chmod('/etc/dlstats/main.conf', 0o755)
-
-    with open('/etc/dlstats/logging.conf'):
-            os.chmod('/etc/dlstats/logging.conf', 0o755)
-except PermissionError:
-    print("You should run the installation script as root if you want the "
-          "default configuration files")
         
