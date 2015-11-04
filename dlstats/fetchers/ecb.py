@@ -18,7 +18,11 @@ class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='ECB') 
         self.provider_name = 'ECB'
-        self.provider = Providers(name=self.provider_name,website='http://www.ecb.europa.eu/',fetcher=self)
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='European Central Bank',
+                                  region='Europe',
+                                  'http://www.ecb.europa.eu/',
+                                  fetcher=self)
         
     def upsert_categories(self):
         categories = sdmx.ecb.categories

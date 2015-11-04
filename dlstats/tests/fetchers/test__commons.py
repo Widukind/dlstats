@@ -245,12 +245,16 @@ class ProviderTestCase(BaseTest):
         with self.assertRaises(MultipleInvalid):
             Providers(fetcher=f)
                 
-        p = Providers(name="p1", 
-                     website="http://www.example.com", 
-                     fetcher=f)
+        p = Providers(name="p1",
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
         
         bson = p.bson
         self.assertEqual(bson["name"], "p1")
+        self.assertEqual(bson["longName"], "Provider One")
+        self.assertEqual(bson["region"], "Dreamland")
         self.assertEqual(bson["website"], "http://www.example.com")
 
 
@@ -422,8 +426,10 @@ class DBProviderTestCase(BaseDBTest):
                     db=self.db, es_client=self.es)
 
         p = Providers(name="p1", 
-                     website="http://www.example.com", 
-                     fetcher=f)
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
         p.update_database()
 
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 1)
@@ -434,8 +440,10 @@ class DBProviderTestCase(BaseDBTest):
             self.db[constants.COL_PROVIDERS].insert(existing_provider)
 
         p = Providers(name="p2", 
-                     website="http://www.example.com",
-                     fetcher=f)
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com",
+                      fetcher=f)
         p.update_database()
 
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 2)
@@ -450,8 +458,10 @@ class DBProviderTestCase(BaseDBTest):
                     db=self.db, es_client=self.es)
 
         p = Providers(name="p1", 
-                     website="http://www.example.com", 
-                     fetcher=f)
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
         id = p.update_database()
         self.assertIsNotNone(id)
         self.assertIsInstance(id, ObjectId)

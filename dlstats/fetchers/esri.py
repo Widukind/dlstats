@@ -25,7 +25,11 @@ class Esri(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='esri',  db=db, es_client=es_client)         
         self.provider_name = 'esri'
-        self.provider = Providers(name=self.provider_name,website='http://www.esri.cao.go.jp/index-e.html',fetcher=self)
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Economic and Social Research Institute, Cabinet Office',
+                                  region='Japan',
+                                  website='http://www.esri.cao.go.jp/index-e.html',
+                                  fetcher=self)
 
         #parsing the Esri page
         url = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2015/qe152_2/gdemenuea.html'
