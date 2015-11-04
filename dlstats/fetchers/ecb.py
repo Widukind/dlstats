@@ -21,7 +21,7 @@ class ECB(Fetcher):
         self.provider = Providers(name=self.provider_name,
                                   long_name='European Central Bank',
                                   region='Europe',
-                                  'http://www.ecb.europa.eu/',
+                                  website='http://www.ecb.europa.eu/',
                                   fetcher=self)
         
     def upsert_categories(self):
