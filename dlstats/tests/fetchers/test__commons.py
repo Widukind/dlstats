@@ -225,7 +225,7 @@ class CategoryTestCase(BaseTest):
         self.assertEqual(bson["name"], "cat1")
         self.assertEqual(bson["provider"], "p1")
         self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertEqual(bson["children"], [None])
+        self.assertEqual(bson["children"], None)
         self.assertIsNone(bson["lastUpdate"])
         self.assertFalse(bson["exposed"])
     
@@ -390,7 +390,7 @@ class DBCategoryTestCase(BaseDBTest):
                      fetcher=f)
         id = c.update_database()
         self.assertIsNotNone(id)
-        self.assertIsInstance(id, str)
+        self.assertIsInstance(id, ObjectId)
         self.db[constants.COL_CATEGORIES].find_one({'_id': ObjectId(id)})
 
         bson = self.db[constants.COL_CATEGORIES].find_one({"provider": "p1", "categoryCode": "c1"})
@@ -454,7 +454,7 @@ class DBProviderTestCase(BaseDBTest):
                      fetcher=f)
         id = p.update_database()
         self.assertIsNotNone(id)
-        self.assertIsInstance(id, str)
+        self.assertIsInstance(id, ObjectId)
         self.db[constants.COL_PROVIDERS].find_one({'_id': ObjectId(id)})
         
         bson = self.db[constants.COL_PROVIDERS].find_one({"name": "p1"})
@@ -527,7 +527,7 @@ class DBDatasetTestCase(BaseDBTest):
 
         id = d.update_database()
         self.assertIsNotNone(id)
-        self.assertIsInstance(id, str)
+        self.assertIsInstance(id, ObjectId)
         self.db[constants.COL_DATASETS].find_one({'_id': ObjectId(id)})
         
         #print(result.raw)
