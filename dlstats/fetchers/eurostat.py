@@ -295,7 +295,8 @@ class EurostatData:
     def process_data(self):
         filepaths = self._load_datas()
         # parse dsd
-        dsd_file = open(filepaths[self.dataset_code + ".dsd.xml"],"rb").read()
+        with open(filepaths[self.dataset_code + ".dsd.xml"],"rb") as f:
+            dsd_file = f.read()
         [attributes,dimensions] = self.parse_dsd(dsd_file,self.dataset_code)
         self.attribute_list.set_dict(attributes)
         self.dimension_list.set_dict(dimensions)
