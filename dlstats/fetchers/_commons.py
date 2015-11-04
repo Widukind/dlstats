@@ -176,9 +176,9 @@ class DlstatsCollection(object):
         try:
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
-            result = str(result['_id'])
+            result = result['_id']
         except Exception as err:
-            lgr.critical('%s.update_database() failed for %s - %s [%s]' % (collection, str(key), result, str(err)))
+            lgr.critical('%s.update_database() failed for %s - %s [%s]' % (collection, str(key), str(result), str(err)))
             return None
         else:
             lgr.log(log_level,collection + ' ' + str(key) + ' updated.')
@@ -252,7 +252,7 @@ class Categories(DlstatsCollection):
                  provider=None,
                  name=None,
                  docHref=None,
-                 children=[None],
+                 children=None,
                  categoryCode=None,
                  lastUpdate=None,
                  exposed=False,

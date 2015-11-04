@@ -30,7 +30,7 @@ class ECB(Fetcher):
                     dataflow_info = sdmx.ecb.dataflows(flowref)
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
-                    in_base_category_ = Category(provider='ECB',name=name,
+                    in_base_category_ = Categories(provider='ECB',name=name,
                                                 categoryCode=key_family,
                                                 children=None,
                                                 docHref=None,
