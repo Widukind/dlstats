@@ -40,7 +40,7 @@ provider_schema = Schema({
 category_schema = Schema({
     'name': All(str, Length(min=1)),
     'provider': All(str, Length(min=1)),
-    'children': Any([None,typecheck(bson.objectid.ObjectId)]), 
+    'children': Any(None,[typecheck(bson.objectid.ObjectId)]), 
     Optional('docHref'): Any(None,str),
     Optional('lastUpdate'): Any(None,typecheck(datetime)),
     'categoryCode': All(str, Length(min=1)),
