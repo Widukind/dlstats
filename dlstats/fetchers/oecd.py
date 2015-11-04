@@ -34,6 +34,8 @@ class OECD(Fetcher):
         super().__init__(provider_name='OECD', db=db, es_client=es_client, **kwargs)
         self.provider_name = 'OECD'
         self.provider = Providers(name=self.provider_name, 
+                                  long_name='Organisation for Economic Co-operation and Development',
+                                  region='world',
                                   website='http://www.oecd.org', 
                                   fetcher=self)
 

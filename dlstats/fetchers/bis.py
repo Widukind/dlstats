@@ -342,7 +342,9 @@ class BIS(Fetcher):
                          db=db, 
                          es_client=es_client)
         
-        self.provider = Providers(name=self.provider_name, 
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Bank for International Settlements',
+                                  region='world',
                                   website='http://www.bis.org', 
                                   fetcher=self)
 

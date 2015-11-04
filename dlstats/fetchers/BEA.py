@@ -24,7 +24,11 @@ class BEA(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
         self.provider_name = 'BEA'
-        self.provider = Providers(name = self.provider_name ,website='www.bea.gov/',fetcher=self)
+        self.provider = Providers(name = self.provider_name ,
+                                  long_name = 'Bureau of Economic Analysis',
+                                  region = 'USA',
+                                  website='www.bea.gov/',
+                                  fetcher=self)
         #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
         #            'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
          #           'Industry data_GDP by industry_Q': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',

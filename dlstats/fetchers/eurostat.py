@@ -134,7 +134,11 @@ class Eurostat(Fetcher):
                          db=db, 
                          es_client=es_client)
         self.provider_name = 'Eurostat'
-        self.provider = Providers(name=self.provider_name,website='http://ec.europa.eu/eurostat',fetcher=self)
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Eurostat',
+                                  region='Europe',
+                                  website='http://ec.europa.eu/eurostat',
+                                  fetcher=self)
         self.selected_codes = ['irt']
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
