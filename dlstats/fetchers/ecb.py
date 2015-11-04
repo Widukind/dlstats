@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
+from dlstats.misc_func import lazy_property
 import urllib
 import xlrd
 import csv
@@ -19,9 +20,12 @@ class ECB(Fetcher):
         super().__init__(provider_name='ECB') 
         self.provider_name = 'ECB'
         self.provider = Providers(name=self.provider_name,website='http://www.ecb.europa.eu/',fetcher=self)
+
+    @lazy_property
+    def categories():
+        return sdmx.ecb.categories
         
     def upsert_categories(self):
-        categories = sdmx.ecb.categories
         def walk_category(category):
             children_ids = []
             if 'flowrefs' in category:
@@ -48,6 +52,7 @@ class ECB(Fetcher):
             if 'subcategories' in category:
                 for subcategory in category['subcategories']:
                     children_ids.append(walk_category(subcategory))
+                print(children_ids)
                 in_base_category = Categories(provider='ECB',name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids,
@@ -58,7 +63,7 @@ class ECB(Fetcher):
                 return in_base_category.update_database()
             except NameError:
                 pass
-        walk_category(categories)
+        walk_category(self.categories)
 
     def upsert_dataset(self, dataset_code):
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
