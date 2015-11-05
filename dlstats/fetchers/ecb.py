@@ -17,7 +17,7 @@ import sdmx
 
 class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
-        super().__init__(provider_name='ECB') 
+        super().__init__(provider_name='ECB', db=db, es_client=es_client ) 
         self.provider_name = 'ECB'
         self.provider = Providers(name=self.provider_name,website='http://www.ecb.europa.eu/',fetcher=self)
 
@@ -50,8 +50,9 @@ class ECB(Fetcher):
                                             fetcher=self)
             if 'subcategories' in category:
                 for subcategory in category['subcategories']:
-                    children_ids.append(walk_category(subcategory))
-                print(children_ids)
+                    id = walk_category(subcategory)
+                    if id is not None:
+                        children_ids.append(id)
                 in_base_category = Categories(provider=self.provider_name,name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids,
@@ -62,7 +63,7 @@ class ECB(Fetcher):
                 return in_base_category.update_database()
             except NameError:
                 pass
-        walk_category(self.categories)
+        walk_category(self.get_categories())
 
     def upsert_dataset(self, dataset_code):
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
