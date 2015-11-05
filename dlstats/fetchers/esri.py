@@ -129,6 +129,8 @@ class EsriData():
         
     def __next__(self):
         column = self.panda_csv.icol(next(self.column_range))
+        if str(column[3]) == "nan" :
+            column = self.panda_csv.icol(next(self.column_range))
         if column is None:
             raise StopIteration()
         series = self.build_series(column)
@@ -146,7 +148,7 @@ class EsriData():
         series_key = 'esri.' + str(column[3]) + '; ' + self.frequency
         print(column[3])
         dimensions['concept'] = self.dimension_list.update_entry('concept','',str(column[3]))
-        print(dimensions['concept'])
+        #print(dimensions['concept'])
         for r in range(6, len(column)):
             series_value.append(str(column[r]))    
         #release_dates = [self.releaseDate for v in series_value] 
