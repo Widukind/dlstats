@@ -24,6 +24,7 @@ from dlstats import logger
 UPDATE_INDEXES = False
 
 def create_or_update_indexes(db, force_mode=False):
+    """Create or update MongoDB indexes"""
     
     global UPDATE_INDEXES
     
@@ -85,8 +86,9 @@ class Fetcher(object):
         :param str provider_name: Provider Name
         :param pymongo.database.Database db: MongoDB Database instance        
         :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
+        :param bool is_indexes: Bypass create_or_update_indexes() if False 
 
-        :raises ValueError: if provider_name is None        
+        :raises ValueError: if provider_name is None
         """        
         if not provider_name:
             raise ValueError("provider_name is required")
@@ -107,6 +109,9 @@ class Fetcher(object):
     
     def upsert_series(self):
         """Upsert all the series in MongoDB
+        
+        .. versionchanged:: 0.3.0
+           Remove function. (Not used in fetchers)                
         """        
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
@@ -115,7 +120,10 @@ class Fetcher(object):
     def upsert_a_series(self, id):
         """Upsert the series in MongoDB
         
-        :param id: :class:`str` - ID of :class:`Series`
+        .. versionchanged:: 0.3.0
+           Remove function. (Not used in fetchers)
+        
+        :param id: :class:`str` - ID of :class:`Series`        
         """        
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
@@ -123,7 +131,7 @@ class Fetcher(object):
     def upsert_dataset(self, dataset_code, datas=None):
         """Upsert a dataset in MongoDB
         
-        :param dataset_code: :class:`str` - ID of :class:`Dataset`
+        :param str dataset_code: ID of :class:`Datasets`
         """        
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
@@ -135,9 +143,9 @@ class Fetcher(object):
         self.provider.update_database()
         
     def update_metas(self, dataset_code):
-        """Update Meta datas - (TODO: store ElasticSearch or MongoDB)
+        """Update Meta datas to ElasticSearch
         
-        :param dataset_code: :class:`str` - ID of :class:`Dataset`
+        :param str dataset_code: ID of :class:`Datasets`
         """        
         es = ElasticIndex(db=self.db, es_client=self.es_client)
         es.make_index(self.provider_name, dataset_code)
@@ -148,7 +156,10 @@ class DlstatsCollection(object):
     
     def __init__(self, fetcher=None):
         """
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        :param Fetcher fetcher: Fetcher instance 
+
+        :raises ValueError: if fetcher is None
+        :raises TypeError: if not instance of :class:`Fetcher`  
         """
         
         if not fetcher:
@@ -159,19 +170,18 @@ class DlstatsCollection(object):
         
         self.fetcher = fetcher
         
-    def update_mongo_collection(self, collection, keys, bson, log_level=logging.INFO):
-        """Return always one ID (str format)  
+    def update_mongo_collection(self, collection, keys, bson, 
+                                log_level=logging.INFO):
+        """Update one document
+
+        :param str collection: Collection name
+        :param list keys: List of value for unique key
+        :param dict bson: Document values
+        :param int log_level: Default logging level
+        
+        :return: Instance of :class:`bson.objectid.ObjectId`  
         """
         lgr = logging.getLogger(__name__)
-        """
-        lgr.setLevel(log_level)
-        filepath = os.path.abspath(os.path.join(configuration['General']['logging_directory'], 'dlstats.log'))
-        fh = logging.FileHandler(filepath)
-        fh.setLevel(log_level)
-        frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        fh.setFormatter(frmt)
-        lgr.addHandler(fh)
-        """
         key = {k: bson[k] for k in keys}
         try:
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
@@ -185,13 +195,9 @@ class DlstatsCollection(object):
             return result
         
 class Providers(DlstatsCollection):
-    """Abstract base class for providers
+    """Providers class
     
     Inherit from :class:`DlstatsCollection`
-    
-    >>> provider = Providers(name='Eurostat',website='http://ec.europa.eu/eurostat')
-    >>> print(provider)
-    [('name', 'Eurostat'), ('website', 'http://ec.europa.eu/eurostat')]
     """
 
     def __init__(self,
@@ -200,10 +206,12 @@ class Providers(DlstatsCollection):
                  region=None,
                  website=None,
                  fetcher=None):
-        """
-        :param name: :class:`str` - Provider Name
-        :param website: :class:`str` - Provider Web Site
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        """        
+        :param str name: Provider Short Name
+        :param str long_name: Provider Long Name
+        :param str region: Region
+        :param str website: Provider Web Site
+        :param Fetcher fetcher: Fetcher instance
         """        
         super().__init__(fetcher=fetcher)
         self.name = name
@@ -235,25 +243,9 @@ class Providers(DlstatsCollection):
                                             self.bson)
                 
 class Categories(DlstatsCollection):
-    """Abstract base class for categories
+    """Categories class
     
-    >>> from datetime import datetime
-    >>> f = Fetcher(provider_name='Test provider')
-    >>> category = Categories(provider='Test provider',name='GDP',
-    ...                 categoryCode='nama_gdp',
-    ...                 children=[bson.objectid.ObjectId.from_datetime(datetime(2014,12,3))],
-    ...                 docHref='http://www.perdu.com',
-    ...                 lastUpdate=datetime(2014,12,2),
-    ...                 fetcher=f,
-    ...                 exposed=True)
-    >>> print(category)
-    [('categoryCode', 'nama_gdp'),
-     ('children', [ObjectId('547e52800000000000000000')]),
-     ('docHref', 'http://www.perdu.com'),
-     ('exposed', True),
-     ('lastUpdate', datetime.datetime(2014, 12, 2, 0, 0)),
-     ('name', 'GDP'),
-     ('provider', 'Test provider')]
+    Inherit from :class:`DlstatsCollection`
     """
     
     def __init__(self,
@@ -266,14 +258,14 @@ class Categories(DlstatsCollection):
                  exposed=False,
                  fetcher=None):
         """
-        :param provider: :class:`str` - Provider name
-        :param name: :class:`str` - Category short name
-        :param docHref: (Optional) :class:`str` - Category - web link
-        :param children: Array of :class:`bson.objectid.ObjectId` or empty list        
-        :param categoryCode: :class:`str` - Unique Category Code
-        :param lastUpdate: (Optional) :class:`datetime.datetime` - Last updated date
-        :param exposed: :class:`bool` - Exposed ?
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        :param str provider: Provider name
+        :param str name: Category short name
+        :param str docHref: (Optional) Category - web link
+        :param bson.objectid.ObjectId children: Array of ObjectId or empty list        
+        :param str categoryCode: Unique Category Code
+        :param datetime.datetime lastUpdate: (Optional) Last updated date
+        :param bool exposed: Exposed ?
+        :param Fetcher fetcher: Fetcher instance
         """        
         super().__init__(fetcher=fetcher)
         self.provider = provider
@@ -319,10 +311,7 @@ class Categories(DlstatsCollection):
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
-    >>> from datetime import datetime
-    >>> dataset = Datasets('Test provider','nama_gdp_fr')
-    >>> print(dataset)
-    [('provider_name', 'Test provider'), ('dataset_code', 'nama_gdp_fr')]
+    Inherit from :class:`DlstatsCollection`
     """
     
     def __init__(self, 
@@ -335,13 +324,14 @@ class Datasets(DlstatsCollection):
                  fetcher=None, 
                  is_load_previous_version=True):
         """
-        :param provider_name: :class:`str` - Provider name
-        :param dataset_code: :class:`str` - Dataset code
-        :param name: :class:`str` - Dataset name
-        :param doc_href: :class:`str` - Dataset link
-        :param last_update: :class:`datetime.datetime` - Dataset Last updated 
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
-        :param is_load_previous_version: :class:`bool` - load previous version (default True)
+        :param str provider_name: Provider name
+        :param str dataset_code: Dataset code
+        :param str name: Dataset name
+        :param str doc_href: Dataset link
+        :param int bulk_size: Batch size for mongo bulk
+        :param datetime.datetime last_update: Dataset Last updated 
+        :param Fetcher fetcher: Fetcher instance
+        :param bool is_load_previous_version: Bypass load previous version if False        
         """        
         super().__init__(fetcher=fetcher)
         self.provider_name = provider_name
@@ -395,7 +385,8 @@ class Datasets(DlstatsCollection):
                                             self.bson)
 
 class Series(DlstatsCollection):
-    """Abstract base class for time series"""
+    """Time Series class
+    """
     
     def __init__(self, 
                  provider_name=None, 
@@ -404,11 +395,11 @@ class Series(DlstatsCollection):
                  bulk_size=1000, 
                  fetcher=None):
         """        
-        :param provider_name: :class:`str` - Provider name
-        :param dataset_code: :class:`str` - Dataset code
-        :param last_update: :class:`datetime.datetime` - Last updated date
-        :param bulk_size: :class:`int` - Batch size for mongo bulk update
-        :param fetcher: Instance of :class:`dlstats.fetchers._commons.Fetcher`
+        :param str provider_name: Provider name
+        :param str dataset_code: Dataset code
+        :param datetime.datetime last_update: Last updated date
+        :param int bulk_size: Batch size for mongo bulk
+        :param Fetcher fetcher: Fetcher instance
         """        
         super().__init__(fetcher=fetcher)
         self.provider_name = provider_name
@@ -417,7 +408,6 @@ class Series(DlstatsCollection):
         self.bulk_size = bulk_size
         # temporary storage necessary to get old_bson in bulks
         self.series_list = []
-        # schema for on serie
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -613,11 +603,19 @@ class CodeDict():
 class ElasticIndex():
     
     def __init__(self, db=None, es_client=None):
+        """
+        :param pymongo.database.Database db: MongoDB Database instance
+        :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
+        """        
         
         self.db = db or mongo_client.widukind
         self.elasticsearch_client = es_client or Elasticsearch()
 
     def make_index(self, provider_name, dataset_code):
+        """
+        :param str provider_name: Provider short name
+        :param str dataset_code: Dataset ID
+        """        
         
         mb_dataset = self.db[constants.COL_DATASETS].find_one({'provider': provider_name, 'datasetCode': dataset_code})
         mb_series = self.db[constants.COL_SERIES].find({'provider': provider_name, 'datasetCode': dataset_code},
@@ -687,6 +685,10 @@ class ElasticIndex():
 
 class EsBulk():
     def __init__(self,db,mb_dimension_dict):
+        """
+        :param pymongo.database.Database db: MongoDB Database instance
+        :param dict mb_dimension_dict: Dimensions
+        """
         self.db = db
         self.es_bulk = []
         self.mb_dimension_dict = mb_dimension_dict
@@ -739,6 +741,3 @@ class EsBulk():
     def update_database(self):
         return helpers.bulk(self.db, self.es_bulk, index = constants.ES_INDEX)
 
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()

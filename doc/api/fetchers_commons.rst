@@ -3,50 +3,68 @@ Fetchers Commons
 ================
 
 Fetcher
--------
+=======
 
 .. autoclass:: dlstats.fetchers._commons.Fetcher
    :members:
    :special-members:
 
 DlstatsCollection
------------------
+=================
 
 .. autoclass:: dlstats.fetchers._commons.DlstatsCollection
    :members:
    :special-members:
 
-Provider
---------
+Providers
+=========
 
-.. autoclass:: dlstats.fetchers._commons.Provider
+.. autoclass:: dlstats.fetchers._commons.Providers
    :members:
    :special-members:
 
-Category
---------
+Categories
+==========
 
-.. autoclass:: dlstats.fetchers._commons.Category
+.. autoclass:: dlstats.fetchers._commons.Categories
    :members:
    :special-members:
    
-Dataset
--------
+Datasets
+========
 
-.. autoclass:: dlstats.fetchers._commons.Dataset
+.. autoclass:: dlstats.fetchers._commons.Datasets
    :members:
    :special-members:
 
 Series
-------
+======
+
+.. versionchanged:: 0.3.0
+   Remove Inherit DlstatsCollection
 
 .. autoclass:: dlstats.fetchers._commons.Series
    :members:
    :special-members:
 
-Utils - CodeDict
-----------------
+CodeDict
+========
 
 .. autoclass:: dlstats.fetchers._commons.CodeDict
    :members:
    :special-members:
+
+ElasticIndex
+============
+
+.. autoclass:: dlstats.fetchers._commons.ElasticIndex
+   :members:
+   :special-members:
+
+EsBulk
+======
+
+.. autoclass:: dlstats.fetchers._commons.EsBulk
+   :members:
+   :special-members:
+   
