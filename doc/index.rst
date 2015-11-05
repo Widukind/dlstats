@@ -22,6 +22,10 @@ Contents:
 
     introduction
     api/index
+=======
+    api/fetchers_commons
+    api/fetchers
+    technical/commands
     technical/configuration
     technical/database
     technical/mongodb
