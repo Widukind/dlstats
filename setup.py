@@ -35,9 +35,9 @@ setup(name='dlstats',
         'configobj>=5.0',
         'beautifulsoup4>=4.4.0',
         'lxml>=3.4.0',
-        'elasticsearch>=1.0.0,<2.0.0'
+        'elasticsearch>=1.0.0,<2.0.0',
         'colorama>=0.3.3',
-        'click>=5.1',
+        'click>=5.1'
     ],
 	entry_points={
 		'console_scripts': [
