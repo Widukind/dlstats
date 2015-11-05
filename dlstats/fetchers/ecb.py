@@ -21,8 +21,7 @@ class ECB(Fetcher):
         self.provider_name = 'ECB'
         self.provider = Providers(name=self.provider_name,website='http://www.ecb.europa.eu/',fetcher=self)
 
-    @lazy_property
-    def categories():
+    def get_categories(self):
         return sdmx.ecb.categories
         
     def upsert_categories(self):
@@ -34,7 +33,7 @@ class ECB(Fetcher):
                     dataflow_info = sdmx.ecb.dataflows(flowref)
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
-                    in_base_category_ = Categories(provider='ECB',name=name,
+                    in_base_category_ = Categories(provider=self.provider_name,name=name,
                                                 categoryCode=key_family,
                                                 children=None,
                                                 docHref=None,
@@ -42,7 +41,7 @@ class ECB(Fetcher):
                                                 exposed=True,
                                                 fetcher=self)
                     children_ids_.append(in_base_category_.update_database())
-                in_base_category = Categories(provider='ECB',name=category['name'],
+                in_base_category = Categories(provider=self.provider_name,name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids_,
                                             docHref=None,
@@ -53,7 +52,7 @@ class ECB(Fetcher):
                 for subcategory in category['subcategories']:
                     children_ids.append(walk_category(subcategory))
                 print(children_ids)
-                in_base_category = Categories(provider='ECB',name=category['name'],
+                in_base_category = Categories(provider=self.provider_name,name=category['name'],
                                             categoryCode=category['name'],
                                             children=children_ids,
                                             docHref=None,
