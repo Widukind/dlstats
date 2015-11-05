@@ -18,133 +18,25 @@ Mapping
             "properties" : {
               "codeList" : {
                 "properties" : {
-                  "Commodity" : {
+                  "Borrowers' country" : {
                     "type" : "string"
                   },
-                  "Commodity Prices" : {
+                  "Borrowing sector" : {
                     "type" : "string"
                   },
-                  "Correction" : {
+                  "Frequency" : {
                     "type" : "string"
                   },
-                  "Country" : {
+                  "Lending sector" : {
                     "type" : "string"
                   },
-                  "Country Code" : {
+                  "Type of adjustment" : {
                     "type" : "string"
                   },
-                  "FREQ" : {
+                  "Unit type" : {
                     "type" : "string"
                   },
-                  "GEO" : {
-                    "type" : "string"
-                  },
-                  "Geographical area" : {
-                    "type" : "string"
-                  },
-                  "INDIC_NA" : {
-                    "type" : "string"
-                  },
-                  "ISO" : {
-                    "type" : "string"
-                  },
-                  "Mode of representation" : {
-                    "type" : "string"
-                  },
-                  "Power" : {
-                    "type" : "string"
-                  },
-                  "Reference period" : {
-                    "type" : "string"
-                  },
-                  "S_ADJ" : {
-                    "type" : "string"
-                  },
-                  "Scale" : {
-                    "type" : "string"
-                  },
-                  "Subject" : {
-                    "type" : "string"
-                  },
-                  "Subject Code" : {
-                    "type" : "string"
-                  },
-                  "TIME_FORMAT" : {
-                    "type" : "string"
-                  },
-                  "Treatment of taxes" : {
-                    "type" : "string"
-                  },
-                  "UNIT" : {
-                    "type" : "string"
-                  },
-                  "Unit of measurement" : {
-                    "type" : "string"
-                  },
-                  "Units" : {
-                    "type" : "string"
-                  },
-                  "WEO Country Code" : {
-                    "type" : "string"
-                  },
-                  "age" : {
-                    "type" : "string"
-                  },
-                  "asset10" : {
-                    "type" : "string"
-                  },
-                  "code1" : {
-                    "type" : "string"
-                  },
-                  "code2" : {
-                    "type" : "string"
-                  },
-                  "code3" : {
-                    "type" : "string"
-                  },
-                  "code4" : {
-                    "type" : "string"
-                  },
-                  "code5" : {
-                    "type" : "string"
-                  },
-                  "code6" : {
-                    "type" : "string"
-                  },
-                  "country" : {
-                    "type" : "string"
-                  },
-                  "freq" : {
-                    "type" : "string"
-                  },
-                  "geo" : {
-                    "type" : "string"
-                  },
-                  "indic_em" : {
-                    "type" : "string"
-                  },
-                  "indic_na" : {
-                    "type" : "string"
-                  },
-                  "intrt" : {
-                    "type" : "string"
-                  },
-                  "na_item" : {
-                    "type" : "string"
-                  },
-                  "nace_r2" : {
-                    "type" : "string"
-                  },
-                  "s_adj" : {
-                    "type" : "string"
-                  },
-                  "sector" : {
-                    "type" : "string"
-                  },
-                  "sex" : {
-                    "type" : "string"
-                  },
-                  "unit" : {
+                  "Valuation" : {
                     "type" : "string"
                   }
                 }
@@ -172,142 +64,30 @@ Mapping
           },
           "series" : {
             "properties" : {
-              "created" : {
-                "type" : "date",
-                "format" : "dateOptionalTime"
-              },
               "datasetCode" : {
                 "type" : "string"
               },
               "dimensions" : {
                 "properties" : {
-                  "Commodity" : {
+                  "Borrowers' country" : {
                     "type" : "string"
                   },
-                  "Commodity Prices" : {
+                  "Borrowing sector" : {
                     "type" : "string"
                   },
-                  "Correction" : {
+                  "Frequency" : {
                     "type" : "string"
                   },
-                  "Country" : {
+                  "Lending sector" : {
                     "type" : "string"
                   },
-                  "Country Code" : {
+                  "Type of adjustment" : {
                     "type" : "string"
                   },
-                  "FREQ" : {
+                  "Unit type" : {
                     "type" : "string"
                   },
-                  "GEO" : {
-                    "type" : "string"
-                  },
-                  "Geographical area" : {
-                    "type" : "string"
-                  },
-                  "INDIC_NA" : {
-                    "type" : "string"
-                  },
-                  "ISO" : {
-                    "type" : "string"
-                  },
-                  "Mode of representation" : {
-                    "type" : "string"
-                  },
-                  "Power" : {
-                    "type" : "string"
-                  },
-                  "Reference period" : {
-                    "type" : "string"
-                  },
-                  "S_ADJ" : {
-                    "type" : "string"
-                  },
-                  "Scale" : {
-                    "type" : "string"
-                  },
-                  "Subject" : {
-                    "type" : "string"
-                  },
-                  "Subject Code" : {
-                    "type" : "string"
-                  },
-                  "TIME_FORMAT" : {
-                    "type" : "string"
-                  },
-                  "Treatment of taxes" : {
-                    "type" : "string"
-                  },
-                  "UNIT" : {
-                    "type" : "string"
-                  },
-                  "Unit of measurement" : {
-                    "type" : "string"
-                  },
-                  "Units" : {
-                    "type" : "string"
-                  },
-                  "WEO Country Code" : {
-                    "type" : "string"
-                  },
-                  "age" : {
-                    "type" : "string"
-                  },
-                  "asset10" : {
-                    "type" : "string"
-                  },
-                  "code1" : {
-                    "type" : "string"
-                  },
-                  "code2" : {
-                    "type" : "string"
-                  },
-                  "code3" : {
-                    "type" : "string"
-                  },
-                  "code4" : {
-                    "type" : "string"
-                  },
-                  "code5" : {
-                    "type" : "string"
-                  },
-                  "code6" : {
-                    "type" : "string"
-                  },
-                  "country" : {
-                    "type" : "string"
-                  },
-                  "freq" : {
-                    "type" : "string"
-                  },
-                  "geo" : {
-                    "type" : "string"
-                  },
-                  "indic_em" : {
-                    "type" : "string"
-                  },
-                  "indic_na" : {
-                    "type" : "string"
-                  },
-                  "intrt" : {
-                    "type" : "string"
-                  },
-                  "na_item" : {
-                    "type" : "string"
-                  },
-                  "nace_r2" : {
-                    "type" : "string"
-                  },
-                  "s_adj" : {
-                    "type" : "string"
-                  },
-                  "sector" : {
-                    "type" : "string"
-                  },
-                  "sex" : {
-                    "type" : "string"
-                  },
-                  "unit" : {
+                  "Valuation" : {
                     "type" : "string"
                   }
                 }
@@ -327,4 +107,8 @@ Mapping
             }
           }
         }
+      },
+      "widukind_test" : {
+        "mappings" : { }
       }
+    }

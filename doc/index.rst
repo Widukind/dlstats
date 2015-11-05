@@ -21,14 +21,12 @@ Contents:
     :maxdepth: 1
 
     introduction
-    api/fetchers_commons
-    api/fetchers
+    api/index
     technical/configuration
     technical/database
     technical/mongodb
     technical/elasticsearch
     sources/referential
-    sources/BIS-LBS-DISS
     
 
 Indices and tables
