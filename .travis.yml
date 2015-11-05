@@ -38,8 +38,6 @@ script:
   - flake8 --exit-zero dlstats
   
 branches:
-  only:
-    - master
     
 after_script: coveralls --verbose
 
