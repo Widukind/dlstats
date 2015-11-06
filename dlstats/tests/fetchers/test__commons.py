@@ -112,6 +112,7 @@ class FakeDatas():
                     'frequency': frequency,
                     'startDate': start_date,
                     'endDate': end_date,
+                    'lastUpdate': datetime.now(),
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -127,6 +128,7 @@ class FakeDatas():
                     'frequency': frequency,
                     'startDate': start_date,
                     'endDate': end_date,
+                    'lastUpdate': datetime.now(),
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -495,7 +497,8 @@ class DBDatasetTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("country", "country", "country")
+        d.dimension_list.update_entry("Country", "AFG", "AFG")
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
 
         datas = FakeDatas(provider_name="p1", 
                           dataset_code="d1",
@@ -528,7 +531,8 @@ class DBDatasetTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("country", "country", "country")
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+        d.dimension_list.update_entry("country", "AFG", "AFG")
 
         datas = FakeDatas(provider_name="p1", 
                           dataset_code="d1",
@@ -556,7 +560,109 @@ class DBDatasetTestCase(BaseDBTestCase):
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
-class DBSeriesTestCase(BaseDBTestCase):
+    def test_update_metas(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_update_metas
+
+        self._collections_is_empty()
+
+        f = Fetcher(provider_name="p1", 
+                    db=self.db, es_client=self.es)
+
+        d = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("Country", "AFG", "AFG")
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+
+        datas = FakeDatas(provider_name="p1", 
+                          dataset_code="d1",
+                          fetcher=f)
+        datas.rows[0]['key'] = 'aaaa'
+        datas.rows[0]['frequency'] = 'Q'
+        d.series.data_iterator = datas
+
+        id = d.update_database()
+        f.update_metas('d1')
+
+        # testing EsBulk.add_to_index
+        # waiting for ES to be ready
+        import time
+        time.sleep(1)
+        es_data = self.es.search(index = constants.ES_INDEX, doc_type = 'datasets',
+                                 body= { "filter":
+                                         { "term":
+                                           { "_id": 'p1.d1'}}})
+        self.assertEqual(es_data['hits']['total'],1)
+
+        record = es_data['hits']['hits'][0]['_source']
+        self.assertEqual(record['codeList']['Scale'],[['Billions','Billions' ]])
+        self.assertEqual(record['codeList']['Country'],[['AFG','AFG' ]])
+
+        test_key = datas.rows[0]['key']
+        es_series = self.es.search(index = constants.ES_INDEX, doc_type = 'series',
+                                   body= { "filter":
+                                           { "term":
+                                             { 'key': test_key}}})
+        print('es_series',es_series)
+        record = es_series['hits']['hits'][0]['_source']
+        self.assertEqual(record['dimensions']['Scale'],['Billions','Billions'])
+        self.assertEqual(record['dimensions']['Country'],['AFG','AFG'])
+        self.assertEqual(record['frequency'],'Q')
+        
+        record = es_data['hits']['hits'][0]['_source']
+        self.assertEqual(record['codeList']['Scale'],[['Billions','Billions' ]])
+
+        # testing EsBullk.update_index
+        # change in some dimension_list
+        d = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("Country", "AFG", "AFG1")
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+
+        datas = FakeDatas(provider_name="p1", 
+                          dataset_code="d1",
+                          fetcher=f)
+        datas.rows[0]['key'] = 'aaaa'
+        datas.rows[0]['frequency'] = 'Q'
+        d.series.data_iterator = datas
+
+        id = d.update_database()
+        f.update_metas('d1')
+
+        time.sleep(1)
+        es_data = self.es.search(index = constants.ES_INDEX, doc_type = 'datasets',
+                                 body= { "filter":
+                                         { "term":
+                                           { "_id": 'p1.d1'}}})
+        self.assertEqual(es_data['hits']['total'],1)
+
+        record = es_data['hits']['hits'][0]['_source']
+        self.assertEqual(record['codeList']['Scale'],[['Billions','Billions' ]])
+        self.assertEqual(record['codeList']['Country'],[['AFG','AFG1' ]])
+
+        test_key = datas.rows[0]['key']
+        es_series = self.es.search(index = constants.ES_INDEX, doc_type = 'series',
+                                   body= { "filter":
+                                           { "term":
+                                             { 'key': test_key}}})
+        print('es_series',es_series)
+        record = es_series['hits']['hits'][0]['_source']
+        self.assertEqual(record['dimensions']['Scale'],['Billions','Billions'])
+        self.assertEqual(record['dimensions']['Country'],['AFG','AFG1'])
+        self.assertEqual(record['frequency'],'Q')
+        
+        
+class DBSeriesTestCase(BaseDBTest):
     
     #TODO: test indexes keys and properties
     def test_indexes(self):
