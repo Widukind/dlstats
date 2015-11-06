@@ -17,8 +17,7 @@ from dlstats import constants
 import unittest
 from unittest import mock
 
-from dlstats.tests.base import RESOURCES_DIR
-from dlstats.tests.fetchers.base import BaseFetcherTestCase, BaseDBFetcherTestCase
+from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
 DATASETS = bis.DATASETS
 
@@ -197,7 +196,7 @@ def load_fake_datas(select_dataset_code=None):
     #pprint(results)
     return results
 
-class BISUtilsTestCase(BaseFetcherTestCase):
+class BISUtilsTestCase(BaseTestCase):
     """BIS Utils
     """
 
@@ -238,7 +237,7 @@ class BISUtilsTestCase(BaseFetcherTestCase):
             #pprint(line1)
         
 
-class BISDatasetsTestCase(BaseFetcherTestCase):
+class BISDatasetsTestCase(BaseTestCase):
     """Fetchers Tests - No DB access
     """
     
@@ -320,7 +319,7 @@ class BISDatasetsTestCase(BaseFetcherTestCase):
         self.assertDictEqual(datas, attempt)        
         
 
-class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
+class BISDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
     
     sources from DATASETS[dataset_code]['datas'] written in zip file
@@ -329,7 +328,7 @@ class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_bis:BISDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = bis.BIS(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
@@ -502,7 +501,7 @@ class BISDatasetsDBTestCase(BaseDBFetcherTestCase):
         self.assertIsNotNone(serie)
 
 
-class LightBISDatasetsDBTestCase(BaseDBFetcherTestCase):
+class LightBISDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB and lights sources
     
     1. Créer un fichier zip à partir des données du dict DATASETS
@@ -513,7 +512,7 @@ class LightBISDatasetsDBTestCase(BaseDBFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = bis.BIS(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
@@ -631,7 +630,7 @@ class LightBISDatasetsDBTestCase(BaseDBFetcherTestCase):
 
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
-class FullBISDatasetsDBTestCase(BaseDBFetcherTestCase):
+class FullBISDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB and real download sources
     
     1. Télécharge ou utilise des fichiers existants
@@ -642,7 +641,7 @@ class FullBISDatasetsDBTestCase(BaseDBFetcherTestCase):
     # FULL_REMOTE_TEST=1 nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = bis.BIS(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        

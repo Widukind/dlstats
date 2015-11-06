@@ -11,17 +11,16 @@ import unittest
 from unittest import mock
 import httpretty
 
-from dlstats.tests.base import RESOURCES_DIR
-from dlstats.tests.fetchers.base import BaseFetcherTestCase, BaseDBFetcherTestCase
+from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
-class OECDDatasetsTestCase(BaseFetcherTestCase):
+class OECDDatasetsTestCase(BaseTestCase):
     """Fetchers Tests - No DB access
     """
 
     # nosetests -s -v dlstats.tests.fetchers.test_oecd:OECDDatasetsTestCase
     
     def setUp(self):
-        BaseFetcherTestCase.setUp(self)
+        BaseTestCase.setUp(self)
         
         self.fetcher = oecd.OECD(is_indexes=False)
 
@@ -148,14 +147,14 @@ class OECDDatasetsTestCase(BaseFetcherTestCase):
             self.assertTrue(dim in list(self.oecd_data.codes.keys()))
 
 
-class OECDDatasetsDBTestCase(BaseDBFetcherTestCase):
+class OECDDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
     """
     
     # nosetests -s -v dlstats.tests.fetchers.test_oecd:OECDDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = oecd.OECD(db=self.db, es_client=self.es)
 
     @unittest.skipIf(True, "TODO - sdmx tests")

@@ -13,12 +13,12 @@ RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
 VERIFIED_RELEASES = False
 
-class BaseTest(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
     
     def setUp(self):
         unittest.TestCase.setUp(self)
 
-class BaseDBTest(BaseTest):
+class BaseDBTestCase(BaseTest):
     """Tests with MongoDB or ElasticSearch
     """
     

@@ -22,7 +22,7 @@ from dlstats.fetchers._commons import (Fetcher,
 
 import unittest
 
-from dlstats.tests.base import BaseTest, BaseDBTest, RESOURCES_DIR
+from dlstats.tests.base import BaseTestCase, BaseDBTestCase, RESOURCES_DIR
 
 class FakeDataset(Datasets):
     
@@ -145,7 +145,7 @@ class FakeDatas():
     
 
 
-class FetcherTestCase(BaseTest):
+class FetcherTestCase(BaseTestCase):
 
     def test_constructor(self):
         
@@ -182,10 +182,10 @@ class FetcherTestCase(BaseTest):
             f.insert_provider()
 
 #TODO: CodeDictTestCase
-class CodeDictTestCase(BaseTest):
+class CodeDictTestCase(BaseTestCase):
     pass
 
-class DlstatsCollectionTestCase(BaseTest):
+class DlstatsCollectionTestCase(BaseTestCase):
 
     def test_constructor(self):
         
@@ -200,7 +200,7 @@ class DlstatsCollectionTestCase(BaseTest):
         f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
-class CategoryTestCase(BaseTest):
+class CategoryTestCase(BaseTestCase):
     
     def test_constructor(self):
 
@@ -231,7 +231,7 @@ class CategoryTestCase(BaseTest):
     
         #print(c.schema(c.bson))
     
-class ProviderTestCase(BaseTest):
+class ProviderTestCase(BaseTestCase):
 
     def test_constructor(self):
 
@@ -258,7 +258,7 @@ class ProviderTestCase(BaseTest):
         self.assertEqual(bson["website"], "http://www.example.com")
 
 
-class DatasetTestCase(BaseTest):
+class DatasetTestCase(BaseTestCase):
     
     #TODO: test_load_previous_version()
     
@@ -297,7 +297,7 @@ class DatasetTestCase(BaseTest):
                 
         #print(d.schema(d.bson))
 
-class SeriesTestCase(BaseTest):
+class SeriesTestCase(BaseTestCase):
     
     def test_constructor(self):
 
@@ -316,7 +316,7 @@ class SeriesTestCase(BaseTest):
         
         self.assertFalse(hasattr(s, "data_iterator"))
             
-class DBCategoryTestCase(BaseDBTest):
+class DBCategoryTestCase(BaseDBTestCase):
     
     #TODO: test indexes keys and properties
     def test_indexes(self):
@@ -410,7 +410,7 @@ class DBCategoryTestCase(BaseDBTest):
     
         #print(c.schema(c.bson))
     
-class DBProviderTestCase(BaseDBTest):
+class DBProviderTestCase(BaseDBTestCase):
 
     #TODO: test indexes keys and properties
     def test_indexes(self):
@@ -473,7 +473,7 @@ class DBProviderTestCase(BaseDBTest):
         self.assertEqual(bson["name"], "p1")
         self.assertEqual(bson["website"], "http://www.example.com")
 
-class DBDatasetTestCase(BaseDBTest):
+class DBDatasetTestCase(BaseDBTestCase):
 
     #TODO: test indexes keys and properties
     def test_indexes(self):
@@ -556,7 +556,7 @@ class DBDatasetTestCase(BaseDBTest):
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
-class DBSeriesTestCase(BaseDBTest):
+class DBSeriesTestCase(BaseDBTestCase):
     
     #TODO: test indexes keys and properties
     def test_indexes(self):
