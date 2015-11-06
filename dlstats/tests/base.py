@@ -42,7 +42,7 @@ class BaseDBTestCase(BaseTestCase):
         create_or_update_indexes(self.db, force_mode=True)
 
     def tearDown(self):
-        BaseTest.tearDown(self)
+        BaseTestCase.tearDown(self)
         constants.ES_INDEX = self.BACKUP_ES_INDEX
 
     
