@@ -2,6 +2,7 @@ import configobj
 import validate
 import os
 
+
 def _get_filename():
     """Return the configuration file path."""
     appname = 'dlstats'
@@ -14,9 +15,10 @@ def _get_filename():
         else:
             raise FileNotFoundError('No configuration file found.')
     elif os.name == 'mac':
-        return ("%s/Library/Application Support/%s" % (os.environ["HOME"], appname+'/main.conf'))
+        return ("%s/Library/Application Support/%s"
+                % (os.environ["HOME"], appname+'/main.conf'))
     elif os.name == 'nt':
-        #TODO: Trouver une meilleure méthode
+        # TODO: Trouver une meilleure méthode
         return ("%s/%s" % (os.environ["APPDATA"], appname+'/main.conf'))
     else:
         raise Exception("Not supported OS: %s" % os.name)
@@ -50,8 +52,14 @@ try:
     configuration.validate(validator)
 except FileNotFoundError:
     configuration = configobj.ConfigObj()
-    configuration['General'] = {'logging_directory': os.environ["HOME"], 'socket_directory': os.environ["HOME"]}
-    configuration['Fetchers'] = {'Eurostat':{'url_table_of_contents':'http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml'}}
-    configuration['MongoDB'] = {'host':'127.0.0.1', 'port':27017}
-    configuration['ElasticSearch'] = {'host':'127.0.0.1', 'port':9200}
+    configuration['General'] = {'logging_directory': os.environ["HOME"],
+                                'socket_directory': os.environ["HOME"]}
+    configuration['Fetchers'] = {'Eurostat':
+                                 {'url_table_of_contents':
+                                  'http://ec.europa.eu/eurostat/'
+                                  'estat-navtree-portlet-prod/'
+                                  'BulkDownloadListing?'
+                                  'sort=1&file=table_of_contents.xml'}}
+    configuration['MongoDB'] = {'host': '127.0.0.1', 'port': 27017}
+    configuration['ElasticSearch'] = {'host': '127.0.0.1', 'port': 9200}
 configuration = configuration.dict()
