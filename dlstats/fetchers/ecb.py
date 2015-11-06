@@ -73,7 +73,8 @@ class ECB(Fetcher):
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
         ecb_data = ECBData(dataset_code)
         dataset = Datasets(self.provider_name,dataset_code,last_update=cat['lastUpdate'],
-                          doc_href=cat['docHref'],name=cat['name'],data_iterator=ecb_data)
+                          doc_href=cat['docHref'],name=cat['name'])
+        dataset.series.data_iterator = ecb_data
         dataset.update_database()
 
 
