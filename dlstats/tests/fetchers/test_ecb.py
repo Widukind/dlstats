@@ -21,9 +21,15 @@ def generate_datasets_sdmx():
                 for subdictionnary in dictionnary[key]:
                     accumulator.extend(walk_dictionnary(subdictionnary))
         return accumulator
-    return walk_dictionnary(sdmx.ecb.categories)
+    flowrefs =  walk_dictionnary(sdmx.ecb.categories)
+    for flowref in flowrefs:
+        dataflow_definition = sdmx.ecb.dataflows(flowref)
+        with open('ecb_dataflows_'+str(flowref)+'.pkl', 'wb') as f:
+            pickle.dump(dataflow_definition, f, pickle.HIGHEST_PROTOCOL)
 
-
+def dataflows(flowref):
+    output = pickle.loads(pkgutil.get_data('dlstats', 'tests/resources/ecb/ecb_dataflows_'+flowref+'.pkl'))
+    return output
 
 def get_categories(self):
     output = pickle.loads(pkgutil.get_data('dlstats', 'tests/resources/ecb/ecb_categories_sdmx_dict.pkl'))
