@@ -735,7 +735,7 @@ class EsBulk():
                 update = True
                 
         if update:
-            schemas.es_series_schema(bson)
+            schemas.es_series_schema(new_bson)
             self.es_bulk.append(new_bson)
             
     def update_database(self):
