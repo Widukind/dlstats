@@ -15,7 +15,7 @@ class FetcherNoDBTestCase(BaseTestCase):
     # nosetests -s -v dlstats.tests.commands.test_commands_fetchers:FetcherNoDBTestCase
 
     def setUp(self):
-        BaseTest.setUp(self)
+        BaseTestCase.setUp(self)
         #TODO: mock ?
         self.backup_FETCHERS = FETCHERS.copy()
         self.backup_FETCHERS_DATASETS = FETCHERS_DATASETS.copy()
@@ -23,7 +23,7 @@ class FetcherNoDBTestCase(BaseTestCase):
         FETCHERS_DATASETS["TEST"] = {"dataset1": {"name": "Dataset1"}}
 
     def tearDown(self):
-        BaseTest.tearDown(self)
+        BaseTestCase.tearDown(self)
         FETCHERS = self.backup_FETCHERS
         FETCHERS_DATASETS = self.backup_FETCHERS_DATASETS
         
