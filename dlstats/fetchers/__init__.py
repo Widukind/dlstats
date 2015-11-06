@@ -30,14 +30,6 @@ except ImportError:
     pass
 
 try:
-    from dlstats.fetchers.insee import Insee
-    FETCHERS['INSEE'] = Insee
-    #TODO: FETCHERS_DATASETS['INSEE'] = None
-    __all__.append('Insee')
-except ImportError:
-    pass
-
-try:
     from dlstats.fetchers.world_bank import WorldBank
     FETCHERS['WB'] = WorldBank
     #TODO: FETCHERS_DATASETS['WB'] = None
