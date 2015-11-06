@@ -13,12 +13,12 @@ RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
 VERIFIED_RELEASES = False
 
-class BaseTest(unittest.TestCase):
+class BaseTestCase(unittest.TestCase):
     
     def setUp(self):
         unittest.TestCase.setUp(self)
 
-class BaseDBTest(BaseTest):
+class BaseDBTestCase(BaseTestCase):
     """Tests with MongoDB or ElasticSearch
     """
     
@@ -42,7 +42,7 @@ class BaseDBTest(BaseTest):
         create_or_update_indexes(self.db, force_mode=True)
 
     def tearDown(self):
-        BaseTest.tearDown(self)
+        BaseTestCase.tearDown(self)
         constants.ES_INDEX = self.BACKUP_ES_INDEX
 
     

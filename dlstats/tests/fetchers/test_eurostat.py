@@ -14,8 +14,7 @@ from dlstats import constants
 import unittest
 from unittest import mock
 
-from dlstats.tests.base import RESOURCES_DIR
-from dlstats.tests.fetchers.base import BaseFetcherTestCase, BaseDBFetcherTestCase
+from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
 # Nombre de série dans les exemples
 SERIES_COUNT = 1
@@ -354,7 +353,7 @@ def load_fake_datas(select_dataset_code=None):
 def get_table_of_contents(self):
     return TABLE_OF_CONTENT
 
-class EurostatDatasetsTestCase(BaseFetcherTestCase):
+class EurostatDatasetsTestCase(BaseTestCase):
     """Fetchers Tests - No DB access
     """
     
@@ -385,7 +384,7 @@ class EurostatDatasetsTestCase(BaseFetcherTestCase):
         self.assertDictEqual(datas, attempt)
 
         
-class EurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
+class EurostatDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
     
     sources from DATASETS[dataset_code]['datas'] written in zip file
@@ -394,7 +393,7 @@ class EurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
@@ -467,7 +466,7 @@ class EurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
         #TODO: clean filepath
 
 
-class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
+class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB and lights sources
     
     1. Créer un fichier zip à partir des données du dict DATASETS
@@ -478,7 +477,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
@@ -553,7 +552,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
         #TODO: meta_datas tests  
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
-class FullEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
+class FullEurostatDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB and real download sources
     
     1. Télécharge ou utilise des fichiers existants
@@ -564,7 +563,7 @@ class FullEurostatDatasetsDBTestCase(BaseDBFetcherTestCase):
     # FULL_REMOTE_TEST=1 nosetests -s -v dlstats.tests.fetchers.test_eurostat:FullEurostatDatasetsDBTestCase
     
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        

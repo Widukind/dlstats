@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch, Mock
 from dlstats.fetchers import ecb
 from dlstats import constants
-from dlstats.tests.fetchers.base import BaseDBFetcherTestCase
+from dlstats.tests.base import BaseDBTestCase
 import pickle
 import pkgutil
 import sdmx
@@ -36,9 +36,9 @@ def get_categories(self):
     return output
 
 
-class ECBCategoriesDBTestCase(BaseDBFetcherTestCase):
+class ECBCategoriesDBTestCase(BaseDBTestCase):
     def setUp(self):
-        BaseDBFetcherTestCase.setUp(self)
+        BaseDBTestCase.setUp(self)
         self.fetcher = ecb.ECB(db=self.db)
     @patch('sdmx.ecb.dataflows',dataflows)
     @patch('dlstats.fetchers.ecb.ECB.get_categories',get_categories)
