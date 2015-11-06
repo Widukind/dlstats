@@ -15,6 +15,17 @@ frmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 fh.setFormatter(frmt)
 lgr.addHandler(fh)
 
+def lazy_property(function):
+    '''Decorator that makes a property lazy-evaluated.'''
+    attribute_name = '_lazy_' + function.__name__
+
+    @property
+    def _lazy_property(self):
+        if not hasattr(self, attr_name):
+            setattr(self, attr_name, function(self))
+        return getattr(self, attr_name)
+    return _lazy_property
+
 
 def print_in_place(i):
 	s = str(i)
