@@ -18,7 +18,7 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
 
-class BaseDBTestCase(BaseTest):
+class BaseDBTestCase(BaseTestCase):
     """Tests with MongoDB or ElasticSearch
     """
     
