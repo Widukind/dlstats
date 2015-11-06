@@ -5,12 +5,12 @@ from dlstats.commands import cmd_fetchers
 
 import unittest
 from click.testing import CliRunner
-from dlstats.tests.base import BaseTest, BaseDBTest, RESOURCES_DIR
+from dlstats.tests.base import BaseTestCase, BaseDBTestCase, RESOURCES_DIR
 
 class FakeFetcher():
     pass
 
-class FetcherNoDBTestCase(BaseTest):
+class FetcherNoDBTestCase(BaseTestCase):
 
     # nosetests -s -v dlstats.tests.commands.test_commands_fetchers:FetcherNoDBTestCase
 
