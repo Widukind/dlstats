@@ -43,6 +43,7 @@ class ECBCategoriesDBTestCase(BaseDBFetcherTestCase):
     @patch('sdmx.ecb.dataflows',dataflows)
     @patch('dlstats.fetchers.ecb.ECB.get_categories',get_categories)
     def test_categories(self):
+        self.fetcher.upsert_categories()
         #We exclude ObjectIDs because their values are not determinitstic. We
         #can't test these elements
         results = self.db[constants.COL_CATEGORIES].find(
