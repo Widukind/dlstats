@@ -13,7 +13,6 @@ except:
     fh = logging.FileHandler('dlstats.log')
     fh.setLevel(logging.DEBUG)
     frmt = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     fh.setFormatter(frmt)
     logger.addHandler(fh)
-
