@@ -11,7 +11,7 @@ COL_DATASETS = "datasets"
 COL_SERIES = "series"
 
 COL_ALL = [
-    COL_CATEGORIES, 
+    COL_CATEGORIES,
     COL_PROVIDERS,
     COL_DATASETS,
     COL_SERIES
