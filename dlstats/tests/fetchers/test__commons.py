@@ -112,7 +112,6 @@ class FakeDatas():
                     'frequency': frequency,
                     'startDate': start_date,
                     'endDate': end_date,
-                    'lastUpdate': datetime.now(),
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -128,7 +127,6 @@ class FakeDatas():
                     'frequency': frequency,
                     'startDate': start_date,
                     'endDate': end_date,
-                    'lastUpdate': datetime.now(),
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -592,7 +590,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         # testing EsBulk.add_to_index
         # waiting for ES to be ready
         import time
-        time.sleep(1)
+        time.sleep(2)
         es_data = self.es.search(index = constants.ES_INDEX, doc_type = 'datasets',
                                  body= { "filter":
                                          { "term":
@@ -608,8 +606,9 @@ class DBDatasetTestCase(BaseDBTestCase):
                                    body= { "filter":
                                            { "term":
                                              { 'key': test_key}}})
-        print('es_series',es_series)
+
         record = es_series['hits']['hits'][0]['_source']
+
         self.assertEqual(record['dimensions']['Scale'],['Billions','Billions'])
         self.assertEqual(record['dimensions']['Country'],['AFG','AFG'])
         self.assertEqual(record['frequency'],'Q')
@@ -635,7 +634,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         datas.rows[0]['key'] = 'aaaa'
         datas.rows[0]['frequency'] = 'Q'
         d.series.data_iterator = datas
-
+        
         id = d.update_database()
         f.update_metas('d1')
 
@@ -651,18 +650,19 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(record['codeList']['Country'],[['AFG','AFG1' ]])
 
         test_key = datas.rows[0]['key']
+        test_name = datas.rows[0]['name']
         es_series = self.es.search(index = constants.ES_INDEX, doc_type = 'series',
                                    body= { "filter":
                                            { "term":
                                              { 'key': test_key}}})
-        print('es_series',es_series)
         record = es_series['hits']['hits'][0]['_source']
         self.assertEqual(record['dimensions']['Scale'],['Billions','Billions'])
         self.assertEqual(record['dimensions']['Country'],['AFG','AFG1'])
         self.assertEqual(record['frequency'],'Q')
+        self.assertEqual(record['name'],test_name)
         
         
-class DBSeriesTestCase(BaseDBTest):
+class DBSeriesTestCase(BaseDBTestCase):
     
     #TODO: test indexes keys and properties
     def test_indexes(self):

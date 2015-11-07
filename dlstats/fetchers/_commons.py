@@ -540,7 +540,7 @@ class Series(DlstatsCollection):
             if bson['endDate'] < old_bson['endDate']:
                 for p in range(old_bson['endDate']-bson['endDate']):
                     bson['values'].append('na')
-                    bson['releaseDates'].append(last_udpate)
+                    bson['releaseDates'].append(last_update)
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
 
@@ -659,7 +659,7 @@ class ElasticIndex():
             es_dimension_dict = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]] for d2 in es_dataset['codeList'][d1]} for d1 in es_dataset['codeList']}
         else:
             es_dimension_dict = {}
-            
+
         es_bulk = EsBulk(self.elasticsearch_client,mb_dimension_dict)
         for s in mb_series:
             mb_dim = s['dimensions']
@@ -709,7 +709,8 @@ class EsBulk():
                 'name': s['name'],
                 'datasetCode': dataset_code,
                 'dimensions': s['dimensions'],
-                'frequency': s['frequency']}
+                'frequency': s['frequency']
+        }
         schemas.es_series_schema(bson)
         self.es_bulk.append(bson)
                                      
@@ -718,24 +719,26 @@ class EsBulk():
         update = False
         mb_dim = s['dimensions']
         new_bson = {"_op_type": 'update',
-                "_index": constants.ES_INDEX,
-                "_type": 'series',
-                "_id": provider_name + '.' + dataset_code + '.' + s['key']}
-
+                    "_index": constants.ES_INDEX,
+                    "_type": 'series',
+                    "_id": provider_name + '.' + dataset_code + '.' + s['key']}
+        new_doc = {}
         if es_s['name'] != s['name']:
-            new_bson['name'] = s['name']
+            new_doc['name'] = s['name']
             update = True
         update1 = False
         for d1 in es_s['dimensions']:
             if es_s['dimensions'][d1] != mb_dim[d1]:
                 es_s['dimensions'][d1] = mb_dim[d1]
                 update1 = True
+
         if update1:
-                new_bson['dimensions'] = es_s['dimensions']
-                update = True
+            new_doc['dimensions'] = es_s['dimensions']
+            update = True
                 
         if update:
-            schemas.es_series_schema(bson)
+            new_bson['doc'] = new_doc
+            schemas.es_series_update_schema(new_bson)
             self.es_bulk.append(new_bson)
             
     def update_database(self):
