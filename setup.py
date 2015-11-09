@@ -2,25 +2,10 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-
-def rq(s):
-    return s.strip("\"'")
-
-
-def version(filepath):
-    import re
-    import os
-    re_vers = re.compile(r'VERSION\s*=.*?\((.*?)\)')
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, filepath)) as fp:
-        for line in fp:
-            m = re_vers.match(line.strip())
-            if m:
-                v = list(map(rq, m.groups()[0].split(', ')))
-                return "{0}.{1}.{2}".format(*v[0:3])
+from dlstats import version
 
 setup(name='dlstats',
-      version=version('dlstats/version.py'),
+      version=version.version_str(),
       description='A python module that provides an interface between\
                    statistics providers and pandas.',
       author='Widukind team',
