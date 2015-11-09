@@ -35,22 +35,45 @@ opt_verbose = click.option('-v', '--verbose', is_flag=True,
 opt_pretty = click.option('--pretty', is_flag=True,
                           help='Pretty display.')
 
+opt_logger = click.option('--log-level', '-l', 
+                          required=False, 
+                          type=click.Choice(['DEBUG', 'WARN', 'ERROR', 'INFO', 
+                                             'CRITICAL']),
+                          default='ERROR', 
+                          help='Logging level')
+
+opt_logger_conf = click.option('--log-config', 
+                               type=click.Path(exists=True), 
+                               help='Logging config filepath')
+
 cmd_folder = os.path.abspath(
                     os.path.join(os.path.dirname(__file__), 'commands'))
 
-
 class Context(object):
-    def __init__(self, mongo_url=None, es_url=None, verbose=False, debug=False,
-                 silent=False, pretty=False):
+    def __init__(self, mongo_url=None, es_url=None, verbose=False,
+                 log_level='ERROR', log_config=None, 
+                 debug=False, silent=False, pretty=False):
         self.verbose = verbose
         self.debug = debug
         self.silent = silent
         self.pretty = pretty
         self.mongo_url = mongo_url
         self.es_url = es_url
+        
+        self.log_level = log_level
+        self.log_config = log_config
+        
+        if self.verbose:
+            self.log_level = 'INFO'
+        
         self.client_mongo = None
         self.db_mongo = None
         self.client_es = None
+        
+        self.logger = utils.configure_logging(debug=self.debug, 
+                                #stdout_enable, 
+                                config_file=self.log_config, 
+                                level=self.log_level)
 
     def log(self, msg, *args):
         """Logs a message to stderr."""

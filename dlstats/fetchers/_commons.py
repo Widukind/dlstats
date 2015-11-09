@@ -17,10 +17,11 @@ from copy import deepcopy
 
 from dlstats import constants
 from dlstats.fetchers import schemas
-from dlstats import logger
 from dlstats import utils
 
 UPDATE_INDEXES = False
+
+logger = logging.getLogger(__name__)
 
 def create_or_update_indexes(db, force_mode=False):
     """Create or update MongoDB indexes"""

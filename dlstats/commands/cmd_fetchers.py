@@ -50,6 +50,8 @@ def cmd_dataset_list(fetcher):
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
 @client.opt_mongo_url
 @client.opt_es_url
 @opt_fetcher
