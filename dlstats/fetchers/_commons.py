@@ -11,17 +11,17 @@ from pymongo import ReturnDocument
 from datetime import datetime
 import logging
 import pprint
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import helpers
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
-from dlstats import mongo_client
-from dlstats import configuration
 from dlstats import constants
 from dlstats.fetchers import schemas
-from dlstats import logger
+from dlstats import utils
 
 UPDATE_INDEXES = False
+
+logger = logging.getLogger(__name__)
 
 def create_or_update_indexes(db, force_mode=False):
     """Create or update MongoDB indexes"""
@@ -94,8 +94,8 @@ class Fetcher(object):
             raise ValueError("provider_name is required")
 
         self.provider_name = provider_name
-        self.db = db or mongo_client.widukind
-        self.es_client = es_client or Elasticsearch()
+        self.db = db or utils.get_mongo_db()
+        self.es_client = es_client or utils.get_es_client()
         self.provider = None
         
         if is_indexes:
@@ -608,8 +608,8 @@ class ElasticIndex():
         :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
         """        
         
-        self.db = db or mongo_client.widukind
-        self.elasticsearch_client = es_client or Elasticsearch()
+        self.db = db or utils.get_mongo_db()
+        self.elasticsearch_client = es_client or utils.get_es_client()
 
     def make_index(self, provider_name, dataset_code):
         """

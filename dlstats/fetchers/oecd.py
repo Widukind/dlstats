@@ -13,9 +13,9 @@ import json
 import pandas
 import sdmx
 
-from dlstats import logger
 from dlstats.fetchers._commons import Fetcher, Categories, Providers, Datasets
 
+logger = logging.getLogger(__name__)
 
 DATASETS = {
     'MEI': { 

@@ -46,9 +46,12 @@ def cmd_reindex(**kwargs):
                 _col.reindex()
 
 @cli.command('check', context_settings=client.DLSTATS_SETTINGS)
-@client.opt_verbose
-@client.opt_pretty
 @client.opt_mongo_url
+@client.opt_verbose
+@client.opt_debug
+@client.opt_pretty
+@client.opt_logger
+@client.opt_logger_conf
 def cmd_check(**kwargs):
     """Verify connection"""
     ctx = client.Context(**kwargs)

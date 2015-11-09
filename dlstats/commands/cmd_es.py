@@ -23,6 +23,8 @@ def cli():
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
 @client.opt_es_url
 @opt_index
 def cmd_create_index(index, **kwargs):
@@ -47,6 +49,8 @@ def cmd_create_index(index, **kwargs):
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
 @client.opt_es_url
 @opt_index
 def cmd_clean_index(index, **kwargs):
@@ -86,6 +90,11 @@ def cmd_reindex(**kwargs):
 #TODO: timeout
 #TODO: option retry ?
 @cli.command('check', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_debug
+@client.opt_pretty
+@client.opt_logger
+@client.opt_logger_conf
 @client.opt_es_url
 def cmd_check(**kwargs):
     """Verify ElasticSearch connection

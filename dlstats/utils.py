@@ -2,21 +2,14 @@
 
 import os
 
-from dlstats import configuration
 from dlstats import constants
 
-
 def get_mongo_url():
-    config = configuration['MongoDB'].copy()
-    # TODO: configuration['MongoDB']['options']
-    config['db'] = "widukind"
-    default_url = "mongodb://%(host)s:%(port)s/%(db)s" % config
-    return os.environ.get("DLSTATS_MONGODB_URL", default_url)
+    return os.environ.get("WIDUKIND_MONGODB_URL", "mongodb://localhost/widukind")
 
 
 def get_es_url():
-    default_url = "http://%(host)s:%(port)s" % configuration['ElasticSearch']
-    return os.environ.get("DLSTATS_ES_URL", default_url)
+    return os.environ.get("WIDUKIND_ES_URL", "http://localhost:9200")
 
 
 def get_mongo_client(url=None):
@@ -42,3 +35,67 @@ def get_es_client(url=None):
     url = urlparse(url)
     es = Elasticsearch([{"host": url.hostname, "port": url.port}])
     return es
+
+def configure_logging(debug=False, stdout_enable=True, config_file=None,
+                      level="INFO"):
+
+    import sys
+    import logging
+    import logging.config
+    
+    if config_file:
+        logging.config.fileConfig(config_file, disable_existing_loggers=True)
+        return logging.getLogger('')
+
+
+    #TODO: handler file ?    
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'debug': {
+                'format': 'line:%(lineno)d - %(asctime)s %(name)s: [%(levelname)s] - [%(process)d] - [%(module)s] - %(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
+            'simple': {
+                'format': '%(asctime)s %(name)s: [%(levelname)s] - %(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
+            },
+        },    
+        'handlers': {
+            'null': {
+                'level':level,
+                'class':'logging.NullHandler',
+            },
+            'console':{
+                'level':level,
+                'class':'logging.StreamHandler',
+                'formatter': 'simple'
+            },      
+        },
+        'loggers': {
+            '': {
+                'handlers': [],
+                'level': 'INFO',
+                'propagate': False,
+            },
+        },
+    }
+    
+    if stdout_enable:
+        if not 'console' in LOGGING['loggers']['']['handlers']:
+            LOGGING['loggers']['']['handlers'].append('console')
+
+    '''if handlers is empty'''
+    if not LOGGING['loggers']['']['handlers']:
+        LOGGING['loggers']['']['handlers'] = ['console']
+    
+    if debug:
+        LOGGING['loggers']['']['level'] = 'DEBUG'
+        for handler in LOGGING['handlers'].keys():
+            LOGGING['handlers'][handler]['formatter'] = 'debug'
+            LOGGING['handlers'][handler]['level'] = 'DEBUG' 
+
+    logging.config.dictConfig(LOGGING)
+    return logging.getLogger()
+

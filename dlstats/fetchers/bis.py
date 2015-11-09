@@ -8,15 +8,17 @@ import csv
 import datetime
 import tempfile
 import time
+import logging
 
 import pandas
 import requests
 
 from dlstats import constants
-from dlstats import logger
 from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
 
 __all__ = ['BIS']
+
+logger = logging.getLogger(__name__)
 
 def extract_zip_file(filepath):
     """Extract first file in zip file and return absolute path for the file extracted

@@ -23,10 +23,12 @@ import os
 import tempfile
 import time
 
-from dlstats import logger, constants
+from dlstats import constants
 from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
 
 __all__ = ['Eurostat']
+
+logger = logging.getLogger(__name__)
 
 def extract_zip_file(zipfilepath):
     """Extract first file in zip file and return absolute path for the file extracted
