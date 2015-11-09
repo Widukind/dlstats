@@ -5,11 +5,11 @@ import os
 from dlstats import constants
 
 def get_mongo_url():
-    return os.environ.get("DLSTATS_MONGODB_URL", "mongodb://localhost/widukind")
+    return os.environ.get("WIDUKIND_MONGODB_URL", "mongodb://localhost/widukind")
 
 
 def get_es_url():
-    return os.environ.get("DLSTATS_ES_URL", "http://localhost:9200")
+    return os.environ.get("WIDUKIND_ES_URL", "http://localhost:9200")
 
 
 def get_mongo_client(url=None):
