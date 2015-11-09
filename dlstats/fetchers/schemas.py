@@ -99,3 +99,16 @@ es_series_schema = Schema({
     'dimensions': {str: [str, str]},
     'frequency': str
     }, required=True)
+
+es_doc_schema = {
+    Optional('name'): str,
+    Optional('dimensions'): {str: [str, str]},
+}
+
+es_series_update_schema = Schema({
+    '_op_type': Any('index','update'), 
+    '_index': str,
+    '_type': 'series',
+    '_id': str,
+    'doc': es_doc_schema
+    }, required=True)
