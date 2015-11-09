@@ -47,7 +47,7 @@ setup(name='dlstats',
         ],
       },
       tests_require=[
-        'nose>=1.0'
+        'nose>=1.0',
         'coverage',
         'flake8',
         'httpretty'
