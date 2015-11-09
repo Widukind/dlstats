@@ -11,7 +11,7 @@ from pymongo import ReturnDocument
 from datetime import datetime
 import logging
 import pprint
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import helpers
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
@@ -95,7 +95,7 @@ class Fetcher(object):
 
         self.provider_name = provider_name
         self.db = db or utils.get_mongo_db()
-        self.es_client = es_client or Elasticsearch()
+        self.es_client = es_client or utils.get_es_client()
         self.provider = None
         
         if is_indexes:
@@ -609,7 +609,7 @@ class ElasticIndex():
         """        
         
         self.db = db or utils.get_mongo_db()
-        self.elasticsearch_client = es_client or Elasticsearch()
+        self.elasticsearch_client = es_client or utils.get_es_client()
 
     def make_index(self, provider_name, dataset_code):
         """
