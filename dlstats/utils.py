@@ -2,21 +2,14 @@
 
 import os
 
-from dlstats import configuration
 from dlstats import constants
 
-
 def get_mongo_url():
-    config = configuration['MongoDB'].copy()
-    # TODO: configuration['MongoDB']['options']
-    config['db'] = "widukind"
-    default_url = "mongodb://%(host)s:%(port)s/%(db)s" % config
-    return os.environ.get("DLSTATS_MONGODB_URL", default_url)
+    return os.environ.get("DLSTATS_MONGODB_URL", "mongodb://localhost/widukind")
 
 
 def get_es_url():
-    default_url = "http://%(host)s:%(port)s" % configuration['ElasticSearch']
-    return os.environ.get("DLSTATS_ES_URL", default_url)
+    return os.environ.get("DLSTATS_ES_URL", "http://localhost:9200")
 
 
 def get_mongo_client(url=None):

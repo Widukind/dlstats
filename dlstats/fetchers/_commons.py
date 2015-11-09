@@ -15,7 +15,6 @@ from elasticsearch import helpers
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
-from dlstats import configuration
 from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import logger
