@@ -49,8 +49,8 @@ INSTALLATION
    :target: https://travis-ci.org/Widukind/dlstats
    :alt: Travis Build Status
    
-.. |Build Doc| image:: https://readthedocs.org/projects/widukind/badge/?version=latest
-   :target: http://widukind.readthedocs.org/en/latest/?badge=latest
+.. |Build Doc| image:: https://readthedocs.org/projects/widukind-dlstats/badge/?version=latest
+   :target: http://widukind-dlstats.readthedocs.org/en/latest/?badge=latest
    :alt: Documentation Status   
    
 .. |Coveralls| image:: https://coveralls.io/repos/Widukind/dlstats/badge.svg?branch=master&service=github
