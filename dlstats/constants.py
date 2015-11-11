@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-ES_INDEX = "widukind"
+import os
+
+ES_INDEX = os.environ.get("WIDUKIND_ES_INDEX", "widukind")
 
 COL_CATEGORIES = "categories"
 
