@@ -110,6 +110,32 @@ def get_es_client(url=None):
     es = Elasticsearch([{"host": url.hostname, "port": url.port}])
     return es
 
+def clean_mongodb(db=None):
+    """Drop all collections used by dlstats
+    """
+    db = db or get_mongo_db()
+    for col in constants.COL_ALL:
+        try:
+            db.drop_collection(col)
+        except:
+            pass
+
+def clean_elasticsearch(es_client=None, index=None):
+    """Delete and create ElasticSearch Index
+    """
+
+    index = index or constants.ES_INDEX
+    es_client = es_client or get_es_client()
+    try:
+        es_client.indices.delete(index=index)
+    except:
+        pass
+
+    try:
+        es_client.indices.create(index)
+    except:
+        pass
+
 
 def configure_logging(debug=False, stdout_enable=True, config_file=None,
                       level="INFO"):
