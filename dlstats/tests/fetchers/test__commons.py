@@ -382,9 +382,6 @@ class DBCategoryTestCase(BaseDBTestCase):
     
         self._collections_is_empty()
         
-        from dlstats.fetchers._commons import create_or_update_indexes
-        create_or_update_indexes(self.db)
-    
         f = Fetcher(provider_name="p1", db=self.db, es_client=self.es)
         
         c = Categories(provider="p1", 
