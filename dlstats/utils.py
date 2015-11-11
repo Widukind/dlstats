@@ -8,6 +8,25 @@ from dlstats import constants
 
 UPDATE_INDEXES = False
 
+ES_INDEX_CREATED = False
+
+def create_elasticsearch_index(es_client=None, index=None):
+    """Create ElasticSearch Index
+    """
+    global ES_INDEX_CREATED
+    
+    if ES_INDEX_CREATED:
+        return
+
+    index = index or constants.ES_INDEX
+    es_client = es_client or get_es_client()
+    try:
+        es_client.indices.create(index)
+    except:
+        pass
+    
+    ES_INDEX_CREATED = True
+
 def create_or_update_indexes(db, force_mode=False):
     """Create or update MongoDB indexes"""
     
