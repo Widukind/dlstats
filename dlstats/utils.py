@@ -2,7 +2,62 @@
 
 import os
 
+from pymongo import ASCENDING, DESCENDING
+
 from dlstats import constants
+
+UPDATE_INDEXES = False
+
+def create_or_update_indexes(db, force_mode=False):
+    """Create or update MongoDB indexes"""
+    
+    global UPDATE_INDEXES
+    
+    if not force_mode and UPDATE_INDEXES:
+        return
+
+    db[constants.COL_PROVIDERS].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx", unique=True)
+    
+    db[constants.COL_CATEGORIES].create_index([
+        ("provider", ASCENDING), 
+        ("categoryCode", ASCENDING)], 
+        name="provider_categoryCode_idx", unique=True)
+     
+    #TODO: lastUpdate DESCENDING ?
+    db[constants.COL_DATASETS].create_index([
+            ("provider", ASCENDING), 
+            ("datasetCode", ASCENDING)], 
+            name="provider_datasetCode_idx", unique=True)
+        
+    db[constants.COL_DATASETS].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx")
+    
+    db[constants.COL_DATASETS].create_index([
+        ("lastUpdate", DESCENDING)], 
+        name="lastUpdate_idx")
+
+    db[constants.COL_SERIES].create_index([
+        ("provider", ASCENDING), 
+        ("datasetCode", ASCENDING), 
+        ("key", ASCENDING)], 
+        name="provider_datasetCode_key_idx", unique=True)
+
+    db[constants.COL_SERIES].create_index([
+        ("key", ASCENDING)], 
+        name="key_idx")
+        
+    db[constants.COL_SERIES].create_index([
+        ("name", ASCENDING)], 
+        name="name_idx")
+    
+    db[constants.COL_SERIES].create_index([
+        ("frequency", DESCENDING)], 
+        name="frequency_idx")
+    
+    UPDATE_INDEXES = True
 
 def get_mongo_url():
     return os.environ.get("WIDUKIND_MONGODB_URL", "mongodb://localhost/widukind")
@@ -35,6 +90,7 @@ def get_es_client(url=None):
     url = urlparse(url)
     es = Elasticsearch([{"host": url.hostname, "port": url.port}])
     return es
+
 
 def configure_logging(debug=False, stdout_enable=True, config_file=None,
                       level="INFO"):
