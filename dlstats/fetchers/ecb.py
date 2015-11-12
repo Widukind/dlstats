@@ -9,9 +9,15 @@ from datetime import datetime
 import pandas
 import pprint
 from collections import OrderedDict
-from re import match
+from re import match, sub
 from time import sleep
 import sdmx
+import logging
+
+lgr = logging.getLogger('sdmx')
+fh = logging.FileHandler('titi.log')
+fh.setLevel(logging.DEBUG)
+lgr.addHandler(fh)
 
 
 class ECB(Fetcher):
@@ -82,15 +88,40 @@ class ECBData(object):
         self.provider_name = 'ECB'
         self.dataset_code = dataset_code
         self.key_family = list(sdmx.ecb.dataflows(dataset_code).keys())[0]
+        self.key_family = sub('ECB_','',self.key_family)
         self.codes = sdmx.ecb.codes(self.key_family)
-        self.raw_data = sdmx.ecb.raw_data(self.dataset_code,{})
-        self._keys_to_process = list(self.raw_data[0].keys())
+        self.largest_dimension = self._largest_dimension()
+        self.raw_datas = []
+        for code in self.codes[self.largest_dimension[0]]:
+            raw_data = sdmx.ecb.raw_data(
+                self.dataset_code,{self.largest_dimension[0]:code})
+            self.raw_datas.append(raw_data)
+            sleep(9)
+        self._codes_to_process = -1
+        self._keys_to_process = -1
+
+    def _largest_dimension(self):
+        counter = ('',0)
+        for key in self.codes.keys():
+            size_of_code = len(self.codes[key])
+            if size_of_code > counter[1]:
+                counter = (key,size_of_code)
+        return counter
         
     def __iter__(self):
         return self
 
     def __next__(self):
-        current_key = self._keys_to_process.pop()
+        if self.codes_to_process == -1:
+            self._codes_to_process = len(self.raw_datas)
+        if self._keys_to_process == -1:
+            self._keys_to_process = len(self.raw_datas)
+        current_key = self._keys_to_process
+        self._keys_to_process -= 1
+        current_code = self._codes_to_process
+        if self._keys_to_process == -1:
+            self._codes_to_process -= 1
+        raw_data = self.rawdatas[current_code]
         series['provider'] = self.provider_name
         series['datasetCode'] = self.dataset_code
         series['key'] = current_key
