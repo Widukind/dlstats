@@ -15,7 +15,7 @@ env:
   
 before_install:
  - "sudo apt-get update -qq"
- - "sudo apt-get install -y build-essential ca-certificates language-pack-en python-dev cython"
+ - "sudo apt-get install -y build-essential ca-certificates language-pack-en python3-dev cython3"
  - curl -O https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.6.2.deb && sudo dpkg -i --force-confnew elasticsearch-1.6.2.deb
  
 install:
