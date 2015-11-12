@@ -6,34 +6,37 @@ from dlstats.tests.base import BaseDBTestCase
 import pickle
 import pkgutil
 import sdmx
+import datetime
 
-def generate_categories_sdmx():
-    with open('ecb_categories_sdmx_dict.pkl', 'wb') as f:
-        pickle.dump(sdmx.ecb.categories, f, pickle.HIGHEST_PROTOCOL)
+CATEGORIES = {
+    'name': 'Concepts',
+    'subcategories':[
+        {'name': 'Example subcategory 1',
+         'subcategories': [
+             {'name': 'Example subcategory 1_1',
+              'flowrefs': ['1_1_1']},
+             {'name': 'Example subcategory 1_2',
+              'flowrefs': ['1_2_1','1_2_2']}
+         ]},
+        {'name': 'Example subcategory 2',
+         'subcategories': [
+             {'name': 'Example subcategory 2_1'},
+             {'name': 'Example subcategory 2_2',
+              'flowrefs': ['2_2_1']}
+         ]}
+    ]}
 
-def generate_datasets_sdmx():
-    def walk_dictionnary(dictionnary):
-        accumulator = []
-        for key in dictionnary:
-            if key == 'flowrefs':
-                accumulator.extend(dictionnary[key])
-            if key == 'subcategories':
-                for subdictionnary in dictionnary[key]:
-                    accumulator.extend(walk_dictionnary(subdictionnary))
-        return accumulator
-    flowrefs =  walk_dictionnary(sdmx.ecb.categories)
-    for flowref in flowrefs:
-        dataflow_definition = sdmx.ecb.dataflows(flowref)
-        with open('ecb_dataflows_'+str(flowref)+'.pkl', 'wb') as f:
-            pickle.dump(dataflow_definition, f, pickle.HIGHEST_PROTOCOL)
+DATAFLOWS = dict()
+DATAFLOWS['1_1_1'] = {'WDK_TEST': ('WDK', '1.0', {'en': 'Name of 1_1_1'})}
+DATAFLOWS['1_2_1'] = {'WDK_TEST': ('WDK', '1.0', {'en': 'Name of 1_2_1'})}
+DATAFLOWS['1_2_2'] = {'WDK_TEST': ('WDK', '1.0', {'en': 'Name of 1_2_2'})}
+DATAFLOWS['2_2_1'] = {'WDK_TEST': ('WDK', '1.0', {'en': 'Name of 2_2_1'})}
 
 def dataflows(flowref):
-    output = pickle.loads(pkgutil.get_data('dlstats', 'tests/resources/ecb/ecb_dataflows_'+flowref+'.pkl'))
-    return output
+    return DATAFLOWS[flowref]
 
 def get_categories(self):
-    output = pickle.loads(pkgutil.get_data('dlstats', 'tests/resources/ecb/ecb_categories_sdmx_dict.pkl'))
-    return output
+    return CATEGORIES
 
 
 class ECBCategoriesDBTestCase(BaseDBTestCase):
@@ -43,15 +46,57 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
     @patch('sdmx.ecb.dataflows',dataflows)
     @patch('dlstats.fetchers.ecb.ECB.get_categories',get_categories)
     def test_categories(self):
+        self.maxDiff = None
+        reference = [{'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Concepts',
+                      'exposed': True,
+                      'provider': 'ECB', 
+                      'categoryCode': 'Concepts'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Example subcategory 1',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'Example subcategory 1'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Example subcategory 1_1',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'Example subcategory 1_1'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Example subcategory 1_2',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'Example subcategory 1_2'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Example subcategory 2',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'Example subcategory 2'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Example subcategory 2_2',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'Example subcategory 2_2'},
+                     {'docHref': None,
+                      'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
+                      'name': 'Name of 2_2_1',
+                      'exposed': True,
+                      'provider': 'ECB',
+                      'categoryCode': 'WDK_TEST'}]
         self.fetcher.upsert_categories()
         #We exclude ObjectIDs because their values are not determinitstic. We
         #can't test these elements
         results = self.db[constants.COL_CATEGORIES].find(
             {"provider": self.fetcher.provider_name},
             {'_id': False, 'children': False})
-        reference = pickle.loads(pkgutil.get_data(
-            'dlstats', 'tests/resources/ecb/ecb_categories_mongo_dict.pkl'))
-        self.assertEqual([result for result in results],reference)
+        results = [result for result in results]
+        self.assertEqual(results, reference)
 
 if __name__ == '__main__':
     unittest.main()
