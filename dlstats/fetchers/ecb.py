@@ -13,13 +13,6 @@ from collections import OrderedDict
 from re import match, sub
 from time import sleep
 import sdmx
-import logging
-
-lgr = logging.getLogger('sdmx')
-fh = logging.FileHandler('titi.log')
-fh.setLevel(logging.DEBUG)
-lgr.addHandler(fh)
-
 
 class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
