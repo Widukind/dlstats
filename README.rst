@@ -56,3 +56,8 @@ INSTALLATION
 .. |Coveralls| image:: https://coveralls.io/repos/Widukind/dlstats/badge.svg?branch=master&service=github
    :target: https://coveralls.io/github/Widukind/dlstats?branch=master
    :alt: Coverage   
+
+LICENSE
+=======
+
+GNU Affero General Public License version 3
