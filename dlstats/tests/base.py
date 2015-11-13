@@ -2,12 +2,13 @@
 
 import os
 import unittest
+from unittest import mock
+import imp
 
 from dlstats import constants
-from dlstats.fetchers._commons import create_or_update_indexes
+from dlstats import utils
 
 from dlstats.tests import resources
-from dlstats.tests import utils
 
 RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
@@ -23,28 +24,36 @@ class BaseDBTestCase(BaseTestCase):
     """
     
     ES_INDEX = "widukind_test"
-    
+    ES_URL = "http://localhost:9200"
+    MONGODB_URL = "mongodb://localhost/widukind_test"
+
+    @mock.patch.dict(os.environ)
     def setUp(self):
-        unittest.TestCase.setUp(self)
+        BaseTestCase.setUp(self)
+
+        os.environ.update(
+            WIDUKIND_MONGODB_URL=self.MONGODB_URL,
+            WIDUKIND_ES_URL=self.ES_URL,
+            WIDUKIND_ES_INDEX=self.ES_INDEX,
+        )
+
+        imp.reload(constants)
         
-        self.BACKUP_ES_INDEX = constants.ES_INDEX
-        constants.ES_INDEX = self.ES_INDEX
+        self.assertEqual(constants.ES_INDEX, self.ES_INDEX)
         
         self.db = utils.get_mongo_db()
-        self.es = utils.get_es_db()
+        self.es = utils.get_es_client()
 
         self._releases_verify_ok()
         
         utils.clean_mongodb(self.db)
-        #utils.clean_es()
-        self._clean_elasticsearch()
+        utils.clean_elasticsearch(es_client=self.es, index=self.ES_INDEX)
                 
-        create_or_update_indexes(self.db, force_mode=True)
+        utils.create_or_update_indexes(self.db, force_mode=True)
 
     def tearDown(self):
         BaseTestCase.tearDown(self)
-        constants.ES_INDEX = self.BACKUP_ES_INDEX
-
+        #TODO: clean DB and es
     
     def _release_mongodb(self):
         """Verify MongoDB and pymongo release
@@ -122,17 +131,3 @@ class BaseDBTestCase(BaseTestCase):
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
         
-    def _clean_elasticsearch(self):
-        
-        # Création de l'index - FIXME: utiliser un index de test
-        try:
-            self.es.indices.delete(index=constants.ES_INDEX)
-            #self.es.indices.delete_template(name='*', ignore=404)
-        except:
-            pass
-
-        try:
-            self.es.indices.create(constants.ES_INDEX)
-        except:
-            pass
-    
