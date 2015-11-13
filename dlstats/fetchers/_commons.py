@@ -6,7 +6,6 @@
 """
 import os
 import pymongo
-from pymongo import IndexModel, ASCENDING, DESCENDING
 from pymongo import ReturnDocument
 from datetime import datetime
 import logging
@@ -19,60 +18,7 @@ from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import utils
 
-UPDATE_INDEXES = False
-
 logger = logging.getLogger(__name__)
-
-def create_or_update_indexes(db, force_mode=False):
-    """Create or update MongoDB indexes"""
-    
-    global UPDATE_INDEXES
-    
-    if not force_mode and UPDATE_INDEXES:
-        return
-
-    db[constants.COL_PROVIDERS].create_index([
-        ("name", ASCENDING)], 
-        name="name_idx", unique=True)
-    
-    db[constants.COL_CATEGORIES].create_index([
-        ("provider", ASCENDING), 
-        ("categoryCode", ASCENDING)], 
-        name="provider_categoryCode_idx", unique=True)
-     
-    #TODO: lastUpdate DESCENDING ?
-    db[constants.COL_DATASETS].create_index([
-            ("provider", ASCENDING), 
-            ("datasetCode", ASCENDING)], 
-            name="provider_datasetCode_idx", unique=True)
-        
-    db[constants.COL_DATASETS].create_index([
-        ("name", ASCENDING)], 
-        name="name_idx")
-    
-    db[constants.COL_DATASETS].create_index([
-        ("lastUpdate", DESCENDING)], 
-        name="lastUpdate_idx")
-
-    db[constants.COL_SERIES].create_index([
-        ("provider", ASCENDING), 
-        ("datasetCode", ASCENDING), 
-        ("key", ASCENDING)], 
-        name="provider_datasetCode_key_idx", unique=True)
-
-    db[constants.COL_SERIES].create_index([
-        ("key", ASCENDING)], 
-        name="key_idx")
-        
-    db[constants.COL_SERIES].create_index([
-        ("name", ASCENDING)], 
-        name="name_idx")
-    
-    db[constants.COL_SERIES].create_index([
-        ("frequency", DESCENDING)], 
-        name="frequency_idx")
-    
-    UPDATE_INDEXES = True
 
 class Fetcher(object):
     """Abstract base class for all fetchers"""
@@ -99,7 +45,9 @@ class Fetcher(object):
         self.provider = None
         
         if is_indexes:
-            create_or_update_indexes(self.db)
+            utils.create_or_update_indexes(self.db)
+        
+        utils.create_elasticsearch_index(es_client=self.es_client)
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB
