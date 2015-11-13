@@ -99,7 +99,7 @@ def get_mongo_db(url=None):
     # TODO: tz_aware
     url = url or get_mongo_url()
     client = get_mongo_client(url)
-    return client.get_default_database()
+    return client[constants.MONGODB_NAME]
 
 
 def get_es_client(url=None):
