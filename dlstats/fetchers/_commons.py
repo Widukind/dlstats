@@ -47,6 +47,8 @@ class Fetcher(object):
         if is_indexes:
             utils.create_or_update_indexes(self.db)
         
+        utils.create_elasticsearch_index(es_client=self.es_client)
+
     def upsert_categories(self):
         """Upsert the categories in MongoDB
         """        
