@@ -2,12 +2,13 @@
 
 import os
 import unittest
+from unittest import mock
+import imp
 
 from dlstats import constants
-from dlstats.fetchers._commons import create_or_update_indexes
+from dlstats import utils
 
 from dlstats.tests import resources
-from dlstats.tests import utils
 
 RESOURCES_DIR = os.path.abspath(os.path.dirname(resources.__file__))
 
@@ -23,28 +24,34 @@ class BaseDBTestCase(BaseTestCase):
     """
     
     ES_INDEX = "widukind_test"
-    
+    MONGODB_NAME = "widukind_test"
+
+    @mock.patch.dict(os.environ)
     def setUp(self):
-        unittest.TestCase.setUp(self)
+        BaseTestCase.setUp(self)
+
+        os.environ.update(
+            WIDUKIND_MONGODB_NAME=self.MONGODB_NAME,
+            WIDUKIND_ES_INDEX=self.ES_INDEX,
+        )
+
+        imp.reload(constants)
         
-        self.BACKUP_ES_INDEX = constants.ES_INDEX
-        constants.ES_INDEX = self.ES_INDEX
+        self.assertEqual(constants.ES_INDEX, self.ES_INDEX)
         
         self.db = utils.get_mongo_db()
-        self.es = utils.get_es_db()
+        self.es = utils.get_es_client()
 
         self._releases_verify_ok()
         
         utils.clean_mongodb(self.db)
-        #utils.clean_es()
-        self._clean_elasticsearch()
+        utils.clean_elasticsearch(es_client=self.es, index=self.ES_INDEX)
                 
-        create_or_update_indexes(self.db, force_mode=True)
+        utils.create_or_update_indexes(self.db, force_mode=True)
 
     def tearDown(self):
         BaseTestCase.tearDown(self)
-        constants.ES_INDEX = self.BACKUP_ES_INDEX
-
+        #TODO: clean DB and es
     
     def _release_mongodb(self):
         """Verify MongoDB and pymongo release
@@ -82,27 +89,16 @@ class BaseDBTestCase(BaseTestCase):
         
         # Elasticsearch 0.90.x
         elasticsearch<1.0.0        
-
-        {'cluster_name': 'elasticsearch',
-         'name': 'Fateball',
-         'status': 200,
-         'tagline': 'You Know, for Search',
-         'version': {'build_hash': 'b88f43fc40b0bcd7f173a1f9ee2e97816de80b19',
-                     'build_snapshot': False,
-                     'build_timestamp': '2015-07-29T09:54:16Z',
-                     'lucene_version': '4.10.4',
-                     'number': '1.7.1'}}
         """
+        
         server_info = self.es.info() 
         server_release = server_info['version']['number']
-        server_release_tuple = server_release.split('.')
-
-        if server_release_tuple[0] != "1" or server_release_tuple[1] not in ["6", "7"]:
-            self.fail("Not supported ElasticSearch Server [%s] release. Required ElasticSearch 1.6.x or 1.7.x" % server_release)
         
-        from elasticsearch import VERSION #(1, 6, 0)
-        #TODO: required
+        if server_release != "1.6.2":
+            self.fail("Not supported ElasticSearch Server [%s] release. Required ElasticSearch 1.6.2" % server_release) 
         
+        #TODO: version elasticsearch py 
+        #from elasticsearch import VERSION #(1, 6, 0)
             
     def _releases_verify_ok(self):
 
@@ -111,8 +107,9 @@ class BaseDBTestCase(BaseTestCase):
         if VERIFIED_RELEASES:
             return True
 
-        self._release_mongodb()
-        #TODO: self._release_elasticsearch()
+        if os.environ.get("SKIP_RELEASE_CONTROL", "0") != "1":
+            self._release_mongodb()
+            self._release_elasticsearch()
         
         VERIFIED_RELEASES = True
 
@@ -122,17 +119,3 @@ class BaseDBTestCase(BaseTestCase):
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
         
-    def _clean_elasticsearch(self):
-        
-        # Création de l'index - FIXME: utiliser un index de test
-        try:
-            self.es.indices.delete(index=constants.ES_INDEX)
-            #self.es.indices.delete_template(name='*', ignore=404)
-        except:
-            pass
-
-        try:
-            self.es.indices.create(constants.ES_INDEX)
-        except:
-            pass
-    
