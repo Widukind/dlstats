@@ -11,6 +11,7 @@ setup(name='dlstats',
       author='Widukind team',
       author_email='dev@michaelmalter.fr',
       url='https://github.com/Widukind/dlstats',
+      license='AGPLv3',
       packages=find_packages(),
       include_package_data=True,
       install_requires=[
