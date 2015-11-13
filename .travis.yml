@@ -1,49 +1,49 @@
+sudo: required
+
 language: python
 
 python:
-  #- "3.2"
-  #- "3.3"
   - "3.4"
-  #- "3.5"
 
 services:
-  - mongodb
-  - elasticsearch
+  - docker
+
+cache:
+  - apt
   
 env:
-  - MONGODB_URL=mongodb://localhost/widukind_test
-  
-before_install:
- - "sudo apt-get update -qq"
- - "sudo apt-get install -y build-essential ca-certificates language-pack-en python-dev cython"
- 
-install:
-  - pip install -U pip
-  - pip install coveralls
-  - pip install -r requirements.txt
-  - pip install -r requirements-tests.txt
-  - pip install --no-deps -e .
+  - MONGO_IMAGE=mongo:2.4 ES_IMAGE=elasticsearch:1.6.2 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
+  - MONGO_IMAGE=mongo:2.6 ES_IMAGE=elasticsearch:1.7 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
+  - MONGO_IMAGE=mongo:3.0 ES_IMAGE=elasticsearch:1.7 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
+  #- MONGO_IMAGE=mongo:3.0 ES_IMAGE=elasticsearch:2 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
+  #- MONGO_IMAGE=mongo:3.1 ES_IMAGE=elasticsearch:1.6.2 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
 
+before_install:
+  - docker pull $MONGO_IMAGE
+  - docker pull $ES_IMAGE
+  - docker run -d --name=mongodb $MONGO_IMAGE mongod --smallfiles --noauth --directoryperdb 
+  - docker run -d --name=elasticsearch $ES_IMAGE
+  #- "if [[ $ES_IMAGE == 'elasticsearch:2' ]]; then sed -i 's/^elasticsearch.*/elasticsearch/' requirements.txt setup.py; fi"
+  - docker build -t widukind/dlstats .
+ 
+-install:
+  - pip install coveralls
+ 
 before_script:
-  - sleep 5
+  - sleep 15
   - env
-  - pip freeze
-  - java -version
-  - mongo --version
-  - curl -XGET localhost:9200?pretty
-  #- curl -XPUT localhost:9200/widukind?pretty
-  
+  - docker run $DOCKER_OPTIONS widukind/dlstats pip freeze
+
 script:
-  - nosetests --with-coverage -s -v dlstats
-  - flake8 --exit-zero dlstats
+  - docker run $DOCKER_OPTIONS widukind/dlstats dlstats --version
+  - docker run $DOCKER_OPTIONS widukind/dlstats dlstats es check
+  - docker run $DOCKER_OPTIONS widukind/dlstats dlstats mongo check
+  - docker run $DOCKER_OPTIONS -v $PWD/coverage:/code/coverage widukind/dlstats nosetests --with-coverage -s -v dlstats
+  - docker run $DOCKER_OPTIONS widukind/dlstats flake8 --exit-zero dlstats
   
-branches:
-    
 after_script: coveralls --verbose
 
 notifications:
   email: true
   on_success: always
   on_failure: always
-
-  
