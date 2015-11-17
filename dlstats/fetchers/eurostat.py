@@ -22,6 +22,7 @@ import bson
 import os
 import tempfile
 import time
+import pymongo
 
 from dlstats import constants
 from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
@@ -223,7 +224,7 @@ class Eurostat(Fetcher):
         def walktree1(id):
             datasets1 = []
             c = self.db[constants.COL_CATEGORIES].find_one({'_id': bson.objectid.ObjectId(id)})
-            if 'children' in c and c['children'] is not None:
+            if 'children' in c and c['children'] is not None and len(c['children']) > 0 :
                 for child in  c['children']:
                     datasets1 += walktree1(child)
                 return datasets1
@@ -233,7 +234,11 @@ class Eurostat(Fetcher):
         for code in self.selected_codes:
             cc = self.db[constants.COL_CATEGORIES].find_one({'provider': self.provider_name,
                                               'categoryCode': code})
-            datasets += walktree1(cc['_id'])
+            if len(cc['children']) == 0:
+                datasets += [code]
+            else:
+                for c in cc['children']:
+                    datasets += walktree1(c)
         return datasets
 
     def upsert_selected_datasets(self):
@@ -256,6 +261,34 @@ class Eurostat(Fetcher):
         dataset.series.data_iterator = data_iterator
         dataset.update_database()
         self.update_metas(dataset_code)
+
+    def upsert_all_datasets(self):
+        logger.info('start upsert_all_datasets')
+        self.upsert_categories();
+        datasets = self.get_selected_datasets()
+        selected_datasets = self.db[constants.COL_DATASETS].find(
+            {'provider': self.provider_name, 'datasetCode': {'$in': datasets}},
+            {'datasetCode': 1, 'lastUpdate': 1})
+        selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
+        selected_categories = self.db[constants.COL_CATEGORIES].find(
+            {'provider': self.provider_name, 'categoryCode': {'$in': datasets}},
+            {'categoryCode': 1, 'lastUpdate': 1})
+        selected_categories = {s['categoryCode'] : s for s in selected_categories}
+        bulk = self.db[constants.COL_CATEGORIES].initialize_ordered_bulk_op()
+        is_bulk = False
+        for d in datasets:
+            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < selected_categories[d]['lastUpdate']):
+                self.upsert_dataset(d)
+                bulk.find({'_id': selected_categories[d]['_id']}).update({'$set': {'exposed': True}})
+                is_bulk = True
+        if is_bulk:
+            try:
+                result = bulk.execute()
+            except pymongo.errors.BulkWriteError as err:
+                logger.critical(str(err.details))
+                pprint.pprint(err.details)
+                raise
+        logger.info('end upsert_all_datasets')
 
 class EurostatData:
     def __init__(self,dataset, filename=None, store_filepath=None):
@@ -419,11 +452,3 @@ class EurostatData:
                "BulkDownloadListing?sort=1&file=data/" +
                self.dataset_code + ".sdmx.zip")
     
-if __name__ == "__main__":
-    e = Eurostat()
-    e.upsert_categories()
-    e.selected_codes = ['nama_10']
-    e.upsert_selected_datasets()
-    #    e.update_selected_dataset('nama_gdp_c')
-    #    e.upsert_dataset('nama_gdp_k')
-    #e.update_selected_dataset('namq_10_a10_e')
