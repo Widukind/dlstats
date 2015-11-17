@@ -225,7 +225,6 @@ class Eurostat(Fetcher):
             datasets1 = []
             c = self.db[constants.COL_CATEGORIES].find_one({'_id': bson.objectid.ObjectId(id)})
             if 'children' in c and c['children'] is not None and len(c['children']) > 0 :
-                print(c)
                 for child in  c['children']:
                     datasets1 += walktree1(child)
                 return datasets1
