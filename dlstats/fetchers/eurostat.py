@@ -453,11 +453,3 @@ class EurostatData:
                "BulkDownloadListing?sort=1&file=data/" +
                self.dataset_code + ".sdmx.zip")
     
-if __name__ == "__main__":
-    e = Eurostat()
-    e.upsert_categories()
-    e.selected_codes = ['nama_10']
-    e.upsert_selected_datasets()
-    #    e.update_selected_dataset('nama_gdp_c')
-    #    e.upsert_dataset('nama_gdp_k')
-    #e.update_selected_dataset('namq_10_a10_e')
