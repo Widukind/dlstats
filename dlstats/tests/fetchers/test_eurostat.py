@@ -3,6 +3,7 @@
 import tempfile
 import datetime
 import os
+from copy import deepcopy
 from pprint import pprint
 from urllib.parse import urlparse
 from urllib.request import url2pathname, pathname2url
@@ -174,42 +175,38 @@ DATASETS['nama_10_gdp']["dsd"] = """<?xml version="1.0" encoding="UTF-8"?>
 </Structure>
 """
 
+DATASETS['dset1'] = deepcopy(DATASETS['nama_10_gdp'])
+DATASETS['dset1']["name"] = "dset1"
+DATASETS['dset1']["filename"] = "dset1"
+
+DATASETS['dset2'] = deepcopy(DATASETS['nama_10_gdp'])
+DATASETS['dset2']["name"] = "dset2"
+DATASETS['dset2']["filename"] = "dset2"
+
 TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
 <nt:tree xmlns:nt="urn:eu.europa.ec.eurostat.navtree" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:eu.europa.ec.eurostat.navtree http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/xsd/TableOfContent.xsd" creationDate="20151027T1102">
   <nt:branch>
     <nt:title language="en">Database by themes</nt:title>
-    <nt:title language="fr">Base de données par thèmes</nt:title>
-    <nt:title language="de">Datenbank nach Themen</nt:title>
     <nt:code>data</nt:code>
     <nt:children>
       <nt:branch>
         <nt:title language="en">Economy and finance</nt:title>
-        <nt:title language="fr">Économie et finances</nt:title>
-        <nt:title language="de">Wirtschaft und Finanzen</nt:title>
         <nt:code>economy</nt:code>
         <nt:children>
           <nt:branch>
             <nt:title language="en">National accounts (ESA 2010)</nt:title>
-            <nt:title language="fr">Comptes nationaux (SEC 2010)</nt:title>
-            <nt:title language="de">Volkswirtschaftliche Gesamtrechnungen (ESVG 2010)</nt:title>
             <nt:code>na10</nt:code>
             <nt:children>
               <nt:branch>
                 <nt:title language="en">Annual national accounts</nt:title>
-                <nt:title language="fr">Comptes nationaux annuels</nt:title>
-                <nt:title language="de">Jährliche Volkswirtschaftliche Gesamtrechnungen</nt:title>
                 <nt:code>nama_10</nt:code>
                 <nt:children>
                   <nt:branch>
                     <nt:title language="en">Main GDP aggregates</nt:title>
-                    <nt:title language="fr">Principaux agrégats du PIB</nt:title>
-                    <nt:title language="de">Hauptaggregate des BIP</nt:title>
                     <nt:code>nama_10_ma</nt:code>
                     <nt:children>
                       <nt:leaf type="dataset">
                         <nt:title language="en">GDP and main components (output, expenditure and income)</nt:title>
-                        <nt:title language="fr">PIB et principaux composants (production, dépenses et revenu)</nt:title>
-                        <nt:title language="de">BIP und Hauptkomponenten (Produktionswert, Ausgaben und Einkommen)</nt:title>
                         <nt:code>nama_10_gdp</nt:code>
                         <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>11.08.2015</nt:lastModified>
@@ -217,11 +214,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                         <nt:dataEnd>2014</nt:dataEnd>
                         <nt:values>417804</nt:values>
                         <nt:unit language="en" />
-                        <nt:unit language="fr" />
-                        <nt:unit language="de" />
                         <nt:shortDescription language="en" />
-                        <nt:shortDescription language="fr" />
-                        <nt:shortDescription language="de" />
                         <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
                         <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
                         <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
@@ -229,8 +222,6 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       </nt:leaf>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Final consumption aggregates by durability</nt:title>
-                        <nt:title language="fr">Principaux agrégats de la consommation finale par durabilité</nt:title>
-                        <nt:title language="de">Hauptaggregate des letzten Verbrauch nach Dauerhaftigkeit</nt:title>
                         <nt:code>nama_10_fcs</nt:code>
                         <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>12.10.2015</nt:lastModified>
@@ -238,11 +229,43 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                         <nt:dataEnd>2014</nt:dataEnd>
                         <nt:values>69954</nt:values>
                         <nt:unit language="en" />
-                        <nt:unit language="fr" />
-                        <nt:unit language="de" />
                         <nt:shortDescription language="en" />
-                        <nt:shortDescription language="fr" />
-                        <nt:shortDescription language="de" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                    </nt:children>
+                  </nt:branch>
+                  <nt:branch>
+                    <nt:title language="en">Cat1</nt:title>
+                    <nt:code>cat1</nt:code>
+                    <nt:children>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">Dset1</nt:title>
+                        <nt:code>dset1</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>11.08.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>417804</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">Dset2</nt:title>
+                        <nt:code>dset2</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>12.10.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>69954</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
                         <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
                         <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
                         <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
@@ -546,9 +569,57 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_selected_datasets()
         
-        
-        
+    @mock.patch('requests.get', local_get)
+    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
+    def test_upsert_all_datasets(self):
 
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_upsert_all_datasets
+
+        self.fetcher.upsert_categories()
+        
+        self.fetcher.selected_codes = ['nama_10_gdp','cat1']
+
+        datasets = self.fetcher.get_selected_datasets()
+
+        for d in datasets:
+            # Write czv/zip file in local directory
+            filepath = get_filepath(d)
+            self.assertTrue(os.path.exists(filepath))
+            # Replace dataset url by local filepath
+            DATASETS[d]['url'] = "file:%s" % pathname2url(filepath)
+
+        self.fetcher.upsert_all_datasets()
+
+        categories = self.db[constants.COL_CATEGORIES].find({"provider": self.fetcher.provider_name, 
+                                                             "exposed": True})
+        self.assertEqual(categories.count(),3)
+
+
+        # faking update
+        global TABLE_OF_CONTENT
+        tc_orig = TABLE_OF_CONTENT
+        tc = TABLE_OF_CONTENT.decode(encoding='UTF_8')
+        tc = tc.replace('lastUpdate>26.10.2015','lastUpdate>01.11.2015')
+        TABLE_OF_CONTENT = tc.encode(encoding='UTF_8')
+
+        self.fetcher.upsert_all_datasets()
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+                                                               "datasetCode": 'nama_10_gdp'})
+        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+                                                               "datasetCode": 'dset1'})
+        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+                                                               "datasetCode": 'dset2'})
+        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+
+        # restoring TABLE_OF_CONTENT to original
+        TABLE_OF_CONTENT = tc_orig
+        
         #TODO: meta_datas tests  
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
