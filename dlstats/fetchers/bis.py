@@ -190,12 +190,13 @@ class Downloader():
     }
     
     def __init__(self, url=None, filename=None, store_filepath=None, 
-                 timeout=None, max_retries=0, replace=True):
+                 timeout=None, max_retries=0, replace=True, force_replace=True):
         self.url = url
         self.filename = filename
         self.store_filepath = store_filepath
         self.timeout = timeout
         self.max_retries = max_retries
+        self.force_replace = force_replace
         
         if not self.store_filepath:
             self.store_filepath = tempfile.mkdtemp()
@@ -204,8 +205,6 @@ class Downloader():
                 os.makedirs(self.store_filepath, exist_ok=True)
         
         self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
-        
-        #TODO: force_replace ?
         
         if os.path.exists(self.filepath) and not replace:
             raise Exception("filepath is already exist : %s" % self.filepath)
@@ -252,9 +251,9 @@ class Downloader():
         end = time.time() - start
         logger.info("download file[%s] - END - time[%.3f seconds]" % (self.url, end))
     
-    def get_filepath(self, force_replace=False):
+    def get_filepath(self):
         
-        if os.path.exists(self.filepath) and force_replace:
+        if os.path.exists(self.filepath) and self.force_replace:
             os.remove(self.filepath)
         
         if not os.path.exists(self.filepath):
