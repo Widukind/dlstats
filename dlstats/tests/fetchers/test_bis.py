@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import csv
+import zipfile
 import io
 import tempfile
 import datetime
 import os
 from pprint import pprint
-import urllib.request
-from urllib.parse import urlparse
-from urllib.request import url2pathname, pathname2url
 
 from dlstats.fetchers._commons import Datasets
 from dlstats.fetchers import bis
@@ -16,6 +13,7 @@ from dlstats import constants
 
 import unittest
 from unittest import mock
+import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
@@ -30,6 +28,9 @@ DATASETS['LBS-DISS']['datas'] = """Dataset,"Locational Banking Statistics - diss
 Retrieved on,Wed Sep 16 08:13:35 GMT 2015
 Subject,"BIS locational banking"
 "Frequency","Quarterly"
+"Decimals","Three"
+"Unit of measure","US Dollar"
+"Unit Multiplier","Millions"
 "Frequency","Measure","Balance sheet position","Type of instruments","Currency denomination","Currency type of reporting country","Parent country","Type of reporting institutions","Reporting country","Counterparty sector","Counterparty country","Position type","Time Period","1977-Q4","2015-Q1"
 "Q:Quarterly","F:FX and break adjusted change (BIS calculated)","C:Total claims","A:All instruments","CHF:Swiss Franc","A:All currencies (=D+F+U)","5J:All countries","A:All reporting banks/institutions (domestic, foreign, consortium and unclassified)","5A:All reporting countries","A:All sectors","1C:International organisations","N:Cross-border","Q:F:C:A:CHF:A:5J:A:5A:A:1C:N","NaN","419.158"
 """
@@ -40,6 +41,9 @@ DATASETS['CBS']['datas'] = """Dataset,"Consolidated Banking Statistics"
 Retrieved on,Wed Sep 16 09:13:14 GMT 2015
 Subject,"BIS consolidated banking"
 "Frequency","Quarterly"
+"Decimals","Three"
+"Unit of measure","US Dollar"
+"Unit Multiplier","Millions"
 "Measure","Amounts outstanding / Stocks"
 "Frequency","Measure","Reporting country","CBS bank type","CBS reporting basis","Balance sheet position","Type of instruments","Remaining maturity","Currency type of booking location","Counterparty sector","Counterparty country","Time Period","1983-Q4","2015-Q1"
 "Q:Quarterly","S:Amounts outstanding / Stocks","5A:All reporting countries","4B:Domestic banks","F:Immediate counterparty basis","B:Local claims","A:All instruments","A:All maturities","LC1:Local currency","A:All sectors","1C:International organisations","Q:S:5A:4B:F:B:A:A:LC1:A:1C","","1986.2"
@@ -54,6 +58,9 @@ Subject,"BIS Debt securities"
 "Collateral type (for future expansion)","All issues"
 "Frequency","Quarterly"
 "Default risk (for future expansion)","All credit ratings"
+"Decimals","Zero"
+"Unit of measure","US Dollar"
+"Unit Multiplier","Millions"
 "Frequency","Issuer residence","Issuer nationality","Issuer sector - immediate borrower","Issuer sector - ultimate borrower","Issue market","Issue type","Issue currency group","Issue currency","Original maturity","Remaining maturity","Rate type","Default risk (for future expansion)","Collateral type (for future expansion)","Measure","Time Period","1962-Q4","2015-Q2"
 "Q:Quarterly","1C:International organisations","3P:All countries excluding residents","1:All issuers","1:All issuers","C:International markets","A:All issue types","A:All currencies","EU1:Sum of ECU, Euro and legacy currencies now included in the Euro","A:All maturities","A:All maturities","A:All rate types","A:All credit ratings","A:All issues","C:Gross issues","Q:1C:3P:1:1:C:A:A:EU1:A:A:A:A:A:C","","17041"
 """
@@ -64,6 +71,7 @@ DATASETS['CNFS']['datas'] = """Dataset,"BIS long series on total credit"
 Retrieved on,Wed Sep 16 09:34:20 GMT 2015
 Subject,"BIS long series on total credit"
 "Frequency","Quarterly"
+"Collection Indicator","End of period"
 "Frequency","Borrowers' country","Borrowing sector","Lending sector","Valuation","Unit type","Type of adjustment","Time Period","1940-Q2","2015-Q1"
 "Q:Quarterly","AR:Argentina","C:Non financial sector","A:All sectors","M:Market value","770:Percentage of GDP","A:Adjusted for breaks","Q:AR:C:A:M:770:A","","57.4"
 """
@@ -74,6 +82,9 @@ DATASETS['DSRP']['datas'] = """Dataset,"BIS Debt service ratio"
 Retrieved on,Wed Sep 16 08:47:38 GMT 2015
 Subject,"BIS debt service ratio"
 "Frequency","Quarterly"
+"Collection Indicator","End of period"
+"Unit of measure","Per Cent"
+"Unit Multiplier","Units"
 "Frequency","Borrowers' country","Borrowers","Time Period","1999-Q1","2015-Q1"
 "Q:Quarterly","AU:Australia","H:Households & NPISHs","Q:AU:H","10","15.3"
 """
@@ -84,6 +95,7 @@ DATASETS['PP-SS']['datas'] = """Dataset,"BIS Selected property prices"
 Retrieved on,Wed Sep 16 09:10:57 GMT 2015
 Subject,"BIS property prices: selected series"
 "Frequency","Quarterly"
+"Unit Multiplier","Units"
 "Frequency","Reference area","Value","Unit of measure","Time Period","1966-Q1","2015-Q2"
 "Q:Quarterly","AT:Austria","N:Nominal","628:Index, 2010 = 100","Q:AT:N:628","",""
 """
@@ -94,6 +106,8 @@ DATASETS['PP-LS']['datas'] = """Dataset,"BIS Long property prices"
 Retrieved on,Wed Sep 16 09:11:12 GMT 2015
 Subject,"BIS property prices: long series"
 "Frequency","Quarterly"
+"Unit of measure","Index, 1995 = 100"
+"Unit Multiplier","Units"
 "Frequency","Reference area","Time Period","1970-Q1","2015-Q2"
 "Q:Quarterly","AU:Australia","Q:AU","9.84",""
 """
@@ -108,33 +122,15 @@ Subject,"BIS effective exchange rates"
 "M:Monthly","N:Nominal","B:Broad (61 economies)","AE:United Arab Emirates","M:N:B:AE","","119.52"
 """
 
-def get_store_path(self):
-    import tempfile
+def mock_get_store_path(self):
     return os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                         self.dataset.provider_name, 
                                         self.dataset.dataset_code,
                                         "tests"))
 
-
-def local_get(url, *args, **kwargs):
-    "Fetch a stream from local files."
-    from requests import Response
-
-    p_url = urlparse(url)
-    if p_url.scheme != 'file':
-        raise ValueError("Expected file scheme")
-
-    filename = url2pathname(p_url.path)
-    response = Response()
-    response.status_code = 200
-    response.raw = open(filename, 'rb')
-    return response
-
 def write_zip_file(zip_filepath, filename, txt):
     """Create file in zipfile
     """
-    import zipfile
-
     with zipfile.ZipFile(zip_filepath, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr(filename, txt)
         
@@ -159,9 +155,26 @@ def get_filepath(dataset_code):
     
     return filepath
 
+def mock_get_filepath(self):
+    """Patch for not remove existing file
+    """
+    if not os.path.exists(self.filepath):
+        self._download()
+    return self.filepath
 
-        
-
+def mock_streaming(filename, chunksize=8192):
+    """Patch for use requests with stream=True
+    """
+    
+    with open(filename, "rb") as f:
+        while True:
+            chunk = f.read(chunksize)
+            if chunk:
+                for b in chunk:
+                    yield b
+            else:
+                break
+    
 def load_fake_datas(select_dataset_code=None):
     """Load datas from DATASETS dict
     
@@ -318,7 +331,6 @@ class BISDatasetsTestCase(BaseTestCase):
         
         self.assertDictEqual(datas, attempt)        
         
-
 class BISDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
     
@@ -329,17 +341,29 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
+        
         self.fetcher = bis.BIS(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
-    
+        
+    @httpretty.activate
+    @mock.patch('dlstats.fetchers.bis.Downloader.get_filepath', mock_get_filepath)
     def _common_tests(self):
-
+        
         self._collections_is_empty()
         
+        url = DATASETS[self.dataset_code]['url']
+
         self.filepath = get_filepath(self.dataset_code)
         self.assertTrue(os.path.exists(self.filepath))
+        
+        httpretty.register_uri(httpretty.GET, 
+                               url,
+                               body=mock_streaming(self.filepath),
+                               status=200,
+                               content_type='application/octet-stream;charset=UTF-8',
+                               streaming=True)
         
         # provider.update_database
         self.fetcher.provider.update_database()
@@ -352,21 +376,19 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
                                                                "categoryCode": self.dataset_code})
         self.assertIsNotNone(category)
         
-        #Patch self.fetcher.upsert_dataset('LBS-DISS') - start
         dataset = Datasets(provider_name=self.fetcher.provider_name, 
                            dataset_code=self.dataset_code, 
                            name=DATASETS[self.dataset_code]['name'], 
                            doc_href=DATASETS[self.dataset_code]['doc_href'], 
                            fetcher=self.fetcher)
 
-        # manual Data for iterator
-        fetcher_data = bis.BIS_Data(dataset, 
+        fetcher_data = bis.BIS_Data(dataset,
+                                    url=url, 
                                     filename=DATASETS[self.dataset_code]['filename'],
                                     store_filepath=os.path.dirname(self.filepath))
         
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
-        #Patch self.fetcher.upsert_dataset('LBS-DISS') - end
 
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
                                                             "datasetCode": self.dataset_code})
@@ -513,12 +535,15 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
+        
         self.fetcher = bis.BIS(db=self.db, es_client=self.es)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
         
-    @mock.patch('dlstats.fetchers.bis.BIS_Data.get_store_path', get_store_path)    
+    @httpretty.activate
+    @mock.patch('dlstats.fetchers.bis.BIS_Data.get_store_path', mock_get_store_path)
+    @mock.patch('dlstats.fetchers.bis.Downloader.get_filepath', mock_get_filepath)
     def _common_tests(self):
 
         self._collections_is_empty()
@@ -526,9 +551,16 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         # Write czv/zip file in local directory
         filepath = get_filepath(self.dataset_code)
         self.assertTrue(os.path.exists(filepath))
-        # Replace dataset url by local filepath
-        DATASETS[self.dataset_code]['url'] = "file:%s" % pathname2url(filepath)
+        
+        url = DATASETS[self.dataset_code]['url']
 
+        httpretty.register_uri(httpretty.GET, 
+                               url,
+                               body=mock_streaming(filepath),
+                               status=200,
+                               content_type='application/octet-stream;charset=UTF-8',
+                               streaming=True)
+        
         self.fetcher.provider.update_database()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
@@ -647,7 +679,6 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
         self.dataset = None        
         self.filepath = None
         
-    #@mock.patch('requests.get', local_get)
     def _common_tests(self):
 
         self._collections_is_empty()

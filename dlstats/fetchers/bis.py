@@ -101,7 +101,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 7
         }
     },
     'CBS': { 
@@ -112,7 +112,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 5
+            'headers': 8
         }
     },
     'DSS': {
@@ -123,7 +123,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 7
+            'headers': 10
         }
     },     
     'CNFS': {
@@ -134,7 +134,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 5
         }
     },     
     'DSRP': {
@@ -145,7 +145,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 7
         }
     },     
     'PP-SS': {
@@ -156,7 +156,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 5
         }
     },     
     'PP-LS': {
@@ -167,7 +167,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 6
         }
     },     
     'EERI': {
@@ -190,12 +190,13 @@ class Downloader():
     }
     
     def __init__(self, url=None, filename=None, store_filepath=None, 
-                 timeout=None, max_retries=0, replace=True):
+                 timeout=None, max_retries=0, replace=True, force_replace=True):
         self.url = url
         self.filename = filename
         self.store_filepath = store_filepath
         self.timeout = timeout
         self.max_retries = max_retries
+        self.force_replace = force_replace
         
         if not self.store_filepath:
             self.store_filepath = tempfile.mkdtemp()
@@ -204,8 +205,6 @@ class Downloader():
                 os.makedirs(self.store_filepath, exist_ok=True)
         
         self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
-        
-        #TODO: force_replace ?
         
         if os.path.exists(self.filepath) and not replace:
             raise Exception("filepath is already exist : %s" % self.filepath)
@@ -221,10 +220,11 @@ class Downloader():
             #TODO: Session ?
             response = requests.get(self.url, 
                                     timeout=self.timeout, 
-                                    stream=True, 
+                                    stream=True,
                                     allow_redirects=True,
-                                    verify=False, #ssl
-                                    headers=self.headers)
+                                    verify=False,
+                                    #headers=self.headers
+                                    )
 
             if not response.ok:
                 msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url, 
@@ -238,8 +238,6 @@ class Downloader():
                     f.write(chunk)
                     #TODO: flush ?            
                 
-            #TODO: response.close() ?
-            
         except requests.exceptions.ConnectionError as err:
             raise Exception("Connection Error")
         except requests.exceptions.ConnectTimeout as err:
@@ -252,9 +250,9 @@ class Downloader():
         end = time.time() - start
         logger.info("download file[%s] - END - time[%.3f seconds]" % (self.url, end))
     
-    def get_filepath(self, force_replace=False):
+    def get_filepath(self):
         
-        if os.path.exists(self.filepath) and force_replace:
+        if os.path.exists(self.filepath) and self.force_replace:
             os.remove(self.filepath)
         
         if not os.path.exists(self.filepath):
