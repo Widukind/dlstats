@@ -101,7 +101,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 7
         }
     },
     'CBS': { 
@@ -112,7 +112,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 5
+            'headers': 8
         }
     },
     'DSS': {
@@ -123,7 +123,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 7
+            'headers': 10
         }
     },     
     'CNFS': {
@@ -134,7 +134,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 5
         }
     },     
     'DSRP': {
@@ -145,7 +145,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 7
         }
     },     
     'PP-SS': {
@@ -156,7 +156,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 5
         }
     },     
     'PP-LS': {
@@ -167,7 +167,7 @@ DATASETS = {
         'frequency': 'Q',
         'lines': {
             'release_date': 1,
-            'headers': 4
+            'headers': 6
         }
     },     
     'EERI': {
@@ -220,10 +220,11 @@ class Downloader():
             #TODO: Session ?
             response = requests.get(self.url, 
                                     timeout=self.timeout, 
-                                    stream=True, 
+                                    stream=True,
                                     allow_redirects=True,
-                                    verify=False, #ssl
-                                    headers=self.headers)
+                                    verify=False,
+                                    #headers=self.headers
+                                    )
 
             if not response.ok:
                 msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url, 
@@ -237,8 +238,6 @@ class Downloader():
                     f.write(chunk)
                     #TODO: flush ?            
                 
-            #TODO: response.close() ?
-            
         except requests.exceptions.ConnectionError as err:
             raise Exception("Connection Error")
         except requests.exceptions.ConnectTimeout as err:
