@@ -41,7 +41,7 @@ class ECB(Fetcher):
                         categoryCode=flowref,
                         children=None,
                         docHref=None,
-                        lastUpdate=datetime(2014, 12, 2),
+                        lastUpdate=datetime.now(),
                         exposed=True,
                         fetcher=self)
                     children_ids_.append(in_base_category_.update_database())
@@ -51,7 +51,7 @@ class ECB(Fetcher):
                     categoryCode=category['name'],
                     children=children_ids_,
                     docHref=None,
-                    lastUpdate=datetime(2014, 12, 2),
+                    lastUpdate=datetime.now(),
                     exposed=True,
                     fetcher=self)
             if 'subcategories' in category:
@@ -65,7 +65,7 @@ class ECB(Fetcher):
                     categoryCode=category['name'],
                     children=children_ids,
                     docHref=None,
-                    lastUpdate=datetime(2014, 12, 2),
+                    lastUpdate=datetime.now(),
                     exposed=True,
                     fetcher=self)
             try:
@@ -79,7 +79,7 @@ class ECB(Fetcher):
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            fetcher=self,
-                           last_update=cat['lastUpdate'],
+                           last_update=datetime.now(),
                            doc_href=cat['docHref'], name=cat['name'])
         ecb_data = ECBData(dataset)
         dataset.series.data_iterator = ecb_data

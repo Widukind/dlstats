@@ -99,61 +99,51 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
         reference =[{'categoryCode': '1_1_1',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Name of 1_1_1',
                      'provider': 'ECB'},
                     {'categoryCode': '1_2_1',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Name of 1_2_1',
                      'provider': 'ECB'},
                     {'categoryCode': '1_2_2',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Name of 1_2_2',
                      'provider': 'ECB'},
                     {'categoryCode': '2_2_1',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Name of 2_2_1',
                      'provider': 'ECB'},
                     {'categoryCode': 'Concepts',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Concepts',
                      'provider': 'ECB'},
                     {'categoryCode': 'Example subcategory 1',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Example subcategory 1',
                      'provider': 'ECB'},
                     {'categoryCode': 'Example subcategory 1_1',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Example subcategory 1_1',
                      'provider': 'ECB'},
                     {'categoryCode': 'Example subcategory 1_2',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Example subcategory 1_2',
                      'provider': 'ECB'},
                     {'categoryCode': 'Example subcategory 2',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Example subcategory 2',
                      'provider': 'ECB'},
                     {'categoryCode': 'Example subcategory 2_2',
                      'docHref': None,
                      'exposed': True,
-                     'lastUpdate': datetime.datetime(2014, 12, 2, 0, 0),
                      'name': 'Example subcategory 2_2',
                      'provider': 'ECB'}]
         self.fetcher.upsert_categories()
@@ -161,7 +151,7 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
         #can't test these elements
         results = self.db[constants.COL_CATEGORIES].find(
             {"provider": self.fetcher.provider_name},
-            {'_id': False, 'children': False})
+            {'_id': False, 'children': False, 'lastUpdate':False})
         results = [result for result in results]
         self.assertEqual(results, reference)
 
@@ -185,11 +175,6 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                       'key': 'M.O1',
                       'name': 'M-O1',
                       'provider': 'ECB',
-                      'releaseDates': [datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0)],
                       'startDate': 348,
                       'values': ['1', '2', '3', '4', '5']},
                      {'attributes': {},
@@ -200,11 +185,6 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                       'key': 'M.O2',
                       'name': 'M-O2',
                       'provider': 'ECB',
-                      'releaseDates': [datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0)],
                       'startDate': 349,
                       'values': ['2', '3', '4', '5', '6']},
                      {'attributes': {},
@@ -215,11 +195,6 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                       'key': 'Q.O1',
                       'name': 'Q-O1',
                       'provider': 'ECB',
-                      'releaseDates': [datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0)],
                       'startDate': 176,
                       'values': ['5', '4', '3', '2', '1']},
                      {'attributes': {},
@@ -230,11 +205,6 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                       'key': 'Q.O2',
                       'name': 'Q-O2',
                       'provider': 'ECB',
-                      'releaseDates': [datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0)],
                       'startDate': 180,
                       'values': ['6', '5', '4', '3', '2']}]
 
@@ -242,7 +212,7 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
         self.fetcher.upsert_dataset('2_2_1')
         results = self.db[constants.COL_SERIES].find(
             {"provider": self.fetcher.provider_name},
-            {'_id': False})
+            {'_id': False, 'releaseDates': False})
         results = [result for result in results]
         self.assertEqual(results, reference)
 
