@@ -142,7 +142,25 @@ class Eurostat(Fetcher):
                                   region='Europe',
                                   website='http://ec.europa.eu/eurostat',
                                   fetcher=self)
-        self.selected_codes = ['irt']
+        self.selected_codes = [
+            'nama_10', 
+            'namq_10', 
+            'nasa_10', 
+            'nasq_10', 
+            'naid_10',
+            'nama', 
+            'namq', 
+            'nasa', 
+            'nasq', 
+            'gov', 
+            'ert', 
+            'irt', 
+            'prc', 
+            'bop', 
+            'bop_6',
+            'demo_pjanbroad', 
+            'lfsi_act_q'
+        ]
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
