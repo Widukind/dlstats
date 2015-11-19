@@ -443,15 +443,3 @@ def download_all_sources():
         
     return filepaths
         
-        
-def main():
-    #from dlstats.mongo_client import mongo_client
-    #db = mongo_client.widukind_test
-    #fetcher = BIS(db=db)
-    fetcher = BIS()
-    fetcher.provider.update_database()
-    fetcher.upsert_categories()
-    fetcher.upsert_all_dataset()
-
-if __name__ == "__main__":
-    main()
