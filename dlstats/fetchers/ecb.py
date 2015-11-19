@@ -39,7 +39,7 @@ class ECB(Fetcher):
                     in_base_category_ = Categories(
                         provider=self.provider_name,
                         name=name,
-                        categoryCode=key_family,
+                        categoryCode=flowref,
                         children=None,
                         docHref=None,
                         lastUpdate=datetime(2014, 12, 2),
@@ -77,22 +77,26 @@ class ECB(Fetcher):
 
     def upsert_dataset(self, dataset_code):
         cat = self.db.categories.find_one({'categoryCode': dataset_code})
-        ecb_data = ECBData(dataset_code)
         dataset = Datasets(self.provider_name,
                            dataset_code,
+                           fetcher=self,
                            last_update=cat['lastUpdate'],
                            doc_href=cat['docHref'], name=cat['name'])
+        ecb_data = ECBData(dataset)
         dataset.series.data_iterator = ecb_data
         dataset.update_database()
 
 
 class ECBData(object):
-    def __init__(self, dataset_code):
+    def __init__(self, dataset):
         self.provider_name = 'ECB'
-        self.dataset_code = dataset_code
-        self.key_family = list(sdmx.ecb.dataflows(dataset_code).keys())[0]
+        self.dataset = dataset
+        self.dataset_code = self.dataset.dataset_code
+        self.key_family = list(sdmx.ecb.dataflows(self.dataset_code).keys())[0]
         self.key_family = sub('ECB_', '', self.key_family)
         self.codes = sdmx.ecb.codes(self.key_family)
+        self.dimension_list = self.dataset.dimension_list
+        self.dimension_list.set_dict(self.codes)
         self.largest_dimension = self._largest_dimension()
         self.raw_datas = []
         for code in self.codes[self.largest_dimension[0]]:
@@ -115,34 +119,42 @@ class ECBData(object):
         return self
 
     def __next__(self):
-        if self.codes_to_process == -1:
-            self._codes_to_process = len(self.raw_datas)
+        if self._codes_to_process == -1:
+            self._codes_to_process = len(self.raw_datas)-1
+        current_raw_data = self.raw_datas[self._codes_to_process]
         if self._keys_to_process == -1:
-            self._keys_to_process = len(self.raw_datas)
-        current_key = self._keys_to_process
-        self._keys_to_process -= 1
+            self._keys_to_process = len(current_raw_data[0].keys())-1
         current_code = self._codes_to_process
+        current_key = list(current_raw_data[2].keys())[self._keys_to_process]
+        self._keys_to_process -= 1
         if self._keys_to_process == -1:
             self._codes_to_process -= 1
-        raw_data = self.rawdatas[current_code]
+            if self._codes_to_process == -1:
+                raise StopIteration()
+        series = dict()
         series['provider'] = self.provider_name
         series['datasetCode'] = self.dataset_code
         series['key'] = current_key
-        series['name'] = "-".join([self.raw_data[3][current_key][key]
-                                  for key in self.raw_data[3]])
-        series['values'] = self.raw_data[0][current_key]
-        series['frequency'] = self.raw_data[3]['FREQ']
+        series['name'] = "-".join([current_raw_data[3][current_key][key]
+                                  for key in current_raw_data[3][current_key]])
+        series['values'] = current_raw_data[0][current_key]
+        series['frequency'] = current_raw_data[3][current_key]['FREQ']
         series['startDate'] = pandas.Period(
-            self.raw_data[1][current_key][0],
+            current_raw_data[1][current_key][0],
             freq=series['frequency']
         ).ordinal
         series['endDate'] = pandas.Period(
-            self.raw_data[1][current_key][-1],
+            current_raw_data[1][current_key][-1],
             freq=series['frequency']
         ).ordinal
+        # This is wrong. We should be able to do:
+        # series['attributes'] = current_raw_data[2][current_key]
+        # It is currently not possible in dlstats.
+        series['attributes'] = {}
+        series['dimensions'] = dict(current_raw_data[3][current_key])
         return(series)
 
 if __name__ == '__main__':
     ecb = ECB()
-    # ecb.upsert_categories()
+    ecb.upsert_categories()
     ecb.upsert_dataset('2034468')
