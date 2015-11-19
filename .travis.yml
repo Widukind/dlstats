@@ -20,8 +20,6 @@ before_install:
   - docker run -d --name=mongodb $MONGO_IMAGE mongod --smallfiles --noauth --directoryperdb 
   - docker run -d --name=elasticsearch -e ES_HEAP_SIZE=512m -e ES_MIN_MEM=256m -e ES_MAX_MEM=512m $ES_IMAGE elasticsearch -Dindex.number_of_shards=1 -Dindex.number_of_replicas=0
   - docker build -t widukind/dlstats .
- 
--install:
   - pip install coveralls
  
 before_script:
