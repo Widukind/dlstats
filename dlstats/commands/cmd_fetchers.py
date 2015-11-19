@@ -67,9 +67,9 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
         
         f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
         
-        if not dataset and not hasattr(f, "upsert_all_dataset"):
+        if not dataset and not hasattr(f, "upsert_all_datasets"):
             #TODO: translation EN
-            ctx.log_error("Ce fetcher n'implémente pas la méthode upsert_all_dataset().")
+            ctx.log_error("Ce fetcher n'implémente pas la méthode upsert_all_datasets().")
             ctx.log_error("Vous devez choisir un dataset.")
             ctx.log_error("Operation cancelled !")
             #TODO: click fail ?
@@ -82,7 +82,7 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
         if dataset:
             f.upsert_dataset(dataset)
         else:
-            f.upsert_all_dataset()
+            f.upsert_all_datasets()
         
         #TODO: lock commun avec tasks ?
 

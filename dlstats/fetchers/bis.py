@@ -309,7 +309,7 @@ class BIS(Fetcher):
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
         
-    def upsert_all_dataset(self):
+    def upsert_all_datasets(self):
         
         for dataset_code in DATASETS.keys():
             self.upsert_dataset(dataset_code) 
