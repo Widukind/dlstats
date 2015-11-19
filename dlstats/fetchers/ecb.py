@@ -13,6 +13,7 @@ from re import match, sub
 from time import sleep
 import sdmx
 
+
 class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='ECB', db=db, es_client=es_client)
@@ -85,6 +86,12 @@ class ECB(Fetcher):
         dataset.series.data_iterator = ecb_data
         dataset.update_database()
 
+    def upsert_all_datasets(self):
+        dataset_codes = self.db.categories.find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
+        dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+        for dataset_code in dataset_codes:
+            self.upsert_dataset(dataset_code)
+
 
 class ECBData(object):
     def __init__(self, dataset):
@@ -155,5 +162,6 @@ class ECBData(object):
 
 if __name__ == '__main__':
     ecb = ECB()
-    #ecb.upsert_categories()
-    ecb.upsert_dataset('2034468')
+    ecb.upsert_categories()
+    #ecb.upsert_dataset('2034476')
+    ecb.upsert_all_datasets()
