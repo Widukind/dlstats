@@ -8,7 +8,6 @@ import csv
 import codecs
 from datetime import datetime
 import pandas
-import pprint
 from collections import OrderedDict
 from re import match, sub
 from time import sleep
@@ -97,64 +96,64 @@ class ECBData(object):
         self.codes = sdmx.ecb.codes(self.key_family)
         self.dimension_list = self.dataset.dimension_list
         self.dimension_list.set_dict(self.codes)
-        self.largest_dimension = self._largest_dimension()
         self.raw_datas = []
-        for code in self.codes[self.largest_dimension[0]]:
+        for code in self.codes['FREQ']:
             raw_data = sdmx.ecb.raw_data(
-                self.dataset_code, {self.largest_dimension[0]: code})
+                self.dataset_code, {'FREQ': code})
             self.raw_datas.append(raw_data)
             sleep(9)
-        self._codes_to_process = -1
         self._keys_to_process = -1
-
-    def _largest_dimension(self):
-        counter = ('', 0)
-        for key in self.codes.keys():
-            size_of_code = len(self.codes[key])
-            if size_of_code > counter[1]:
-                counter = (key, size_of_code)
-        return counter
 
     def __iter__(self):
         return self
 
     def __next__(self):
-        if self._codes_to_process == -1:
-            self._codes_to_process = len(self.raw_datas)-1
-        current_raw_data = self.raw_datas[self._codes_to_process]
         if self._keys_to_process == -1:
-            self._keys_to_process = len(current_raw_data[0].keys())-1
-        current_code = self._codes_to_process
-        current_key = list(current_raw_data[2].keys())[self._keys_to_process]
-        self._keys_to_process -= 1
-        if self._keys_to_process == -1:
-            self._codes_to_process -= 1
-            if self._codes_to_process == -1:
+            if self.raw_datas == []:
                 raise StopIteration()
+            else:
+                self.current_raw_data = self.raw_datas.pop()
+                self._keys_to_process = len(self.current_raw_data[0].keys())-1
+                if self._keys_to_process == -1:
+                    return self.__next__()
+        self._keys_to_process -= 1
+        current_key = list(self.current_raw_data[2].keys())[self._keys_to_process]
         series = dict()
         series['provider'] = self.provider_name
         series['datasetCode'] = self.dataset_code
         series['key'] = current_key
-        series['name'] = "-".join([current_raw_data[3][current_key][key]
-                                  for key in current_raw_data[3][current_key]])
-        series['values'] = current_raw_data[0][current_key]
-        series['frequency'] = current_raw_data[3][current_key]['FREQ']
-        series['startDate'] = pandas.Period(
-            current_raw_data[1][current_key][0],
-            freq=series['frequency']
-        ).ordinal
-        series['endDate'] = pandas.Period(
-            current_raw_data[1][current_key][-1],
-            freq=series['frequency']
-        ).ordinal
+        series['name'] = "-".join([self.current_raw_data[3][current_key][key]
+                                  for key in self.current_raw_data[3][current_key]])
+        series['values'] = self.current_raw_data[0][current_key]
+        series['frequency'] = self.current_raw_data[3][current_key]['FREQ']
+        if series['frequency'] == 'W':
+            start_date = self.current_raw_data[1][current_key][0].split('-W')
+            end_date = self.current_raw_data[1][current_key][-1].split('-W')
+            series['startDate'] = pandas.Period(
+                year=int(start_date[0]),
+                freq=series['frequency']
+            ).ordinal + int(start_date[1])
+            series['endDate'] = pandas.Period(
+                year=int(end_date[0]),
+                freq=series['frequency']
+            ).ordinal + int(end_date[1])
+        else:
+            series['startDate'] = pandas.Period(
+                self.current_raw_data[1][current_key][0],
+                freq=series['frequency']
+            ).ordinal
+            series['endDate'] = pandas.Period(
+                self.current_raw_data[1][current_key][-1],
+                freq=series['frequency']
+            ).ordinal
         # This is wrong. We should be able to do:
         # series['attributes'] = current_raw_data[2][current_key]
         # It is currently not possible in dlstats.
         series['attributes'] = {}
-        series['dimensions'] = dict(current_raw_data[3][current_key])
+        series['dimensions'] = dict(self.current_raw_data[3][current_key])
         return(series)
 
 if __name__ == '__main__':
     ecb = ECB()
-    ecb.upsert_categories()
+    #ecb.upsert_categories()
     ecb.upsert_dataset('2034468')
