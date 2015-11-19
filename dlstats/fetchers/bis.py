@@ -309,7 +309,7 @@ class BIS(Fetcher):
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
         
-    def upsert_all_dataset(self):
+    def upsert_all_datasets(self):
         
         for dataset_code in DATASETS.keys():
             self.upsert_dataset(dataset_code) 
@@ -443,15 +443,3 @@ def download_all_sources():
         
     return filepaths
         
-        
-def main():
-    #from dlstats.mongo_client import mongo_client
-    #db = mongo_client.widukind_test
-    #fetcher = BIS(db=db)
-    fetcher = BIS()
-    fetcher.provider.update_database()
-    fetcher.upsert_categories()
-    fetcher.upsert_all_dataset()
-
-if __name__ == "__main__":
-    main()
