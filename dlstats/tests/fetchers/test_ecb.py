@@ -9,6 +9,7 @@ import sdmx
 import datetime
 from collections import OrderedDict
 
+
 CATEGORIES = {
     'name': 'Concepts',
     'subcategories':[
@@ -43,37 +44,36 @@ CODES = {'TEST':{'FREQ': {'M': 'Monthly',
 
 RAW_DATA = dict()
 RAW_DATA['2_2_1'] = dict()
-RAW_DATA['2_2_1']['O1'] = ({'M.O1':['1','2','3','4','5'],
-                            'Q.O1':['5','4','3','2','1']},
-                            {'M.O1':['1999-01','1999-02','1999-03','1999-04','1999-05'],
-                            'Q.O1':['2014-Q1','2014-Q2','2014-Q3',
-                                    '2014-Q4','2015-Q1']},
-                            {'M.O1':[{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'}],
-                             'Q.O1':[{'OBS_STATS':'F'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},{'OBS_STATUS':'A'}]},
-                            {'M.O1':OrderedDict([('FREQ','M'),('OTHER_DIM','O1')]),
-                             'Q.O1':OrderedDict([('FREQ','Q'),('OTHER_DIM','O1')])}
-                           )
-RAW_DATA['2_2_1']['O2'] = ({'M.O2':['2','3','4','5','6'],
-                            'Q.O2':['6','5','4','3','2']},
-                            {'M.O2':['1999-02','1999-03','1999-04','1999-05','1999-05'],
-                            'Q.O2':['2015-Q1','2015-Q2','2015-Q3',
-                                    '2015-Q4','201-6Q1']},
-                            {'M.O2':[{'OBS_STATUS':'F'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'}],
-                             'Q.O2':[{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'}]},
-                            {'M.O2':OrderedDict([('FREQ','M'),('OTHER_DIM','O2')]),
-                             'Q.O2':OrderedDict([('FREQ','Q'),('OTHER_DIM','O2')])}
-                           )
-RAW_DATA['2_2_1']['O3'] = ({'M.O3':['3','4','5','6','7'],
-                            'Q.O3':['7','6','5','4','3']},
-                            {'M.O3':['1999-03','1999-04','1999-05','1999-06','1999-07'],
-                            'Q.O3':['2014-Q3','2014-Q4','2015-Q1',
-                                    '2015-Q2','2015-Q3']},
-                            {'M.O3':[{'OBS_STATUS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'}],
-                             'Q.O3':[{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'},{'OBS_STATS':'A'}]},
-                            {'M.O3':OrderedDict([('FREQ','M'),('OTHER_DIM','O3')]),
-                             'Q.O3':OrderedDict([('FREQ','Q'),('OTHER_DIM','O3')])}
-                           )
-
+RAW_DATA['2_2_1']['M'] = ({'M.O1':['1','2','3','4','5'],
+                           'M.O2':['2','3','4','5','6']},
+                          {'M.O1':['1999-01','1999-02','1999-03',
+                                   '1999-04','1999-05'],
+                           'M.O2':['1999-02','1999-03','1999-04',
+                                   '1999-05','1999-05']},
+                          {'M.O1':[{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
+                                   {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
+                                   {'OBS_STATUS':'A'}],
+                           'M.O2':[{'OBS_STATUS':'F'},{'OBS_STATS':'A'},
+                                   {'OBS_STATS':'A'},{'OBS_STATS':'A'},
+                                   {'OBS_STATS':'A'}]},
+                          {'M.O1':OrderedDict([('FREQ','M'),('OTHER_DIM','O1')]),
+                           'M.O2':OrderedDict([('FREQ','M'),('OTHER_DIM','O2')])}
+                         )
+RAW_DATA['2_2_1']['Q'] = ({'Q.O1':['5','4','3','2','1'],
+                           'Q.O2':['6','5','4','3','2']},
+                          {'Q.O1':['2014-Q1','2014-Q2','2014-Q3',
+                                   '2014-Q4','2015-Q1'],
+                           'Q.O2':['2015-Q1','2015-Q2','2015-Q3',
+                                   '2015-Q4','2016-Q1']},
+                          {'Q.O1':[{'OBS_STATS':'F'},{'OBS_STATUS':'A'},
+                                   {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
+                                   {'OBS_STATUS':'A'}],
+                           'Q.O2':[{'OBS_STATS':'A'},{'OBS_STATS':'A'},
+                                   {'OBS_STATS':'A'},{'OBS_STATS':'A'},
+                                   {'OBS_STATS':'A'}]},
+                          {'Q.O1':OrderedDict([('FREQ','Q'),('OTHER_DIM','O1')]),
+                           'Q.O2':OrderedDict([('FREQ','Q'),('OTHER_DIM','O2')])}
+                         )
 
 def dataflows(flowref):
     return DATAFLOWS[flowref]
@@ -176,10 +176,11 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
     @patch('sdmx.ecb.raw_data', raw_data)
     @patch('dlstats.fetchers.ecb.ECB.get_categories', get_categories)
     def test_upsert_dataset(self):
+
         reference = [{'attributes': {},
                       'datasetCode': '2_2_1',
                       'dimensions': {'FREQ': 'M', 'OTHER_DIM': 'O1'},
-                      'endDate': -23624,
+                      'endDate': 352,
                       'frequency': 'M',
                       'key': 'M.O1',
                       'name': 'M-O1',
@@ -189,12 +190,12 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                                        datetime.datetime(2014, 12, 2, 0, 0),
                                        datetime.datetime(2014, 12, 2, 0, 0),
                                        datetime.datetime(2014, 12, 2, 0, 0)],
-                      'startDate': -23628,
+                      'startDate': 348,
                       'values': ['1', '2', '3', '4', '5']},
                      {'attributes': {},
                       'datasetCode': '2_2_1',
                       'dimensions': {'FREQ': 'M', 'OTHER_DIM': 'O2'},
-                      'endDate': -23623,
+                      'endDate': 352,
                       'frequency': 'M',
                       'key': 'M.O2',
                       'name': 'M-O2',
@@ -204,7 +205,7 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                                        datetime.datetime(2014, 12, 2, 0, 0),
                                        datetime.datetime(2014, 12, 2, 0, 0),
                                        datetime.datetime(2014, 12, 2, 0, 0)],
-                      'startDate': -23627,
+                      'startDate': 349,
                       'values': ['2', '3', '4', '5', '6']},
                      {'attributes': {},
                       'datasetCode': '2_2_1',
@@ -235,28 +236,15 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                                        datetime.datetime(2014, 12, 2, 0, 0),
                                        datetime.datetime(2014, 12, 2, 0, 0)],
                       'startDate': 180,
-                      'values': ['6', '5', '4', '3', '2']},
-                     {'attributes': {},
-                      'datasetCode': '2_2_1',
-                      'dimensions': {'FREQ': 'Q', 'OTHER_DIM': 'O3'},
-                      'endDate': 182,
-                      'frequency': 'Q',
-                      'key': 'Q.O3',
-                      'name': 'Q-O3',
-                      'provider': 'ECB',
-                      'releaseDates': [datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0),
-                                       datetime.datetime(2014, 12, 2, 0, 0)],
-                      'startDate': 178,
-                      'values': ['7', '6', '5', '4', '3']}]
+                      'values': ['6', '5', '4', '3', '2']}]
+
         self.fetcher.upsert_categories()
         self.fetcher.upsert_dataset('2_2_1')
         results = self.db[constants.COL_SERIES].find(
             {"provider": self.fetcher.provider_name},
             {'_id': False})
         results = [result for result in results]
+        self.assertEqual(results, reference)
 
 if __name__ == '__main__':
     unittest.main()
