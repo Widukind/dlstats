@@ -77,7 +77,7 @@ class ECB(Fetcher):
         walk_category(self.get_categories())
 
     def upsert_dataset(self, dataset_code):
-        cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
+        cat = self.db[constants.COL_CATEGORIES].find_one({'provider':self.provider_name, 'categoryCode': dataset_code})
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            fetcher=self,
