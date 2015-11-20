@@ -12,6 +12,7 @@ from collections import OrderedDict
 from re import match, sub
 from time import sleep
 import sdmx
+from dlstats import constants
 
 
 class ECB(Fetcher):
@@ -76,7 +77,7 @@ class ECB(Fetcher):
         walk_category(self.get_categories())
 
     def upsert_dataset(self, dataset_code):
-        cat = self.db.categories.find_one({'categoryCode': dataset_code})
+        cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            fetcher=self,
@@ -87,7 +88,7 @@ class ECB(Fetcher):
         dataset.update_database()
 
     def upsert_all_datasets(self):
-        dataset_codes = self.db.categories.find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
         dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
         for dataset_code in dataset_codes:
             self.upsert_dataset(dataset_code)
