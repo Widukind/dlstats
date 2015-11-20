@@ -264,6 +264,15 @@ class Eurostat(Fetcher):
         for d in datasets:
             self.upsert_dataset(d)
 
+    def datasets_list(self):
+        return self.get_selected_datasets()
+
+    def datasets_long_list(self):
+        categoryCodes = self.datasets_list()
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'Eurostat', 'categoryCode': {"$in": categoryCodes}},
+                                                               {'categoryCode':True, 'name': True, '_id': False})
+        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+
     def upsert_dataset(self,dataset_code):
         """Updates data in Database for selected datasets
         :dset: dataset_code

@@ -65,7 +65,13 @@ class OECD(Fetcher):
         
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        
+
+    def datasets_list(self):
+        return DATASETS.keys()
+
+    def datasets_long_list(self):
+        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
+
     def upsert_all_datasets(self):
         
         for dataset_code in DATASETS.keys():

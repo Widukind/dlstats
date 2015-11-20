@@ -313,7 +313,13 @@ class BIS(Fetcher):
         
         for dataset_code in DATASETS.keys():
             self.upsert_dataset(dataset_code) 
-        
+
+    def datasets_list(self):
+        return DATASETS.keys()
+
+    def datasets_long_list(self):
+        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
+
     def upsert_categories(self):
         
         for dataset_code in DATASETS.keys():
