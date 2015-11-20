@@ -27,16 +27,16 @@ DATASETS = {
 #TODO: is_updated function by datasets or by excel sheet ?
 
 class WorldBank(Fetcher):
-
-    def __init__(self, db=None):
-        
-        super().__init__(provider_name='WorldBank',  db=db)         
-        
+    def __init__(self, db=None, es_client=None):
+        super().__init__(provider_name='WorldBank',  db=db, es_client=es_client)         
+        self.provider_name = 'WorldBank'
         self.provider = Providers(name=self.provider_name,
                                  long_name='World Bank',
                                  region='world',
                                  website='http://www.worldbank.org/',
                                  fetcher=self)
+        self.gem_url = 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' + \
+                            'GemDataEXTR.zip'
        
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name,
@@ -49,36 +49,25 @@ class WorldBank(Fetcher):
         self.fetcher.provider.add_data_tree(data_tree)
 
     def upsert_dataset(self, datasetCode):
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
         #TODO return the _id field of the corresponding dataset. Update the category accordingly.
         if datasetCode=='GEM':
             self.upsert_gem(datasetCode)
         else:
             raise Exception("This dataset is unknown" + dataCode)                 
         self.update_metas(datasetCode)        
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
-    def upsert_gem(self, dataset_code):
-        d = DATASETS[dataset_code]
-        url = d['url']
-        dataset = Datasets(provider_name=self.provider_name, 
-                           dataset_code=dataset_code, 
-                           name=d['name'], 
-                           doc_href=d['doc_href'], 
+    def upsert_gem(self, url, dataset_code):
+        dataset = Datasets(self.provider_name,dataset_code,
                            fetcher=self)
-        gem_data = GemData(dataset, url)
+        gem_data = GemData(dataset,url)
+        dataset.name = 'Global Economic Monirtor'
+        dataset.doc_href = 'http://data.worldbank.org/data-catalog/global-economic-monitor'
         dataset.last_update = gem_data.releaseDate
         dataset.series.data_iterator = gem_data
         dataset.update_database()
         
     def upsert_all_datasets(self):
-        start = time.time()
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_dataset('GEM')  
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
     def datasets_list(self):
         return DATASETS.keys()
