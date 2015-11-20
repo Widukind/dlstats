@@ -30,21 +30,41 @@ def cmd_list():
     print("----------------------------------------------------")
 
 @cli.command('datasets')
+@client.opt_verbose
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
 @opt_fetcher
-def cmd_dataset_list(fetcher):
+def cmd_dataset_list(fetcher, **kwargs):
     """Show datasets list"""
 
-    datasets = FETCHERS_DATASETS.get(fetcher, None)
-    ctx = client.Context()
+    ctx = client.Context(**kwargs)
+
+    f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
+
+    if ctx.verbose:
+        func_name = 'datasets_long_list'
+    else:
+        func_name = 'datasets_list'
+
+    have_func = hasattr(f, func_name)
+
+    if not have_func:
+        ctx.log_error("not implemented %s() method in fetcher" % func_name)
+        return
+
+    datasets = getattr(f, func_name)()
     if not datasets:
-        #TODO: translation
-        ctx.log_error("Les datasets de ce fetcher ne sont pas définis.")
+        ctx.log_error("Not datasets for this fetcher")
         return
         
-    print("----------------------------------------------------")    
-    for key in datasets.keys():                                
-        print(key)
-    print("----------------------------------------------------")
+    if ctx.verbose:
+        for key, name in datasets:
+            print(key, name)
+    else:
+        for key in datasets:
+            print(key)
 
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
