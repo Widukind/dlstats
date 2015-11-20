@@ -66,6 +66,28 @@ def cmd_dataset_list(fetcher, **kwargs):
         for key in datasets:
             print(key)
 
+@cli.command('update-categories', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@client.opt_es_url
+@opt_fetcher
+def cmd_update_categories(fetcher=None, **kwargs):
+    """Create or Update fetcher Categories"""
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log_ok("Run Update Categories for %s fetcher:" % fetcher)
+
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+
+        f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
+        f.upsert_categories()
+        #TODO: lock commun avec tasks ?
+
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
