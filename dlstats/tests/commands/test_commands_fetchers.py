@@ -8,7 +8,15 @@ from click.testing import CliRunner
 from dlstats.tests.base import BaseTestCase, BaseDBTestCase, RESOURCES_DIR
 
 class FakeFetcher():
-    pass
+    
+    def __init__(self, **kwargs):
+        pass
+
+    def datasets_list(self):
+        return ["dataset1"]
+
+    def datasets_long_list(self):
+        return [("dataset1", "Dataset1")]
 
 class FetcherNoDBTestCase(BaseTestCase):
 
@@ -18,14 +26,11 @@ class FetcherNoDBTestCase(BaseTestCase):
         BaseTestCase.setUp(self)
         #TODO: mock ?
         self.backup_FETCHERS = FETCHERS.copy()
-        self.backup_FETCHERS_DATASETS = FETCHERS_DATASETS.copy()
         FETCHERS["TEST"] = FakeFetcher
-        FETCHERS_DATASETS["TEST"] = {"dataset1": {"name": "Dataset1"}}
 
     def tearDown(self):
         BaseTestCase.tearDown(self)
         FETCHERS = self.backup_FETCHERS
-        FETCHERS_DATASETS = self.backup_FETCHERS_DATASETS
         
     def test_list(self):
         runner = CliRunner()   

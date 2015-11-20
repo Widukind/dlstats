@@ -87,6 +87,14 @@ class ECB(Fetcher):
         dataset.series.data_iterator = ecb_data
         dataset.update_database()
 
+    def datasets_list(self):
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
+        return [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+
+    def datasets_long_list(self):
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, 'name': True, '_id': False})
+        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+
     def upsert_all_datasets(self):
         dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
         dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
