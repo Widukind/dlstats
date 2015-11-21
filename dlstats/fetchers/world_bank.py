@@ -1,52 +1,134 @@
+# -*- coding: utf-8 -*-
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
-import io
+import tempfile
+import logging
+import os
 import zipfile
-import urllib.request
-import xlrd
 import datetime
-import pandas
-import pprint
+import time
 
+import xlrd
+import pandas
+import requests
+
+from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+
+logger = logging.getLogger(__name__)
+
+DATASETS = {
+    'GEM': { 
+        'name': 'Global Economic Monitor',
+        'doc_href': 'http://data.worldbank.org/data-catalog/global-economic-monitor',
+        'url': 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/GemDataEXTR.zip',
+        'filename': 'GemDataEXTR.zip',
+    },
+}
+
+#TODO: is_updated function by datasets or by excel sheet ?
 
 class WorldBank(Fetcher):
-    def __init__(self):
-        super().__init__()         
-        self.provider_name = 'WorldBank'
-        self.provider = Provider(name=self.provider_name,
+
+    def __init__(self, db=None, es_client=None):
+        
+        super().__init__(provider_name='WorldBank',  db=db, es_client=es_client)         
+        
+        self.provider = Providers(name=self.provider_name,
                                  long_name='World Bank',
                                  region='world',
-                                 website='http://www.worldbank.org/')
-        self.gem_url = 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/' + \
-                            'GemDataEXTR.zip'
-        
+                                 website='http://www.worldbank.org/',
+                                 fetcher=self)
+       
     def upsert_categories(self):
-        document = Category(provider = self.provider_name, 
+        document = Categories(provider = self.provider_name, 
                             name = 'GEM', 
                             categoryCode ='GEM',
-                            children = None)
+                            children = None,
+                            fetcher=self)
         return document.update_database()
 
     def upsert_dataset(self, datasetCode):
         #TODO return the _id field of the corresponding dataset. Update the category accordingly.
         if datasetCode=='GEM':
-            self.upsert_gem(self.gem_url,datasetCode)
+            self.upsert_gem(datasetCode)
         else:
-            raise Exception("This dataset is unknown" + dataCode)
-        es = ElasticIndex()
-        es.make_index(self.provider_name,datasetCode)
+            raise Exception("This dataset is unknown" + dataCode)                 
+        self.update_metas(datasetCode)        
 
-    def upsert_gem(self, url, dataset_code):
-        dataset = Dataset(self.provider_name,dataset_code)
-        gem_data = GemData(dataset,url)
-        dataset.name = 'Global Economic Monirtor'
-        dataset.doc_href = 'http://data.worldbank.org/data-catalog/global-economic-monitor'
+    def upsert_gem(self, dataset_code):
+        d = DATASETS[dataset_code]
+        url = d['url']
+        dataset = Datasets(provider_name=self.provider_name, 
+                           dataset_code=dataset_code, 
+                           name=d['name'], 
+                           doc_href=d['doc_href'], 
+                           fetcher=self)
+        gem_data = GemData(dataset, url)
         dataset.last_update = gem_data.releaseDate
         dataset.series.data_iterator = gem_data
         dataset.update_database()
+        
+    def upsert_all_datasets(self):
+        self.upsert_dataset('GEM')  
+
+    def datasets_list(self):
+        return DATASETS.keys()
+
+    def datasets_long_list(self):
+        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
+
+    def download(self, dataset_code=None, url=None):
+
+        filepath_dir = os.path.abspath(os.path.join(tempfile.gettempdir(), 
+                                        self.provider_name))
+        
+        filepath = "%s.zip" % os.path.abspath(os.path.join(filepath_dir, dataset_code))
+
+        if not os.path.exists(filepath_dir):
+            os.makedirs(filepath_dir, exist_ok=True)
+            
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            
+        if logger.isEnabledFor(logging.INFO):
+            logger.info("store file to [%s]" % filepath)
+
+        start = time.time()
+        try:
+            response = requests.get(url, 
+                                    #TODO: timeout=self.timeout, 
+                                    stream=True,
+                                    allow_redirects=True,
+                                    verify=False)
+
+            if not response.ok:
+                msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
+                                                                           response.status_code, 
+                                                                           response.reason)
+                logger.error(msg)
+                raise Exception(msg)
+            
+            with open(filepath,'wb') as f:
+                for chunk in response.iter_content():
+                    f.write(chunk)
+
+            return response.headers['Last-Modified'], filepath
+                
+        except requests.exceptions.ConnectionError as err:
+            raise Exception("Connection Error")
+        except requests.exceptions.ConnectTimeout as err:
+            raise Exception("Connect Timeout")
+        except requests.exceptions.ReadTimeout as err:
+            raise Exception("Read Timeout")
+        except Exception as err:
+            raise Exception("Not captured exception : %s" % str(err))            
+
+        end = time.time() - start
+        logger.info("download file[%s] - END - time[%.3f seconds]" % (url, end))
 
 class GemData:
-    def __init__(self,dataset,url):
+
+    def __init__(self, dataset, url, is_autoload=True):
+        self.dataset = dataset
         self.provider_name = dataset.provider_name
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
@@ -54,15 +136,26 @@ class GemData:
         self.last_update = []
         self.columns = iter([])
         self.sheets = iter([])
-        self.response = urllib.request.urlopen(url)
-        #Getting released date from headers of the Zipfile
-        releaseDate = self.response.info()['Last-Modified'] 
-        self.releaseDate = datetime.datetime.strptime(releaseDate, 
-                                                      "%a, %d %b %Y %H:%M:%S GMT")
-        self.zipfile = zipfile.ZipFile(io.BytesIO(self.response.read()))
-        self.excel_filenames = iter(self.zipfile.namelist())
+        self.url = url
+        self.releaseDate = None
+        self.excel_filenames = []
         self.freq_long_name = {'A': 'Annual', 'Q': 'Quarterly', 'M': 'Monthly', 'D': 'Daily'}
+        self.zipfile = None
         
+        if is_autoload:
+            self.load_datas()
+            
+    def load_datas(self):
+        
+        releaseDate_str, filepath = self.dataset.fetcher.download(dataset_code=self.dataset_code, 
+                                                                  url=self.url)
+            
+        self.releaseDate = datetime.datetime.strptime(releaseDate_str, 
+                                                      "%a, %d %b %Y %H:%M:%S GMT")
+        
+        self.zipfile = zipfile.ZipFile(filepath)
+        self.excel_filenames = iter(self.zipfile.namelist())
+     
     def __iter__(self):
         return self
 
@@ -82,7 +175,7 @@ class GemData:
         else:    
             dimensions['Country'] = self.dimension_list.update_entry('Country','',col_header) 
         values = [str(v) for v in self.sheet.col_values(column,start_rowx=1)]
-        release_dates = [self.last_update for v in values]
+        #release_dates = [self.last_update for v in values]
         series_key = self.series_name.replace(' ','_').replace(',', '')
         # don't add a period if there is already one
         if series_key[-1] != '.':
@@ -96,7 +189,8 @@ class GemData:
         series['values'] = values
         series['attributes'] = {}
         series['dimensions'] = dimensions
-        series['releaseDates'] = release_dates
+        series['lastUpdate'] = self.last_update
+        #series['releaseDates'] = release_dates
         series['startDate'] = self.start_date
         series['endDate'] = self.end_date
         series['frequency'] = self.frequency
@@ -136,14 +230,39 @@ class GemData:
         
     def update_file(self):
         fname = next(self.excel_filenames)
+        info = self.zipfile.getinfo(fname)
+        while True:
+            #bypass directory - not excel file
+            if info.file_size > 0 and not info.filename.endswith('/'):
+                break
+            
+            fname = next(self.excel_filenames)
+            info = self.zipfile.getinfo(fname)
+            
         self.series_name = fname[:-5]
         self.last_update = datetime.datetime(*self.zipfile.getinfo(fname).date_time[0:6])
         self.excel_book = xlrd.open_workbook(file_contents = self.zipfile.read(fname))
         self.sheets = iter([s for s in self.excel_book.sheets()
                             if s.name not in ['Sheet1','Sheet2','Sheet3','Sheet4',
                                               'Feuille1','Feuille2','Feuille3','Feuille4']])
+                                              
+                                            
 
 if __name__ == "__main__":
-    import world_bank
-    w = world_bank.WorldBank()
-    w.upsert_dataset('GEM')
+    logging.basicConfig(level=logging.DEBUG)
+    import sys
+    print("WARNING : run main for testing only", file=sys.stderr)
+    import tempfile
+    import os
+    try:
+        import requests_cache
+        cache_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 'dlstats_cache'))        
+        requests_cache.install_cache(cache_filepath, backend='sqlite', expire_after=None)#=60 * 60) #1H
+        print("requests cache in %s" % cache_filepath)
+    except ImportError:
+        pass
+    
+    w = WorldBank()
+    w.provider.update_database()
+    w.upsert_categories()
+    w.upsert_all_datasets()
