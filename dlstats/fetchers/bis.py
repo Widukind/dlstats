@@ -382,10 +382,9 @@ class BIS_Data():
         self.rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
         
         self.dataset.last_update = self.release_date
-            
+        
         self.start_date = pandas.Period(self.periods[0], freq=self.frequency)
         self.end_date = pandas.Period(self.periods[-1], freq=self.frequency)
-        
         
     def __next__(self):
         row = csv_dict(self.headers, next(self.rows)) 
@@ -413,10 +412,9 @@ class BIS_Data():
             dim_short_id = row[d].split(":")[0]
             dim_long_id = row[d].split(":")[1]
             dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-            
-        series_name = "-".join([row[d] for d in self.dimension_keys])
 
-
+        series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
+        
         data = {'provider': self.dataset.provider_name,
                 'datasetCode': self.dataset.dataset_code,
                 'name': series_name,
@@ -428,6 +426,7 @@ class BIS_Data():
                 'startDate': self.start_date.ordinal,
                 'endDate': self.end_date.ordinal,
                 'frequency': self.frequency}
+
         return(data)
         
     

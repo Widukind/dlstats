@@ -420,6 +420,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["Measure"], 'F')
         self.assertEqual(d["Balance sheet position"], 'C')
         
+        self.assertEqual(serie["name"], 'Quarterly - FX and break adjusted change (BIS calculated) - Total claims - All instruments - Swiss Franc - All currencies (=D+F+U) - All countries - All reporting banks/institutions (domestic, foreign, consortium and unclassified) - All reporting countries - All sectors - International organisations - Cross-border')
+        
         #TODO: meta_datas tests  
 
         #TODO: clean filepath
