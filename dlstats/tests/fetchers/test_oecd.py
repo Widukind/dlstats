@@ -77,38 +77,45 @@ class OECDDatasetsTestCase(BaseTestCase):
                                )
 
         self.oecd_data.load_codes()
-
+        
         '''Country TEST'''
         row = {
             'id': 'KEY1',
             'values': [1.74265791869857, 1.81348933188545],
-            'Frequency': 'A',
+            'dimensions': {
+                'Frequency': 'A',
+                'Country': 'FRA',
+                'Measure': 'MEI',
+                'Subject': 'BPFAFD01',
+            },            
             'periods': ['1980', '1981'],
-            'Country': 'TEST',
-            'Measure': 'MEI',
-            'Subject': 'BPFAFD01',
         }
         
         result = self.oecd_data.build_serie(row)
-        series_name = "-".join([row[d] for d in self.oecd_data.dimension_keys])
         
         data = {'provider': self.dataset.provider_name,
                 'datasetCode': self.dataset.dataset_code,
-                'name': series_name,
-                'key': "KEY1",
+                'name': 'France - Annual - Main Economic Indicators - Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives',
+                'key': "FRA.A.MEI.BPFAFD01",
                 'values': [str(v) for v in row['values']],
                 'attributes': {},
                 'dimensions': {
-                    "Measure" : "MEI",
-                    "Country" : "TEST",
-                    "Frequency" : "A",
-                    "Subject" : "BPFAFD01"
-                },
+                    'Country': 'FRA',
+                    'Frequency': 'A',
+                    'Measure': 'MEI',
+                    'Subject': 'BPFAFD01'
+                },                
+                #'dimensions': {
+                #    "Measure" : "Main Economic Indicators",
+                #    "Country" : "France",
+                #    "Frequency" : "Annual",
+                #    "Subject" : "Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives"
+                #},
                 'lastUpdate': self.oecd_data.prepared,
                 'startDate': 10,
                 'endDate': 11,
                 'frequency': 'A'}        
-    
+
         self.assertDictEqual(result, data)
     
     @httpretty.activate
@@ -138,7 +145,7 @@ class OECDDatasetsTestCase(BaseTestCase):
         self.assertEqual(self.oecd_data.dataset.last_update, dt)
         
         self.assertEqual(len(self.oecd_data.countries), 1)
-        self.assertEqual(list(self.oecd_data.countries.keys())[0], 'TEST')
+        self.assertEqual(list(self.oecd_data.countries.keys())[0], 'FRA')
         
         self.assertEqual(len(self.oecd_data.dimension_keys), 4)
         

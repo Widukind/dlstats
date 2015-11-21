@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
@@ -90,16 +91,20 @@ class OECD(Fetcher):
 
 class OECD_Data():
     
+    '''
+    init -> load_data_from_sdmx() -> load_codes() -> __next__() 
+    '''
+    
     def __init__(self, dataset, limited_countries=None, is_autoload=True):
         
         self.dataset = dataset
         
         #TODO: limited countries
-        self.limited_countries = limited_countries# or ['AUS']
+        self.limited_countries = limited_countries# or ['FRA']
         
         self.prepared = None
         
-        self.codes = {}
+        self.codes = OrderedDict()
         
         self.countries = {}
 
@@ -131,6 +136,9 @@ class OECD_Data():
         
         #'2015-10-27T21:30:00.27625Z'
         self.prepared = datetime.strptime(header['prepared'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        
+        #TODO: vérifier si mise à jour sinon bypass ?
+        #Attention à timezone
         self.dataset.last_update = self.prepared
 
         #TODO: LOCATION
@@ -138,13 +146,12 @@ class OECD_Data():
             self.countries[k] = v
         
         #TODO: TIME_PERIOD
-        self.dimension_keys = [k for k in codes.keys() if not k == 'Time']
-        
+        self.dimension_keys = [k for k in sorted(codes.keys()) if not k == 'Time']
         #TODO: self.attribute_keys = [k for k in codes['attributes'].keys() if not k == 'TIME_FORMAT']
         
         for key in self.dimension_keys:
             if not key in self.codes:                
-                self.codes[key] = {}
+                self.codes[key] = OrderedDict()
 
             for k, v in codes[key]:
                 self.codes[key][k] = v
@@ -183,7 +190,6 @@ class OECD_Data():
         
             logger.info("load for dataset[%s] - country[%s]" % (self.dataset.dataset_code, country_code))
             
-            #URL :  http://stats.oecd.org/sdmx-json/data/MEI/FRA...all?startperiod=2014&endPeriod=2015&dimensionAtObservation=TIME
             try:
                 if errors >= max_errors:
                     raise Exception("Too many errors max[%s]" % max_errors)
@@ -196,15 +202,14 @@ class OECD_Data():
                                                                         str(err)))
             
             for id in raw_codes.keys():
+                #FIXME: pb fabrication ID sur sdmx
                 row = {"id": id}
-                row.update(raw_codes[id])
+                row['dimensions'] = raw_codes[id]
                 row['values'] = raw_values[id]
                 row['periods'] = raw_dates[id]
                 row['attributes'] = raw_attributes[id]
                 row_str = "%s\n" % json.dumps(row)
-                #print("WRITE : ", row_str)
                 self.fp.write(row_str)
-                #json.dump(row, self.fp)
                 
         self.fp.close()
         filepath, self.fp = self.get_temp_file(filepath=filepath, mode='r')    
@@ -213,7 +218,6 @@ class OECD_Data():
     
     def __next__(self):
         row_str = next(self.fp)
-        #print("READ : ", row_str)
         if row_str is None:
             #TODO: delete tmp file ?
             if self.fp and not self.fp.closed:
@@ -223,7 +227,7 @@ class OECD_Data():
 
         #TODO: exception ?
         #TODO: utf-8 ?        
-        row = json.loads(row_str) 
+        row = json.loads(row_str, object_pairs_hook=OrderedDict) 
         series = self.build_serie(row)
         return(series)
 
@@ -245,35 +249,37 @@ class OECD_Data():
         Return instance of :class:`dict`
         """
 
-        series_key = row['id']
         values = [str(v) for v in row['values']]
-        frequency = row['Frequency']
         periods = row['periods']
+        dimensions = row['dimensions']
+        frequency = row['dimensions']['Frequency']
 
-        #TOSO: All none
+        #TODO: All none
         #row['attributes']
         #raw_attributes = self.raw_attributes[row_key]
-        
-        #print("ROW/periods: ", str(row), periods)
         
         period_start = self._patch_period(periods[0], frequency)
         period_end = self._patch_period(periods[-1], frequency)
         start_date = pandas.Period(period_start, freq=frequency)
         end_date = pandas.Period(period_end, freq=frequency)
-                
+        
+        new_dimensions = OrderedDict()
+        #TODO: attributes = {}
+        
+        for d in sorted(dimensions.keys()):
+            dim_short_id = dimensions[d]
+            dim_long_id = self.codes[d][dim_short_id]
+            new_dimensions[d] = self.dataset.dimension_list.update_entry(d, dim_short_id, dim_long_id)
+        
+        series_key = ".".join(new_dimensions.values())
+        series_name = " - ".join([self.codes[d][v] for d, v in new_dimensions.items()])
+        
+        #dimensions = OrderedDict([(d, self.codes[d][v]) for d, v in new_dimensions.items()])
+        dimensions = new_dimensions
+        
         logger.debug("provider[%s] - dataset[%s] - serie[%s]" % (self.dataset.provider_name,
                                                                  self.dataset.dataset_code,
                                                                  series_key))
-
-        dimensions = {}
-        #TODO: attributes = {}
-        
-        for d in self.dimension_keys:
-            dim_short_id = row[d]
-            dim_long_id = self.codes[d][dim_short_id]
-            dimensions[d] = self.dataset.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-        
-        series_name = "-".join([row[d] for d in self.dimension_keys])
 
         data = {'provider': self.dataset.provider_name,
                 'datasetCode': self.dataset.dataset_code,
