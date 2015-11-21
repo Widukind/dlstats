@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import sys
 
 from pymongo import ASCENDING, DESCENDING
 
@@ -148,7 +149,6 @@ def configure_logging(debug=False, stdout_enable=True, config_file=None,
         logging.config.fileConfig(config_file, disable_existing_loggers=True)
         return logging.getLogger('')
 
-
     #TODO: handler file ?    
     LOGGING = {
         'version': 1,
@@ -171,7 +171,8 @@ def configure_logging(debug=False, stdout_enable=True, config_file=None,
             'console':{
                 'level':level,
                 'class':'logging.StreamHandler',
-                'formatter': 'simple'
+                'formatter': 'simple',
+                'stream': sys.stdout
             },      
         },
         'loggers': {
