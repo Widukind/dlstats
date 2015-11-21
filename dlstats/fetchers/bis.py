@@ -296,19 +296,24 @@ class BIS(Fetcher):
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
                                 filename=DATASETS[dataset_code]['filename'])
-        dataset.series.data_iterator = fetcher_data
-        dataset.update_database()
 
-        #TODO: clean datas (file temp)
+        if fetcher_data.is_updated():
 
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END-BEFORE-METAS - time[%.3f seconds]" % (dataset_code, end))
+            dataset.series.data_iterator = fetcher_data
+            dataset.update_database()
 
-        self.update_metas(dataset_code)
-        
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        
+            #TODO: clean datas (file temp)
+
+            end = time.time() - start
+            logger.info("upsert dataset[%s] - END-BEFORE-METAS - time[%.3f seconds]" % (dataset_code, end))
+
+            self.update_metas(dataset_code)
+
+            end = time.time() - start
+            logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
+        else:
+            logger.info("upsert dataset[%s] bypass because is updated from release_date[%s]" % (dataset_code, fetcher_data.release_date))
+
     def upsert_all_datasets(self):
         
         for dataset_code in DATASETS.keys():
@@ -382,11 +387,23 @@ class BIS_Data():
         self.rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
         
         self.dataset.last_update = self.release_date
-            
+        
         self.start_date = pandas.Period(self.periods[0], freq=self.frequency)
         self.end_date = pandas.Period(self.periods[-1], freq=self.frequency)
-        
-        
+
+    def is_updated(self):
+
+        dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(
+                                                {"provider": self.dataset.provider_name,
+                                                "datasetCode": self.dataset.dataset_code})
+        if not dataset_doc:
+            return True
+
+        if self.release_date > dataset_doc['lastUpdate']:
+            return True
+
+        return False
+
     def __next__(self):
         row = csv_dict(self.headers, next(self.rows)) 
         series = self.build_serie(row)
@@ -413,10 +430,9 @@ class BIS_Data():
             dim_short_id = row[d].split(":")[0]
             dim_long_id = row[d].split(":")[1]
             dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-            
-        series_name = "-".join([row[d] for d in self.dimension_keys])
 
-
+        series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
+        
         data = {'provider': self.dataset.provider_name,
                 'datasetCode': self.dataset.dataset_code,
                 'name': series_name,
@@ -428,6 +444,7 @@ class BIS_Data():
                 'startDate': self.start_date.ordinal,
                 'endDate': self.end_date.ordinal,
                 'frequency': self.frequency}
+
         return(data)
         
     
