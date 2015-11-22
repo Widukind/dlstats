@@ -90,6 +90,9 @@ class Esri(Fetcher):
         dataset.series.data_iterator = sna_data
         dataset.update_database()
 
+    def upsert_all_datasets(self):
+        self.upsert_categories()
+        self.esri_issue()
         
 class EsriData():
     def __init__(self,dataset,url):
