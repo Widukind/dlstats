@@ -12,6 +12,7 @@ from collections import OrderedDict
 from re import match, sub
 from time import sleep
 import sdmx
+import requests
 from dlstats import constants
 
 
@@ -19,6 +20,8 @@ class ECB(Fetcher):
     def __init__(self, db=None, es_client=None):
         super().__init__(provider_name='ECB', db=db, es_client=es_client)
         self.provider_name = 'ECB'
+        self.requests_client = requests.Session()
+        sdmx.ecb.requests_client = self.requests_client
         self.provider = Providers(name=self.provider_name,
                                   long_name='European Central Bank',
                                   region='Europe',
