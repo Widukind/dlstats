@@ -48,18 +48,23 @@ class Esri(Fetcher):
         links_ = [href_.values() for href_ in hrefs_]
         deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
         self.url_all = gdp_urls + deflator_urls
-        self.datasetCode_list = ['Nominal Gross Domestic Product (original series)',
-                'Annual Nominal GDP (fiscal year)',                
-                'Nominal Gross Domestic Product (seasonally adjusted series)',
-                'Annual Nominal GDP (calendar year)',
-                'Real Gross Domestic Product (original series)',
-                'Annual Real GDP (fiscal year)',
-                'Real Gross Domestic Product (seasonally adjusted series)',
-                'Annual Real GDP (calendar year)',
-                'Deflators (quarter:original series)',
-                'Deflators (quarter:seasonally adjusted series)' ,
-                'Deflators (fiscal year)',
-                'Deflators (calendar year)']
+        self.dataset_name_list = [ 'Nominal Gross Domestic Product (original series)',
+                                   'Annual Nominal GDP (fiscal year)',                
+                                   'Nominal Gross Domestic Product (seasonally adjusted series)',
+                                   'Annual Nominal GDP (calendar year)',
+                                   'Real Gross Domestic Product (original series)',
+                                   'Annual Real GDP (fiscal year)',
+                                   'Real Gross Domestic Product (seasonally adjusted series)',
+                                   'Annual Real GDP (calendar year)',
+                                   'Deflators (quarter:original series)',
+                                   'Deflators (quarter:seasonally adjusted series)' ,
+                                   'Deflators (fiscal year)',
+                                   'Deflators (calendar year)']
+        self.datasetCode_list = ['esri'+str(index+1) for index, s in enumerate(self.dataset_name_list)]
+        self.dataset_name = {'esri' +str(index+1): s for index, s in enumerate(self.dataset_name_list)}
+        print(self.datasetCode_list)
+        print(self.dataset_name)
+        
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name, 
                      'name': 'esri', 
@@ -84,7 +89,7 @@ class Esri(Fetcher):
         dataset = Datasets(self.provider_name,dataset_code,
                            fetcher=self)
         sna_data = EsriData(dataset,url)
-        dataset.name = dataset_code
+        dataset.name = self.dataset_name[dataset_code]
         dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
         dataset.last_update = sna_data.releaseDate
         dataset.series.data_iterator = sna_data
