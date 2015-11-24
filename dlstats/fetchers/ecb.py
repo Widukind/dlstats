@@ -14,6 +14,7 @@ from time import sleep
 import sdmx
 import requests
 from dlstats import constants
+from lxml.etree import XMLSyntaxError
 
 
 class ECB(Fetcher):
@@ -22,8 +23,7 @@ class ECB(Fetcher):
         self.provider_name = 'ECB'
         self.requests_client = requests.Session()
         sdmx.ecb.requests_client = self.requests_client
-        self.provider = Providers(name=self.provider_name,
-                                  long_name='European Central Bank',
+        self.provider = Providers(name=self.provider_name, long_name='European Central Bank',
                                   region='Europe',
                                   website='http://www.ecb.europa.eu/',
                                   fetcher=self)
@@ -135,7 +135,19 @@ class ECBData(object):
             if self.codes_to_process == []:
                 raise StopIteration()
             else:
-                self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:self.codes_to_process.pop()})
+                self.current_raw_data = None
+                attempts = 0
+                code = self.codes_to_process.pop()
+                while attempts < 3:
+                    try:
+                        sleep(10)
+                        self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
+                    except XMLSyntaxError as e:
+                        attempts += 1
+                        sleep(600*attempts)
+                        exception = e
+                if self.current_raw_data == None:
+                    raise e
                 self.keys_to_process = list(self.current_raw_data[0].keys())
                 if self.keys_to_process == []:
                     self.__next__()
