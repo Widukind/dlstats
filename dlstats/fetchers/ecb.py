@@ -142,8 +142,8 @@ class ECBData(object):
                     try:
                         sleep(10)
                         self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
-                    except XMLSyntaxError as e:
                         attempts += 1
+                    except XMLSyntaxError as e:
                         sleep(600*attempts)
                         exception = e
                 if self.current_raw_data == None:
