@@ -325,7 +325,7 @@ class DBCategoryTestCase(BaseDBTestCase):
 
         indexes = self.db[constants.COL_CATEGORIES].index_information()
         
-        self.assertEqual(len(indexes), 2)
+        self.assertEqual(len(indexes), 3)
         
         
         """
