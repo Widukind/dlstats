@@ -12,7 +12,7 @@ curl -v -S -k -L -o /tmp/miniconda3.sh https://repo.continuum.io/miniconda/Minic
   && conda install -y python=$PYTHON_RELEASE \
   && conda remove -y pycrypto \
   && conda clean -y -i -l -t -p -s \
-  && conda install -y pandas numpy numexpr Bottleneck
+  && conda install -y pandas lxml numpy numexpr Bottleneck beautifulsoup4 xlrd
 
 rm -f /tmp/miniconda3.sh
 
