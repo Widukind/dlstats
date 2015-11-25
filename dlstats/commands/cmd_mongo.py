@@ -8,6 +8,7 @@ import click
 from dlstats import constants
 from dlstats import client
 from dlstats.fetchers import schemas
+from dlstats import utils
 
 #TODO: move to schemas module
 CURRENT_SCHEMAS = {
@@ -37,6 +38,9 @@ def cmd_reindex(**kwargs):
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
     
         db = ctx.mongo_database()
+        
+        utils.create_or_update_indexes(db)
+        
         with click.progressbar(constants.COL_ALL,
                                length=len(constants.COL_ALL),
                                label='Reindex collections') as collections:
