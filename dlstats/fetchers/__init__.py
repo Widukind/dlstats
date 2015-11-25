@@ -23,7 +23,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.eurostat import Eurostat
-    FETCHERS['EUROSTAT'] = Eurostat
+    FETCHERS['Eurostat'] = Eurostat
     #TODO: FETCHERS_DATASETS['EUROSTAT'] = None
     __all__.append('Eurostat')
 except ImportError:
@@ -31,7 +31,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.world_bank import WorldBank
-    FETCHERS['WB'] = WorldBank
+    FETCHERS['WorldBank'] = WorldBank
     #TODO: FETCHERS_DATASETS['WB'] = None
     __all__.append('WorldBank')
 except ImportError:
@@ -63,7 +63,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.esri import Esri
-    FETCHERS['ESRI'] = Esri
+    FETCHERS['esri'] = Esri
     #TODO: FETCHERS_DATASETS['ESRI'] = None
     __all__.append('Esri')
 except ImportError:
