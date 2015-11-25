@@ -207,6 +207,6 @@ class EsriData():
 if __name__ == "__main__":
     e = Esri()
     e.provider.update_database()
-    e.esri_issue()
+    e.upsert_all_datasets()
     e.upsert_categories()
     
