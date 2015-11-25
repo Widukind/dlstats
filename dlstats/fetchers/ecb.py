@@ -138,13 +138,12 @@ class ECBData(object):
                 self.current_raw_data = None
                 attempts = 0
                 code = self.codes_to_process.pop()
-                while attempts < 3:
+                while attempts < 3 and self.current_raw_data == None:
                     try:
-                        sleep(10)
-                        self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
+                        sleep(600*attempts+10)
                         attempts += 1
+                        self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
                     except XMLSyntaxError as e:
-                        sleep(600*attempts)
                         exception = e
                 if self.current_raw_data == None:
                     raise e
