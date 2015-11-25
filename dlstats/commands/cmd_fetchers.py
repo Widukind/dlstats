@@ -7,10 +7,16 @@ import click
 from dlstats import constants
 from dlstats.fetchers import FETCHERS, FETCHERS_DATASETS
 from dlstats import client
+from dlstats import utils
 
 opt_fetcher = click.option('--fetcher', '-f', 
               required=True, type=click.Choice(FETCHERS.keys()), 
               help='Fetcher choice')
+
+opt_provider = click.option('--provider', '-p', 
+              required=True, 
+              type=click.Choice(FETCHERS.keys()), 
+              help='Provider Name')
 
 opt_dataset = click.option('--dataset', '-d', 
               required=False, 
@@ -171,3 +177,154 @@ def cmd_report(**kwargs):
             print(fmt.format(provider['name'], dataset['datasetCode'], series_count, lastUpdate))
     print("----------------------------------------------------------------------------------------------------------")
         
+@cli.command('update-metas', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@client.opt_es_url
+@opt_fetcher
+@opt_dataset
+def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
+    """Update Metadatas for one or more Datasets
+    
+    
+    dlstats fetchers update-metas -f BIS -d CNFS -l INFO -S
+
+    dlstats fetchers update-metas -f BIS -l INFO -S    
+    """
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log_ok("Run update Metadatas for %s fetcher:" % fetcher)
+
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        db = ctx.mongo_database()
+        es_client = ctx.es_client()
+        
+        f = FETCHERS[fetcher](db=db, es_client=es_client)
+
+        if dataset:
+            ctx.log("Update Metas for dataset[%s]" % dataset)
+            f.update_metas(dataset)            
+        else:
+            datasets = db[constants.COL_DATASETS].find({"provider": fetcher},
+                                                       projection={"datasetCode": True})
+            for dataset in datasets:
+                ctx.log("Update Metas for dataset[%s]" % dataset['datasetCode'])
+                f.update_metas(dataset['datasetCode'])
+
+@cli.command('update-tags', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@opt_provider
+@opt_dataset
+@click.option('--max-bulk', '-M', 
+              type=click.INT,
+              default=20, 
+              show_default=True,
+              help='Max Bulk')
+@click.option('--collection', '-c', 
+              required=True,
+              default=constants.COL_DATASETS,
+              show_default=True,
+              type=click.Choice(constants.COL_ALL + ['ALL']),
+              help='Collection')
+def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, **kwargs):
+    """Create or Update field tags"""
+    
+    """
+    Examples:
+    
+    dlstats fetchers update-tags -p BIS -d CNFS -S -c ALL
+    dlstats fetchers update-tags -p BEA -d "10101 Ann" -S -c datasets
+    dlstats fetchers update-tags -p BEA -d "10101 Ann" -S -c series
+    dlstats fetchers update-tags -p Eurostat -d nama_10_a10 -S -c datasets
+    dlstats fetchers update-tags -p OECD -d MEI -S -c datasets
+    """
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log_ok("Run update tags for %s:" % provider)
+
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        db = ctx.mongo_database()
+
+        if collection == "ALL":
+            cols = constants.COL_ALL
+        else:
+            cols = [collection]
+        
+        for col in cols:
+            #TODO: serie_key
+            #TODO: cumul result et rapport
+            result = utils.update_tags(db, 
+                                       provider_name=provider, 
+                                       dataset_code=dataset, 
+                                       serie_key=None,
+                                       col_name=col,
+                                       max_bulk=max_bulk)
+
+
+@cli.command('search', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@click.option('--provider', '-p', 
+              required=False, 
+              type=click.Choice(FETCHERS.keys()), 
+              help='Provider Name')
+@opt_dataset
+@click.option('--frequency', '-f', 
+              required=False, 
+              multiple=True,
+              type=click.Choice(['A', 'M', 'Q']), 
+              help='Frequency choice')
+@click.option('--search', '-s', 
+              required=True, 
+              help='Search text')
+@click.option('--limit', '-l', 
+              default=20, 
+              type=int, 
+              show_default=True,
+              help='Result limit')
+def cmd_search(provider=None, dataset=None, 
+               frequency=None, search=None, limit=None, **kwargs):
+    """Search in Series"""
+    
+    #TODO: pretty
+    #TODO: csv ?
+    
+    """
+    dlstats fetchers search -f Q -f A
+    frequency = ('Q', 'A')
+    
+    dlstats fetchers search -f Q -f A -s "Economic Indicator Belgium"
+    
+    """
+    
+    ctx = client.Context(**kwargs)
+    db = ctx.mongo_database()
+
+    result = utils.search_series_tags(db, 
+                                      provider_name=provider, 
+                                      dataset_code=dataset, 
+                                      frequency=frequency, 
+                                      search_tags=search.split(), 
+                                      skip=0, limit=limit)
+    
+    ctx.log("Count result : %s" % result.count())
+    for doc in result:
+        print(doc['provider'], doc['datasetCode'], doc['key'], doc['name'])
+    
