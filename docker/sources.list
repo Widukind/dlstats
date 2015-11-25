@@ -1,0 +1,3 @@
+deb http://mirror.ovh.net/debian/ jessie main
+deb http://mirror.ovh.net/debian/ jessie-updates main
+deb http://mirror.ovh.net/debian-security/ jessie/updates main

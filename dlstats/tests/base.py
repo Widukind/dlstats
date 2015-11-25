@@ -42,7 +42,7 @@ class BaseDBTestCase(BaseTestCase):
         self.db = utils.get_mongo_db()
         self.es = utils.get_es_client()
 
-        self._releases_verify_ok()
+        #self._releases_verify_ok()
         
         utils.clean_mongodb(self.db)
         utils.clean_elasticsearch(es_client=self.es, index=self.ES_INDEX)

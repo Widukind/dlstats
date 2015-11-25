@@ -5,6 +5,8 @@ import pprint
 import os
 import sys
 
+import gridfs
+
 import click
 
 from dlstats import utils
@@ -69,6 +71,7 @@ class Context(object):
         self.client_mongo = None
         self.db_mongo = None
         self.client_es = None
+        self.fs_mongo = None
         
         self.logger = utils.configure_logging(debug=self.debug, 
                                 #stdout_enable, 
@@ -111,11 +114,17 @@ class Context(object):
         if not self.client_mongo:
             self.client_mongo = utils.get_mongo_client(self.mongo_url)
         return self.client_mongo
-
+    
     def mongo_database(self):
         if not self.db_mongo:
             self.db_mongo = self.mongo_client().get_default_database()
         return self.db_mongo
+    
+    def mongo_fs(self):
+        db = self.mongo_database()
+        if not self.fs_mongo:
+            self.fs_mongo = gridfs.GridFS(db)
+        return self.fs_mongo
 
     def es_client(self):
         if not self.client_es:

@@ -1,9 +1,5 @@
-#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-.. module:: _commons
-    :synopsis: Code imported by the different fetchers
-"""
+
 import os
 import pymongo
 from pymongo import ReturnDocument
@@ -47,7 +43,8 @@ class Fetcher(object):
         if is_indexes:
             utils.create_or_update_indexes(self.db)
         
-        utils.create_elasticsearch_index(es_client=self.es_client)
+        if not self.es_client.indices.exists(constants.ES_INDEX):
+            utils.create_elasticsearch_index(es_client=self.es_client)
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB
