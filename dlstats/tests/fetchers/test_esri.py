@@ -8,6 +8,11 @@ Created on Thu Nov 26 10:20:04 2015
 @author: salimeh
 """
 
+dataset_names = ['esri_gaku-jk1522', 'esri_gaku-jfy1522', 'esri_gaku-jg1522', 'esri_gaku-mcy1522',
+                 'esri_gaku-mk1522', 'esri_gaku-mfy1522', 'esri_gaku-mg1522', 'esri_gaku-jcy1522',
+                 'esri_def-qg1522', 'esri_def-qk1522', 'esri_def-fy1522', 'esri_def-cy1522']
+
+DATASETS = {d:{} for d in dataset_names}
 
 DATASETS['esri_gaku-jk1522']["data"] =""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
@@ -16,27 +21,18 @@ DATASETS['esri_gaku-jk1522']["data"] =""",GDP(Expenditure Approach),PrivateConsu
 7- 9.,"451,090.3 ","262,336.9 ","257,850.4 ","221,581.3 ","26,386.5 ","57,966.1 ",-604.5 ,"70,272.6 ","39,702.2 ",220.2 ,-392.1 ,"40,054.7 ","40,446.8 ","-4,797.6 ",,"9,486.3 ","460,576.6 ","3,376.1 ","15,254.1 ","11,878.0 ","463,952.6 ",,"454,887.7 ","345,100.6 ","109,793.6 ",,"122,509.8 ",,"444,165.6 ","252,291.5 ","39,695.6 ","40,215.8 "
 10-12.,"446,326.0 ","259,884.5 ","255,368.2 ","218,953.1 ","25,165.9 ","58,767.4 ","-1,743.7 ","70,338.3 ","38,928.6 ",266.5 ,-674.0 ,"40,218.9 ","40,892.9 ","-4,607.5 ",,"9,603.8 ","455,929.7 ","3,748.6 ","15,997.2 ","12,248.6 ","459,678.4 ",,"450,175.3 ","341,104.1 ","109,089.9 ",,"121,545.9 ",,"439,381.2 ","249,800.9 ","39,861.3 ","40,665.9 "
 """
-DATASETS['esri_gaku-jk1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                                                'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
-                                                'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                                                'Goods & Services, Exports', 'Goods & Services, Imports','Residual',,'Trading Gains/Losses', 'GDI',
-                                                'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment',,'GNI' ,,
-                                                'Domestic Demand','Private Demand', 'Public Demand',,'Gross Fixed Capital Formation',,
-                                                'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
-
+DATASETS["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
+                            'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
+                            'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
+                            'Goods & Services, Exports', 'Goods & Services, Imports','Residual','Trading Gains/Losses', 'GDI',
+                            'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment','GNI' ,
+                            'Domestic Demand','Private Demand', 'Public Demand','Gross Fixed Capital Formation',
+                            'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
 
 DATASETS['esri_gaku-jfy1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Fiscal Year,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/4-3.,"447,167.4 ","259,853.9 ","255,336.4 ","219,013.7 ","25,022.9 ","58,499.9 ",-878.4 ,"70,601.5 ","39,088.0 ",-33.9 ,-647.3 ,"40,052.6 ","40,699.9 ","-4,339.3 ",,"9,728.6 ","456,895.9 ","3,607.9 ","15,620.9 ","12,013.0 ","460,503.8 ",,"451,058.7 ","341,681.2 ","109,394.9 ",,"121,275.6 ",,"440,217.2 ","249,780.6 ","39,694.3 ","40,470.8 "
 """
-
-DATASETS['esri_gaku-jfy1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                                                'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
-                                                'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                                                'Goods & Services, Exports', 'Goods & Services, Imports','Residual',,'Trading Gains/Losses', 'GDI',
-                                                'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment',,'GNI' ,,
-                                                'Domestic Demand','Private Demand', 'Public Demand',,'Gross Fixed Capital Formation',,
-                                                'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
 
 DATASETS['esri_gaku-jg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
@@ -45,25 +41,11 @@ DATASETS['esri_gaku-jg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsum
 7- 9.,"112,620.8 ","66,359.6 ","65,142.8 ","56,065.4 ","6,888.2 ","14,836.5 ",-542.4 ,"17,223.5 ","9,194.1 ",35.6 ,-163.8 ,"10,025.2 ","10,189.1 ","-1,210.4 ",,"2,455.4 ","115,076.2 ",760.0 ,"3,857.0 ","3,097.1 ","115,836.2 ",,"113,616.2 ","87,231.9 ","26,357.0 ",,"30,572.6 ",,"110,889.3 ","63,749.7 ","9,935.4 ","10,131.7 "
 10-12.,"117,581.5 ","67,263.6 ","65,823.1 ","56,690.0 ","6,449.3 ","13,838.0 ","1,766.6 ","17,461.0 ","11,749.1 ",24.7 ,21.2 ,"10,389.0 ","10,367.7 ",-992.0 ,,"2,450.9 ","120,032.4 ",764.8 ,"3,583.3 ","2,818.5 ","120,797.1 ",,"118,483.9 ","89,315.2 ","29,185.2 ",,"31,499.5 ",,"115,811.9 ","64,421.7 ","10,299.3 ","10,311.7 "
 """
-DATASETS['esri_gaku-jg1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                                                'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
-                                                'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                                                'Goods & Services, Exports', 'Goods & Services, Imports','Residual',,'Trading Gains/Losses', 'GDI',
-                                                'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment',,'GNI' ,,
-                                                'Domestic Demand','Private Demand', 'Public Demand',,'Gross Fixed Capital Formation',,
-                                                'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
 
 DATASETS['esri_gaku-mcy1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Calendar Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/1-12.,"495,743.4","273,994.8","269,297.8","234,248.9","25,504.6","71,596.3","-1,272.3","72,842.0","42,856.0",360.3,"9,861.7","44,627.3","34,765.7",,"3,937.2","16,502.9","12,565.6","499,680.6",,"485,881.7","369,823.3","116,058.4",,"139,956.9",,"490,647.6","264,726.7","44,269.7","34,386.7"
 """
-DATASETS['esri_gaku-mcy1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports','Goods & Services, Imports',
-                                                ,'Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt','Income from /to the Rest of the World, Payment',
-                                                'GNI',,'Domestic Demand','Private Demand','Public Demand',,'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM'
-                                                ,'Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
 
 
 DATASETS['esri_gaku-mk1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,
@@ -75,26 +57,10 @@ Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,Public
 10-12.,"495,280.7 ","274,935.5 ","270,197.4 ","234,491.1 ","25,909.2 ","71,478.0 ","-2,371.1 ","74,088.1 ","41,684.8 ",713.8 ,"8,842.2 ","44,579.5 ","35,737.3 ",,"4,039.4 ","17,246.3 ","13,206.9 ","499,320.0 ",,"486,438.5 ","369,951.7 ","116,486.8 ",,"139,072.0 ",,"489,952.2 ","265,363.4 ","44,253.2 ","35,324.2 "
 """
 
-DATASETS['esri_gaku-mk1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports','Goods & Services, Imports',
-                                                'Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt','Income from /to the Rest of the World, Payment',
-                                                'GNI',,'Domestic Demand','Private Demand','Public Demand',,'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM'
-                                                ,'Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
-
 DATASETS['esri_gaku-mfy1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Fiscal Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/4-3.,"495,612.2 ","274,709.2 ","269,986.9 ","234,530.8 ","25,803.9 ","71,387.4 ","-1,457.4 ","73,778.0 ","41,947.4 ",424.1 ,"9,019.7 ","44,610.1 ","35,590.5 ",,"3,892.7 ","16,832.6 ","12,939.8 ","499,504.9 ",,"486,592.5 ","370,443.1 ","116,149.5 ",,"139,138.7 ",,"490,384.5 ","265,250.9 ","44,283.9 ","35,177.4 "
 """
-DATASETS['esri_gaku-mfy1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports','Goods & Services, Imports',
-                                                'Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt','Income from /to the Rest of the World, Payment',
-                                                'GNI',,'Domestic Demand','Private Demand','Public Demand',,'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM'
-                                                ,'Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
-
 DATASETS['esri_gaku-mg1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/ 1- 3.,"119,879.2 ","66,316.0 ","65,711.1 ","57,112.6 ","5,710.0 ","19,654.6 ","-2,954.1 ","17,022.5 ","11,442.3 ",-113.5 ,"2,801.6 ","11,122.8 ","8,321.2 ",,"1,135.3 ","4,469.0 ","3,333.7 ","121,014.5 ",,"117,077.6 ","88,726.4 ","28,351.2 ",,"36,806.8 ",,"118,660.5 ","64,664.7 ","11,009.8 ","8,252.0 "
@@ -102,29 +68,11 @@ DATASETS['esri_gaku-mg1522']["data"] = """,GDP(Expenditure Approach),PrivateCons
 7- 9.,"122,430.1 ","69,862.5 ","68,710.3 ","59,895.9 ","7,096.8 ","18,115.9 ",-782.6 ,"15,892.3 ","9,867.9 ",113.6 ,"2,263.5 ","11,115.0 ","8,851.5 ",,803.8 ,"4,079.4 ","3,275.6 ","123,233.9 ",,"120,166.6 ","94,292.7 ","25,873.8 ",,"35,080.7 ",,"121,131.8 ","67,528.8 ","11,033.4 ","8,748.2 "
 10-12.,"132,551.4 ","71,581.0 ","69,926.2 ","60,991.5 ","6,663.5 ","16,843.4 ","1,734.4 ","20,310.9 ","12,631.0 ",327.6 ,"2,459.5 ","11,555.3 ","9,095.8 ",,839.7 ,"3,934.3 ","3,094.6 ","133,391.1 ",,"130,091.9 ","96,822.4 ","33,269.5 ",,"36,137.9 ",,"131,219.3 ","68,717.7 ","11,473.7 ","8,992.5 "
 """
-DATASETS['esri_gaku-mg1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports',
-                                                'Goods & Services, Imports','Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt',
-                                                'Income from /to the Rest of the World, Payment','GNI',,'Domestic Demand','Private Demand','Public Demand',,
-                                                'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM','Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
 
 DATASETS['esri_gaku-jcy1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Calendar Year,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/1-12.,"446,779.9","259,352.5","254,860.1","218,730.5","24,713.3","58,366.4",-610.6,"69,822.6","39,871.7",-75.6,-258.7,"39,683.2","39,941.9","-4,401.7 ",,"10,141.9","456,921.8","3,650.1","15,312.9","11,662.8","460,571.9",,"450,434.1","341,050.5","109,404.4",,"121,591.6",,"439,900.4","249,337.2","39,326.4","39,691.3"
 """
-DATASETS['esri_gaku-jcy1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                                                'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
-                                                'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                                                'Goods & Services, Exports', 'Goods & Services, Imports','Residual',,'Trading Gains/Losses', 'GDI',
-                                                'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment',,'GNI' ,,
-                                                'Domestic Demand','Private Demand', 'Public Demand',,'Gross Fixed Capital Formation',,
-                                                'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
-
-
-
-
 
 DATASETS['esri_def-qg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
@@ -134,14 +82,6 @@ DATASETS['esri_def-qg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsump
 10-12.,112.7 ,106.4 ,106.2 ,107.6 ,103.3 ,121.7 ,***,116.3 ,107.5 ,***,***,111.2 ,87.7 ,,***,109.8 ,109.8 ,110.4 ,,109.8 ,108.4 ,114.0 ,,114.7 ,,113.3 ,106.7 ,111.4 ,87.2 
 """
 
-DATASETS['esri_def-qg1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports',
-                                                'Goods & Services, Imports','Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt',
-                                                'Income from /to the Rest of the World, Payment','GNI',,'Domestic Demand','Private Demand','Public Demand',,
-                                                'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM','Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM'] 
-
 DATASETS['esri_def-qk1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/ 1- 3.,110.7 ,105.3 ,105.4 ,106.9 ,103.3 ,123.6 ,***,103.5 ,107.7 ,***,***,113.9 ,85.2 ,,***,107.8 ,107.7 ,108.0 ,,107.3 ,108.0 ,105.3 ,,115.6 ,,111.3 ,106.0 ,113.8 ,85.1 
@@ -150,34 +90,13 @@ DATASETS['esri_def-qk1522']["data"]=""",GDP(Expenditure Approach),PrivateConsump
 10-12.,111.0 ,105.8 ,105.8 ,107.1 ,103.0 ,121.6 ,***,105.3 ,107.1 ,***,***,110.8 ,87.4 ,,***,107.8 ,107.8 ,108.6 ,,108.1 ,108.5 ,106.8 ,,114.4 ,,111.5 ,106.2 ,111.0 ,86.9 
 """
 
-DATASETS['esri_def-qk1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports',
-                                                'Goods & Services, Imports','Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt',
-                                                'Income from /to the Rest of the World, Payment','GNI',,'Domestic Demand','Private Demand','Public Demand',,
-                                                'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM','Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
-
 DATASETS['esri_def-fy1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Fiscal Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/4-3.,110.8 ,105.7 ,105.7 ,107.1 ,103.1 ,122.0 ,***,104.5 ,107.3 ,***,***,111.4 ,87.4 ,,***,107.8 ,107.7 ,108.5 ,,107.9 ,108.4 ,106.2 ,,114.7 ,,111.4 ,106.2 ,111.6 ,86.9 
 """
-DATASETS['esri_def-fy1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports',
-                                                'Goods & Services, Imports','Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt',
-                                                'Income from /to the Rest of the World, Payment','GNI',,'Domestic Demand','Private Demand','Public Demand',,
-                                                'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM','Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM'] 
 
 DATASETS['esri_def-cy1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Calendar Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/1-12.,111.0 ,105.6 ,105.7 ,107.1 ,103.2 ,122.7 ,129.0 ,104.3 ,107.5 ,42.0 ,***,112.5 ,87.0 ,,***,107.8 ,107.7 ,108.5 ,,107.9 ,108.4 ,106.1 ,,115.1 ,,111.5 ,106.2 ,112.6 ,86.6 
 """
-DATASETS['esri_def-cy1522']["series_names"] =  ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports',
-                                                'Goods & Services, Imports','Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt',
-                                                'Income from /to the Rest of the World, Payment','GNI',,'Domestic Demand','Private Demand','Public Demand',,
-                                                'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM','Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
+

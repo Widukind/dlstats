@@ -114,7 +114,9 @@ class EsriData():
         self.end_date = pandas.Period(end_date,freq = self.frequency).ordinal    
         self.start_date = pandas.Period(start_date,freq = self.frequency).ordinal
         self.column_range = iter(range(1, len(self.panda_csv.iloc[5,:])))
-       #generating name of the series             
+
+    def fix_series_names(self):
+        #generating name of the series             
         columns =self.panda_csv.columns
         for column_ind in range(columns.size):
             if str(self.panda_csv.iloc[:,column_ind][5]) != "nan":
