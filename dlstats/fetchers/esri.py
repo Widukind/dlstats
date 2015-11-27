@@ -22,6 +22,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import re
 
 
 
@@ -117,21 +118,31 @@ class EsriData():
         columns =self.panda_csv.columns
         for column_ind in range(columns.size):
             if str(self.panda_csv.icol(column_ind)[5]) != "nan":
-                self.panda_csv.icol(column_ind)[3] = str(self.panda_csv.icol(column_ind)[4])+'_'+str(self.panda_csv.icol(column_ind)[5])
+                edit_nameseries = self.edit_seriesname(self.panda_csv.icol(column_ind)[4])
+                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))+'_'+str(self.panda_csv.icol(column_ind)[5])
             else:    
-                self.panda_csv.icol(column_ind)[3] = str(self.panda_csv.icol(column_ind)[4])
+                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))
             if str(self.panda_csv.icol(column_ind)[4]) == "nan" :
                 if (str(self.panda_csv.icol(column_ind)[5]) != "nan") and (str(self.panda_csv.icol(column_ind-1)[4])) != "nan":         
-                    self.panda_csv.icol(column_ind)[3] = str(self.panda_csv.icol(column_ind-1)[4])+'_'+str(self.panda_csv.icol(column_ind)[5])
+                    self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind-1)[4]))+'_'+str(self.panda_csv.icol(column_ind)[5])
                 else:
                     if str(self.panda_csv.icol(column_ind-1)[4]) == "nan":
-                        self.panda_csv.icol(column_ind)[3] = str(self.panda_csv.icol(column_ind-2)[4])+'_'+str(self.panda_csv.icol(column_ind)[5])            
+                        self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind-2)[4]))+'_'+str(self.panda_csv.icol(column_ind)[5])            
 
         lent = len(self.panda_csv.irow(0))
         if str(self.panda_csv.irow(0)[lent-1]) == "(%)":
             self.currency = str(self.panda_csv.irow(0)[lent-2])
         else:
             self.currency = str(self.panda_csv.irow(0)[lent-1])
+        
+    
+    def edit_seriesname(self,seriesname):   
+         seriesname = seriesname.replace(' ','')  
+         seriesname = re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', seriesname)
+         seriesname = re.sub(r"((of)|(in) |(from/to))", r" \1 ", seriesname)  
+         seriesname = re.sub(r"(&)", r" \1 ", seriesname)
+         seriesname = seriesname.replace('  ',' ')
+    return(seriesname)  
         
         
     def __next__(self):
