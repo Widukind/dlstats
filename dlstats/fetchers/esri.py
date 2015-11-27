@@ -103,44 +103,44 @@ class EsriData():
         self.releaseDate = datetime.strptime(releaseDate, 
                                                       "%a, %d %b %Y %H:%M:%S GMT")                                                  
  
-        if self.panda_csv.icol(0)[6] == '4' :
+        if self.panda_csv.iloc[:,0][6] == '4' :
             self.frequency = 'A'
             ind = -1 
         else :
             self.frequency = 'Q'
             ind = -4
-        end_date = self.panda_csv.icol(0)[len(self.panda_csv.icol(0))+ind][:4]
-        start_date = self.panda_csv.icol(0)[6][:4]
+        end_date = self.panda_csv.iloc[:,0][len(self.panda_csv.iloc[:,0])+ind][:4]
+        start_date = self.panda_csv.iloc[:,0][6][:4]
         self.end_date = pandas.Period(end_date,freq = self.frequency).ordinal    
         self.start_date = pandas.Period(start_date,freq = self.frequency).ordinal
-        self.column_range = iter(range(1, len(self.panda_csv.irow(5))))
+        self.column_range = iter(range(1, len(self.panda_csv.iloc[5,:])))
        #generating name of the series             
         columns =self.panda_csv.columns
         for column_ind in range(columns.size):
-            if str(self.panda_csv.icol(column_ind)[5]) != "nan":
-                #edit_nameseries = self.edit_seriesname(self.panda_csv.icol(column_ind)[4])
-                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))+', '+str(self.panda_csv.icol(column_ind)[5])
+            if str(self.panda_csv.iloc[:,column_ind][5]) != "nan":
+                #edit_nameseries = self.edit_seriesname(self.panda_csv.iloc[:,column_ind)[4])
+                self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind][4]))+', '+str(self.panda_csv.iloc[:,column_ind][5])
             else:    
-                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))
-            if str(self.panda_csv.icol(column_ind)[4]) == "nan" :
-                if (str(self.panda_csv.icol(column_ind)[5]) != "nan") and (str(self.panda_csv.icol(column_ind-1)[4])) != "nan":         
-                    self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind-1)[4]))+', '+str(self.panda_csv.icol(column_ind)[5])
+                self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind][4]))
+            if str(self.panda_csv.iloc[:,column_ind][4]) == "nan" :
+                if (str(self.panda_csv.iloc[:,column_ind][5]) != "nan") and (str(self.panda_csv.iloc[:,column_ind-1][4])) != "nan":         
+                    self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind-1][4]))+', '+str(self.panda_csv.iloc[:,column_ind][5])
                 else:
-                    if str(self.panda_csv.icol(column_ind-1)[4]) == "nan":
-                        self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind-2)[4]))+', '+str(self.panda_csv.icol(column_ind)[5])  
+                    if str(self.panda_csv.iloc[:,column_ind-1][4]) == "nan":
+                        self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind-2][4]))+', '+str(self.panda_csv.iloc[:,column_ind][5])  
             #Take into the account FISIM 
-            if str(self.panda_csv.icol(column_ind-1)[5]) == "Excluding FISIM":
-                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))+', '+str(self.panda_csv.icol(column_ind-1)[5])               
-            if str(self.panda_csv.icol(column_ind-2)[5]) == "Excluding FISIM":
-                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))+', '+str(self.panda_csv.icol(column_ind-2)[5])
-            if str(self.panda_csv.icol(column_ind-3)[5]) == "Excluding FISIM":
-                self.panda_csv.icol(column_ind)[3] = self.edit_seriesname(str(self.panda_csv.icol(column_ind)[4]))+', '+str(self.panda_csv.icol(column_ind-3)[5])
+            if str(self.panda_csv.iloc[:,column_ind-1][5]) == "Excluding FISIM":
+                self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind][4]))+', '+str(self.panda_csv.iloc[:,column_ind-1][5])               
+            if str(self.panda_csv.iloc[:,column_ind-2][5]) == "Excluding FISIM":
+                self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind][4]))+', '+str(self.panda_csv.iloc[:,column_ind-2][5])
+            if str(self.panda_csv.iloc[:,column_ind-3][5]) == "Excluding FISIM":
+                self.panda_csv.iloc[:,column_ind][3] = self.edit_seriesname(str(self.panda_csv.iloc[:,column_ind][4]))+', '+str(self.panda_csv.iloc[:,column_ind-3][5])
                 
-        lent = len(self.panda_csv.irow(0))
-        if str(self.panda_csv.irow(0)[lent-1]) == "(%)":
-            self.currency = str(self.panda_csv.irow(0)[lent-2])
+        lent = len(self.panda_csv.iloc[0,:])
+        if str(self.panda_csv.iloc[0,:][lent-1]) == "(%)":
+            self.currency = str(self.panda_csv.iloc[0,:][lent-2])
         else:
-            self.currency = str(self.panda_csv.irow(0)[lent-1])
+            self.currency = str(self.panda_csv.iloc[0,:][lent-1])
         
         
     def edit_seriesname(self,seriesname):   
@@ -154,10 +154,10 @@ class EsriData():
         
         
     def __next__(self):
-        column = self.panda_csv.icol(next(self.column_range))
+        column = self.panda_csv.iloc[:,next(self.column_range)]
         #print(str(column[3]))
         if (str(column[3]) == "nan, nan") or (str(column[3]) == "nan" ) :
-            column = self.panda_csv.icol(next(self.column_range))
+            column = self.panda_csv.iloc[:,next(self.column_range)]
         if column is None:
             raise StopIteration()
         series = self.build_series(column)
