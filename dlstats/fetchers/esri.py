@@ -101,16 +101,14 @@ class Esri(Fetcher):
         
 class EsriData():
     def __init__(self,dataset,url):
+        self.url = url
         self.provider_name = dataset.provider_name
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
         self.panda_csv = pandas.read_csv(url)
-        response = urllib.request.urlopen(url)
-        releaseDate = response.info()['Last-Modified'] 
-        self.releaseDate = datetime.strptime(releaseDate, 
-                                                      "%a, %d %b %Y %H:%M:%S GMT")                                                  
- 
+        self.realead_date = self.get_release_data()
+        
         if self.panda_csv.iloc[:,0][6] == '4' :
             self.frequency = 'A'
             ind = -1 
@@ -123,6 +121,11 @@ class EsriData():
         self.start_date = pandas.Period(start_date,freq = self.frequency).ordinal
         self.column_range = iter(range(1, len(self.panda_csv.iloc[5,:])))
 
+    def get_release_date(self):
+        response = urllib.request.urlopen(self.url)
+        releaseDate = response.info()['Last-Modified'] 
+        return datetime.strptime(releaseDate,"%a, %d %b %Y %H:%M:%S GMT")                                                  
+        
     def fix_series_names(self):
         #generating name of the series             
         columns =self.panda_csv.columns
