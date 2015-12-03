@@ -14,11 +14,17 @@ COL_DATASETS = "datasets"
 
 COL_SERIES = "series"
 
+COL_TAGS_DATASETS = "tags.datasets"
+
+COL_TAGS_SERIES = "tags.series"
+
 COL_ALL = [
     COL_CATEGORIES,
     COL_PROVIDERS,
     COL_DATASETS,
-    COL_SERIES
+    COL_SERIES,
+    COL_TAGS_DATASETS,
+    COL_TAGS_SERIES
 ]
 
 FREQ_ANNUALY = "A"
