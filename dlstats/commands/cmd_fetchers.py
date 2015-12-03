@@ -237,7 +237,10 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
               show_default=True,
               type=click.Choice(constants.COL_ALL + ['ALL']),
               help='Collection')
-def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, **kwargs):
+@click.option('-g', '--aggregate', is_flag=True, 
+              help='Run aggregate tags after update.')
+def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, 
+                    aggregate=False, **kwargs):
     """Create or Update field tags"""
     
     """
@@ -248,6 +251,8 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
     dlstats fetchers update-tags -p BEA -d "10101 Ann" -S -c series
     dlstats fetchers update-tags -p Eurostat -d nama_10_a10 -S -c datasets
     dlstats fetchers update-tags -p OECD -d MEI -S -c datasets
+    
+    dlstats fetchers update-tags -p BIS -d CNFS -S -c ALL --aggregate
     """
 
     ctx = client.Context(**kwargs)
@@ -273,6 +278,9 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
                                        col_name=col,
                                        max_bulk=max_bulk)
 
+        if aggregate:
+            result_datasets = utils.aggregate_tags_datasets(db, max_bulk=max_bulk)
+            result_series = utils.aggregate_tags_series(db, max_bulk=max_bulk)
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -288,8 +296,7 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
 @opt_dataset
 @click.option('--frequency', '-f', 
               required=False, 
-              multiple=True,
-              type=click.Choice(['A', 'M', 'Q']), 
+              type=click.Choice(list(constants.FREQUENCIES_DICT.keys())), 
               help='Frequency choice')
 @click.option('--search', '-s', 
               required=True, 
