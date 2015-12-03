@@ -58,7 +58,8 @@ dataset_schema = Schema({
     'lastUpdate': typecheck(datetime),
     'dimensionList': {str: [All()]},
     'attributeList': Any(None, {str: [(str,str)]}),
-    Optional('notes'): str
+    Optional('notes'): str,
+    Optional('tags'): [Any(str)],
     },required=True)
 
 series_schema = Schema({
@@ -74,7 +75,8 @@ series_schema = Schema({
     Optional('revisions'): Any(None, revision_schema),
     'dimensions': {str: str},
     'frequency': All(str, Length(min=1)),
-    Optional('notes'): Any(None, str)
+    Optional('notes'): Any(None, str),
+    Optional('tags'): [Any(str)],
     },required=True)
 
 es_dataset_schema = Schema({
