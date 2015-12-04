@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 Created on Thu Nov 26 10:20:04 2015
 @author: salimeh
@@ -7,6 +9,22 @@ Created on Thu Nov 26 10:20:04 2015
 Created on Thu Nov 26 10:20:04 2015
 @author: salimeh
 """
+
+import io
+import tempfile
+import datetime
+import os
+import pandas
+from pprint import pprint
+
+from dlstats.fetchers._commons import Datasets
+from dlstats.fetchers import esri
+from dlstats import constants
+
+import unittest
+from unittest import mock
+
+from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
 dataset_names = ['esri_gaku-jk1522', 'esri_gaku-jfy1522', 'esri_gaku-jg1522', 'esri_gaku-mcy1522',
                  'esri_gaku-mk1522', 'esri_gaku-mfy1522', 'esri_gaku-mg1522', 'esri_gaku-jcy1522',
@@ -14,7 +32,12 @@ dataset_names = ['esri_gaku-jk1522', 'esri_gaku-jfy1522', 'esri_gaku-jg1522', 'e
 
 DATASETS = {d:{} for d in dataset_names}
 
-DATASETS['esri_gaku-jk1522']["data"] =""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
+DATASETS['esri_gaku-jk1522']["data"] ="""名目原系列,,,,,,,,,,,,,,,<参考>,,,,,,,,,,,,,,(単位:10億円),,,
+Nominal Gross Domestic Product (original series),,,,,,,,,,,,,,,<cf>,,,,,,,,,,,,,,(Billion Yen),,,
+,国内総生産(支出側),民間最終消費支出,,,民間住宅,民間企業設備,民間在庫品増加,政府最終消費支出,公的固定資本形成,公的在庫品増加,財貨・サービス,,,,海外からの所得,,,国民総所得,,国内需要,民間需要,公的需要,,総固定資本形成,,国内総生産(支出側)(除FISIM）,家計最終消費支出（除FISIM）,財貨・サービス,,,,
+,,,家計最終消費支出,,,,,,,,純輸出,輸出,輸入,,純受取,受取,支払,,,,,,,,,,,輸出,輸入,,,
+,,,,除く持ち家の帰属家賃,,,,,,,,,,,,,,,,,,,,,,,,（除FISIM）,（除FISIM）,,,
+,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/ 1- 3.,"447,210.5 ","257,603.0 ","253,151.9 ","217,329.3 ","22,996.1 ","58,663.9 ","3,068.1 ","68,734.1 ","40,134.2 ","-1,114.6 ",223.9 ,"39,120.9 ","38,897.0 ","-3,098.3 ",,"11,273.9 ","458,484.3 ","3,856.4 ","15,043.0 ","11,186.6 ","462,340.7 ",,"450,620.2 ","342,425.3 ","108,185.4 ",,"120,617.4 ",,"440,388.8 ","247,669.3 ","38,768.3 ","38,586.1 "
 4- 6.,"442,412.1 ","257,415.7 ","252,946.4 ","216,937.5 ","24,151.6 ","58,136.5 ","-3,321.3 ","69,847.4 ","41,222.7 ",343.2 ,-251.0 ,"39,280.6 ","39,531.6 ","-5,132.7 ",,"10,223.0 ","452,635.1 ","3,649.7 ","15,061.1 ","11,411.4 ","456,284.8 ",,"446,029.8 ","335,152.9 ","110,969.4 ",,"122,108.3 ",,"435,588.4 ","247,465.6 ","38,923.0 ","39,297.7 "
@@ -22,26 +45,19 @@ DATASETS['esri_gaku-jk1522']["data"] =""",GDP(Expenditure Approach),PrivateConsu
 10-12.,"446,326.0 ","259,884.5 ","255,368.2 ","218,953.1 ","25,165.9 ","58,767.4 ","-1,743.7 ","70,338.3 ","38,928.6 ",266.5 ,-674.0 ,"40,218.9 ","40,892.9 ","-4,607.5 ",,"9,603.8 ","455,929.7 ","3,748.6 ","15,997.2 ","12,248.6 ","459,678.4 ",,"450,175.3 ","341,104.1 ","109,089.9 ",,"121,545.9 ",,"439,381.2 ","249,800.9 ","39,861.3 ","40,665.9 "
 """
 
-DATASETS["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                            'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
+DATASETS["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,'Consumption of Households' ,'Excluding Imputed Rent' ,
+                            'Private Residential Investment' ,'Private Non-Resi.Investment' ,'Change in Private Inventories',
                             'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                            'Goods & Services, Exports', 'Goods & Services, Imports','Residual','Trading Gains/Losses', 'GDI',
-                            'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment','GNI' ,
-                            'Domestic Demand','Private Demand', 'Public Demand','Gross Fixed Capital Formation',
-                            'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
+                            'Goods & Services, Exports', 'Goods & Services, Imports','Residual','nan','Trading Gains/Losses', 'GDI',
+                            'Income from/to the Rest of the World, Net','Income from/to the Rest of the World, Receipt',
+                            'Income from/to the Rest of the World, Payment','GNI', 'nan',
+                            'Domestic Demand','Private Demand', 'Public Demand','nan','Gross Fixed Capital Formation','nan',
+                            'GDP, Excluding FISIM', 'Consumption of Households, Excluding FISIM', 'Export, Excluding FISIM' , 'Import, Excluding FISIM']
 
 DATASETS['esri_gaku-jfy1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Fiscal Year,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/4-3.,"447,167.4 ","259,853.9 ","255,336.4 ","219,013.7 ","25,022.9 ","58,499.9 ",-878.4 ,"70,601.5 ","39,088.0 ",-33.9 ,-647.3 ,"40,052.6 ","40,699.9 ","-4,339.3 ",,"9,728.6 ","456,895.9 ","3,607.9 ","15,620.9 ","12,013.0 ","460,503.8 ",,"451,058.7 ","341,681.2 ","109,394.9 ",,"121,275.6 ",,"440,217.2 ","249,780.6 ","39,694.3 ","40,470.8 "
 """
-
-DATASETS['esri_gaku-jfy1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption' ,' Consumption of Households' ,'Excluding Imputed Rent' ,
-                                                'Private Residential Investment' ,' Private Non-Resi.Investment' ,'Change in Private Inventories',
-                                                'Government Consumption' ,'Public Investment', 'Change in Public Inventories', 'Goods & Services, Net Exports',
-                                                'Goods & Services, Exports', 'Goods & Services, Imports','Residual',,'Trading Gains/Losses', 'GDI',
-                                                'Income from /to the Rest of the World, Receipts', 'Income from /to the Rest of the World, Payment',,'GNI' ,,
-                                                'Domestic Demand','Private Demand', 'Public Demand',,'Gross Fixed Capital Formation',,
-                                                'GDP, excluding FISIM', 'Consumption of Households, excluding FISIM', 'Export, excluding FISIM' , 'Import, excluding FISIM']
 
 DATASETS['esri_gaku-jg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,Residual,,TradingGains/Losses,GDI,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 ,,,,,,,,,,,Net Exports,Exports,Imports,,,,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
@@ -50,18 +66,11 @@ DATASETS['esri_gaku-jg1522']["data"]=""",GDP(Expenditure Approach),PrivateConsum
 7- 9.,"112,620.8 ","66,359.6 ","65,142.8 ","56,065.4 ","6,888.2 ","14,836.5 ",-542.4 ,"17,223.5 ","9,194.1 ",35.6 ,-163.8 ,"10,025.2 ","10,189.1 ","-1,210.4 ",,"2,455.4 ","115,076.2 ",760.0 ,"3,857.0 ","3,097.1 ","115,836.2 ",,"113,616.2 ","87,231.9 ","26,357.0 ",,"30,572.6 ",,"110,889.3 ","63,749.7 ","9,935.4 ","10,131.7 "
 10-12.,"117,581.5 ","67,263.6 ","65,823.1 ","56,690.0 ","6,449.3 ","13,838.0 ","1,766.6 ","17,461.0 ","11,749.1 ",24.7 ,21.2 ,"10,389.0 ","10,367.7 ",-992.0 ,,"2,450.9 ","120,032.4 ",764.8 ,"3,583.3 ","2,818.5 ","120,797.1 ",,"118,483.9 ","89,315.2 ","29,185.2 ",,"31,499.5 ",,"115,811.9 ","64,421.7 ","10,299.3 ","10,311.7 "
 """
+
 DATASETS['esri_gaku-mcy1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
 Calendar Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,,Excluding FISIM,,,
 1994/1-12.,"495,743.4","273,994.8","269,297.8","234,248.9","25,504.6","71,596.3","-1,272.3","72,842.0","42,856.0",360.3,"9,861.7","44,627.3","34,765.7",,"3,937.2","16,502.9","12,565.6","499,680.6",,"485,881.7","369,823.3","116,058.4",,"139,956.9",,"490,647.6","264,726.7","44,269.7","34,386.7"
 """
-DATASETS['esri_gaku-mcy1522']["series_names"] = ['GDP (Expenditure Approach)', 'Private Consumption','Consumption of Households','Excluding Imputed Rent',
-                                                'Private Residential Investment','Private Non-Resi.Investment','Change in Private Inventories','Government Consumption',
-                                                'Public Investment','Change in Public Inventories','Goods & Services, Net Exports','Goods & Services, Exports','Goods & Services, Imports',
-                                                ,'Income from /to the Rest of the World, Net','Income from /to the Rest of the World, Receipt','Income from /to the Rest of the World, Payment',
-                                                'GNI',,'Domestic Demand','Private Demand','Public Demand',,'Gross Fixed CapitalFormation',,'GDP, Excluding FISIM'
-                                                ,'Consumption of Households, Excluding FISIM'
-                                                ,'Export, Excluding FISIM','Import, Excluding FISIM']
-
 
 DATASETS['esri_gaku-mk1522']["data"] = """,GDP(Expenditure Approach),PrivateConsumption,Consumption ofHouseholds,ExcludingImputed Rent,PrivateResidentialInvestment,Private Non-Resi.Investment,Changein PrivateInventories,GovernmentConsumption,PublicInvestment,Changein PublicInventories,Goods & Services,,,,
 Income from /to the Rest of the World,,,GNI,,DomesticDemand,PrivateDemand,PublicDemand,,Gross Fixed CapitalFormation,,GDP,Consumption ofHouseholds,Export,Import
@@ -114,3 +123,37 @@ Calendar Year,,,,,,,,,,,Net Exports,Exports,Imports,,Net,Receipt,Payment,,,,,,,,
 1994/1-12.,111.0 ,105.6 ,105.7 ,107.1 ,103.2 ,122.7 ,129.0 ,104.3 ,107.5 ,42.0 ,***,112.5 ,87.0 ,,***,107.8 ,107.7 ,108.5 ,,107.9 ,108.4 ,106.1 ,,115.1 ,,111.5 ,106.2 ,112.6 ,86.6 
 """
 
+def get_csv_data(self,code,**kwargs):
+    return pandas.read_csv(io.StringIO(DATASETS[code]['data']),**kwargs)
+
+def fake_release_date(arg):
+    return datetime.datetime(1900,1,1)
+
+class FakeDataset():
+    def __init__(self,code):
+        self.provider_name = 'Esri'
+        self.dataset_code = code
+        self.dimension_list = []
+        self.attribute_list = []
+        
+@mock.patch('dlstats.fetchers.esri.EsriData.get_csv_data',get_csv_data)
+@mock.patch('dlstats.fetchers.esri.EsriData.get_release_date',fake_release_date)
+class EsriFixSeriesTestCase(BaseTestCase):
+    """ESRI fixing series names
+    """
+
+    # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriFixSeriesTestCase
+
+    def test_fix_series_name(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriFixSeriesTestCase.test_fix_series_name
+
+        for d in dataset_names:
+            dataset = FakeDataset(d)
+            e = esri.EsriData(dataset,d)
+
+            variable_names = e.fix_series_names()
+
+            self.assertEqual(list(variable_names),DATASETS['series_names'])
+            # TODO remove when DATASETS are completed
+            break
