@@ -389,6 +389,7 @@ class EurostatData:
         raw_dates = []
         # drop TIME FORMAT that isn't informative
         dimensions = OrderedDict([(key.lower(), value) for key,value in series.attrib.items() if key != 'TIME_FORMAT'])
+        time_format = series.attrib['TIME_FORMAT']
         nobs = 1
         for observation in series.iterchildren():
             for k in attributes:
@@ -414,16 +415,12 @@ class EurostatData:
         bson['lastUpdate'] = self.last_update
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
-        (start_year, start_subperiod,freq) = self.parse_date(
-            raw_dates[0])
-        (end_year,end_subperiod,freq) = self.parse_date(
-            raw_dates[-1])
-        if freq == "A":
-            bson['startDate'] = pandas.Period(start_year,freq=freq).ordinal
-            bson['endDate'] = pandas.Period(end_year,freq=freq).ordinal
-        else:
-            bson['startDate'] = pandas.Period(start_year+freq+start_subperiod,freq=freq).ordinal
-            bson['endDate'] = pandas.Period(end_year+freq+end_subperiod,freq=freq).ordinal
+        (start_string, freq) = self.parse_date(
+            raw_dates[0], time_format)
+        (end_string, freq) = self.parse_date(
+            raw_dates[-1], time_format)
+        bson['startDate'] = pandas.Period(start_string,freq=freq).ordinal
+        bson['endDate'] = pandas.Period(end_string,freq=freq).ordinal
         bson['frequency'] = freq
         return(bson)
     
@@ -466,12 +463,21 @@ class EurostatData:
         dimensions = OrderedDict([(key.lower(), code_desc[key]) for key in dl])
         return (attributes,dimensions)
     
-    def parse_date(self,str):
-        m = re.match(re.compile(r"(\d+)-([DWMQH])(\d+)|(\d+)"),str)
-        if m.groups()[3]:
-            return (m.groups()[3],None,'A')
+    def parse_date(self,str,fmt):
+        if (fmt == 'P1Y'):
+            return (str,'A')
+        elif (fmt == 'P3M'):
+            m = re.match(re.compile(r"(\d+)-Q(\d)"),str)
+            return (m.groups()[0]+'Q'+m.groups()[1],'Q')
+        elif (fmt == 'P1M'):
+            return (str,'M')
+        elif (fmt == 'P1D'):
+            m = re.match(re.compile(r"(\d\d\d\d)(\d\d)(\d\d)"),str)
+            return ('-'.join(m.groups()),'D')
         else:
-            return (m.groups()[0],m.groups()[2],m.groups()[1])
+            msg = 'eurostat, '+self.datase_code+', TIME FORMAT not recognized'
+            logger.critical(msg)
+            raise Exception(msg)
 
     def make_url(self):
         return("http://ec.europa.eu/eurostat/" +

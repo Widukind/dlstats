@@ -438,28 +438,23 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         e_data = eurostat.EurostatData(_dataset) 
         # annual
-        (period,subperiod,freq) = e_data.parse_date("2015")
-        self.assertEqual(period,'2015')
-        self.assertIsNone(subperiod)
+        (string_date,freq) = e_data.parse_date("2015","P1Y")
+        self.assertEqual(string_date,'2015')
         self.assertEqual(freq,'A')
 
         # quarterly
-        (period,subperiod,freq) = e_data.parse_date("1988-Q3")
-        self.assertEqual(period,'1988')
-        self.assertEqual(subperiod,'3')
+        (string_date,freq) = e_data.parse_date("1988-Q3","P3M")
+        self.assertEqual(string_date,'1988Q3')
         self.assertEqual(freq,'Q')
 
         # monthly
-        (period,subperiod,freq) = e_data.parse_date("2004-10")
-        self.assertEqual(period,'2004')
-        self.assertEqual(subperiod,'10')
+        (string_date,freq) = e_data.parse_date("2004-10","P1M")
+        self.assertEqual(string_date,'2004-10')
         self.assertEqual(freq,'M')
 
         # daily
-        (period,subperiod,freq) = e_data.parse_date("20040906")
-        # current output doesn't fit daily dates !!!
-        self.assertEqual(period,'2004')
-        self.assertEqual(subperiod,'09')
+        (string_date,freq) = e_data.parse_date("20040906","P1D")
+        self.assertEqual(string_date,'2004-09-06')
         self.assertEqual(freq,'D')
 
 
