@@ -106,9 +106,9 @@ class EsriData():
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
-        self.panda_csv = pandas.read_csv(url)
-        self.realead_date = self.get_release_data()
-        
+        self.panda_csv = self.get_csv_data(url)
+        self.release_date = self.get_release_date()
+        self.column_range = iter(range(1, self.panda_csv.shape[1]))
         if self.panda_csv.iloc[:,0][6] == '4' :
             self.frequency = 'A'
             ind = -1 
@@ -119,8 +119,10 @@ class EsriData():
         start_date = self.panda_csv.iloc[:,0][6][:4]
         self.end_date = pandas.Period(end_date,freq = self.frequency).ordinal    
         self.start_date = pandas.Period(start_date,freq = self.frequency).ordinal
-        self.column_range = iter(range(1, len(self.panda_csv.iloc[5,:])))
-
+    
+    def get_csv_data(self,url,**kwargs):
+        return pandas.read_csv(url,**kwargs)
+    
     def get_release_date(self):
         response = urllib.request.urlopen(self.url)
         releaseDate = response.info()['Last-Modified'] 
@@ -154,7 +156,7 @@ class EsriData():
             self.currency = str(self.panda_csv.iloc[0,:][lent-2])
         else:
             self.currency = str(self.panda_csv.iloc[0,:][lent-1])
-        
+        return self.panda_csv.iloc[3,1:]
         
     def edit_seriesname(self,seriesname):   
          seriesname = seriesname.replace(' ','')  
