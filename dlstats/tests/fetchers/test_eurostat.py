@@ -376,7 +376,7 @@ def load_fake_datas(select_dataset_code=None):
 def get_table_of_contents(self):
     return TABLE_OF_CONTENT
 
-class EurostatDatasetsTestCase(BaseTestCase):
+class EurostatDatasetsTestCase(BaseDBTestCase):
     """Fetchers Tests - No DB access
     """
     
@@ -406,6 +406,8 @@ class EurostatDatasetsTestCase(BaseTestCase):
                                   'values': ["176840.7", "180307.4", "184320.1"]}]}}        
         self.assertDictEqual(datas, attempt)
 
+def fake_process_data(arg):
+    pass
         
 class EurostatDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
@@ -421,6 +423,45 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
+
+    @mock.patch('dlstats.fetchers.eurostat.EurostatData.process_data',fake_process_data)
+    def test_parse_date(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_parse_date
+
+        _dataset = Datasets(provider_name='some name', 
+                            dataset_code='some code', 
+                            name='some name', 
+                            doc_href='', 
+                            fetcher=self.fetcher, 
+                            is_load_previous_version=False)
+        
+        e_data = eurostat.EurostatData(_dataset) 
+        # annual
+        (period,subperiod,freq) = e_data.parse_date("2015")
+        self.assertEqual(period,'2015')
+        self.assertIsNone(subperiod)
+        self.assertEqual(freq,'A')
+
+        # quarterly
+        (period,subperiod,freq) = e_data.parse_date("1988-Q3")
+        self.assertEqual(period,'1988')
+        self.assertEqual(subperiod,'3')
+        self.assertEqual(freq,'Q')
+
+        # monthly
+        (period,subperiod,freq) = e_data.parse_date("2004-10")
+        self.assertEqual(period,'2004')
+        self.assertEqual(subperiod,'10')
+        self.assertEqual(freq,'M')
+
+        # daily
+        (period,subperiod,freq) = e_data.parse_date("20040906")
+        # current output doesn't fit daily dates !!!
+        self.assertEqual(period,'2004')
+        self.assertEqual(subperiod,'09')
+        self.assertEqual(freq,'D')
+
 
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
