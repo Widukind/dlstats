@@ -601,14 +601,17 @@ class ElasticIndex():
         mb_dimension_dict = {d1: {d2[0]: d2[1] for d2 in mb_dataset['dimensionList'][d1]} for d1 in mb_dataset['dimensionList']}
         # updating long names in ES index
         if 'codeList' in es_dataset:
-            es_dimension_dict = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]] for d2 in es_dataset['codeList'][d1]} for d1 in es_dataset['codeList']}
+            es_dimension_dict = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]]
+                                      for d2 in es_dataset['codeList'][d1]
+                                      if d2[0] in mb_dimension_dict[d1]}
+                                 for d1 in es_dataset['codeList'] if d1 in mb_dimension_dict}
         else:
             es_dimension_dict = {}
 
         es_bulk = EsBulk(self.elasticsearch_client,mb_dimension_dict)
         for s in mb_series:
             mb_dim = s['dimensions']
-            s['dimensions'] = {d: [mb_dim[d],mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim}
+            s['dimensions'] = {d: [mb_dim[d],mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim if d in mb_dimension_dict}
         
             if s['key'] not in es_series_dict:
                 es_bulk.add_to_index(provider_name,dataset_code,s)
@@ -673,7 +676,7 @@ class EsBulk():
             update = True
         update1 = False
         for d1 in es_s['dimensions']:
-            if es_s['dimensions'][d1] != mb_dim[d1]:
+            if (d1 in mb_dim) and (es_s['dimensions'][d1] != mb_dim[d1]):
                 es_s['dimensions'][d1] = mb_dim[d1]
                 update1 = True
 
