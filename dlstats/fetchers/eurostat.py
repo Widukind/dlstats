@@ -405,7 +405,7 @@ class EurostatData:
                     attributes[a][-1] = attrib[a]
             nobs += 1
         # force attributes' key to be lower case
-        attibutes = {k.lower() : attributes[k] for k in attributes} 
+        attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
         bson['provider'] = self.provider_name
         bson['datasetCode'] = self.dataset_code
