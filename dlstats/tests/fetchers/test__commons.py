@@ -675,6 +675,11 @@ class DBDatasetTestCase(BaseDBTestCase):
                           fetcher=f)
         datas.rows[0]['key'] = 'aaaa'
         datas.rows[0]['frequency'] = 'Q'
+        for r in datas.rows:
+            r['dimensions'] = {
+                'Country': 'AFG', 
+                'NewScale': 'Billions'
+            }
         d.series.data_iterator = datas
         
         id = d.update_database()
