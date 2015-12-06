@@ -23,6 +23,7 @@ SERIES_COUNT = 1
 PROVIDER_NAME = 'Eurostat'
 
 DATASETS = {'nama_10_gdp': {},
+            'bop_c6_q': {},
             'bop_c6_m': {}}
 
 #---Dataset nama_10_gdp
@@ -31,6 +32,7 @@ DATASETS['nama_10_gdp']["name"] = "nama_10_gdp"
 DATASETS['nama_10_gdp']["doc_href"] = None
 DATASETS['nama_10_gdp']["last_update"] = datetime.datetime(2015,10,26)
 DATASETS['nama_10_gdp']["filename"] = "nama_10_gdp"
+DATASETS['nama_10_gdp']["series_count"] = 1
 DATASETS['nama_10_gdp']["sdmx"] = """<?xml version="1.0" encoding="UTF-8"?>
 <CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:data="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:nama_10_gdp_DSD:compact" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:nama_10_gdp_DSD:compact EUROSTAT_nama_10_gdp_Compact.xsd http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact SDMXCompactData.xsd">
 <Header>
@@ -181,6 +183,7 @@ DATASETS['bop_c6_m']["name"] = "bop_c6_m"
 DATASETS['bop_c6_m']["doc_href"] = None
 DATASETS['bop_c6_m']["last_update"] = datetime.datetime(2015,11,20)
 DATASETS['bop_c6_m']["filename"] = "bop_c6_m"
+DATASETS['bop_c6_m']["series_count"] = 1
 DATASETS['bop_c6_m']["sdmx"] = """<?xml version="1.0" encoding="UTF-8"?>
 <CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:data="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:bop_c6_m_DSD:compact" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:bop_c6_m_DSD:compact EUROSTAT_bop_c6_m_Compact.xsd http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact SDMXCompactData.xsd">
 <Header>
@@ -341,6 +344,267 @@ DATASETS['bop_c6_m']["dsd"] = """<?xml version="1.0" encoding="UTF-8"?>
 </Structure>
 """
 
+DATASETS['bop_c6_q']["dimensions_count"] = 8 
+DATASETS['bop_c6_q']["name"] = "bop_c6_q"
+DATASETS['bop_c6_q']["doc_href"] = None
+DATASETS['bop_c6_q']["last_update"] = datetime.datetime(2015,11,20)
+DATASETS['bop_c6_q']["filename"] = "bop_c6_q"
+DATASETS['bop_c6_q']["series_count"] = 2
+DATASETS['bop_c6_q']["sdmx"] = """<?xml version="1.0" encoding="UTF-8"?>
+<CompactData xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:data="urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:bop_c6_q_DSD:compact" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd urn:sdmx:org.sdmx.infomodel.keyfamily.KeyFamily=EUROSTAT:bop_c6_q_DSD:compact EUROSTAT_bop_c6_q_Compact.xsd http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact SDMXCompactData.xsd">
+<Header>
+<ID>bop_c6_q</ID>
+<Test>false</Test>
+<Name xml:lang="en">bop_c6_q</Name>
+<Prepared>2015-11-16T13:49:33</Prepared>
+<Sender id="EUROSTAT">
+<Name xml:lang="en">EUROSTAT</Name>
+</Sender>
+<Receiver id="XML">
+<Name xml:lang="en">SDMX-ML File</Name>
+</Receiver>
+<DataSetID>bop_c6_q</DataSetID>
+<Extracted>2015-11-16T13:49:33</Extracted>
+</Header>
+<data:DataSet>
+<data:Series FREQ="A" currency="MIO_EUR" bop_item="CA" sector10="S1" sectpart="S1" stk_flow="BAL" partner="AT" geo="MT" TIME_FORMAT="P1Y">
+<data:Obs TIME_PERIOD="2004" OBS_STATUS="c" />
+<data:Obs TIME_PERIOD="2005" OBS_STATUS="c" />
+<data:Obs TIME_PERIOD="2006" OBS_STATUS="c" />
+<data:Obs TIME_PERIOD="2007" OBS_STATUS="c" />
+<data:Obs TIME_PERIOD="2008" OBS_VALUE="-201.4" />
+</data:Series>
+<data:Series FREQ="Q" currency="MIO_EUR" bop_item="CA" sector10="S1" sectpart="S1" stk_flow="BAL" partner="AT" geo="MT" TIME_FORMAT="P3M">
+<data:Obs TIME_PERIOD="2004-Q1" OBS_STATUS="c" />
+</data:Series>
+</data:DataSet>
+</CompactData>
+"""
+DATASETS['bop_c6_q']["dsd"] = """<Structure xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:cross="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/cross" xmlns:generic="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/generic" xmlns:query="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/query" xmlns:structure="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/structure" xmlns:utility="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/utility" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd">
+<Header>
+<ID>bop_c6_q_DSD</ID>
+<Test>false</Test>
+<Truncated>false</Truncated>
+<Name xml:lang="en">bop_c6_q_DSD</Name>
+<Prepared>2015-11-16T13:49:32</Prepared>
+<Sender id="EUROSTAT">
+<Name xml:lang="en">EUROSTAT</Name>
+</Sender>
+<Receiver id="XML">
+<Name xml:lang="en">XML File</Name>
+</Receiver>
+</Header>
+
+<CodeLists>
+<structure:CodeList id="CL_CURRENCY" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Currency</structure:Name>
+<structure:Code value="MIO_EUR">
+<structure:Description xml:lang="en">Million euro</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_BOP_ITEM" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">BOP_item</structure:Name>
+<structure:Code value="CA">
+<structure:Description xml:lang="en">Current account</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_SECTOR10" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Sector (ESA10)</structure:Name>
+<structure:Code value="S1">
+<structure:Description xml:lang="en">Total economy</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_SECTPART" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Sector (ESA10)</structure:Name>
+<structure:Code value="S1">
+<structure:Description xml:lang="en">Total economy</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_STK_FLOW" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Stock or flow</structure:Name>
+<structure:Code value="BAL">
+<structure:Description xml:lang="en">Balance</structure:Description>
+<structure:Description xml:lang="de">Saldo</structure:Description>
+<structure:Description xml:lang="fr">Solde</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_PARTNER" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Geopolitical entity (partner)</structure:Name>
+<structure:Code value="AT">
+<structure:Description xml:lang="en">Austria</structure:Description>
+</structure:Code>
+<structure:Code value="PL">
+<structure:Description xml:lang="en">Poland</structure:Description>
+<structure:Description xml:lang="de">Polen</structure:Description>
+<structure:Description xml:lang="fr">Pologne</structure:Description>
+</structure:Code>
+<structure:Code value="PT">
+<structure:Description xml:lang="en">Portugal</structure:Description>
+<structure:Description xml:lang="de">Portugal</structure:Description>
+<structure:Description xml:lang="fr">Portugal</structure:Description>
+</structure:Code>
+<structure:Code value="RO">
+<structure:Description xml:lang="en">Romania</structure:Description>
+<structure:Description xml:lang="de">Rumänien</structure:Description>
+<structure:Description xml:lang="fr">Roumanie</structure:Description>
+</structure:Code>
+<structure:Code value="SI">
+<structure:Description xml:lang="en">Slovenia</structure:Description>
+<structure:Description xml:lang="de">Slowenien</structure:Description>
+<structure:Description xml:lang="fr">Slovénie</structure:Description>
+</structure:Code>
+<structure:Code value="SK">
+<structure:Description xml:lang="en">Slovakia</structure:Description>
+<structure:Description xml:lang="de">Slowakei</structure:Description>
+<structure:Description xml:lang="fr">Slovaquie</structure:Description>
+</structure:Code>
+<structure:Code value="FI">
+<structure:Description xml:lang="en">Finland</structure:Description>
+<structure:Description xml:lang="de">Finnland</structure:Description>
+<structure:Description xml:lang="fr">Finlande</structure:Description>
+</structure:Code>
+<structure:Code value="SE">
+<structure:Description xml:lang="en">Sweden</structure:Description>
+<structure:Description xml:lang="de">Schweden</structure:Description>
+<structure:Description xml:lang="fr">Suède</structure:Description>
+</structure:Code>
+<structure:Code value="UK">
+<structure:Description xml:lang="en">United Kingdom</structure:Description>
+<structure:Description xml:lang="de">Vereinigtes Königreich</structure:Description>
+<structure:Description xml:lang="fr">Royaume-Uni</structure:Description>
+</structure:Code>
+<structure:Code value="CH">
+<structure:Description xml:lang="en">Switzerland</structure:Description>
+<structure:Description xml:lang="de">Schweiz</structure:Description>
+<structure:Description xml:lang="fr">Suisse</structure:Description>
+</structure:Code>
+<structure:Code value="RU">
+<structure:Description xml:lang="en">Russia</structure:Description>
+<structure:Description xml:lang="de">Russland</structure:Description>
+<structure:Description xml:lang="fr">Russie</structure:Description>
+</structure:Code>
+<structure:Code value="EXT_EU28">
+<structure:Description xml:lang="en">Extra EU-28</structure:Description>
+<structure:Description xml:lang="de">Extra-EU-28</structure:Description>
+<structure:Description xml:lang="fr">Extra-UE-28</structure:Description>
+</structure:Code>
+<structure:Code value="EXT_EA19">
+<structure:Description xml:lang="en">Extra-Euro area-19</structure:Description>
+<structure:Description xml:lang="de">Extra-Euroraum (19)</structure:Description>
+<structure:Description xml:lang="fr">Extra-zone euro à 19 pays</structure:Description>
+</structure:Code>
+<structure:Code value="CA">
+<structure:Description xml:lang="en">Canada</structure:Description>
+<structure:Description xml:lang="de">Kanada</structure:Description>
+<structure:Description xml:lang="fr">Canada</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_GEO" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Geopolitical entity (reporting)</structure:Name>
+<structure:Code value="MT">
+<structure:Description xml:lang="en">Malta</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_TIME_FORMAT" agencyID="SDMX" isFinal="true">
+<structure:Name xml:lang="en">Time Format</structure:Name>
+<structure:Code value="P1Y">
+<structure:Description xml:lang="en">Annual</structure:Description>
+</structure:Code>
+<structure:Code value="P3M">
+<structure:Description xml:lang="en">Quarterly</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_FREQ" agencyID="SDMX" isFinal="true">
+<structure:Name xml:lang="en">Frequency code list</structure:Name>
+<structure:Code value="A">
+<structure:Description xml:lang="en">Annual</structure:Description>
+</structure:Code>
+<structure:Code value="Q">
+<structure:Description xml:lang="en">Quarterly</structure:Description>
+</structure:Code>
+</structure:CodeList>
+<structure:CodeList id="CL_OBS_STATUS" agencyID="EUROSTAT" isFinal="true">
+<structure:Name xml:lang="en">Observation status code list</structure:Name>
+<structure:Code value="c">
+<structure:Description xml:lang="en">confidential</structure:Description>
+</structure:Code>
+</structure:CodeList>
+</CodeLists>
+
+<Concepts>
+<structure:ConceptScheme agencyID="EUROSTAT" id="CONCEPTS" isFinal="true">
+<structure:Name xml:lang="en">Concepts</structure:Name>
+<structure:Concept id="FREQ"><structure:Name xml:lang="en">Frequency</structure:Name>
+</structure:Concept>
+<structure:Concept id="currency"><structure:Name xml:lang="en">Currency</structure:Name>
+<structure:Name xml:lang="de">Währung</structure:Name>
+<structure:Name xml:lang="fr">Monnaie</structure:Name>
+</structure:Concept>
+<structure:Concept id="bop_item"><structure:Name xml:lang="en">BOP_item</structure:Name>
+<structure:Name xml:lang="de">ZB_Position</structure:Name>
+<structure:Name xml:lang="fr">BDP_poste</structure:Name>
+</structure:Concept>
+<structure:Concept id="sector10"><structure:Name xml:lang="en">Sector (ESA10)</structure:Name>
+<structure:Name xml:lang="de">Sektor (ESWG10)</structure:Name>
+<structure:Name xml:lang="fr">Secteur (SEC 10)</structure:Name>
+</structure:Concept>
+<structure:Concept id="sectpart"><structure:Name xml:lang="en">Sector (ESA10)</structure:Name>
+<structure:Name xml:lang="de">Sektor (ESWG10)</structure:Name>
+<structure:Name xml:lang="fr">Secteur (SEC10)</structure:Name>
+</structure:Concept>
+<structure:Concept id="stk_flow"><structure:Name xml:lang="en">Stock or flow</structure:Name>
+<structure:Name xml:lang="de">Bestand oder Fluss</structure:Name>
+<structure:Name xml:lang="fr">Stock ou flux</structure:Name>
+</structure:Concept>
+<structure:Concept id="partner"><structure:Name xml:lang="en">Geopolitical entity (partner)</structure:Name>
+<structure:Name xml:lang="de">Geopolitische Partnereinheit</structure:Name>
+<structure:Name xml:lang="fr">Entité géopolitique (partenaire)</structure:Name>
+</structure:Concept>
+<structure:Concept id="geo"><structure:Name xml:lang="en">Geopolitical entity (reporting)</structure:Name>
+<structure:Name xml:lang="de">Geopolitische Meldeeinheit</structure:Name>
+<structure:Name xml:lang="fr">Entité géopolitique (déclarante)</structure:Name>
+</structure:Concept>
+<structure:Concept id="TIME_PERIOD"><structure:Name xml:lang="en">Time period or range</structure:Name>
+</structure:Concept>
+<structure:Concept id="OBS_VALUE"><structure:Name xml:lang="en">Observation Value</structure:Name>
+</structure:Concept>
+<structure:Concept id="OBS_STATUS"><structure:Name xml:lang="en">Observation Status</structure:Name>
+</structure:Concept>
+<structure:Concept id="TIME_FORMAT"><structure:Name xml:lang="en">Time Format</structure:Name>
+</structure:Concept>
+</structure:ConceptScheme>
+</Concepts>
+
+<KeyFamilies>
+<structure:KeyFamily id="bop_c6_q_DSD" agencyID="EUROSTAT" isFinal="true" isExternalReference="false"><structure:Name xml:lang="en">bop_c6_q_DSD</structure:Name>
+
+<structure:Components>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="FREQ" codelistAgency="SDMX" codelist="CL_FREQ" isFrequencyDimension="true"/>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="currency" codelistAgency="ESTAT" codelist="CL_CURRENCY" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="bop_item" codelistAgency="ESTAT" codelist="CL_BOP_ITEM" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="sector10" codelistAgency="ESTAT" codelist="CL_SECTOR10" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="sectpart" codelistAgency="ESTAT" codelist="CL_SECTPART" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="stk_flow" codelistAgency="ESTAT" codelist="CL_STK_FLOW" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="partner" codelistAgency="ESTAT" codelist="CL_PARTNER" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="geo" codelistAgency="ESTAT" codelist="CL_GEO" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
+<structure:TimeDimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="TIME_PERIOD"><structure:TextFormat textType="String"></structure:TextFormat>
+</structure:TimeDimension>
+<structure:PrimaryMeasure conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="OBS_VALUE">
+<structure:TextFormat textType="Double"></structure:TextFormat>
+</structure:PrimaryMeasure>
+
+<structure:Attribute conceptRef="TIME_FORMAT" conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" codelistAgency="SDMX" codelist="CL_TIME_FORMAT" attachmentLevel="Series" assignmentStatus="Mandatory"></structure:Attribute>
+<structure:Attribute conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="OBS_STATUS" codelistAgency="EUROSTAT" codelist="CL_OBS_STATUS" attachmentLevel="Observation" assignmentStatus="Conditional" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="false" crossSectionalAttachObservation="true"><structure:TextFormat textType="String"></structure:TextFormat>
+</structure:Attribute>
+</structure:Components>
+</structure:KeyFamily>
+</KeyFamilies>
+
+</Structure>
+"""
+
+
+
 DATASETS['dset1'] = deepcopy(DATASETS['nama_10_gdp'])
 DATASETS['dset1']["name"] = "dset1"
 DATASETS['dset1']["filename"] = "dset1"
@@ -439,6 +703,64 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       </nt:leaf>
                     </nt:children>
                   </nt:branch>
+                </nt:children>
+              </nt:branch>
+            </nt:children>
+          </nt:branch>
+          <nt:branch>
+            <nt:title language="en">Balance of payments - International transactions (BPM6)</nt:title>
+            <nt:title language="fr">Balance des paiements - transactions internationales (BPM6)</nt:title>
+            <nt:title language="de">Zahlungsbilanz - Internationale Transaktionen (BPM6)</nt:title>
+            <nt:code>bop_6</nt:code>
+            <nt:children>
+              <nt:branch>
+                <nt:title language="en">Balance of payments statistics and International investment positions (BPM6)</nt:title>
+                <nt:title language="fr">Statistiques de la balance des paiements et Position extérieure de l'investissement (BPM6)</nt:title>
+                <nt:title language="de">Zahlungsbilanzstatistiken und Auslandsvermögensstatus (BPM6)</nt:title>
+                <nt:code>bop_q6</nt:code>
+                <nt:children>
+                  <nt:leaf type="dataset">
+                    <nt:title language="en">Balance of payments by country - monthly data (BPM6)</nt:title>
+                    <nt:title language="fr">Balance des paiements par pays - données mensuelles (BPM6)</nt:title>
+                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - monatliche Daten (BPM6)</nt:title>
+                    <nt:code>bop_c6_m</nt:code>
+                    <nt:lastUpdate>20.10.2015</nt:lastUpdate>
+                    <nt:lastModified>20.10.2015</nt:lastModified>
+                    <nt:dataStart>1991M01</nt:dataStart>
+                    <nt:dataEnd>2015M08</nt:dataEnd>
+                    <nt:values>4355217</nt:values>
+                    <nt:unit language="en" />
+                    <nt:unit language="fr" />
+                    <nt:unit language="de" />
+                    <nt:shortDescription language="en" />
+                    <nt:shortDescription language="fr" />
+                    <nt:shortDescription language="de" />
+                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
+                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
+                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.tsv.gz</nt:downloadLink>
+                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.sdmx.zip</nt:downloadLink>
+                  </nt:leaf>
+                  <nt:leaf type="dataset">
+                    <nt:title language="en">Balance of payments by country - quarterly data (BPM6)</nt:title>
+                    <nt:title language="fr">Balance des paiements par pays - données trimestrielles (BPM6)</nt:title>
+                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - vierteljährliche Daten (BPM6)</nt:title>
+                    <nt:code>bop_c6_q</nt:code>
+                    <nt:lastUpdate>23.10.2015</nt:lastUpdate>
+                    <nt:lastModified>23.10.2015</nt:lastModified>
+                    <nt:dataStart>1982</nt:dataStart>
+                    <nt:dataEnd>2015Q2</nt:dataEnd>
+                    <nt:values>29844073</nt:values>
+                    <nt:unit language="en" />
+                    <nt:unit language="fr" />
+                    <nt:unit language="de" />
+                    <nt:shortDescription language="en" />
+                    <nt:shortDescription language="fr" />
+                    <nt:shortDescription language="de" />
+                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
+                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
+                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.tsv.gz</nt:downloadLink>
+                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.sdmx.zip</nt:downloadLink>
+                  </nt:leaf>
                 </nt:children>
               </nt:branch>
             </nt:children>
@@ -629,7 +951,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
                                                      "datasetCode": self.dataset_code})
-        self.assertEqual(series.count(), SERIES_COUNT)
+        self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
         
         
     def test_nama_10_gdp(self):
@@ -672,8 +994,44 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["stk_flow"], 'BAL')
         self.assertEqual(d["partner"], 'EA18')
         self.assertEqual(d["geo"], 'MT')
+        self.assertEqual(series["values"], [""])
         print(series['attributes'])
         self.assertEqual(series['attributes']['obs_status'],["c"])
+        
+    def test_bop_c6_q(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_bop_c6_q
+                
+        self.dataset_code = 'bop_c6_q'
+        
+        self._common_tests()        
+
+        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+                                                        "datasetCode": self.dataset_code,
+                                                        "key": "Q.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["freq"], 'Q')
+        self.assertEqual(d["currency"], 'MIO_EUR')
+        self.assertEqual(d["bop_item"], 'CA')
+        self.assertEqual(d["sector10"], 'S1')
+        self.assertEqual(d["sectpart"], 'S1')
+        self.assertEqual(d["stk_flow"], 'BAL')
+        self.assertEqual(d["partner"], 'AT')
+        self.assertEqual(d["geo"], 'MT')
+        self.assertEqual(series["values"], [""])
+        print(series['attributes'])
+        self.assertEqual(series['attributes']['obs_status'],["c"])
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+                                                        "datasetCode": self.dataset_code,
+                                                        "key": "A.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["freq"], 'A')
+        self.assertEqual(series["values"], ['', '', '', '', '-201.4'])
         
         #TODO: meta_datas tests  
 
@@ -728,13 +1086,29 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
                                                      "datasetCode": self.dataset_code})
 
-        self.assertEqual(series.count(), SERIES_COUNT)
+        self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
 
     def test_nama_10_gdp(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_nama_10_gdp
 
         self.dataset_code = 'nama_10_gdp'        
+
+        self._common_tests()
+
+    def test_bop_c6_m(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.bop_c6_m
+
+        self.dataset_code = 'bop_c6_m'        
+
+        self._common_tests()
+
+    def test_bop_c6_q(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.bop_c6_q
+
+        self.dataset_code = 'bop_c6_q'        
 
         self._common_tests()
 
