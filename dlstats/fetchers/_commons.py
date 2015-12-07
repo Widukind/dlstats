@@ -129,6 +129,9 @@ class DlstatsCollection(object):
         lgr = logging.getLogger(__name__)
         key = {k: bson[k] for k in keys}
         try:
+            if collection  == constants.COL_DATASETS:
+                bson["tags"] = utils.generate_tags(self.fetcher.db, bson, doc_type=collection)
+
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
             result = result['_id']
