@@ -555,6 +555,7 @@ class DBDatasetTestCase(BaseDBTestCase):
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
+    @unittest.skipIf(True, "Mostly ES, need to replace call to sleep()")    
     def test_update_metas(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_update_metas
