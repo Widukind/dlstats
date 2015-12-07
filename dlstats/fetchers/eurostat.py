@@ -395,16 +395,24 @@ class EurostatData:
             for k in attributes:
                 attributes[k] += [""]
             attrib = observation.attrib
+            value_field = False
             for a in attrib:
                 if a == "TIME_PERIOD":
                     raw_dates.append(attrib[a])
                 elif a == "OBS_VALUE":
                     values.append(attrib[a])
+                    value_field = True
                 else:
                     if not a in attributes.keys():
                         attributes[a] = ["" for i in range(nobs)]
                     attributes[a][-1] = attrib[a]
+            # OBS_VALUE may be missing in the attributes
+            # this indicates a missing value
+            if not value_field:
+                values.append('')
             nobs += 1
+        # force attributes' key to be lower case
+        attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
         bson['provider'] = self.provider_name
         bson['datasetCode'] = self.dataset_code
