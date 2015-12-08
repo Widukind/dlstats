@@ -59,7 +59,7 @@ class FakeDatas():
             data = {'provider': self.provider_name, 
                     'datasetCode': self.dataset_code,
                     'key': key, 
-                    'name': "%s %s" % (self.dataset_code, dimensions['Country']),
+                    'name': "%s %s - %s" % (self.dataset_code, dimensions['Country'], i),
                     'frequency': frequency,
                     'startDate': start_date,
                     'endDate': end_date,
@@ -77,6 +77,34 @@ class FakeDatas():
         return(row)
     
 
+class TagsUtilsTestCase(BaseTestCase):
+
+    # nosetests -s -v dlstats.tests.test_search:TagsUtilsTestCase
+    
+    def test_tags_filter(self):
+
+        tags = ["the", "a", "france", "-", "quaterly"]
+        result = sorted([a for a in filter(utils.tags_filter, tags)])
+        self.assertEqual(result, ["france", "quaterly"])
+        
+    def test_tags_map(self):
+        
+        query = "The a France Quaterly"
+        result = sorted(utils.tags_map(query))
+        self.assertEqual(result, ["a", "france", "quaterly", "the"])
+        
+    def test_str_to_tags(self):
+        
+        self.assertEqual(utils.str_to_tags("Bank's of France"), ['bank', 'france'])        
+        
+        self.assertEqual(utils.str_to_tags("Bank's of & France"), ['bank', 'france'])
+        
+        self.assertEqual(utils.str_to_tags("France"), ['france'])
+        
+        self.assertEqual(utils.str_to_tags("Bank's"), ['bank'])
+
+        self.assertEqual(utils.str_to_tags("The a France Quaterly"), ["france", "quaterly"])        
+        
 
 class DBTagsTestCase(BaseDBTestCase):
     
@@ -94,7 +122,7 @@ class DBTagsTestCase(BaseDBTestCase):
         
         max_record = 10
         
-        d = Datasets(provider_name="eurostat", 
+        d = Datasets(provider_name="Eurostat", 
                     dataset_code="name_a",
                     name="Eurostat name_a",
                     last_update=datetime.now(),
@@ -123,52 +151,9 @@ class DBTagsTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find(query)
         self.assertEqual(series.count(), max_record)
         
-        #print("")
-        #print("DATASET : ")
-        #pprint(doc)
-        """
-        {'_id': ObjectId('565380433cbf6e3bcd06adf1'),
-         'attributeList': {},
-         'datasetCode': 'name_a',
-         'dimensionList': {'Country': [['FRA', 'France']],
-                           'Scale': [['Billions', 'Billions Dollars']]},
-         'docHref': 'http://www.example.com',
-         'lastUpdate': datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-         'name': 'Eurostat name_a',
-         'notes': '',
-         'provider': 'eurostat'}        
-        """
         self.assertListEqual(tags, sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france', 'australie']))
         
-        #print("tags : ", tags)
-
         doc = series[0]
-        #print("SERIES : ")
-        #pprint(doc)
-
-        """
-        {'_id': ObjectId('565380432d4b2530c40fa519'),
-         'attributes': {},
-         'datasetCode': 'name_a',
-         'dimensions': {'Country': 'FRA'},
-         'endDate': 105,
-         'frequency': 'A',
-         'key': '0c11df88-de8f-4fc9-99aa-5a7f5642206d',
-         'name': 'name_a FRA 3',
-         'provider': 'eurostat',
-         'releaseDates': [datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000),
-                          datetime.datetime(2015, 11, 23, 22, 8, 19, 206000)],
-         'revisions': {},
-         'startDate': 97,
-         'values': ['74', '48', '52', '99', '83', '68', '31', '43', '75']}
-        """
          
         tags = utils.generate_tags(self.db, doc, 
                                    doc_type=constants.COL_SERIES)
@@ -268,12 +253,6 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         utils.update_tags(self.db, 
                     provider_name=d.provider_name, 
                     dataset_code=d.dataset_code, 
-                    col_name=constants.COL_DATASETS, 
-                    max_bulk=20)
-        
-        utils.update_tags(self.db, 
-                    provider_name=d.provider_name, 
-                    dataset_code=d.dataset_code, 
                     col_name=constants.COL_SERIES, 
                     max_bulk=20)
 
@@ -282,51 +261,24 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         BaseDBTestCase.setUp(self)
         self.fixtures()
         
-    def test_search1(self):
+    def test_search_in_datasets(self):
 
-        # nosetests -s -v dlstats.tests.test_search:DBTagsSearchTestCase.test_search1
+        # nosetests -s -v dlstats.tests.test_search:DBTagsSearchTestCase.test_search_in_datasets
         
-        """
-        FIXME: Refaire avec des doc créés directement sans passer par Fetcher !
+        self.db[constants.COL_DATASETS].reindex()
         
+        docs = utils.search_datasets_tags(self.db, 
+                                          search_tags="Australie Euro Agriculture")
         
-        # Search in all provider and dataset
-        >>> docs = utils.search_series_tags(db, frequency="A", search_tags=["Belgium", "Euro", "Agriculture"])
-    
-        # Filter provider and/or dataset
-        >>> docs = utils.search_series_tags(db, provider_name="Eurostat", dataset_code="nama_10_a10", search_tags=["Belgium", "Euro", "Agriculture"])
-            
-        1 - euro industrial production quarterly : je sais exactement ce que je veux
-        2 - euro industrial production : je ne sais pas quelles fréquences sont disponibles
-        3 - euro industrial production quarterly monthly : je veux deux fréquences pour comparer les deux séries
+        self.assertEqual(docs.count(), 1)
         
-        """
+    def test_search_in_series(self):
+
+        # nosetests -s -v dlstats.tests.test_search:DBTagsSearchTestCase.test_search_in_series
         
         self.db[constants.COL_SERIES].reindex()
         
-        frequencies = self.db[constants.COL_SERIES].distinct("frequency")
-        frequency_stats = {}
-        for f in frequencies:
-            frequency_stats[f] = self.db[constants.COL_SERIES].count({"frequency": f})
-        print(frequency_stats)
-        
-        #doc = self.db[constants.COL_SERIES].find()[0]
-        
-        #doc = self.db[constants.COL_SERIES].find()        
         docs = utils.search_series_tags(self.db, 
-                                        #frequency="A", 
-                                        search_tags=["Australie", "Euro", "Agriculture"])
+                                        search_tags="Australie Euro Agriculture")
         
-        print("COUNT : ", docs.count())
-        print("SEARCH : ", ["Australie", "Euro", "Agriculture"])
-        for doc in docs:
-            print("found : ", doc['name'], doc['tags'], doc['dimensions'])
-        
-        #pprint(docs.explain())
-        """
-        'filter': {'$and': [{'tags': {'$eq': 'euro'}},
-                            {'tags': {'$eq': 'agriculture'}}]},        
-        """
-        for doc in self.db[constants.COL_SERIES].find():
-            print(doc['tags'], doc['dimensions'])
-        
+        #Not count because random datas

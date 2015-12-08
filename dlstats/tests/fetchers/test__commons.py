@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time
 import os
 import uuid
 from datetime import datetime
@@ -19,6 +20,7 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Categories, 
                                        Datasets, 
                                        Series)
+from dlstats.utils import generate_tags, update_tags
 
 import unittest
 
@@ -554,6 +556,9 @@ class DBDatasetTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
+        
+        self.assertEqual(bson['tags'], ['afg', 'billions', 'd1', 'name', 'p1'])
+        
 
     def test_update_metas(self):
 
@@ -586,7 +591,6 @@ class DBDatasetTestCase(BaseDBTestCase):
 
         # testing EsBulk.add_to_index
         # waiting for ES to be ready
-        import time
         time.sleep(2)
         es_data = self.es.search(index = constants.ES_INDEX, doc_type = 'datasets',
                                  body= { "filter":
@@ -673,29 +677,46 @@ class DBSeriesTestCase(BaseDBTestCase):
     
         provider_name = "p1"
         dataset_code = "d1"
+        dataset_name = "d1 name"
     
         f = Fetcher(provider_name=provider_name, 
                     db=self.db, es_client=self.es)
+
+        d = Datasets(provider_name=provider_name, 
+                    dataset_code=dataset_code,
+                    name=dataset_name,
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+        d.dimension_list.update_entry("Country", "AFG", "AFG")
         
         s = Series(provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
                    last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
-
+        
         datas = FakeDatas(provider_name=provider_name, 
                           dataset_code=dataset_code,
                           fetcher=f)
         s.data_iterator = datas
-        s.process_series_data()
+        
+        d.series = s
+        d.update_database()        
         
         '''Count All series'''
-        self.assertEqual( self.db[constants.COL_SERIES].count(), datas.max_record)
+        self.assertEqual(self.db[constants.COL_SERIES].count(), datas.max_record)
 
         '''Count series for this provider and dataset'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
                                                      "datasetCode": dataset_code})
         self.assertEqual(series.count(), datas.max_record)
+
+        update_tags(self.db, 
+                    provider_name=f.provider_name, dataset_code=dataset_code,  
+                    col_name=constants.COL_SERIES)        
 
         '''Count series for this provider and dataset and in keys[]'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
@@ -703,6 +724,12 @@ class DBSeriesTestCase(BaseDBTestCase):
                                                      "key": {"$in": datas.keys}})
         
         self.assertEqual(series.count(), datas.max_record)
+        
+
+        for doc in series:
+            self.assertTrue("tags" in doc)
+            self.assertTrue(len(doc['tags']) > 0)
+        
         
     def test_revisions(self):        
 
@@ -712,9 +739,20 @@ class DBSeriesTestCase(BaseDBTestCase):
     
         provider_name = "p1"
         dataset_code = "d1"
+        dataset_name = "d1 name"
     
         f = Fetcher(provider_name=provider_name, 
                     db=self.db, es_client=self.es)
+
+        d = Datasets(provider_name=provider_name, 
+                    dataset_code=dataset_code,
+                    name=dataset_name,
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+        d.dimension_list.update_entry("Country", "AFG", "AFG")
         
         s1 = Series(provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
@@ -725,7 +763,9 @@ class DBSeriesTestCase(BaseDBTestCase):
                            dataset_code=dataset_code,
                            fetcher=f)
         s1.data_iterator = datas1
-        s1.process_series_data()
+
+        d.series = s1
+        d.update_database()        
 
         test_key = datas1.rows[0]['key']
         first_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
@@ -735,10 +775,13 @@ class DBSeriesTestCase(BaseDBTestCase):
                     last_update=datetime(2014,4,1), 
                     bulk_size=1, 
                     fetcher=f)
+        
         datas2 = FakeDatas(provider_name=provider_name, 
                            dataset_code=dataset_code,
                            fetcher=f)
+        
         datas2.keys = datas1.keys
+        
         for i,r in enumerate(datas2.rows):
             r['key'] = datas2.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
@@ -748,7 +791,9 @@ class DBSeriesTestCase(BaseDBTestCase):
         datas2.rows[0]['values'][1] = str(float(datas2.rows[0]['values'][1]) + 1.5)
         datas2.rows[0]['values'][8] = str(float(datas2.rows[0]['values'][8]) - 0.9)
         s2.data_iterator = datas2
-        s2.process_series_data()
+        
+        d.series = s2
+        d.update_database()        
 
         self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
         test_key = datas2.keys[0]
@@ -766,21 +811,27 @@ class DBSeriesTestCase(BaseDBTestCase):
                     last_update=datetime(2014,4,1), 
                     bulk_size=1, 
                     fetcher=f)
+        
         datas3 = FakeDatas(provider_name=provider_name, 
                            dataset_code=dataset_code,
                            fetcher=f)
+        
         datas3.keys = datas1.keys
+        
         for i,r in enumerate(datas3.rows):
             r['key'] = datas3.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
             r['startDate'] = datas1.rows[i]['startDate']
             r['endDate'] = datas1.rows[i]['endDate']
+        
         datas3.rows[0]['startDate'] = datas1.rows[0]['startDate'] - 2;    
         datas3.rows[0]['values'] = [ '10', '10'] + datas1.rows[0]['values']
         datas3.rows[0]['values'][3] = str(float(datas3.rows[0]['values'][3]) + 1.5)
         datas3.rows[0]['values'][10] = str(float(datas3.rows[0]['values'][10]) - 0.9)
         s3.data_iterator = datas3
-        s3.process_series_data()
+        
+        d.series = s3
+        d.update_database()        
 
         self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
         test_key = datas3.keys[0]
