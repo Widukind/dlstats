@@ -19,14 +19,14 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
 
 ADD docker/*.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/*.sh
-RUN /usr/local/bin/install-miniconda.sh
+
+RUN /usr/local/bin/install-miniconda.sh \
+    && pip install "gevent>=1.1b4" \
+    && pip install -r requirements.txt \
+    && pip install -r requirements-tests.txt \
+    && pip install --no-deps -e .
 
 ADD . /code/
 
 WORKDIR /code/
 
-RUN pip install "gevent>=1.1b4"
-
-RUN pip install -r requirements.txt \
-    && pip install -r requirements-tests.txt \
-    && pip install --no-deps -e .
