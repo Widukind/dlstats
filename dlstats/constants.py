@@ -18,6 +18,8 @@ COL_TAGS_DATASETS = "tags.datasets"
 
 COL_TAGS_SERIES = "tags.series"
 
+COL_LOCK = "lock"
+
 COL_ALL = [
     COL_CATEGORIES,
     COL_PROVIDERS,
@@ -60,3 +62,12 @@ FREQUENCIES_CONVERT = {
     'q': 'Q',
     'w': 'W',
 }
+
+TAGS_EXCLUDE_WORDS = [
+    "the",
+    "to",
+    "from",
+    "of",
+    "on",
+    "in"
+]
