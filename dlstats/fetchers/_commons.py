@@ -92,8 +92,10 @@ class Fetcher(object):
         
         :param str dataset_code: ID of :class:`Datasets`
         """        
+        """
         es = ElasticIndex(db=self.db, es_client=self.es_client)
         es.make_index(self.provider_name, dataset_code)
+        """
         
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
