@@ -560,7 +560,6 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(bson['tags'], ['afg', 'billions', 'd1', 'name', 'p1'])
         
 
-    @unittest.skipIf(True, "FOR DELETE")
     def test_update_metas(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_update_metas
