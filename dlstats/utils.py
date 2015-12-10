@@ -383,7 +383,7 @@ def configure_logging(debug=False, stdout_enable=True, config_file=None,
 
 #'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 TAGS_REPLACE_CHARS = []
-TAGS_REPLACE_CHARS.extend([s for s in string.punctuation if not s in ["_"]]) #TODO: "-", 
+TAGS_REPLACE_CHARS.extend([s for s in string.punctuation if not s in ["-", "_"]]) 
 
 TAGS_MIN_CHAR = 2
 
