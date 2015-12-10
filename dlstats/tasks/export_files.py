@@ -33,6 +33,7 @@ def export_series(series):
     sd = pandas.Period(ordinal=series['startDate'],
                        freq=series['frequency'])
     values = []
+    values.append(["Date", "Value"])
     for val in series['values']:
         values.append([str(sd), val])
         sd += 1

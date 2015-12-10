@@ -13,11 +13,6 @@ opt_fetcher = click.option('--fetcher', '-f',
               required=True, type=click.Choice(FETCHERS.keys()), 
               help='Fetcher choice')
 
-opt_provider = click.option('--provider', '-p', 
-              required=True, 
-              type=click.Choice(FETCHERS.keys()), 
-              help='Provider Name')
-
 opt_dataset = click.option('--dataset', '-d', 
               required=False, 
               help='Run selected dataset only')
@@ -224,7 +219,7 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@opt_provider
+@opt_fetcher
 @opt_dataset
 @click.option('--max-bulk', '-M', 
               type=click.INT,
@@ -237,29 +232,34 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
               show_default=True,
               type=click.Choice(constants.COL_ALL + ['ALL']),
               help='Collection')
-def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, **kwargs):
+@click.option('-g', '--aggregate', is_flag=True, 
+              help='Run aggregate tags after update.')
+def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20, 
+                    aggregate=False, **kwargs):
     """Create or Update field tags"""
     
     """
     Examples:
     
-    dlstats fetchers update-tags -p BIS -d CNFS -S -c ALL
-    dlstats fetchers update-tags -p BEA -d "10101 Ann" -S -c datasets
-    dlstats fetchers update-tags -p BEA -d "10101 Ann" -S -c series
-    dlstats fetchers update-tags -p Eurostat -d nama_10_a10 -S -c datasets
-    dlstats fetchers update-tags -p OECD -d MEI -S -c datasets
+    dlstats fetchers update-tags -f BIS -d CNFS -S -c ALL
+    dlstats fetchers update-tags -f BEA -d "10101 Ann" -S -c datasets
+    dlstats fetchers update-tags -f BEA -d "10101 Ann" -S -c series
+    dlstats fetchers update-tags -f Eurostat -d nama_10_a10 -S -c datasets
+    dlstats fetchers update-tags -f OECD -d MEI -S -c datasets
+    
+    dlstats fetchers update-tags -f BIS -d CNFS -S -c ALL --aggregate
     """
 
     ctx = client.Context(**kwargs)
 
-    ctx.log_ok("Run update tags for %s:" % provider)
+    ctx.log_ok("Run update tags for %s:" % fetcher)
 
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
         db = ctx.mongo_database()
 
         if collection == "ALL":
-            cols = constants.COL_ALL
+            cols = [constants.COL_DATASETS, constants.COL_SERIES]
         else:
             cols = [collection]
         
@@ -267,12 +267,15 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
             #TODO: serie_key
             #TODO: cumul result et rapport
             result = utils.update_tags(db, 
-                                       provider_name=provider, 
+                                       provider_name=fetcher, 
                                        dataset_code=dataset, 
                                        serie_key=None,
                                        col_name=col,
                                        max_bulk=max_bulk)
 
+        if aggregate:
+            result_datasets = utils.aggregate_tags_datasets(db, max_bulk=max_bulk)
+            result_series = utils.aggregate_tags_series(db, max_bulk=max_bulk)
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -281,15 +284,20 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@click.option('--provider', '-p', 
+@click.option('--search-type', '-t', 
+              required=False, 
+              type=click.Choice([constants.COL_DATASETS, constants.COL_SERIES]),
+              default=constants.COL_DATASETS,
+              show_default=True, 
+              help='Search Type')
+@click.option('--fetcher', '-f', 
               required=False, 
               type=click.Choice(FETCHERS.keys()), 
-              help='Provider Name')
+              help='Fetcher choice')
 @opt_dataset
-@click.option('--frequency', '-f', 
+@click.option('--frequency', '-F', 
               required=False, 
-              multiple=True,
-              type=click.Choice(['A', 'M', 'Q']), 
+              type=click.Choice(list(constants.FREQUENCIES_DICT.keys())), 
               help='Frequency choice')
 @click.option('--search', '-s', 
               required=True, 
@@ -299,32 +307,43 @@ def cmd_update_tags(provider=None, dataset=None, collection=None, max_bulk=20, *
               type=int, 
               show_default=True,
               help='Result limit')
-def cmd_search(provider=None, dataset=None, 
+def cmd_search(search_type=None, fetcher=None, dataset=None, 
                frequency=None, search=None, limit=None, **kwargs):
     """Search in Series"""
     
     #TODO: pretty
     #TODO: csv ?
+    #TODO: time limit
     
     """
-    dlstats fetchers search -f Q -f A
-    frequency = ('Q', 'A')
+    dlstats fetchers search -F Q -s "euro Market financial"
     
-    dlstats fetchers search -f Q -f A -s "Economic Indicator Belgium"
-    
+    dlstats fetchers search -t series -F Q -s "euro Market financial" -D
     """
     
     ctx = client.Context(**kwargs)
     db = ctx.mongo_database()
+    
+    query = dict()
 
-    result = utils.search_series_tags(db, 
-                                      provider_name=provider, 
-                                      dataset_code=dataset, 
-                                      frequency=frequency, 
-                                      search_tags=search.split(), 
-                                      skip=0, limit=limit)
+    result = utils.search_tags(db,
+                               search_type=search_type, 
+                               provider_name=fetcher, 
+                               dataset_code=dataset, 
+                               frequency=frequency, 
+                               search_tags=search, 
+                               limit=limit)
     
     ctx.log("Count result : %s" % result.count())
     for doc in result:
-        print(doc['provider'], doc['datasetCode'], doc['key'], doc['name'])
+        #TODO: value/releaseDates, ...
+        if search_type == constants.COL_SERIES:
+            fields = [doc['provider'], doc['datasetCode'], doc['key'], doc['name']]
+        else:
+            fields = [doc['provider'], doc['datasetCode'], doc['name']]
+        if ctx.debug:
+            fields.append(doc['tags'])
+            
+        print(fields)
+            
     

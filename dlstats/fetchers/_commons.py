@@ -92,8 +92,10 @@ class Fetcher(object):
         
         :param str dataset_code: ID of :class:`Datasets`
         """        
+        """
         es = ElasticIndex(db=self.db, es_client=self.es_client)
         es.make_index(self.provider_name, dataset_code)
+        """
         
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
@@ -129,6 +131,9 @@ class DlstatsCollection(object):
         lgr = logging.getLogger(__name__)
         key = {k: bson[k] for k in keys}
         try:
+            if collection  == constants.COL_DATASETS:
+                bson["tags"] = utils.generate_tags(self.fetcher.db, bson, doc_type=collection)
+
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
             result = result['_id']
