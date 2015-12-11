@@ -277,6 +277,8 @@ class Eurostat(Fetcher):
         """Updates data in Database for selected datasets
         :dset: dataset_code
         :returns: None"""
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
         cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
         dataset = Datasets(self.provider_name,
                            dataset_code,
@@ -288,9 +290,12 @@ class Eurostat(Fetcher):
         dataset.series.data_iterator = data_iterator
         dataset.update_database()
         self.update_metas(dataset_code)
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def upsert_all_datasets(self):
-        logger.info('start upsert_all_datasets')
+        start = time.time()
+        logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_categories();
         datasets = self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
@@ -315,7 +320,8 @@ class Eurostat(Fetcher):
                 logger.critical(str(err.details))
                 pprint.pprint(err.details)
                 raise
-        logger.info('end upsert_all_datasets')
+        end = time.time() - start
+        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
 class EurostatData:
     def __init__(self,dataset, filename=None, store_filepath=None):
