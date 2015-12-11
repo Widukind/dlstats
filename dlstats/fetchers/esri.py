@@ -15,9 +15,13 @@ import pandas
 import pprint
 from collections import OrderedDict
 from re import match
-from time import sleep
+import time
 import requests
 from lxml import etree
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 
@@ -69,8 +73,12 @@ class Esri(Fetcher):
             self.upsert_dataset(datasetCode)
 
     def upsert_dataset(self, datasetCode):
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (datasetCode))
         self.upsert_sna(self.url,datasetCode)                  
         self.update_metas(datasetCode)
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
 
     def upsert_sna(self, url, dataset_code):
         dataset = Datasets(self.provider_name,dataset_code,
