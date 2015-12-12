@@ -16,9 +16,12 @@ import pandas
 import pprint
 from collections import OrderedDict
 from re import match
-from time import sleep
+import time
 import zipfile
 import io
+import logging
+
+logger = logging.getLogger(__name__)
 
 class BEA(Fetcher):
     def __init__(self, db=None, es_client=None):
@@ -70,6 +73,8 @@ class BEA(Fetcher):
                     
                         
     def upsert_dataset(self, datasetCode, sheet):    
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (datasetCode))
         
         dataset = Datasets(self.provider_name,datasetCode,
                            fetcher=self)
@@ -80,6 +85,9 @@ class BEA(Fetcher):
         dataset.series.data_iterator = bea_data
         dataset.update_database()
         self.update_metas(datasetCode)
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
+
 
         
     def upsert_categories(self):

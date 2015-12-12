@@ -315,9 +315,14 @@ class BIS(Fetcher):
             logger.info("upsert dataset[%s] bypass because is updated from release_date[%s]" % (dataset_code, fetcher_data.release_date))
 
     def upsert_all_datasets(self):
+        start = time.time()
+        logger.info("update fetcher[%s] - START" % (self.provider_name))
         
         for dataset_code in DATASETS.keys():
             self.upsert_dataset(dataset_code) 
+
+        end = time.time() - start
+        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
     def datasets_list(self):
         return DATASETS.keys()

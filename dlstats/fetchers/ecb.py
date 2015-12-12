@@ -10,11 +10,14 @@ from datetime import datetime
 import pandas
 from collections import OrderedDict
 from re import match, sub
-from time import sleep
+import time
 import sdmx
 import requests
 from dlstats import constants
 from lxml.etree import XMLSyntaxError
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ECB(Fetcher):
@@ -80,6 +83,8 @@ class ECB(Fetcher):
         walk_category(self.get_categories())
 
     def upsert_dataset(self, dataset_code):
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
         cat = self.db[constants.COL_CATEGORIES].find_one({'provider':self.provider_name, 'categoryCode': dataset_code})
         dataset = Datasets(self.provider_name,
                            dataset_code,
@@ -89,6 +94,8 @@ class ECB(Fetcher):
         ecb_data = ECBData(dataset)
         dataset.series.data_iterator = ecb_data
         dataset.update_database()
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def datasets_list(self):
         dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
@@ -99,10 +106,14 @@ class ECB(Fetcher):
         return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
 
     def upsert_all_datasets(self):
+        start = time.time()
+        logger.info("update fetcher[%s] - START" % (self.provider_name))
         dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
         dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
         for dataset_code in dataset_codes:
             self.upsert_dataset(dataset_code)
+        end = time.time() - start
+        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
 
 class ECBData(object):
@@ -140,7 +151,7 @@ class ECBData(object):
                 code = self.codes_to_process.pop()
                 while attempts < 3 and self.current_raw_data == None:
                     try:
-                        sleep(600*attempts+10)
+                        time.sleep(600*attempts+10)
                         attempts += 1
                         self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
                     except XMLSyntaxError as e:

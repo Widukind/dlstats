@@ -10,9 +10,13 @@ import pandas
 import pprint
 from collections import OrderedDict
 from re import match
-from time import sleep
+import time
 import requests
 from lxml import etree
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class IMF(Fetcher):
     def __init__(self):
@@ -21,6 +25,8 @@ class IMF(Fetcher):
         self.provider = Provider(name=self.provider_name,website='http://www.imf.org/')
         
     def upsert_dataset(self, datasetCode):
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (datasetCode))
         if datasetCode=='WEO':
             for u in self.weo_urls:
                 self.upsert_weo_issue(u,datasetCode)
@@ -28,6 +34,8 @@ class IMF(Fetcher):
             es.make_index(self.provider_name,datasetCode)       # ????
         else:
             raise Exception("This dataset is unknown" + dataCode)
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
 
     @property
     def weo_urls(self):

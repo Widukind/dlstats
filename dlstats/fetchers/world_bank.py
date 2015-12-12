@@ -47,12 +47,16 @@ class WorldBank(Fetcher):
         return document.update_database()
 
     def upsert_dataset(self, datasetCode):
+        start = time.time()
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
         #TODO return the _id field of the corresponding dataset. Update the category accordingly.
         if datasetCode=='GEM':
             self.upsert_gem(datasetCode)
         else:
             raise Exception("This dataset is unknown" + dataCode)                 
         self.update_metas(datasetCode)        
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def upsert_gem(self, dataset_code):
         d = DATASETS[dataset_code]
@@ -68,7 +72,11 @@ class WorldBank(Fetcher):
         dataset.update_database()
         
     def upsert_all_datasets(self):
+        start = time.time()
+        logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_dataset('GEM')  
+        end = time.time() - start
+        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
     def datasets_list(self):
         return DATASETS.keys()
