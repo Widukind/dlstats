@@ -922,8 +922,6 @@ class DBSeriesTestCase(BaseDBTestCase):
         
         datas4.rows[0]['endDate'] = datas3.rows[0]['endDate'] + 1;    
         datas4.rows[0]['values'] = datas3.rows[0]['values'] + ['1.0']
-        print(datas3.rows[0]['values'])
-        print(datas4.rows[0]['values'])
         s4.data_iterator = datas4
         
         d.series = s4
@@ -932,7 +930,6 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
         test_key = datas4.keys[0]
         test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
-        print(test_series['revisions'])
         self.assertEqual(len(test_series['revisions']),2)
         self.assertEqual(len(test_series['values']),12)
         self.assertEqual(test_series['values'][11],'1.0')
