@@ -6,11 +6,9 @@ import os
 import zipfile
 import datetime
 import time
-
 import xlrd
 import pandas
 import requests
-
 from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
 
 logger = logging.getLogger(__name__)
@@ -51,7 +49,6 @@ class WorldBank(Fetcher):
                 output.append(source['id'])
         return output
 
-
     def datasets_long_list(self):
         output = []
         for page in self.download_json('sources'):
@@ -59,7 +56,14 @@ class WorldBank(Fetcher):
                 output.append((source['id'], source['name']))
         return output
 
-
+    def upsert_categories(self):
+        for source in self.datasets_long_list:
+            document = Categories(provider=self.provider_name,
+                                  name=source[1],
+                                  category_code=source[0],
+                                  children=None,
+                                  fetcher=self)
+            document.update_database()
 
 
 if __name__ == "__main__":
