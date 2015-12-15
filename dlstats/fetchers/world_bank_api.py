@@ -34,17 +34,36 @@ class WorldBank(Fetcher):
         payload.update(parameters)
         request = self.requests_client.get(self.api_url + url, params=payload)
         first_page = request.json()
-        number_of_pages = first_page[0]['pages']
-        for current_page in range(1,number_of_pages+1):
-            payload = {'format': 'json', 'per_page': per_page, 'page': current_page}
+        number_of_pages = int(first_page[0]['pages'])
+        for page in range(1,number_of_pages+1):
+            payload = {'format': 'json', 'per_page': per_page, 'page': page}
             request = self.requests_client.get(self.api_url + url, params=payload)
-            yield request.json()
+            yield request.json()[1]
 
     def download_indicator(self, country_code, indicator_code):
-        for pages in self.download_json('/'.join(['countries', country_code, 'indicators', indicator_code])):
-            yield pages
+        for page in self.download_json('/'.join(['countries', country_code, 'indicators', indicator_code])):
+            yield page
+
+    def datasets_list(self):
+        output = []
+        for page in self.download_json('sources'):
+            for source in page:
+                output.append(source['id'])
+        return output
+
+
+    def datasets_long_list(self):
+        output = []
+        for page in self.download_json('sources'):
+            for source in page:
+                output.append((source['id'], source['name']))
+        return output
+
+
+
 
 if __name__ == "__main__":
     wb = WorldBank()
-    for i in wb.download_indicator('FR','SP.POP.TOTL'):
-        print(i)
+    print(wb.datasets_list())
+    #for i in wb.download_indicator('FR','SP.POP.TOTL'):
+        #print(i)
