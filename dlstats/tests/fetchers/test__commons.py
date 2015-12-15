@@ -818,6 +818,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         d.series = s1
         d.update_database()        
 
+        # modifying existing values
         test_key = datas1.rows[0]['key']
         first_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
 
@@ -857,6 +858,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
         self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
 
+        # adding observations at the beginning of the series
         s3 = Series(provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
                     last_update=datetime(2014,4,1), 
@@ -896,7 +898,46 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][0:2],[datetime(2014,4,1) for i in range(2)])
         self.assertEqual(test_series['releaseDates'][2],datetime(2013,4,1))
         self.assertEqual(test_series['releaseDates'][4:10],[datetime(2013,4,1) for i in range(6)])
+        self.assertEqual(len(test_series['values']),11)
+        self.assertEqual(len(test_series['releaseDates']),11)
+            
+        # adding observations at the end of the series
+        s4 = Series(provider_name=f.provider_name, 
+                    dataset_code=dataset_code, 
+                    last_update=datetime(2014,5,1), 
+                    bulk_size=1, 
+                    fetcher=f)
+        
+        datas4 = FakeDatas(provider_name=provider_name, 
+                           dataset_code=dataset_code,
+                           fetcher=f)
 
+        datas4.keys = datas1.keys
+        
+        for i,r in enumerate(datas4.rows):
+            r['key'] = datas4.keys[i]
+            r['frequency'] = datas1.rows[i]['frequency']
+            r['startDate'] = datas3.rows[i]['startDate']
+            r['endDate'] = datas3.rows[i]['endDate']
+        
+        datas4.rows[0]['endDate'] = datas3.rows[0]['endDate'] + 1;    
+        datas4.rows[0]['values'] = datas3.rows[0]['values'] + ['1.0']
+        print(datas3.rows[0]['values'])
+        print(datas4.rows[0]['values'])
+        s4.data_iterator = datas4
+        
+        d.series = s4
+        d.update_database()        
+
+        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
+        test_key = datas4.keys[0]
+        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+        print(test_series['revisions'])
+        self.assertEqual(len(test_series['revisions']),2)
+        self.assertEqual(len(test_series['values']),12)
+        self.assertEqual(test_series['values'][11],'1.0')
+        self.assertEqual(len(test_series['releaseDates']),12)
+        self.assertEqual(test_series['releaseDates'][11],datetime(2014,5,1))
             
 if __name__ == '__main__':
     unittest.main()
