@@ -493,7 +493,18 @@ class Series(DlstatsCollection):
                     bson['releaseDates'].append(last_update)
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
+            elif bson['endDate'] > old_bson['endDate']:
+                for p in range(bson['endDate']-old_bson['endDate']):
+                    bson['releaseDates'].append(last_update)
 
+            # checking consistency of values, releaseDates and attributes
+            n = len(bson['values'])
+            if len(bson['releaseDates']) != n:
+                raise Exception('releaseDates has not the right length')
+            for a in bson['attributes']:
+                if len(bson['attributes'][a]) != n:
+                       raise Exception('attribute has not the right length')
+                       
             schemas.series_schema(bson)
             if is_bulk:
                 return bson
