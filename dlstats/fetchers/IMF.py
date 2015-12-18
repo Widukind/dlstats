@@ -69,8 +69,8 @@ def download(url, filename=None):
 
 class IMF(Fetcher):
 
-    def __init__(self, db=None, es_client=None, **kwargs):        
-        super().__init__(provider_name='IMF', db=db, es_client=es_client, **kwargs)
+    def __init__(self, db=None, **kwargs):        
+        super().__init__(provider_name='IMF', db=db, **kwargs)
         
         self.provider = Providers(name=self.provider_name, 
                                   long_name="International Monetary Fund", 
