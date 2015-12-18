@@ -19,25 +19,6 @@ logger = logging.getLogger(__name__)
 
 UPDATE_INDEXES = False
 
-ES_INDEX_CREATED = False
-
-def create_elasticsearch_index(es_client=None, index=None):
-    """Create ElasticSearch Index
-    """
-    global ES_INDEX_CREATED
-    
-    if ES_INDEX_CREATED:
-        return
-
-    index = index or constants.ES_INDEX
-    es_client = es_client or get_es_client()
-    try:
-        es_client.indices.create(index)
-    except:
-        pass
-    
-    ES_INDEX_CREATED = True
-
 def create_or_update_indexes(db, force_mode=False):
     """Create or update MongoDB indexes"""
     
@@ -150,11 +131,6 @@ def create_or_update_indexes(db, force_mode=False):
 def get_mongo_url():
     return os.environ.get("WIDUKIND_MONGODB_URL", "mongodb://localhost/widukind")
 
-
-def get_es_url():
-    return os.environ.get("WIDUKIND_ES_URL", "http://localhost:9200")
-
-
 def get_mongo_client(url=None):
     from pymongo import MongoClient
     # TODO: tz_aware
@@ -170,21 +146,6 @@ def get_mongo_db(url=None):
     client = get_mongo_client(url)
     return client[constants.MONGODB_NAME]
 
-
-def get_es_client(url=None):
-    from elasticsearch import Elasticsearch, RequestsHttpConnection
-    from urllib.parse import urlparse
-    url = url or get_es_url()
-    url = urlparse(url)
-    es = Elasticsearch([{"host": url.hostname, "port": url.port}],
-                       connection_class=RequestsHttpConnection, 
-                       timeout=30, 
-                       max_retries=5, 
-                       use_ssl=False,
-                       verify_certs=False,
-                       sniff_on_start=True)
-    return es
-
 def clean_mongodb(db=None):
     """Drop all collections used by dlstats
     """
@@ -194,129 +155,6 @@ def clean_mongodb(db=None):
             db.drop_collection(col)
         except:
             pass
-
-def clean_elasticsearch(es_client=None, index=None):
-    """Delete and create ElasticSearch Index
-    """
-
-    index = index or constants.ES_INDEX
-    es_client = es_client or get_es_client()
-    try:
-        es_client.indices.delete(index=index)
-    except:
-        pass
-
-    try:
-        es_client.indices.create(index)
-    except:
-        pass
-
-
-def clean_es_with_filter(es_client=None, index=None, doc_type=None, 
-                         filter=None,
-                         #source=None, 
-                         bulk_size=200,
-                         ignore_errors=True):
-
-    index = index or constants.ES_INDEX
-    es_client = es_client or get_es_client()
-    
-    from elasticsearch import helpers
-    
-    results = []
-    ignore = []
-    
-    try:
-        if ignore_errors:
-            ignore=[400, 404]
-        
-        res = helpers.scan(es_client, 
-                     index=index,
-                     query={'_source': 'false','filter': {'term': filter}}, 
-                     #scroll, 
-                     #raise_on_error, 
-                     #preserve_order
-                     )
-        """    
-        res = es_client.search(index=index, scroll='1m', search_type='scan', 
-                               #size=bulk_size,
-                               #doc_type=doc_type, 
-                               body={'_source': 'false','filter': {'term': filter}},
-                               ignore=ignore)
-        """
-        
-        print("---------------------")
-        print(res, type(res))
-        print("---------------------")
-        for r in res:
-            print(r, type(r))
-            """
-DEBUG:elasticsearch:< {"_scroll_id":"c2NhbjswOzE7dG90YWxfaGl0czowOw==","took":5,"timed_out":false,"_shards":{"total":1,"successful":1,"failed":0},"hits":{"total":0,"max_score":0.0,
-"hits":[]}}            
-            """
-        
-        return
-        
-        sid = res['_scroll_id']
-        scroll_size = res['hits']['total']
-        
-        while (scroll_size > 0):
-            res = es_client.scroll(scroll_id=sid, scroll='1m')
-            if len(res['hits']['hits']) == 0:
-                break
-            sid = res['_scroll_id']
-            bulk = []
-            for r in res['hits']['hits']:
-                bulk.append({'delete': {'_index': str(r['_index']),
-                                        '_type': str(r['_type']),
-                                        '_id': str(r['_id'])}})
-            
-            results.append(es_client.bulk(body=bulk))
-        
-        return results
-        """
-        {'errors': False,
-         'items': [{'delete': {'_id': 'BIS.CNFS',
-                               '_index': 'widukind',
-                               '_type': 'datasets',
-                               '_version': 3,
-                               'found': True,
-                               'status': 200}}],
-         'took': 48}
-        """
-            
-    except Exception as err:
-        logger.error(str(err))
-        raise
-
-def clean_es_dataset(es_client=None, index=None, 
-                     provider_name=None, dataset_code=None, 
-                     bulk_size=200):
-
-    index = index or constants.ES_INDEX
-    es_client = es_client or get_es_client()
-        
-    filter = {"provider": provider_name}
-    if dataset_code:
-        filter["datasetCode"] = dataset_code
-    #filter = { "_id": provider_name + '.' + dataset_code}
-    #doc_type = 'datasets'
-    filter = {"_source": filter}
-
-    return es_client.search(index=index,
-                            doc_type='datasets,series', 
-                            body=filter)
-    
-    return es_client.delete_by_query(index=index,
-                       #doc_type='datasets,series', 
-                       q=filter)
-    
-    return clean_es_with_filter(es_client=es_client, index=index, 
-                                #doc_type=doc_type,
-                                #source=source,
-                                filter=filter, 
-                                bulk_size=bulk_size)
-
     
 def configure_logging(debug=False, stdout_enable=True, config_file=None,
                       level="INFO"):

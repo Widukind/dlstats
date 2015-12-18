@@ -26,7 +26,6 @@ Contents:
     technical/configuration
     technical/database
     technical/mongodb
-    technical/elasticsearch
     sources/referential
     
 

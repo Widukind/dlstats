@@ -20,12 +20,6 @@ opt_mongo_url = click.option('--mongo-url',
                              show_default=True,
                              help="URL for MongoDB connection.")
 
-opt_es_url = click.option('--es-url',
-                          envvar='DLSTATS_ES_URL',
-                          default=utils.get_es_url(),
-                          show_default=True,
-                          help="URL for ElasticSearch connection.")
-
 opt_silent = click.option('--silent', '-S', is_flag=True,
                           help="Suppress confirm")
 
@@ -52,7 +46,7 @@ cmd_folder = os.path.abspath(
                     os.path.join(os.path.dirname(__file__), 'commands'))
 
 class Context(object):
-    def __init__(self, mongo_url=None, es_url=None, verbose=False,
+    def __init__(self, mongo_url=None, verbose=False,
                  log_level='ERROR', log_config=None, 
                  debug=False, silent=False, pretty=False):
         self.verbose = verbose
@@ -60,7 +54,6 @@ class Context(object):
         self.silent = silent
         self.pretty = pretty
         self.mongo_url = mongo_url
-        self.es_url = es_url
         
         self.log_level = log_level
         self.log_config = log_config
@@ -125,12 +118,6 @@ class Context(object):
         if not self.fs_mongo:
             self.fs_mongo = gridfs.GridFS(db)
         return self.fs_mongo
-
-    def es_client(self):
-        if not self.client_es:
-            self.client_es = utils.get_es_client(self.es_url)
-        return self.client_es
-
 
 class ComplexCLI(click.MultiCommand):
     def list_commands(self, ctx):

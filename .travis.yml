@@ -12,13 +12,11 @@ cache:
   - apt
   
 env:
-  - MONGO_IMAGE=mongo:3.0.7 ES_IMAGE=elasticsearch:1.7.3 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test -e WIDUKIND_ES_URL=http://elasticsearch:9200 -e WIDUKIND_ES_INDEX=widukind_test --link=mongodb:mongodb --link=elasticsearch:elasticsearch --rm"
+  - MONGO_IMAGE=mongo:3.0.7 DOCKER_OPTIONS="-e SKIP_RELEASE_CONTROL=1 -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_NAME=widukind_test -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test --link=mongodb:mongodb --rm"
 
 before_install:
   - docker pull $MONGO_IMAGE
-  - docker pull $ES_IMAGE
   - docker run -d --name=mongodb $MONGO_IMAGE mongod --smallfiles --noauth --directoryperdb 
-  - docker run -d --name=elasticsearch -e ES_HEAP_SIZE=512m -e ES_MIN_MEM=256m -e ES_MAX_MEM=512m $ES_IMAGE elasticsearch -Dindex.number_of_shards=1 -Dindex.number_of_replicas=0
   - docker build -t widukind/dlstats -f DockerfileTests .
   - pip install coveralls
  
@@ -29,7 +27,6 @@ before_script:
 
 script:
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats --version
-  - docker run $DOCKER_OPTIONS widukind/dlstats dlstats es check
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats mongo check
   - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests --with-coverage -s -v dlstats
   #- docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats coverage run --source=dlstats setup.py test

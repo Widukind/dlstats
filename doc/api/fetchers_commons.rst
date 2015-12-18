@@ -54,17 +54,3 @@ CodeDict
    :members:
    :special-members:
 
-ElasticIndex
-============
-
-.. autoclass:: dlstats.fetchers._commons.ElasticIndex
-   :members:
-   :special-members:
-
-EsBulk
-======
-
-.. autoclass:: dlstats.fetchers._commons.EsBulk
-   :members:
-   :special-members:
-   

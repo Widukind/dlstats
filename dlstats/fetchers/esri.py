@@ -5,7 +5,7 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict
 import urllib
 import xlrd
 import csv
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class Esri(Fetcher):
-    def __init__(self, db=None, es_client=None):
-        super().__init__(provider_name='esri',  db=db, es_client=es_client)         
+    def __init__(self, db=None):
+        super().__init__(provider_name='esri', db=db)         
         self.provider_name = 'esri'
         self.provider = Providers(name=self.provider_name,
                                   long_name='Economic and Social Research Institute, Cabinet Office',

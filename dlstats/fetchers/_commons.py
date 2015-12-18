@@ -6,7 +6,6 @@ from pymongo import ReturnDocument
 from datetime import datetime
 import logging
 import pprint
-from elasticsearch import helpers
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
@@ -22,12 +21,10 @@ class Fetcher(object):
     def __init__(self, 
                  provider_name=None, 
                  db=None, 
-                 es_client=None,
                  is_indexes=True):
         """
         :param str provider_name: Provider Name
         :param pymongo.database.Database db: MongoDB Database instance        
-        :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
         :param bool is_indexes: Bypass create_or_update_indexes() if False 
 
         :raises ValueError: if provider_name is None
@@ -37,15 +34,11 @@ class Fetcher(object):
 
         self.provider_name = provider_name
         self.db = db or utils.get_mongo_db()
-        self.es_client = es_client or utils.get_es_client()
         self.provider = None
         
         if is_indexes:
             utils.create_or_update_indexes(self.db)
         
-        if not self.es_client.indices.exists(constants.ES_INDEX):
-            utils.create_elasticsearch_index(es_client=self.es_client)
-
     def upsert_categories(self):
         """Upsert the categories in MongoDB
         """        
@@ -92,10 +85,6 @@ class Fetcher(object):
         
         :param str dataset_code: ID of :class:`Datasets`
         """        
-        """
-        es = ElasticIndex(db=self.db, es_client=self.es_client)
-        es.make_index(self.provider_name, dataset_code)
-        """
         
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
@@ -561,150 +550,3 @@ class CodeDict():
     def set_from_list(self,dimension_list):
         self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     
-class ElasticIndex():
-    
-    def __init__(self, db=None, es_client=None):
-        """
-        :param pymongo.database.Database db: MongoDB Database instance
-        :param elasticsearch.Elasticsearch es_client: Instance of Elasticsearch client
-        """        
-        
-        self.db = db or utils.get_mongo_db()
-        self.elasticsearch_client = es_client or utils.get_es_client()
-
-    def make_index(self, provider_name, dataset_code):
-        """
-        :param str provider_name: Provider short name
-        :param str dataset_code: Dataset ID
-        """        
-        
-        mb_dataset = self.db[constants.COL_DATASETS].find_one({'provider': provider_name, 'datasetCode': dataset_code})
-        mb_series = self.db[constants.COL_SERIES].find({'provider': provider_name, 'datasetCode': dataset_code},
-                                        {'key': 1, 'dimensions': 1, 'name': 1, 'frequency': 1})
-
-        try:    
-            es_data = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'datasets',
-                                                       body= { "filter":
-                                                               { "term":
-                                                                 { "_id": provider_name + '.' + dataset_code}}})
-        except Exception as err:
-            logger.critical(err)
-            raise
-        
-        if es_data['hits']['total'] == 0:
-            es_dataset = {}
-        else:
-            es_dataset = es_data['hits']['hits'][0]['_source']
-
-        es_dataset['name'] = mb_dataset['name']
-        es_dataset['docHref'] = mb_dataset['docHref']
-        es_dataset['lastUpdate'] = mb_dataset['lastUpdate']
-        es_dataset['provider'] = mb_dataset['provider']
-        es_dataset['datasetCode'] = mb_dataset['datasetCode']
-        es_dataset['frequencies'] = mb_series.distinct('frequency')
-        
-        try:
-            es_series = self.elasticsearch_client.search(index = constants.ES_INDEX, doc_type = 'series',
-                                body= { "filter":
-                                        { "term":
-                                          { "provider": provider_name.lower(), "datasetCode": dataset_code.lower()}}})
-        except Exception as err:
-            logger.critical(err)
-            raise
-        
-        es_series_dict = {e['_source']['key']: e['_source'] for e in es_series['hits']['hits']}
-
-        mb_dimension_dict = {d1: {d2[0]: d2[1] for d2 in mb_dataset['dimensionList'][d1]} for d1 in mb_dataset['dimensionList']}
-        # updating long names in ES index
-        if 'codeList' in es_dataset:
-            es_dimension_dict = {d1: {d2[0]: mb_dimension_dict[d1][d2[0]]
-                                      for d2 in es_dataset['codeList'][d1]
-                                      if d2[0] in mb_dimension_dict[d1]}
-                                 for d1 in es_dataset['codeList'] if d1 in mb_dimension_dict}
-        else:
-            es_dimension_dict = {}
-
-        es_bulk = EsBulk(self.elasticsearch_client,mb_dimension_dict)
-        for s in mb_series:
-            mb_dim = s['dimensions']
-            s['dimensions'] = {d: [mb_dim[d],mb_dimension_dict[d][mb_dim[d]]] for d in mb_dim if d in mb_dimension_dict}
-        
-            if s['key'] not in es_series_dict:
-                es_bulk.add_to_index(provider_name,dataset_code,s)
-            else:
-                es_bulk.update_index(provider_name,dataset_code,s,es_series_dict[s['key']])
-            dim = s['dimensions']
-            for d in dim:
-                if d not in es_dimension_dict:
-                    es_dimension_dict[d] = {dim[d][0]:dim[d][1]}
-                elif dim[d][0] not in es_dimension_dict[d]:
-                    es_dimension_dict[d].update({dim[d][0]:dim[d][1]})
-        es_bulk.update_database()
-        es_dataset['codeList'] = {d1: [[d2[0], d2[1]] for d2 in es_dimension_dict[d1].items()] for d1 in es_dimension_dict}
-        schemas.es_dataset_schema(es_dataset)
-        self.elasticsearch_client.index(index = constants.ES_INDEX,
-                                  doc_type='datasets',
-                                  id = provider_name + '.' + dataset_code,
-                                  body = es_dataset)
-
-class EsBulk():
-    def __init__(self,db,mb_dimension_dict):
-        """
-        :param pymongo.database.Database db: MongoDB Database instance
-        :param dict mb_dimension_dict: Dimensions
-        """
-        self.db = db
-        self.es_bulk = []
-        self.mb_dimension_dict = mb_dimension_dict
-
-    def flush_db(self):
-        if len(self.es_bulk) > 200:
-            self.update_database()
-            self.es_bulk = []
-        
-    def add_to_index(self,provider_name,dataset_code,s):
-        self.flush_db()
-        bson = {"_op_type": 'index', 
-                "_index": constants.ES_INDEX,
-                "_type": 'series',
-                "_id": provider_name + '.' + dataset_code + '.' + s['key'],
-                'provider': provider_name,
-                'key': s['key'],
-                'name': s['name'],
-                'datasetCode': dataset_code,
-                'dimensions': s['dimensions'],
-                'frequency': s['frequency']
-        }
-        schemas.es_series_schema(bson)
-        self.es_bulk.append(bson)
-                                     
-    def update_index(self,provider_name,dataset_code,s,es_s):
-        self.flush_db()
-        update = False
-        mb_dim = s['dimensions']
-        new_bson = {"_op_type": 'update',
-                    "_index": constants.ES_INDEX,
-                    "_type": 'series',
-                    "_id": provider_name + '.' + dataset_code + '.' + s['key']}
-        new_doc = {}
-        if es_s['name'] != s['name']:
-            new_doc['name'] = s['name']
-            update = True
-        update1 = False
-        for d1 in es_s['dimensions']:
-            if (d1 in mb_dim) and (es_s['dimensions'][d1] != mb_dim[d1]):
-                es_s['dimensions'][d1] = mb_dim[d1]
-                update1 = True
-
-        if update1:
-            new_doc['dimensions'] = es_s['dimensions']
-            update = True
-                
-        if update:
-            new_bson['doc'] = new_doc
-            schemas.es_series_update_schema(new_bson)
-            self.es_bulk.append(new_bson)
-            
-    def update_database(self):
-        return helpers.bulk(self.db, self.es_bulk, index = constants.ES_INDEX)
-
