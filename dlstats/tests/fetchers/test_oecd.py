@@ -162,7 +162,7 @@ class OECDDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
-        self.fetcher = oecd.OECD(db=self.db, es_client=self.es)
+        self.fetcher = oecd.OECD(db=self.db)
 
     @unittest.skipIf(True, "TODO - sdmx tests")
     def test_mei(self):

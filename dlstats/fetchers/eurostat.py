@@ -132,10 +132,9 @@ class Downloader():
 
 class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
-    def __init__(self, db=None, es_client=None):
+    def __init__(self, db=None):
         super().__init__(provider_name='Eurostat', 
-                         db=db, 
-                         es_client=es_client)
+                         db=db)
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,
                                   long_name='Eurostat',

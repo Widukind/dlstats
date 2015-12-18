@@ -5,7 +5,7 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict
 from dlstats import constants
 import urllib
 import xlrd
@@ -24,8 +24,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BEA(Fetcher):
-    def __init__(self, db=None, es_client=None):
-        super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
+    def __init__(self, db=None):
+        super().__init__(provider_name='BEA',  db=db) 
         self.provider_name = 'BEA'
         self.provider = Providers(name = self.provider_name ,
                                   long_name = 'Bureau of Economic Analysis',

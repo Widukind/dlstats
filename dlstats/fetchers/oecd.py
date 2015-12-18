@@ -31,8 +31,8 @@ DATASETS = {
 
 class OECD(Fetcher):
     
-    def __init__(self, db=None, es_client=None, **kwargs):
-        super().__init__(provider_name='OECD', db=db, es_client=es_client, **kwargs)
+    def __init__(self, db=None, **kwargs):
+        super().__init__(provider_name='OECD', db=db, **kwargs)
         self.provider_name = 'OECD'
         self.provider = Providers(name=self.provider_name, 
                                   long_name='Organisation for Economic Co-operation and Development',

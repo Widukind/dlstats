@@ -39,7 +39,6 @@ dlstats.client
       --help     Show this message and exit.
     
     Commands:
-      es        ElasticSearch commands.
       fetchers  Fetchers commands.
       mongo     MongoDB commands.
 
@@ -110,8 +109,6 @@ fetchers report
     Options:
       --mongo-url TEXT  URL for MongoDB connection.  [default:
                         mongodb://127.0.0.1:27017/widukind]
-      --es-url TEXT     URL for ElasticSearch connection.  [default:
-                        http://127.0.0.1:9200]
       --help            Show this message and exit.
 
 **Example**
@@ -157,8 +154,6 @@ fetchers run
       -D, --debug
       --mongo-url TEXT                URL for MongoDB connection.  [default:
                                       mongodb://127.0.0.1:27017/widukind]
-      --es-url TEXT                   URL for ElasticSearch connection.  [default:
-                                      http://127.0.0.1:9200]
       -f, --fetcher [EUROSTAT|BEA|BIS|IMF|INSEE|WB]
                                       Fetcher choice  [required]
       -d, --dataset TEXT              Run selected dataset only
@@ -333,103 +328,3 @@ mongo reindex
                         mongodb://127.0.0.1:27017/widukind]
       --help            Show this message and exit.
 
-dlstats es
-==========
-
-.. code:: shell
-
-    $ dlstats es --help
-    
-    Usage: dlstats es [OPTIONS] COMMAND [ARGS]...
-    
-      ElasticSearch commands.
-    
-    Options:
-      --help  Show this message and exit.
-    
-    Commands:
-      check         Verify ElasticSearch connection
-      clean         Delete index
-      create-index  Create Index
-      
-es check
---------
-
-.. code:: shell
-
-    $ dlstats es check --help
-    
-    Usage: dlstats es check [OPTIONS]
-    
-      Verify ElasticSearch connection
-    
-    Options:
-      --es-url TEXT  URL for ElasticSearch connection.  [default:
-                     http://127.0.0.1:9200]
-      --help         Show this message and exit.
-          
-**Example:**
-
-.. code:: shell
-
-    $ dlstats es check
-
-::
-    
-    ------------------------------------------------------
-    Connection OK
-    ------------------------------------------------------
-    elasticsearch-py version : 1.9.0
-    -------------------- Server Infos --------------------
-    {'cluster_name': 'elasticsearch',
-     'name': 'Cold War',
-     'status': 200,
-     'tagline': 'You Know, for Search',
-     'version': {'build_hash': 'b88f43fc40b0bcd7f173a1f9ee2e97816de80b19',
-                 'build_snapshot': False,
-                 'build_timestamp': '2015-07-29T09:54:16Z',
-                 'lucene_version': '4.10.4',
-                 'number': '1.7.1'}}
-    ------------------------------------------------------
-    
-es clean
---------
-
-.. warning:: Dangerous operation !
-
-.. code:: shell
-
-    $ dlstats es clean --help
-        
-    Usage: dlstats es clean [OPTIONS]
-    
-      Delete index
-    
-    Options:
-      -v, --verbose     Enables verbose mode.
-      -S, --silent      Suppress confirm
-      -D, --debug
-      --es-url TEXT     URL for ElasticSearch connection.  [default:
-                        http://127.0.0.1:9200]
-      -i, --index TEXT  Index name  [default: widukind]
-      --help            Show this message and exit.
-      
-es create-index
----------------
-
-.. code:: shell
-
-    $ dlstats es create-index --help
-        
-    Usage: dlstats es create-index [OPTIONS]
-    
-      Create Index
-    
-    Options:
-      -v, --verbose     Enables verbose mode.
-      -S, --silent      Suppress confirm
-      -D, --debug
-      --es-url TEXT     URL for ElasticSearch connection.  [default:
-                        http://127.0.0.1:9200]
-      -i, --index TEXT  Index name  [default: widukind]
-      --help            Show this message and exit.

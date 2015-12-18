@@ -107,7 +107,7 @@ class DBTagsTestCase(BaseDBTestCase):
         BaseDBTestCase.setUp(self)
 
         self.fetcher = Fetcher(provider_name="p1", 
-                               db=self.db, es_client=self.es)
+                               db=self.db)
     
     def test_create_tag(self):
         
@@ -210,7 +210,7 @@ class DBTagsSearchTestCase(BaseDBTestCase):
     def fixtures(self):
 
         fetcher = Fetcher(provider_name="p1", 
-                               db=self.db, es_client=self.es)
+                               db=self.db)
 
         max_record = 10
         
