@@ -66,7 +66,7 @@ class BEA(Fetcher):
                     for sheet_name in excel_book.sheet_names(): 
                         sheet = excel_book.sheet_by_name(sheet_name)
                         if  sheet_name != 'Contents':
-                            datasetCode = sheet_name
+                            datasetCode = sheet_name.replace(' ','_')
                             self.upsert_dataset(datasetCode, sheet)                    
                 # else :
                 #ToDO: lip_PrevT3a, lip_PrevT3b, lip_PrevT3c          
@@ -150,13 +150,16 @@ class BeaData():
 
    
     def __next__(self):
-        row = self.sheet.row(next(self.row_range))
-        if row is None:
-            raise StopIteration()
-        series = self.build_series(row)
-        if series is None:
-            raise StopIteration()            
-        return(series) 
+        while True:
+            row = self.sheet.row(next(self.row_range))
+            if row is None:
+                raise StopIteration()
+            # skip lines without key or with ZZZZZZx key
+            elif (len(row[2].value.replace(' ','')) == 0) or  row[2].value[0:6] == 'ZZZZZZ':
+                continue
+            else:
+                break
+        return(self.build_series(row))
                                        
                                            
     def build_series(self,row):  
@@ -165,7 +168,7 @@ class BeaData():
         series_value = [] 
         #TO DO: Syncronize for all series
         series_name = row[1].value + self.frequency 
-        series_key = row[3].value
+        series_key = row[2].value
         print(row[2].value)
         dimensions['concept'] = self.dimension_list.update_entry('concept',row[2].value,row[1].value)  
         dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
@@ -188,7 +191,7 @@ class BeaData():
 if __name__ == "__main__":
     w = BEA()
     w.provider.update_database()
-    w.upsert_categories()
+#    w.upsert_categories()
     w.upsert_nipa()
     
 
