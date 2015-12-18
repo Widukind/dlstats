@@ -25,7 +25,6 @@ ADD . /code/
 WORKDIR /code/
 
 RUN /usr/local/bin/install-miniconda.sh \
-    && pip install "gevent>=1.1b4" \
     && pip install -r requirements.txt \
     && pip install -r requirements-tests.txt \
     && pip install --no-deps -e .
