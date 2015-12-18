@@ -8,15 +8,8 @@ from random import choice, randint
 
 from dlstats import constants
 from dlstats.fetchers._commons import (Fetcher, 
-                                       CodeDict, 
-                                       DlstatsCollection, 
-                                       Providers,
-                                       Categories, 
-                                       Datasets, 
-                                       Series)
+                                       Datasets)
 from dlstats import utils
-
-import unittest
 
 from dlstats.tests.base import BaseTestCase, BaseDBTestCase
 
@@ -210,6 +203,8 @@ class DBTagsTestCase(BaseDBTestCase):
                     
 class DBTagsSearchTestCase(BaseDBTestCase):
     
+    #TODO: refaire sans utiliser les fetchers - creation direct de docs dans Series et Datasets collections
+    
     # nosetests -s -v dlstats.tests.test_search:DBTagsSearchTestCase
     
     def fixtures(self):
@@ -267,8 +262,14 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         
         self.db[constants.COL_DATASETS].reindex()
         
-        docs = utils.search_datasets_tags(self.db, 
+        docs, query = utils.search_datasets_tags(self.db, 
                                           search_tags="Australie Euro Agriculture")
+        
+        self.assertEqual(docs.count(), 1)
+        
+        '''Search Billion and Dollar - not plural'''
+        docs, query = utils.search_datasets_tags(self.db, 
+                                          search_tags="Billion Dollar")
         
         self.assertEqual(docs.count(), 1)
         
@@ -278,7 +279,16 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         
         self.db[constants.COL_SERIES].reindex()
         
-        docs = utils.search_series_tags(self.db, 
+        docs, query = utils.search_series_tags(self.db, 
                                         search_tags="Australie Euro Agriculture")
         
         #Not count because random datas
+        
+        #self.assertTrue(docs.count() > 0)
+        
+        '''Search Billion and Dollar - not plural'''
+        docs, query = utils.search_datasets_tags(self.db, 
+                                          search_tags="Billion Dollar")        
+        
+        #self.assertTrue(docs.count() > 0)
+        

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import re
 import logging
 import os
 import sys
@@ -653,10 +654,11 @@ def search_tags(db,
     
     '''Convert search tag to lower case and strip tag'''
     tags = str_to_tags(search_tags)        
-    #tags = [t.strip().lower() for t in search_tags]
 
-    # TODO: OR, NOT ?
-    query = {"tags": {"$all": tags}}
+    # Add OR, NOT
+    tags_regexp = [re.compile('.*%s.*' % e, re.IGNORECASE) for e in tags]
+    #  AND implementation
+    query = {"tags": {"$all": tags_regexp}}
 
     if provider_name:
         if isinstance(provider_name, str):
@@ -688,10 +690,6 @@ def search_tags(db,
     else:
         COL_SEARCH = constants.COL_DATASETS
         
-    print("---------- QUERY -------------------")        
-    pprint(query)
-    print("------------------------------------")        
-    
     cursor = db[COL_SEARCH].find(query, projection=projection)
 
     if skip:
@@ -706,7 +704,7 @@ def search_tags(db,
             sort_direction = DESCENDING
         cursor = cursor.sort(sort, sort_direction)
     
-    return cursor
+    return cursor, query
            
 def search_series_tags(db, **kwargs):
     return search_tags(db, search_type=constants.COL_SERIES, **kwargs)
