@@ -31,10 +31,11 @@ script:
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats --version
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats es check
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats mongo check
-  - docker run $DOCKER_OPTIONS -v $PWD/coverage:/code/coverage widukind/dlstats nosetests --with-coverage -s -v dlstats
+  - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests --with-coverage -s -v dlstats
+  #- docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats coverage run --source=dlstats setup.py test
   - docker run $DOCKER_OPTIONS widukind/dlstats flake8 --exit-zero dlstats
   
-after_script: coveralls --verbose
+after_script: COVERAGE_FILE=./coverage/.coverage coveralls --verbose
 
 notifications:
   email: true
