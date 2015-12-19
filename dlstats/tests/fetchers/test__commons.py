@@ -702,6 +702,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][8],datetime(2014,4,1))
         self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
         self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
+        self.assertEqual(test_series['startDate'],datas1.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas1.rows[0]['endDate'])
 
         # B. adding observations at the beginning of the series
         s3 = Series(provider_name=f.provider_name, 
@@ -745,6 +747,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][4:10],[datetime(2013,4,1) for i in range(6)])
         self.assertEqual(len(test_series['values']),11)
         self.assertEqual(len(test_series['releaseDates']),11)
+        self.assertEqual(test_series['startDate'],datas2.rows[0]['startDate']-2)
+        self.assertEqual(test_series['endDate'],datas2.rows[0]['endDate'])
             
         # C. adding observations at the end of the series
         s4 = Series(provider_name=f.provider_name, 
@@ -780,6 +784,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['values'][11],'1.0')
         self.assertEqual(len(test_series['releaseDates']),12)
         self.assertEqual(test_series['releaseDates'][11],datetime(2014,5,1))
+        self.assertEqual(test_series['startDate'],datas3.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas3.rows[0]['endDate']+1)
             
         # D. removing observations at the beginning and the end of the series
         s5 = Series(provider_name=f.provider_name, 
@@ -814,13 +820,15 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(len(test_series['revisions']),4)
         self.assertEqual(len(test_series['values']),12)
         self.assertEqual(test_series['values'][0],'na')
-        self.assertEqual(test_series['values'][1],data4.rows[0]['values'][1])
-        self.assertEqual(test_series['values'][10],data4.rows[0]['values'][-1])
+        self.assertEqual(test_series['values'][1],datas4.rows[0]['values'][1])
+        self.assertEqual(test_series['values'][10],datas4.rows[0]['values'][-2])
         self.assertEqual(test_series['values'][11],'na')
-        self.assertEqual(len(test_series['releaseDates'])[0],datetime(2014,6,1))
-        self.assertEqual(len(test_series['releaseDates'])[1],datetime(2014,5,1))
-        self.assertEqual(len(test_series['releaseDates'])[10],datetime(2014,5,1))
-        self.assertEqual(len(test_series['releaseDates'])[11],datetime(2014,6,1))
-            
+        self.assertEqual(test_series['releaseDates'][0],datetime(2014,6,1))
+        self.assertEqual(test_series['releaseDates'][1],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][11],datetime(2014,6,1))
+        self.assertEqual(test_series['startDate'],datas4.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas4.rows[0]['endDate'])
+                                                             
 if __name__ == '__main__':
     unittest.main()
