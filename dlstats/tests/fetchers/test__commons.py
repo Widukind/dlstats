@@ -663,7 +663,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         d.series = s1
         d.update_database()        
 
-        # modifying existing values
+        # A. modifying existing values
         test_key = datas1.rows[0]['key']
         first_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
 
@@ -702,8 +702,10 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][8],datetime(2014,4,1))
         self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
         self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
+        self.assertEqual(test_series['startDate'],datas1.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas1.rows[0]['endDate'])
 
-        # adding observations at the beginning of the series
+        # B. adding observations at the beginning of the series
         s3 = Series(provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
                     last_update=datetime(2014,4,1), 
@@ -745,8 +747,10 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][4:10],[datetime(2013,4,1) for i in range(6)])
         self.assertEqual(len(test_series['values']),11)
         self.assertEqual(len(test_series['releaseDates']),11)
+        self.assertEqual(test_series['startDate'],datas2.rows[0]['startDate']-2)
+        self.assertEqual(test_series['endDate'],datas2.rows[0]['endDate'])
             
-        # adding observations at the end of the series
+        # C. adding observations at the end of the series
         s4 = Series(provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
                     last_update=datetime(2014,5,1), 
@@ -780,6 +784,51 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['values'][11],'1.0')
         self.assertEqual(len(test_series['releaseDates']),12)
         self.assertEqual(test_series['releaseDates'][11],datetime(2014,5,1))
+        self.assertEqual(test_series['startDate'],datas3.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas3.rows[0]['endDate']+1)
             
+        # D. removing observations at the beginning and the end of the series
+        s5 = Series(provider_name=f.provider_name, 
+                    dataset_code=dataset_code, 
+                    last_update=datetime(2014,6,1), 
+                    bulk_size=1, 
+                    fetcher=f)
+        
+        datas5 = FakeDatas(provider_name=provider_name, 
+                           dataset_code=dataset_code,
+                           fetcher=f)
+
+        datas5.keys = datas1.keys
+        
+        for i,r in enumerate(datas5.rows):
+            r['key'] = datas4.keys[i]
+            r['frequency'] = datas1.rows[i]['frequency']
+            r['startDate'] = datas4.rows[i]['startDate']
+            r['endDate'] = datas4.rows[i]['endDate']
+        
+        datas5.rows[0]['startDate'] = datas4.rows[0]['startDate'] + 1;    
+        datas5.rows[0]['endDate'] = datas4.rows[0]['endDate'] - 1;    
+        datas5.rows[0]['values'] = datas4.rows[0]['values'][1:-1]
+        s5.data_iterator = datas5
+        
+        d.series = s5
+        d.update_database()        
+
+        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
+        test_key = datas5.keys[0]
+        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+        self.assertEqual(len(test_series['revisions']),4)
+        self.assertEqual(len(test_series['values']),12)
+        self.assertEqual(test_series['values'][0],'na')
+        self.assertEqual(test_series['values'][1],datas4.rows[0]['values'][1])
+        self.assertEqual(test_series['values'][10],datas4.rows[0]['values'][-2])
+        self.assertEqual(test_series['values'][11],'na')
+        self.assertEqual(test_series['releaseDates'][0],datetime(2014,6,1))
+        self.assertEqual(test_series['releaseDates'][1],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
+        self.assertEqual(test_series['releaseDates'][11],datetime(2014,6,1))
+        self.assertEqual(test_series['startDate'],datas4.rows[0]['startDate'])
+        self.assertEqual(test_series['endDate'],datas4.rows[0]['endDate'])
+                                                             
 if __name__ == '__main__':
     unittest.main()

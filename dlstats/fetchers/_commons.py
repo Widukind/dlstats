@@ -452,18 +452,24 @@ class Series(DlstatsCollection):
                 bson['releaseDates'] = [last_update for r in range(iv2)] + bson['releaseDates']
                         
             elif start_date > old_start_date:
-                iv1 = start_date - old_start_date
                 # previous, longer, series is kept
                 # fill beginning with na
                 for p in range(start_date-old_start_date):
                     # insert in front of the values, releaseDates and attributes
                     bson['values'].insert(0,'na')
-                    bson['releaseDates'].insert(0,last_update)
+                    bson['releaseDates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].insert(0,"") 
-                
                 bson['startDate'] = old_bson['startDate']
                 
+            if bson['endDate'] < old_bson['endDate']:
+                for p in range(old_bson['endDate']-bson['endDate']):
+                    bson['values'].append('na')
+                    bson['releaseDates'][p] = last_update
+                    for a in bson['attributes']:
+                        bson['attributes'][a].append("")
+                bson['endDate'] = old_bson['endDate']
+
             for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
                 if values[0] != values[1]:
                     bson['releaseDates'][position+iv2] = last_update
@@ -476,23 +482,26 @@ class Series(DlstatsCollection):
                         bson['revisions'][str(position+iv2)].append(rev)
                     else:
                         bson['revisions'][str(position+iv2)] = [rev]
-            if bson['endDate'] < old_bson['endDate']:
-                for p in range(old_bson['endDate']-bson['endDate']):
-                    bson['values'].append('na')
-                    bson['releaseDates'].append(last_update)
-                    for a in bson['attributes']:
-                        bson['attributes'][a].append("")
-            elif bson['endDate'] > old_bson['endDate']:
+
+            if bson['endDate'] > old_bson['endDate']:
                 for p in range(bson['endDate']-old_bson['endDate']):
                     bson['releaseDates'].append(last_update)
 
             # checking consistency of values, releaseDates and attributes
             n = len(bson['values'])
             if len(bson['releaseDates']) != n:
+                logger.critical('releaseDates has not the right length')
+                logger.critical('series key: ' + bson['key'])
+                logger.critical('values length: ' + str(len(bson['values'])))
+                logger.critical('releaseDates length: ' + str(len(bson['releaseDates'])))
                 raise Exception('releaseDates has not the right length')
             for a in bson['attributes']:
                 if len(bson['attributes'][a]) != n:
-                       raise Exception('attribute has not the right length')
+                    logger.critical('attributes has not the right length')
+                    logger.critical('series key: ' + bson['key'])
+                    logger.critical('values length: ' + str(len(bson['values'])))
+                    logger.critical('attributes length: ' + str(len(bson['releaseDates'])))
+                    raise Exception('attributes has not the right length')
                        
             schemas.series_schema(bson)
             if is_bulk:
