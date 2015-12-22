@@ -424,6 +424,9 @@ class Series(DlstatsCollection):
         if not old_bson:
             bson['releaseDates'] = [last_update for v in bson['values']]
             schemas.series_schema(bson)
+
+            self.check_values_attributes_releasedates(bson)
+            
             if is_bulk:
                 return bson
             return col.insert(bson)
@@ -487,26 +490,29 @@ class Series(DlstatsCollection):
                 for p in range(bson['endDate']-old_bson['endDate']):
                     bson['releaseDates'].append(last_update)
 
-            # checking consistency of values, releaseDates and attributes
-            n = len(bson['values'])
-            if len(bson['releaseDates']) != n:
-                logger.critical('releaseDates has not the right length')
-                logger.critical('series key: ' + bson['key'])
-                logger.critical('values length: ' + str(len(bson['values'])))
-                logger.critical('releaseDates length: ' + str(len(bson['releaseDates'])))
-                raise Exception('releaseDates has not the right length')
-            for a in bson['attributes']:
-                if len(bson['attributes'][a]) != n:
-                    logger.critical('attributes has not the right length')
-                    logger.critical('series key: ' + bson['key'])
-                    logger.critical('values length: ' + str(len(bson['values'])))
-                    logger.critical('attributes length: ' + str(len(bson['releaseDates'])))
-                    raise Exception('attributes has not the right length')
-                       
+            self.check_values_attributes_releasedates(bson)
+            
             schemas.series_schema(bson)
             if is_bulk:
                 return bson
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
+
+    def check_values_attributes_releasedates(self,bson):
+        # checking consistency of values, releaseDates and attributes
+        n = len(bson['values'])
+        if len(bson['releaseDates']) != n:
+            logger.critical('releaseDates has not the right length')
+            logger.critical('series key: ' + bson['key'])
+            logger.critical('values length: ' + str(len(bson['values'])))
+            logger.critical('releaseDates length: ' + str(len(bson['releaseDates'])))
+            raise Exception('releaseDates has not the right length')
+        for a in bson['attributes']:
+            if len(bson['attributes'][a]) != n:
+                logger.critical('attributes has not the right length')
+                logger.critical('series key: ' + bson['key'])
+                logger.critical('values length: ' + str(len(bson['values'])))
+                logger.critical('attributes length: ' + str(len(bson['releaseDates'])))
+                raise Exception('attributes has not the right length')
 
 class CodeDict():
     """Class for handling code lists
