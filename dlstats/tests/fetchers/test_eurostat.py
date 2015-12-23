@@ -907,7 +907,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
-        self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
+        self.fetcher = eurostat.Eurostat(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
@@ -1086,7 +1086,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
-        self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
+        self.fetcher = eurostat.Eurostat(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
@@ -1236,7 +1236,7 @@ class FullEurostatDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
-        self.fetcher = eurostat.Eurostat(db=self.db, es_client=self.es)
+        self.fetcher = eurostat.Eurostat(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None

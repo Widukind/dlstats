@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 
 class ECB(Fetcher):
-    def __init__(self, db=None, es_client=None):
-        super().__init__(provider_name='ECB', db=db, es_client=es_client)
+    def __init__(self, db=None):
+        super().__init__(provider_name='ECB', db=db)
         self.provider_name = 'ECB'
         self.requests_client = requests.Session()
         sdmx.ecb.requests_client = self.requests_client
@@ -151,7 +151,7 @@ class ECBData(object):
                 code = self.codes_to_process.pop()
                 while attempts < 3 and self.current_raw_data == None:
                     try:
-                        time.sleep(600*attempts+10)
+                        #time.sleep(600*attempts+10)
                         attempts += 1
                         self.current_raw_data = sdmx.ecb.raw_data(self.dataset_code, {self.largest_dimension[0]:code})
                     except XMLSyntaxError as e:

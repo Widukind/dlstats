@@ -79,38 +79,3 @@ series_schema = Schema({
     Optional('tags'): [Any(str)],
     },required=True)
 
-es_dataset_schema = Schema({
-    'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
-    'datasetCode': All(str, Length(min=1)),
-    'docHref': Any(None,str),
-    'lastUpdate': typecheck(datetime),
-    'codeList': {str: [All([])]},
-    'frequencies': [str]
-    },required=True)
-
-es_series_schema = Schema({
-    '_op_type': Any('index','update'), 
-    '_index': str,
-    '_type': 'series',
-    '_id': str, 
-    'provider': str,
-    'key': str,
-    'name': str,
-    'datasetCode': str,
-    'dimensions': {str: [str, str]},
-    'frequency': str
-    }, required=True)
-
-es_doc_schema = {
-    Optional('name'): str,
-    Optional('dimensions'): {str: [str, str]},
-}
-
-es_series_update_schema = Schema({
-    '_op_type': Any('index','update'), 
-    '_index': str,
-    '_type': 'series',
-    '_id': str,
-    'doc': es_doc_schema
-    }, required=True)

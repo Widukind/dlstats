@@ -2,8 +2,6 @@
 
 import os
 
-ES_INDEX = os.environ.get("WIDUKIND_ES_INDEX", "widukind")
-
 MONGODB_NAME = os.environ.get("WIDUKIND_MONGODB_NAME", "widukind")
 
 COL_CATEGORIES = "categories"

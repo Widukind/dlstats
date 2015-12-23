@@ -38,9 +38,9 @@ except ImportError:
     pass
 
 try:
-    from dlstats.fetchers.IMF import IMF
+    from dlstats.fetchers.IMF import IMF, DATASETS as DATASETS_IMF
     FETCHERS['IMF'] = IMF
-    #TODO: FETCHERS_DATASETS['IMF'] = None
+    FETCHERS_DATASETS['IMF'] = DATASETS_IMF
     __all__.append('IMF')
 except ImportError:
     pass

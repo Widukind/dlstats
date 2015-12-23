@@ -342,7 +342,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
     def setUp(self):
         BaseDBTestCase.setUp(self)
         
-        self.fetcher = bis.BIS(db=self.db, es_client=self.es)
+        self.fetcher = bis.BIS(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
@@ -538,7 +538,7 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
     def setUp(self):
         BaseDBTestCase.setUp(self)
         
-        self.fetcher = bis.BIS(db=self.db, es_client=self.es)
+        self.fetcher = bis.BIS(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None
@@ -676,7 +676,7 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
     
     def setUp(self):
         BaseDBTestCase.setUp(self)
-        self.fetcher = bis.BIS(db=self.db, es_client=self.es)
+        self.fetcher = bis.BIS(db=self.db)
         self.dataset_code = None
         self.dataset = None        
         self.filepath = None

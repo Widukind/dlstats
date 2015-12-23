@@ -265,11 +265,10 @@ class Downloader():
 
 class BIS(Fetcher):
     
-    def __init__(self, db=None, es_client=None):
+    def __init__(self, db=None):
         
         super().__init__(provider_name='BIS', 
-                         db=db, 
-                         es_client=es_client)
+                         db=db)
         
         self.provider = Providers(name=self.provider_name,
                                   long_name='Bank for International Settlements',

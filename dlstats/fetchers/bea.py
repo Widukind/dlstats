@@ -5,7 +5,7 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict, ElasticIndex
+from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict
 from dlstats import constants
 import urllib
 import xlrd
@@ -24,8 +24,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 class BEA(Fetcher):
-    def __init__(self, db=None, es_client=None):
-        super().__init__(provider_name='BEA',  db=db, es_client=es_client) 
+    def __init__(self, db=None):
+        super().__init__(provider_name='BEA',  db=db) 
         self.provider_name = 'BEA'
         self.provider = Providers(name = self.provider_name ,
                                   long_name = 'Bureau of Economic Analysis',
@@ -165,9 +165,8 @@ class BeaData():
         series_value = [] 
         #TO DO: Syncronize for all series
         series_name = row[1].value + self.frequency 
-        series_key = 'BEA.' + self.sheet.col(0)[0].value + '; ' + row[1].value
+        series_key = row[3].value
         print(row[2].value)
-        print(row[1].value)
         dimensions['concept'] = self.dimension_list.update_entry('concept',row[2].value,row[1].value)  
         dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
         for r in range(3, len(row)):

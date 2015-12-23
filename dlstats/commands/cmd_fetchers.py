@@ -42,7 +42,7 @@ def cmd_dataset_list(fetcher, **kwargs):
 
     ctx = client.Context(**kwargs)
 
-    f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
+    f = FETCHERS[fetcher](db=ctx.mongo_database())
 
     if ctx.verbose:
         func_name = 'datasets_long_list'
@@ -74,7 +74,6 @@ def cmd_dataset_list(fetcher, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@client.opt_es_url
 @opt_fetcher
 def cmd_update_categories(fetcher=None, **kwargs):
     """Create or Update fetcher Categories"""
@@ -85,7 +84,7 @@ def cmd_update_categories(fetcher=None, **kwargs):
 
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
 
-        f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
+        f = FETCHERS[fetcher](db=ctx.mongo_database())
         f.upsert_categories()
         #TODO: lock commun avec tasks ?
 
@@ -96,7 +95,6 @@ def cmd_update_categories(fetcher=None, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@client.opt_es_url
 @opt_fetcher
 @opt_dataset
 def cmd_run(fetcher=None, dataset=None, **kwargs):
@@ -108,7 +106,7 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
     
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
-        f = FETCHERS[fetcher](db=ctx.mongo_database(), es_client=ctx.es_client())
+        f = FETCHERS[fetcher](db=ctx.mongo_database())
         
         if not dataset and not hasattr(f, "upsert_all_datasets"):
             #TODO: translation EN
@@ -135,7 +133,6 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
 #TODO: option pretty pour sortie json
 @cli.command('report', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_mongo_url
-@client.opt_es_url
 def cmd_report(**kwargs):
     """Fetchers report"""
         
@@ -179,7 +176,6 @@ def cmd_report(**kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@client.opt_es_url
 @opt_fetcher
 @opt_dataset
 def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
@@ -198,9 +194,8 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
         db = ctx.mongo_database()
-        es_client = ctx.es_client()
         
-        f = FETCHERS[fetcher](db=db, es_client=es_client)
+        f = FETCHERS[fetcher](db=db)
 
         if dataset:
             ctx.log("Update Metas for dataset[%s]" % dataset)
