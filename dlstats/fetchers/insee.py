@@ -245,11 +245,10 @@ class INSEE_Data(object):
     
     def __init__(self, dataset=None, dataflow=None, sdmx=None):
         """
-        
-        :param dataflow: 
-        """
-        print("dataflow : ", type(dataflow))
-        
+        :param Datasets dataset: Datasets instance
+        :param pandasdmx.model.DataflowDefinition dataflow: instance of DataflowDefinition
+        :param RequestINSEE sdmx: SDMX Client  
+        """        
         self.cpt = 0
         
         self.dataset = dataset
