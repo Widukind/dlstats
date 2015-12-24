@@ -232,10 +232,14 @@ class INSEE(Fetcher):
                            dataset_code=dataset_code,
                            name=dataflow.name.en,
                            doc_href=None,
-                           last_update=None,
+                           last_update=datetime.now(),
                            fetcher=self)
         
-        insee_data = INSEE_Data(dataset=dataset, 
+        dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
+                                                                "datasetCode": dataset_code})
+        
+        insee_data = INSEE_Data(dataset=dataset,
+                                dataset_doc=dataset_doc, 
                                 dataflow=dataflow, 
                                 sdmx=self.sdmx)
         dataset.series.data_iterator = insee_data
@@ -254,7 +258,7 @@ class INSEE(Fetcher):
 
 class INSEE_Data(object):
     
-    def __init__(self, dataset=None, dataflow=None, sdmx=None):
+    def __init__(self, dataset=None, dataset_doc=None, dataflow=None, sdmx=None):
         """
         :param Datasets dataset: Datasets instance
         :param pandasdmx.model.DataflowDefinition dataflow: instance of DataflowDefinition
@@ -263,6 +267,10 @@ class INSEE_Data(object):
         self.cpt = 0
         
         self.dataset = dataset
+        self.dataset_doc = dataset_doc
+        self.last_update = None
+        if self.dataset_doc:
+            self.last_update = self.dataset_doc["lastUpdate"]
         
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
@@ -348,6 +356,19 @@ class INSEE_Data(object):
             logger.warning("Not valid frequency[%s] - dataset[%s] - idbank[%s]" % (frequency, self.dataset_code, series.attrib.IDBANK))
         
         return valid
+    
+    def is_updated(self, series):
+        """Verify if series changes
+        """
+        if not self.last_update:
+            return True
+        
+        _is_updated = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d") > self.last_update
+
+        if not _is_updated and logger.isEnabledFor(logging.INFO):
+            logger.info("bypass series updated datasetCode[%s] - idbank[%s]" % (self.dataset_code, series.attrib.IDBANK))
+        
+        return _is_updated
 
     def get_series(self, dataset_code):
         """Load series for current dataset
@@ -358,7 +379,8 @@ class INSEE_Data(object):
         
         Appel suivant seulement si le 1er appel échoue avec un code HTTP_ERROR_LONG_RESPONSE
         
-        Boucle sur les valeurs de le plus petite dimensions pour charger en plusieurs fois les series du dataset        
+        Boucle sur les valeurs de le plus petite dimensions pour charger en plusieurs fois les series du dataset
+        
         """
 
         def _request(key=''):
@@ -371,7 +393,7 @@ class INSEE_Data(object):
             ''' First call - all series '''
             _data = _request()
             for s in _data.msg.data.series:
-                if self.is_valid_frequency(s):
+                if self.is_valid_frequency(s) and self.is_updated(s):
                     yield s                        
         except requests.exceptions.HTTPError as err:
 
@@ -385,7 +407,7 @@ class INSEE_Data(object):
                     try:
                         _data = _request(key)
                         for s in _data.msg.data.series:
-                            if self.is_valid_frequency(s):
+                            if self.is_valid_frequency(s) and self.is_updated(s):
                                 yield s
                     except requests.exceptions.HTTPError as err:
                         if err.response.status_code == HTTP_ERROR_NO_RESULT:
@@ -428,8 +450,8 @@ class INSEE_Data(object):
         bson['name'] = series.attrib.TITLE #TODO: english
         bson['lastUpdate'] = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
         
-        #TODO: update dataset.last_update for all series ?
-        self.dataset.last_update = bson['lastUpdate']
+        if bson['lastUpdate'] > self.dataset.last_update:
+            self.dataset.last_update = bson['lastUpdate']
         
         if logger.isEnabledFor(logging.DEBUG):
             import json
@@ -459,7 +481,7 @@ class INSEE_Data(object):
             bson['frequency'] = "Q"
         
         attributes = {}
-        for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=True):
+        for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=False):
             for key, value in obs.attrib._asdict().items():
                 if not key in attributes:
                     attributes[key] = []
@@ -481,13 +503,12 @@ class INSEE_Data(object):
 
         bson['dimensions'] = dimensions
         
-        _dates = [o.dim for o in series.obs(False, False, True)]
-        bson['startDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
-        bson['endDate'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
+        '''INSEE ordered dates (desc) - 2015 -> 2000'''
+        _dates = [o.dim for o in series.obs(with_values=False, with_attributes=False, reverse_obs=False)]
+        bson['startDate'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
+        bson['endDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
         
-        #pprint(bson)
-
-        bson['values'] = [str(o.value) for o in series.obs(with_values=True, with_attributes=False, reverse_obs=True)]
+        bson['values'] = [str(o.value) for o in series.obs(with_values=True, with_attributes=False, reverse_obs=False)]
         
         return bson
 
