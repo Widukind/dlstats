@@ -60,7 +60,6 @@ class InseeTestCase(BaseDBTestCase):
                                content_type="application/xml")
         
         self.insee._dataflows = self.insee.sdmx.get(resource_type='dataflow').msg.dataflows
-        dataflow = self.insee._dataflows[dataset_code]
         
         url_datastructure = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s" % dataset_code
         httpretty.register_uri(httpretty.GET, 
@@ -94,11 +93,17 @@ class InseeTestCase(BaseDBTestCase):
         
         self.assertEqual(count, DATASETS[dataset_code]['series_count'])
 
-    @unittest.skipIf(True, "TODO")    
+    @unittest.skipIf(True, "TODO")
     def test_dimensions_to_dict(self):
         pass
     
-    @unittest.skipIf(True, "TODO")    
+    @unittest.skipIf(True, "TODO")
+    def test_invalid_series_key(self):
+        #https://github.com/dr-leo/pandaSDMX/pull/27
+        #bug-data-namedtuple.xml
+        pass
+    
+    @unittest.skipIf(True, "TODO")
     def test_select_short_dimension(self):
         pass
     

@@ -13,6 +13,7 @@ import requests
 import pandas
 
 from pandasdmx.reader.sdmxml import Reader
+from pandasdmx.utils import namedtuple_factory
 from pandasdmx.api import Request
 
 from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
@@ -36,6 +37,15 @@ class ReaderINSEE(Reader):
         'message': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message',
         'generic': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic',
     })
+    
+    def series_key(self, sdmxobj):
+        #tmp patch for "-" in series dimensions name
+        series_key_id = self._paths['series_key_id_path'](sdmxobj._elem)
+        series_key_id = ",".join(series_key_id).replace("-", "_").split(",")
+        series_key_values = self._paths[
+            'series_key_values_path'](sdmxobj._elem)
+        SeriesKeyTuple = namedtuple_factory('SeriesKey', series_key_id)
+        return SeriesKeyTuple._make(series_key_values)
     
 class RequestINSEE(Request):
     
@@ -125,7 +135,8 @@ class INSEE(Fetcher):
             try:
                 self.upsert_dataset(dataset_code)
             except Exception as err:
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err))) 
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+                raise 
 
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
@@ -441,6 +452,11 @@ class INSEE_Data(object):
             bson['frequency'] = series.attrib.FREQ
         else:
             raise Exception("Not FREQ field in series.key or series.attrib")
+        
+        #TODO: T equal Trimestrial for INSEE
+        if bson['frequency'] == "T":
+            logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, bson['key']))
+            bson['frequency'] = "Q"
         
         attributes = {}
         for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=True):
