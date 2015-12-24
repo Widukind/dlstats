@@ -4,15 +4,15 @@ from collections import OrderedDict
 import logging
 import time
 from datetime import datetime
-import io
 import tempfile
 import os
+from io import StringIO
 
 #TODO: simplejson ou json
 import json
 
 import pandas
-import sdmx
+import requests
 
 from dlstats.fetchers._commons import Fetcher, Categories, Providers, Datasets
 
@@ -28,6 +28,94 @@ DATASETS = {
     #    'doc_href': 'http://www.oecd.org/eco/outlook/',
     #},
 }
+
+class SDMXJson(object):
+    
+    def __init__(self, sdmx_url=None, agencyID=None, 
+                 timeout=20, requests_client=None):
+        
+        self.sdmx_url = sdmx_url
+        self.agencyID = agencyID
+        self.timeout = timeout
+        self.requests_client = requests_client
+        
+        self._codes = {}
+
+    def query_rest(self,url):
+        """Retrieve SDMX-json messages.
+
+        :param url: The URL of the message.
+        :type url: str
+        :return: A dictionnary of the SDMX message
+        """
+        # Fetch data from the provider    
+        logger.info('Requesting %s', url)
+        client = self.requests_client or requests
+        request = client.get(url, timeout=self.timeout)
+        return json.load(StringIO(request.text), object_pairs_hook=OrderedDict)
+        
+    def metadata(self, flowRef):
+        
+        resource = 'metadata'
+        url = '/'.join([self.sdmx_url, resource, flowRef])
+        message_dict = self.query_rest(url)
+        #message_dict['structure']['dimensions']['observation']
+        self._codes['header'] = message_dict.pop('header', None)
+        for code in message_dict['structure']['dimensions']['observation']:
+            self._codes[code['name']] = [(x['id'],x['name']) for x in code['values']]
+        return self._codes
+
+    def raw_data(self, flowRef, key=None, startperiod=None, endperiod=None):
+
+        code_lists = []         
+        raw_dates = {}
+        raw_values = {}
+        raw_attributes = {}
+        raw_codes = {}
+
+        if key is None:
+            key = 'all'
+        resource = 'data'
+        if startperiod and endperiod:
+            query = '/'.join([resource, flowRef, key
+                    + 'all?startperiod=' + startperiod
+                    + '&endPeriod=' + endperiod
+                    + '&dimensionAtObservation=TIME'])
+        else:
+            query = '/'.join([resource, flowRef, key,'all'])
+        url = '/'.join([self.sdmx_url,query])
+        message_dict = self.query_rest(url)
+        
+        dates = message_dict['structure']['dimensions']['observation'][0]
+        dates = [node['name'] for node in dates['values']]
+        series = message_dict['dataSets'][0]['series']
+        dimensions = message_dict['structure']['dimensions']
+        
+        for dimension in dimensions['series']:
+            dimension['keyPosition']
+            dimension['id']
+            dimension['name']
+            dimension['values']
+
+        for key in series:
+            dims = key.split(':')
+            code = ''
+            for dimension, position in zip(dimensions['series'],dims):
+                code = code + '.' + dimension['values'][int(position)]['id']
+            code_lists.append((key, code))
+
+        for key,code in code_lists:
+            observations = message_dict['dataSets'][0]['series'][key]['observations']
+            series_dates = [int(point) for point in list(observations.keys())]
+            raw_dates[code] = [dates[position] for position in series_dates]
+            raw_values[code] = [observations[key][0] for key in list(observations.keys())]
+            raw_attributes[code] = [observations[key][1] for key in list(observations.keys())]
+            raw_codes[code] = {}
+            for code_,dim in zip(key.split(':'),message_dict['structure']['dimensions']['series']):
+                raw_codes[code][dim['name']] = dim['values'][int(code_)]['id']
+
+        return (raw_values, raw_dates, raw_attributes, raw_codes)
+    
 
 class OECD(Fetcher):
     
@@ -118,10 +206,11 @@ class OECD_Data():
         
         self.fp = None
                 
-        self.sdmx_client = sdmx.Repository('http://stats.oecd.org/sdmx-json','json', 
-                                           '2_1', 
-                                           'OECD', 
-                                           timeout=60 * 5)
+        self.sdmx_client = SDMXJson(sdmx_url='http://stats.oecd.org/sdmx-json', 
+                                    agencyID='OECD', 
+                                    timeout=60 * 5, 
+                                    requests_client=None)
+                                    
         
         self.codes_loaded = False
         self.datas_loaded = False
@@ -134,7 +223,7 @@ class OECD_Data():
         if self.codes_loaded:
             return
         
-        codes = self.sdmx_client.codes(self.dataset.dataset_code)
+        codes = self.sdmx_client.metadata(self.dataset.dataset_code)
         
         header = codes.pop('header')
         
