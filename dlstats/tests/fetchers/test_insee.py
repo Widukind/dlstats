@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 
-import datetime
+from datetime import datetime
 import os
 from pprint import pprint
 
+import pandas
+
 from dlstats.fetchers._commons import Datasets
-from dlstats.fetchers.insee import INSEE
+from dlstats.fetchers.insee import INSEE, INSEE_Data, ContinueRequest
 from dlstats import constants
 
 import unittest
+from unittest import mock
 import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
@@ -29,6 +32,53 @@ DATASETS = {
     }
 }
 
+class MockINSEE_Data(INSEE_Data):
+    
+    def __init__(self, **kwargs):
+        self._series = []
+        super().__init__(**kwargs)
+
+    def __next__(self):          
+        try:      
+            _series = next(self.rows)
+            if not _series:
+                raise StopIteration()
+        except ContinueRequest:
+            _series = next(self.rows)
+            
+        bson = self.build_series(_series)
+        self._series.append(bson)
+        return bson
+    
+def mock_upsert_dataset(self, dataset_code):
+
+    self.load_structure(force=False)
+    
+    if not dataset_code in self._dataflows:
+        raise Exception("This dataset is unknown" + dataset_code)
+    
+    dataflow = self._dataflows[dataset_code]
+    
+    dataset = Datasets(provider_name=self.provider_name, 
+                       dataset_code=dataset_code,
+                       name=dataflow.name.en,
+                       doc_href=None,
+                       last_update=datetime(2015, 12, 24),
+                       fetcher=self)
+    
+    dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
+                                                        "datasetCode": dataset_code})
+    
+    self.insee_data = MockINSEE_Data(dataset=dataset,
+                            dataset_doc=dataset_doc, 
+                            dataflow=dataflow, 
+                            sdmx=self.sdmx)
+    dataset.series.data_iterator = self.insee_data
+    result = dataset.update_database()
+
+    return result
+
+
 class InseeTestCase(BaseDBTestCase):
     
     # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase
@@ -36,19 +86,14 @@ class InseeTestCase(BaseDBTestCase):
     def setUp(self):
         BaseDBTestCase.setUp(self)
         self.insee = INSEE(db=self.db)
-   
-    @httpretty.activate     
-    def test_load_dataset(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_load_dataset
+    def _load_dataset(self, dataset_code):
 
         def _body(filepath):
             '''body for large file'''
             with open(filepath, 'rb') as fp:
                 for line in fp:
                     yield line        
-        
-        dataset_code = 'IPI-2010-A21'
         
         url_dataflow = "http://www.bdm.insee.fr/series/sdmx/dataflow/INSEE"
         httpretty.register_uri(httpretty.GET, 
@@ -76,6 +121,20 @@ class InseeTestCase(BaseDBTestCase):
                                streaming=True,
                                status=200,
                                content_type="application/xml")
+        
+   
+    @httpretty.activate     
+    def test_load_dataset(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_load_dataset
+        
+        dataset_code = 'IPI-2010-A21'
+        
+        self._load_dataset(dataset_code)
+        
+        self.assertEqual(len(self.insee._dataflows.keys()), 663)
+        
+        self.assertTrue(dataset_code in self.insee._dataflows)
 
         result = self.insee.upsert_dataset(dataset_code)
         
@@ -92,7 +151,24 @@ class InseeTestCase(BaseDBTestCase):
         count = series_list.count()
         
         self.assertEqual(count, DATASETS[dataset_code]['series_count'])
+        
+        query['key'] = "001654489" 
+        series_001654489 = self.db[constants.COL_SERIES].find_one(query)
+        self.assertIsNotNone(series_001654489)
+        
+        #2015-10
+        self.assertEqual(series_001654489["values"][0], "105.61")
+        
+        #1990-01
+        self.assertEqual(series_001654489["values"][-1], "139.22")
+        
+        frequency = series_001654489["frequency"]
+        startDate = str(pandas.Period(ordinal=series_001654489["startDate"], freq=frequency))
+        self.assertEqual(startDate, '1990-01')
 
+        endDate = str(pandas.Period(ordinal=series_001654489["endDate"], freq=frequency))
+        self.assertEqual(endDate, '2015-10')
+        
     @unittest.skipIf(True, "TODO")
     def test_dimensions_to_dict(self):
         pass
@@ -119,3 +195,35 @@ class InseeTestCase(BaseDBTestCase):
     def test_build_series(self):
         pass
     
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.insee.INSEE.upsert_dataset', mock_upsert_dataset)    
+    def test_is_updated(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_is_updated
+
+        dataset_code = 'IPI-2010-A21'
+        
+        self._load_dataset(dataset_code)
+        self.insee.upsert_dataset(dataset_code)
+        _series = self.insee.insee_data._series
+        self.assertEqual(len(_series), DATASETS[dataset_code]['series_count'])
+        
+        self._load_dataset(dataset_code)
+        self.insee.upsert_dataset(dataset_code)
+        _series = self.insee.insee_data._series
+        self.assertEqual(len(_series), 0)
+
+        '''series avec un LAST_UPDATE > au dataset'''
+        query = {
+            "provider": self.insee.provider_name,
+            "datasetCode": dataset_code
+        }
+        new_datetime = datetime(2015, 12, 9)
+        self.db[constants.COL_DATASETS].find_one_and_update(query, {"$set": {'lastUpdate': new_datetime}})
+        self._load_dataset(dataset_code)
+        self.insee.upsert_dataset(dataset_code)
+        _series = self.insee.insee_data._series
+        self.assertEqual(len(_series), 11)
+        
+        
+        
