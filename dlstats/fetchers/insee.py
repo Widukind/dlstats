@@ -508,7 +508,12 @@ class INSEE_Data(object):
         bson['startDate'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
         bson['endDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
         
-        bson['values'] = [str(o.value) for o in series.obs(with_values=True, with_attributes=False, reverse_obs=False)]
+        bson['values'] = []
+        for o in series.obs(with_values=True, with_attributes=False, reverse_obs=False):
+            if str(o.value).lower() == "nan":
+                bson['values'].append("0")
+            else:
+                bson['values'].append(str(o.value))
         
         return bson
 
