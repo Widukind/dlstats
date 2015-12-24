@@ -511,7 +511,7 @@ class INSEE_Data(object):
         bson['values'] = []
         for o in series.obs(with_values=True, with_attributes=False, reverse_obs=False):
             if str(o.value).lower() == "nan":
-                bson['values'].append("0")
+                bson['values'].append("NAN")
             else:
                 bson['values'].append(str(o.value))
         
