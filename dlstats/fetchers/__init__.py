@@ -68,3 +68,10 @@ try:
     __all__.append('Esri')
 except ImportError:
     pass
+
+try:
+    from dlstats.fetchers.insee import INSEE
+    FETCHERS['INSEE'] = INSEE
+    __all__.append('INSEE')
+except ImportError:
+    pass

@@ -259,7 +259,7 @@ class Datasets(DlstatsCollection):
                  name=None,
                  doc_href=None,
                  last_update=None,
-                 bulk_size=1000,
+                 bulk_size=100,
                  fetcher=None, 
                  is_load_previous_version=True):
         """
@@ -331,7 +331,7 @@ class Series(DlstatsCollection):
                  provider_name=None, 
                  dataset_code=None, 
                  last_update=None, 
-                 bulk_size=1000, 
+                 bulk_size=100,
                  fetcher=None):
         """        
         :param str provider_name: Provider name
