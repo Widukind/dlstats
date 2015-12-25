@@ -136,7 +136,6 @@ class INSEE(Fetcher):
                 self.upsert_dataset(dataset_code)
             except Exception as err:
                 logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-                raise 
 
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
