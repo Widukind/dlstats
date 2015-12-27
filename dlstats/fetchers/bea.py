@@ -5,7 +5,7 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, CodeDict
 from dlstats import constants
 import urllib
 import xlrd
@@ -91,11 +91,11 @@ class BEA(Fetcher):
 
         
     def upsert_categories(self):
-        document = Categories(provider = self.provider_name, 
-                            name = 'BEA' , 
-                            categoryCode ='BEA',
-                            children = [None],
-                            fetcher=self )
+        data_tree = {'provider': self.provider_name, 
+                     'name': 'BEA' , 
+                     'categoryCode': 'bea_root',
+                     'children': []}
+
         return document.update_database() 
                 
 class BeaData():

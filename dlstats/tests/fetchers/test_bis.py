@@ -372,9 +372,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         # upsert_categories
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name}) 
+        self.assertIsNotNone(provider['data_tree'])
         
         dataset = Datasets(provider_name=self.fetcher.provider_name, 
                            dataset_code=self.dataset_code, 
@@ -568,9 +567,8 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider['data_tree'])
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
@@ -690,9 +688,8 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider['data_tree'])
         
         self.fetcher.upsert_dataset(self.dataset_code)
         

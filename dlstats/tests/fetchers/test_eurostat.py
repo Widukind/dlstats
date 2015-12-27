@@ -948,6 +948,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
 
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
     def _common_tests(self):
 
         self._collections_is_empty()
@@ -957,14 +958,15 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         # provider.update_database
         self.fetcher.provider.update_database()
+
+        # upsert_categories
+        self.fetcher.upsert_categories()
+
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
-        
-        # upsert_categories
-#        self.fetcher.upsert_categories()
-#        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-#                                                               "categoryCode": self.dataset_code})
-#        self.assertIsNotNone(category)
+
+        self.fetcher.get_selected_data_tree()
+        self.assertEqual(len(self.fetcher.selected_data_tree),6)
         
         dataset = Datasets(provider_name=self.fetcher.provider_name, 
                            dataset_code=self.dataset_code, 
@@ -1031,7 +1033,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["partner"], 'EA18')
         self.assertEqual(d["geo"], 'MT')
         self.assertEqual(series["values"], [""])
-        print(series['attributes'])
         self.assertEqual(series['attributes']['obs_status'],["c"])
         
     def test_bop_c6_q(self):
@@ -1057,7 +1058,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["partner"], 'AT')
         self.assertEqual(d["geo"], 'MT')
         self.assertEqual(series["values"], [""])
-        print(series['attributes'])
         self.assertEqual(series['attributes']['obs_status'],["c"])
         
         series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
@@ -1109,9 +1109,13 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider)
+
+        self.fetcher.get_selected_data_tree()
+        self.assertEqual(len(self.fetcher.selected_data_tree),6)
+
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
@@ -1151,24 +1155,21 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
     @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def test_selected_datasets(self):
+    def test_selected_data_tree(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_datasets()
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_data_tre
+
+        self._collections_is_empty()
+
+        self.fetcher.provider.update_database()
 
         self.fetcher.upsert_categories()
 
         self.fetcher.selected_codes = ['nama_10_gdp']
 
-        datasets = self.fetcher.get_selected_datasets()
+        self.fetcher.get_selected_data_tree()
 
-        for d in datasets:
-            # Write czv/zip file in local directory
-            filepath = get_filepath(d)
-            self.assertTrue(os.path.exists(filepath))
-            # Replace dataset url by local filepath
-            DATASETS[d]['url'] = "file:%s" % pathname2url(filepath)
-
-        self.fetcher.upsert_selected_datasets()
+        self.assertEqual(len(self.fetcher.selected_data_tree),1)
         
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
@@ -1177,13 +1178,17 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_upsert_all_datasets
 
+        self._collections_is_empty()
+
+        self.fetcher.provider.update_database()
+
         self.fetcher.upsert_categories()
         
         self.fetcher.selected_codes = ['nama_10_gdp','cat1']
 
-        datasets = self.fetcher.get_selected_datasets()
+        self.fetcher.get_selected_data_tree()
 
-        for d in datasets:
+        for d in self.fetcher.selected_data_tree:
             # Write czv/zip file in local directory
             filepath = get_filepath(d)
             self.assertTrue(os.path.exists(filepath))
@@ -1192,9 +1197,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_all_datasets()
 
-        categories = self.db[constants.COL_CATEGORIES].find({"provider": self.fetcher.provider_name, 
-                                                             "exposed": True})
-        self.assertEqual(categories.count(),3)
+        self.assertEqual(len(self.fetcher.selected_data_tree),3)
 
 
         # faking update

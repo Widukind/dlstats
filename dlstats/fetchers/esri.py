@@ -5,7 +5,7 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers, CodeDict
+from dlstats.fetchers._commons import Fetcher, Series, Datasets, Providers, CodeDict
 import urllib
 import xlrd
 import csv
@@ -60,12 +60,11 @@ class Esri(Fetcher):
                 'Deflators (fiscal year)',
                 'Deflators (calendar year)']
     def upsert_categories(self):
-        document = Categories(provider = self.provider_name, 
-                            name = 'esri', 
-                            categoryCode ='esri',
-                            children = [None],
-                            fetcher=self )
-        return document.update_database()
+        data_tree = {'provider': self.provider_name, 
+                     'name': 'esri', 
+                     'categoryCode': 'esri',
+                     'children': None}
+        self.fetcher.provider.add_data_tree(data_tree)
         
     def esri_issue(self):
         for self.url in self.url_all :

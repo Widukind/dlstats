@@ -15,7 +15,7 @@ from lxml import etree
 
 from pandasdmx.api import Request
 
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 from dlstats import constants
 from collections import OrderedDict
 

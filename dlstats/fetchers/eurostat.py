@@ -25,7 +25,7 @@ import time
 import pymongo
 
 from dlstats import constants
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 __all__ = ['Eurostat']
 
@@ -160,15 +160,14 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q'
         ]
+        self.selected_data_tree = {}
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
-    def upsert_categories(self):
-        """Update the categories in MongoDB
-
-        If a category doesn't exit, it is created
+    def build_data_tree(self):
+        """Builds the data tree 
         """
-        def walktree(child):
+        def walktree(child,ns):
             """Recursive function for parsing table_of_contents.xml
 
             :param branch: The current branch explored. The function
@@ -177,90 +176,92 @@ class Eurostat(Fetcher):
             :param parent_id: The id of the previous branch
             :type parent_id: MongoObject(Id)
             """
-            children_ids = []
+            children = []
             for branch in child.iterchildren():
-                title = None
-                docHref = None
-                lastUpdate = None
-                lastModified = None
-                code = None
-                children = []
+                _tree = {}
+                last_update = None
+                last_modified = None
+                _tree['provider'] = self.provider_name
+                _tree['docHref'] = None
+                _tree['children'] = []
                 for element in branch.iterchildren():
-                    if element.tag[-5:] == 'title':
+                    if element.tag == '{' + ns['nt'] + '}' + 'title':
                         if element.attrib.values()[0] == 'en':
-                            title = element.text
-                    elif element.tag[-5:] == 'metadata':
+                            _tree['name'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'metadata':
                         if element.attrib.values()[0] == 'html':
-                            docHref = element.text
-                    elif element.tag[-4:] == 'code':
-                        code = element.text
-                    elif element.tag[-10:] == 'lastUpdate':
+                            _tree['docHref'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'code':
+                        _tree['categoryCode'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
                         if not (element.text is None):
-                            lastUpdate = datetime.datetime.strptime(
+                            last_update = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
-                    elif element.tag[-12:] == 'lastModified':
+                    elif element.tag == '{' + ns['nt'] + '}' + 'lastModified':
                         if not (element.text is None):
-                            lastModified = datetime.datetime.strptime(
+                            last_modified = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
-                    elif element.tag[-8:] == 'children':
-                        children = walktree(element)
-                if not ((lastUpdate is None) | (lastModified is None)):
-                    lastUpdate = max(lastUpdate,lastModified)
-                if lastUpdate is not None and not isinstance(lastUpdate,
+                    elif element.tag == '{' + ns['nt'] + '}' + 'children':
+                        _tree['children'] = walktree(element,ns)
+                if not ((last_update is None) | (last_modified is None)):
+                    last_update = max(last_update,last_modified)
+                if last_update is not None and not isinstance(last_update,
                                                              datetime.datetime):
-                    lastUpdate = datetime.datetime(lastUpdate)
-                if docHref is not None:
-                    document = Categories(provider=self.provider_name,name=title,
-                                          docHref=doc_href,children=children,
-                                          categoryCode=code,lastUpdate=lastUpdate,
-                                          fetcher=self)
+                    _tree['lastUpdate'] = datetime.datetime(last_update)
                 else:
-                    document = Categories(provider=self.provider_name,name=title,
-                                          children=children,categoryCode=code,
-                                          lastUpdate=lastUpdate,fetcher=self)
-                id = document.update_database()
-                children_ids += [bson.objectid.ObjectId(id)]
-            return children_ids
+                    _tree['lastUpdate'] = last_update
+                _tree['exposed'] = False
+                children.append(_tree)
+            return children
 
         table_of_contents = lxml.etree.fromstring(self.get_table_of_contents())
-        branch = table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch',namespaces=table_of_contents.nsmap)
-        _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Categories(provider=self.provider_name,name='root',children=_id,
-                              lastUpdate=None,categoryCode='eurostat_root',fetcher=self)
-        document.update_database()
-
+        ns = table_of_contents.nsmap
+        branch = table_of_contents.find('nt:branch',namespaces=ns)
+        children = walktree(branch.find('nt:children',namespaces=ns),ns)
+        data_tree = {'provider': self.provider_name,
+                     'name': 'Eurostat',
+                     'docHref': None,
+                     'children': children,
+                     'categoryCode': 'eurostat_root',
+                     'exposed': False,
+                     'lastUpdate': None}
+        return data_tree
+    
     def get_table_of_contents(self):
         webpage = requests.get(self.url_table_of_contents,
                                timeout=7)
         return webpage.content
+
+    def upsert_categories(self):
+        data_tree = self.build_data_tree()
+
+        self.provider.add_data_tree(data_tree)
         
-    def get_selected_datasets(self):
+        
+    def get_selected_data_tree(self):
         """Collects the dataset codes that are in table of contents,
         below the ones indicated in "selected_codes" provided in configuration
         :returns: list of codes"""
-        def walktree1(id):
-            datasets1 = []
-            c = self.db[constants.COL_CATEGORIES].find_one({'_id': bson.objectid.ObjectId(id)})
-            if 'children' in c and c['children'] is not None and len(c['children']) > 0 :
-                for child in  c['children']:
-                    datasets1 += walktree1(child)
-                return datasets1
-            else:
-                return [c['categoryCode']]
-        datasets = []
-        for code in self.selected_codes:
-            cc = self.db[constants.COL_CATEGORIES].find_one({'provider': self.provider_name,
-                                              'categoryCode': code})
-            if len(cc['children']) == 0:
-                datasets += [code]
-            else:
-                for c in cc['children']:
-                    datasets += walktree1(c)
-        return datasets
 
+        def walktree1(node,selected):
+
+            if selected or (node['categoryCode'] in self.selected_codes):
+                selected = True
+                if len(node['children']) == 0:
+                    # this is a leaf
+                    node['exposed'] = True
+                    self.selected_data_tree.update({node['categoryCode']: node})
+
+            for child in node['children']:
+                walktree1(child,selected)
+
+        provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+        walktree1(provider['data_tree'],False)
+        
     def upsert_selected_datasets(self):
-        datasets = self.get_selected_datasets()
-        for d in datasets:
+        if self.selected_data_tree is None:
+            self.get_selected_data_tree()
+        for d in self.selected_data_tree:
             self.upsert_dataset(d)
 
     def datasets_list(self):
@@ -278,7 +279,9 @@ class Eurostat(Fetcher):
         :returns: None"""
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
+        if self.selected_data_tree is None:
+            self.get_selected_data_tree()
+        cat = self.selected_data_tree[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            last_update=cat['lastUpdate'],
@@ -296,29 +299,14 @@ class Eurostat(Fetcher):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_categories();
-        datasets = self.get_selected_datasets()
+        self.get_selected_data_tree()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'datasetCode': {'$in': datasets}},
+            {'provider': self.provider_name, 'datasetCode': {'$in': list(self.selected_data_tree.keys())}},
             {'datasetCode': 1, 'lastUpdate': 1})
         selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
-        selected_categories = self.db[constants.COL_CATEGORIES].find(
-            {'provider': self.provider_name, 'categoryCode': {'$in': datasets}},
-            {'categoryCode': 1, 'lastUpdate': 1})
-        selected_categories = {s['categoryCode'] : s for s in selected_categories}
-        bulk = self.db[constants.COL_CATEGORIES].initialize_ordered_bulk_op()
-        is_bulk = False
-        for d in datasets:
-            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < selected_categories[d]['lastUpdate']):
+        for d in self.selected_data_tree:
+            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_data_tree[d]['lastUpdate']):
                 self.upsert_dataset(d)
-                bulk.find({'_id': selected_categories[d]['_id']}).update({'$set': {'exposed': True}})
-                is_bulk = True
-        if is_bulk:
-            try:
-                result = bulk.execute()
-            except pymongo.errors.BulkWriteError as err:
-                logger.critical(str(err.details))
-                pprint.pprint(err.details)
-                raise
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 

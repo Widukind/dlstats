@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dlstats.fetchers._commons import (Fetcher, Categories,
-                                       Series, Datasets, Providers)
+from dlstats.fetchers._commons import (Fetcher, Series, Datasets, Providers)
 import urllib
 import xlrd
 import csv
