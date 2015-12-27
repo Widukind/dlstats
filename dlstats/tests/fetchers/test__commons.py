@@ -17,7 +17,6 @@ from dlstats.fetchers._commons import (Fetcher,
                                        CodeDict, 
                                        DlstatsCollection, 
                                        Providers,
-                                       Categories, 
                                        Datasets, 
                                        Series)
 from dlstats.utils import generate_tags, update_tags
@@ -201,37 +200,6 @@ class DlstatsCollectionTestCase(BaseTestCase):
         f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
-class CategoryTestCase(BaseTestCase):
-    
-    def test_constructor(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:CategoryTestCase.test_constructor
-        
-        with self.assertRaises(ValueError):
-            Categories()
-                    
-        f = Fetcher(provider_name="p1", is_indexes=False)
-
-        with self.assertRaises(MultipleInvalid):
-            Categories(fetcher=f)
-        
-        c = Categories(provider="p1", 
-                     name="cat1", 
-                     categoryCode="c1",
-                     docHref='http://www.example.com',
-                     fetcher=f)
-        
-        bson = c.bson
-        self.assertEqual(bson["categoryCode"], "c1")
-        self.assertEqual(bson["name"], "cat1")
-        self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertEqual(bson["children"], None)
-        self.assertIsNone(bson["lastUpdate"])
-        self.assertFalse(bson["exposed"])
-    
-        #print(c.schema(c.bson))
-    
 class ProviderTestCase(BaseTestCase):
 
     def test_constructor(self):
@@ -258,7 +226,6 @@ class ProviderTestCase(BaseTestCase):
         self.assertEqual(bson["region"], "Dreamland")
         self.assertEqual(bson["website"], "http://www.example.com")
         self.assertEqual(bson["slug"], "p1")
-
 
 class DatasetTestCase(BaseTestCase):
     
@@ -318,97 +285,6 @@ class SeriesTestCase(BaseTestCase):
                    fetcher=f)
         
         self.assertFalse(hasattr(s, "data_iterator"))
-            
-class DBCategoryTestCase(BaseDBTestCase):
-    
-    #TODO: test indexes keys and properties
-    def test_indexes(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_unique_constraint
-
-        indexes = self.db[constants.COL_CATEGORIES].index_information()
-        
-        self.assertEqual(len(indexes), 3)
-        
-        
-        """
-        >>> pp(c.widukind.providers.index_information())
-
-        {'_id_': {'key': [('_id', 1)], 'ns': 'widukind.providers', 'v': 1},
-         'name_idx': {'key': [('name', 1)],
-                      'ns': 'widukind.providers',
-                      'unique': True,
-                      'v': 1}}        
-        
-        >>> for i in list(c.widukind.datasets.index_information().items()): print(i)
-
-        ('lastUpdate_idx', {'key': [('lastUpdate', -1)], 'v': 1, 'ns': 'widukind.datasets'})
-        ('provider_datasetCode_idx', {'key': [('provider', 1), ('datasetCode', 1)], 'v': 1, 'ns': 'widukind.datasets', 'unique': True})
-        ('name_idx', {'key': [('name', 1)], 'v': 1, 'ns': 'widukind.datasets'})
-        ('_id_', {'key': [('_id', 1)], 'v': 1, 'ns': 'widukind.datasets'})                      
-        """
-    
-    def test_unique_constraint(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_unique_constraint
-    
-        self._collections_is_empty()
-    
-        f = Fetcher(provider_name="p1", db=self.db)
-        
-        c = Categories(provider="p1", 
-                     name="cat1", 
-                     categoryCode="c1",
-                     docHref='http://www.example.com',
-                     fetcher=f)
-        result = c.update_database()
-        self.assertIsNotNone(result)
-
-        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 1)
-        
-        with self.assertRaises(DuplicateKeyError):
-            existing_category = dict(provider="p1", categoryCode="c1")
-            self.db[constants.COL_CATEGORIES].insert(existing_category)
-
-        c = Categories(provider="p1", 
-                     name="cat2", 
-                     categoryCode="c2",
-                     fetcher=f)
-        result = c.update_database()
-        self.assertIsNotNone(result)
-
-        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 2)
-    
-    def test_update_database(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBCategoryTestCase.test_update_database
-    
-        self._collections_is_empty()
-        
-        f = Fetcher(provider_name="p1", db=self.db)
-        
-        c = Categories(provider="p1", 
-                     name="cat1", 
-                     categoryCode="c1",
-                     docHref='http://www.example.com',
-                     fetcher=f)
-        id = c.update_database()
-        self.assertIsNotNone(id)
-        self.assertIsInstance(id, ObjectId)
-        self.db[constants.COL_CATEGORIES].find_one({'_id': ObjectId(id)})
-
-        bson = self.db[constants.COL_CATEGORIES].find_one({"provider": "p1", "categoryCode": "c1"})
-        self.assertIsNotNone(bson)
-        
-        self.assertEqual(bson["categoryCode"], "c1")
-        self.assertEqual(bson["name"], "cat1")
-        self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertEqual(bson["children"], None)
-        self.assertIsNone(bson["lastUpdate"])
-        self.assertFalse(bson["exposed"])
-    
-        #print(c.schema(c.bson))
     
 class DBProviderTestCase(BaseDBTestCase):
 
@@ -472,6 +348,46 @@ class DBProviderTestCase(BaseDBTestCase):
         
         self.assertEqual(bson["name"], "p1")
         self.assertEqual(bson["website"], "http://www.example.com")
+
+    def test_add_data_tree(self):
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_constructor
+
+        f = Fetcher(provider_name="p1", is_indexes=False)
+
+        p = Providers(name="p1",
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
+        p.update_database()
+        
+        data_tree = {'provider': "p1",
+                     'name': "p1_root",
+                     'categoryCode': "c0",
+                     'docHref': 'http://www.example.com',
+                     'children': [
+                         {'provider': "p1",
+                          'name': "cat1", 
+                          'categoryCode': "c1",
+                          'lastUpdate': datetime(2010,1,5),
+                          'exposed': False,
+                          'children': None}]
+                     }
+
+        res = p.add_data_tree(data_tree)
+        
+        bson = res['data_tree']
+        self.assertEqual(bson["categoryCode"], "c0")
+        self.assertEqual(bson["name"], "p1_root")
+        self.assertEqual(bson["provider"], "p1")
+        self.assertEqual(bson["docHref"], "http://www.example.com")
+
+        bson1 = res['data_tree']['children'][0]
+        self.assertEqual(bson1["categoryCode"], "c1")
+        self.assertEqual(bson1["name"], "cat1")
+        self.assertEqual(bson1["provider"], "p1")
+        self.assertEqual(bson1["lastUpdate"],datetime(2010,1,5))
+        self.assertFalse(bson1["exposed"])
 
 class DBDatasetTestCase(BaseDBTestCase):
 
