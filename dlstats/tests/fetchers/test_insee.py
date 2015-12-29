@@ -14,13 +14,16 @@ import unittest
 from unittest import mock
 import httpretty
 
-from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+from dlstats.tests.base import RESOURCES_DIR, BaseDBTestCase
 
 """
 Load files with httpie tools:
     http http://www.bdm.insee.fr/series/sdmx/dataflow references==all Accept:application/xml Content-Type:application/xml > insee-dataflow.xml
     http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21 references==all Accept:application/xml Content-Type:application/xml > insee-IPI-2010-A21-datastructure.xml
-    http http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21 Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > insee-IPI-2010-A21-data.xml
+    http http://www.bdm.insee.fr/series/sdmx/data/CNA-2010-CONSO-SI-A17 Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > insee-IPI-2010-A21-data.xml
+    
+    http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17 references==all Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
+    
 """
 DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-dataflow.xml"))
 
@@ -29,7 +32,12 @@ DATASETS = {
         'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-data.xml")),
         'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-datastructure.xml")),
         'series_count': 20,
-    }
+    },
+    'CNA-2010-CONSO-SI-A17': {
+        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-bug-data-namedtuple.xml")),
+        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-bug-data-namedtuple-datastructure.xml")),
+        'series_count': 1,
+    },
 }
 
 class MockINSEE_Data(INSEE_Data):
@@ -66,13 +74,13 @@ def mock_upsert_dataset(self, dataset_code):
                        last_update=datetime(2015, 12, 24),
                        fetcher=self)
     
-    dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
-                                                        "datasetCode": dataset_code})
+    query = {"provider": self.provider_name, "datasetCode": dataset_code}
+    dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
     
     self.insee_data = MockINSEE_Data(dataset=dataset,
-                            dataset_doc=dataset_doc, 
-                            dataflow=dataflow, 
-                            sdmx=self.sdmx)
+                                     dataset_doc=dataset_doc, 
+                                     dataflow=dataflow, 
+                                     sdmx=self.sdmx)
     dataset.series.data_iterator = self.insee_data
     result = dataset.update_database()
 
@@ -156,11 +164,11 @@ class InseeTestCase(BaseDBTestCase):
         series_001654489 = self.db[constants.COL_SERIES].find_one(query)
         self.assertIsNotNone(series_001654489)
         
-        #2015-10
-        self.assertEqual(series_001654489["values"][0], "105.61")
-        
         #1990-01
-        self.assertEqual(series_001654489["values"][-1], "139.22")
+        self.assertEqual(series_001654489["values"][0], "139.22")
+
+        #2015-10
+        self.assertEqual(series_001654489["values"][-1], "105.61")
         
         frequency = series_001654489["frequency"]
         startDate = str(pandas.Period(ordinal=series_001654489["startDate"], freq=frequency))
@@ -173,11 +181,21 @@ class InseeTestCase(BaseDBTestCase):
     def test_dimensions_to_dict(self):
         pass
     
-    @unittest.skipIf(True, "TODO")
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.insee.INSEE.upsert_dataset', mock_upsert_dataset)    
     def test_invalid_series_key(self):
-        #https://github.com/dr-leo/pandaSDMX/pull/27
-        #bug-data-namedtuple.xml
-        pass
+
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_invalid_series_key
+        
+        dataset_code = 'CNA-2010-CONSO-SI-A17'
+        
+        self._load_dataset(dataset_code)
+        self.insee.upsert_dataset(dataset_code)
+        series_list = self.insee.insee_data._series
+        self.assertEqual(len(series_list), DATASETS[dataset_code]['series_count'])
+        
+        series = series_list[0]
+        self.assertTrue('SECT-INST' in series['dimensions'])
     
     @unittest.skipIf(True, "TODO")
     def test_select_short_dimension(self):
@@ -197,6 +215,7 @@ class InseeTestCase(BaseDBTestCase):
     
     @httpretty.activate     
     @mock.patch('dlstats.fetchers.insee.INSEE.upsert_dataset', mock_upsert_dataset)    
+    @unittest.skipIf(True, "TODO")
     def test_is_updated(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_is_updated
@@ -219,10 +238,16 @@ class InseeTestCase(BaseDBTestCase):
             "datasetCode": dataset_code
         }
         new_datetime = datetime(2015, 12, 9)
-        self.db[constants.COL_DATASETS].find_one_and_update(query, {"$set": {'lastUpdate': new_datetime}})
+        result = self.db[constants.COL_DATASETS].update_one(query, {"$set": {'lastUpdate': new_datetime}})
+        pprint(result.raw_result)
         self._load_dataset(dataset_code)
         self.insee.upsert_dataset(dataset_code)
         _series = self.insee.insee_data._series
+        #pprint(_series)
+        for s in _series:
+            print(s['key'])
+        d = self.db[constants.COL_DATASETS].find_one(query)
+        print("dataset : ", d['lastUpdate'])
         self.assertEqual(len(_series), 11)
         
         
