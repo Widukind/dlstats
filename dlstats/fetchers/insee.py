@@ -11,9 +11,8 @@ import logging
 
 import requests
 import pandas
+from lxml import etree
 
-from pandasdmx.reader.sdmxml import Reader
-from pandasdmx.utils import namedtuple_factory
 from pandasdmx.api import Request
 
 from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
@@ -29,37 +28,6 @@ logger = logging.getLogger(__name__)
 
 class ContinueRequest(Exception):
     pass
-
-class ReaderINSEE(Reader):
-
-    Reader._nsmap.update({
-        'common': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common',
-        'message': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message',
-        'generic': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic',
-    })
-    
-    def series_key(self, sdmxobj):
-        #tmp patch for "-" in series dimensions name
-        series_key_id = self._paths['series_key_id_path'](sdmxobj._elem)
-        series_key_id = ",".join(series_key_id).replace("-", "_").split(",")
-        series_key_values = self._paths[
-            'series_key_values_path'](sdmxobj._elem)
-        SeriesKeyTuple = namedtuple_factory('SeriesKey', series_key_id)
-        return SeriesKeyTuple._make(series_key_values)
-    
-class RequestINSEE(Request):
-    
-    HEADERS = {
-        'structure': None,
-        'datas': {"Accept": "application/vnd.sdmx.genericdata+xml;version=2.1"}
-    }
-    
-    Request._agencies['INSEE'] = {'name': 'INSEE', 
-                                  'url': 'http://www.bdm.insee.fr/series/sdmx'}
-
-    def _get_reader(self):
-        return ReaderINSEE(self)
-    
 
 def TODO_parse_agenda(self):
     """Parse agenda of new releases and schedule jobs"""
@@ -99,7 +67,7 @@ class INSEE(Fetcher):
                                  website='http://www.insee.fr',
                                  fetcher=self)
         
-        self.sdmx = sdmx or RequestINSEE(agency=self.provider_name)
+        self.sdmx = sdmx or Request(agency='INSEE')
         
         self._dataflows = None
         self._categoryschemes = None
@@ -110,6 +78,7 @@ class INSEE(Fetcher):
         if self._dataflows and not force:
             return
         
+        """
         #http://www.bdm.insee.fr/series/sdmx/categoryscheme
         categoryscheme_response = self.sdmx.get(resource_type='categoryscheme', params={"references": None})
         logger.debug(categoryscheme_response.url)
@@ -119,6 +88,7 @@ class INSEE(Fetcher):
         categorisation_response = self.sdmx.get(resource_type='categorisation')
         logger.debug(categorisation_response.url)
         self._categorisations = categorisation_response.msg.categorisations
+        """
     
         #http://www.bdm.insee.fr/series/sdmx/dataflow
         dataflows_response = self.sdmx.get(resource_type='dataflow')    
@@ -218,7 +188,7 @@ class INSEE(Fetcher):
         logger.info("upsert dataset[%s] - START" % (dataset_code))
         
         if not dataset_code in self._dataflows:
-            raise Exception("This dataset is unknown" + dataset_code)
+            raise Exception("This dataset is unknown: %s" % dataset_code)
         
         dataflow = self._dataflows[dataset_code]
         
@@ -231,7 +201,7 @@ class INSEE(Fetcher):
                            dataset_code=dataset_code,
                            name=dataflow.name.en,
                            doc_href=None,
-                           last_update=datetime.now(),
+                           last_update=datetime.now(), #TODO:
                            fetcher=self)
         
         dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
@@ -243,7 +213,7 @@ class INSEE(Fetcher):
                                 sdmx=self.sdmx)
         dataset.series.data_iterator = insee_data
         result = dataset.update_database()
-
+        
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
         
@@ -270,6 +240,7 @@ class INSEE_Data(object):
         self.last_update = None
         if self.dataset_doc:
             self.last_update = self.dataset_doc["lastUpdate"]
+        #    self.dataset.last_update = self.last_update
         
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
@@ -280,7 +251,8 @@ class INSEE_Data(object):
         self.attribute_list = self.dataset.attribute_list
         
         self.datastructure = self.sdmx.get(resource_type='datastructure', 
-                                           resource_id=self.dataset_code)
+                                           resource_id=self.dataset_code,
+                                           headers=None)
         
         #TODO: simplifier
         self.dsd = self.datastructure.msg.datastructures[self.dataset_code]    
@@ -299,7 +271,7 @@ class INSEE_Data(object):
         self.current_series = {}
         
         self.rows = self.get_series(self.dataset_code)
-        
+
     def dimensions_to_dict(self):
         _dimensions = {}
         
@@ -362,10 +334,14 @@ class INSEE_Data(object):
         if not self.last_update:
             return True
         
-        _is_updated = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d") > self.last_update
+        series_updated = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
+        _is_updated = series_updated > self.last_update
 
         if not _is_updated and logger.isEnabledFor(logging.INFO):
-            logger.info("bypass series updated datasetCode[%s] - idbank[%s]" % (self.dataset_code, series.attrib.IDBANK))
+            logger.info("bypass updated datasetCode[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
+                                                                                 self.last_update, 
+                                                                                 series.attrib.IDBANK,
+                                                                                 series_updated))
         
         return _is_updated
 
@@ -381,19 +357,20 @@ class INSEE_Data(object):
         Boucle sur les valeurs de le plus petite dimensions pour charger en plusieurs fois les series du dataset
         
         """
-
         def _request(key=''):
             return self.sdmx.get(resource_type='data', 
                                  resource_id=dataset_code,
-                                 key=key, 
-                                 headers=self.sdmx.HEADERS['datas'])
+                                 headers=None,
+                                 key=key)
             
         try:
             ''' First call - all series '''
             _data = _request()
             for s in _data.msg.data.series:
-                if self.is_valid_frequency(s) and self.is_updated(s):
-                    yield s                        
+                if self.is_valid_frequency(s):# and self.is_updated(s):
+                    yield s
+                else:
+                    yield            
         except requests.exceptions.HTTPError as err:
 
             if err.response.status_code == HTTP_ERROR_LONG_RESPONSE:
@@ -406,8 +383,10 @@ class INSEE_Data(object):
                     try:
                         _data = _request(key)
                         for s in _data.msg.data.series:
-                            if self.is_valid_frequency(s) and self.is_updated(s):
+                            if self.is_valid_frequency(s):# and self.is_updated(s):
                                 yield s
+                            else:
+                                yield
                     except requests.exceptions.HTTPError as err:
                         if err.response.status_code == HTTP_ERROR_NO_RESULT:
                             continue
@@ -424,9 +403,6 @@ class INSEE_Data(object):
             logger.error(str(err))
             raise
         
-    def __iter__(self):
-        return self
-
     def __next__(self):          
         try:      
             _series = next(self.rows)
@@ -438,27 +414,31 @@ class INSEE_Data(object):
         bson = self.build_series(_series)
         return bson
 
-    def build_series(self, series):
-        """
-        :param series: Instance of pandasdmx.model.Series
-        """
-        bson = {}
-        bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
-        bson['key'] = series.attrib.IDBANK
-        bson['name'] = series.attrib.TITLE #TODO: english
-        bson['lastUpdate'] = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
-        
-        if bson['lastUpdate'] > self.dataset.last_update:
-            self.dataset.last_update = bson['lastUpdate']
-        
+    def get_series_key(self, series):
+        return series.attrib.IDBANK
+
+    def get_series_name(self, series):
+        return series.attrib.TITLE #TODO: english
+
+    def get_series_frequency(self, series):
+        if 'FREQ' in series.key._fields:
+            return series.key.FREQ
+        elif 'FREQ' in series.attrib._fields:
+            return series.attrib.FREQ
+
+        raise Exception("Not FREQ field in series.key or series.attrib")
+    
+    def get_last_update(self, series):
+        return datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
+    
+    def debug_series(self, series, bson):
         if logger.isEnabledFor(logging.DEBUG):
             import json
             try:
                 _debug = {
                     "dataset_code": self.dataset_code,
                     "key": bson['key'],
-                    "last_update": str(self.dataset.last_update),
+                    "last_update": str(self.last_update),
                     "dimensions_keys": self.dim_keys,
                     "attrib": series.attrib._asdict().items(),
                     "series.key": series.key._asdict().items(),
@@ -466,27 +446,39 @@ class INSEE_Data(object):
                 logger.debug(json.dumps(_debug))
             except:
                 pass
-
-        if 'FREQ' in series.key._fields:
-            bson['frequency'] = series.key.FREQ
-        elif 'FREQ' in series.attrib._fields:
-            bson['frequency'] = series.attrib.FREQ
-        else:
-            raise Exception("Not FREQ field in series.key or series.attrib")
-        
+            
+    def fixe_frequency(self, bson):
         #TODO: T equal Trimestrial for INSEE
         if bson['frequency'] == "T":
             logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, bson['key']))
             bson['frequency'] = "Q"
-        
+            
+    def get_attributes(self, series):
         attributes = {}
         for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=False):
             for key, value in obs.attrib._asdict().items():
                 if not key in attributes:
                     attributes[key] = []
                 attributes[key].append(value)
+        return attributes
+    
+    def build_series(self, series):
+        """
+        :param series: Instance of pandasdmx.model.Series
+        """
+        bson = {}
+        bson['provider'] = self.provider_name
+        bson['datasetCode'] = self.dataset_code
+        bson['key'] = self.get_series_key(series)
+        bson['name'] = self.get_series_name(series)
+        bson['lastUpdate'] = self.get_last_update(series)
         
-        bson['attributes'] = attributes
+        self.debug_series(series, bson)
+        
+        bson['frequency'] = self.get_series_frequency(series)
+        self.fixe_frequency(bson)
+        
+        bson['attributes'] = self.get_attributes(series)
             
         dimensions = dict(series.key._asdict())
         
@@ -508,7 +500,7 @@ class INSEE_Data(object):
         bson['endDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
         
         bson['values'] = []
-        for o in series.obs(with_values=True, with_attributes=False, reverse_obs=False):
+        for o in series.obs(with_values=True, with_attributes=False, reverse_obs=True):
             if str(o.value).lower() == "nan":
                 bson['values'].append("NAN")
             else:
@@ -516,28 +508,3 @@ class INSEE_Data(object):
         
         return bson
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, filename="insee.log", 
-                        format='%(asctime)s %(name)s: [%(levelname)s] - %(message)s')
-
-    import tempfile
-    tmpdir = tempfile.mkdtemp(prefix="sdmx-insee")
-    
-    #tofile="C:/temp/cepremap/fetchers-sources/INSEE/xml/datastructure-%s.xml" % self.dataset_code
-
-    cache_options = dict(backend='sqlite', 
-                         expire_after=None,
-                         location="C:/temp/cepremap/fetchers-sources/INSEE/xml/cache")
-    
-    sdmx = RequestINSEE(agency='INSEE', cache=cache_options)
-    
-    insee = INSEE(sdmx=sdmx)
-    
-    insee.db[constants.COL_DATASETS].remove({"provider": "INSEE"})
-    insee.db[constants.COL_SERIES].remove({"provider": "INSEE"})
-    
-    #insee.upsert_all_datasets()
-    
-    #insee.upsert_categories()
-    insee.upsert_dataset('IPC-1998-COICOP')
-    
