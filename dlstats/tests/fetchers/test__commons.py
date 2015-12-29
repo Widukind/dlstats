@@ -257,6 +257,7 @@ class ProviderTestCase(BaseTestCase):
         self.assertEqual(bson["longName"], "Provider One")
         self.assertEqual(bson["region"], "Dreamland")
         self.assertEqual(bson["website"], "http://www.example.com")
+        self.assertEqual(bson["slug"], "p1")
 
 
 class DatasetTestCase(BaseTestCase):
@@ -292,6 +293,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertTrue(isinstance(bson["dimensionList"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
         self.assertIsNone(bson["lastUpdate"])
+        self.assertEqual(bson["slug"], "p1-d1")
 
         #TODO: last_update        
         d.last_update = datetime.now()

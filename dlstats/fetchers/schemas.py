@@ -35,6 +35,7 @@ codedict_schema = Schema({Extra: dict})
 provider_schema = Schema({
     'name': All(str, Length(min=1)),
     'longName': All(str, Length(min=1)),
+    'slug': All(str, Length(min=1)),
     'region': All(str, Length(min=1)),
     'website': All(str, Length(min=9))
     },required=True)
@@ -60,6 +61,7 @@ dataset_schema = Schema({
     'attributeList': Any(None, {str: [(str,str)]}),
     Optional('notes'): str,
     Optional('tags'): [Any(str)],
+    'slug': All(str, Length(min=1)),
     },required=True)
 
 series_schema = Schema({
@@ -77,5 +79,6 @@ series_schema = Schema({
     'frequency': All(str, Length(min=1)),
     Optional('notes'): Any(None, str),
     Optional('tags'): [Any(str)],
+    'slug': All(str, Length(min=1)),
     },required=True)
 

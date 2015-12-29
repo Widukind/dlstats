@@ -9,3 +9,4 @@ beautifulsoup4>=4.4.0
 lxml>=3.4.0
 https://github.com/Widukind/pysdmx/tarball/master
 https://github.com/srault95/pandaSDMX/tarball/modify_for_new_provider
+python-slugify

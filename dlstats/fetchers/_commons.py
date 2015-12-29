@@ -9,6 +9,8 @@ import pprint
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
+from slugify import slugify
+
 from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import utils
@@ -158,20 +160,21 @@ class Providers(DlstatsCollection):
         self.region = region
         self.website = website
 
-        self.validate = schemas.provider_schema({
-            'name': self.name,
-            'longName': self.long_name,
-            'region': self.region,
-            'website': self.website
-         })
+        self.validate = schemas.provider_schema(self.bson)
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+
+    def slug(self):
+        if not self.name:
+            return 
+        return slugify(self.name, word_boundary=False, save_order=True)
 
     @property
     def bson(self):
         return {'name': self.name,
                 'longName': self.long_name,
+                'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}
 
@@ -296,11 +299,17 @@ class Datasets(DlstatsCollection):
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code)])
+        
+    def slug(self):
+        txt = "-".join([self.provider_name, self.dataset_code])
+        return slugify(txt, word_boundary=False, save_order=True)
+        
     @property
     def bson(self):
         return {'provider': self.provider_name,
                 'name': self.name,
                 'datasetCode': self.dataset_code,
+                'slug': self.slug(),
                 'dimensionList': self.dimension_list.get_list(),
                 'attributeList': self.attribute_list.get_list(),
                 'docHref': self.doc_href,
@@ -370,6 +379,10 @@ class Series(DlstatsCollection):
         if count > 0:
             self.update_series_list()
 
+    def slug(self, key):
+        txt = "-".join([self.provider_name, self.dataset_code, key])
+        return slugify(txt, word_boundary=False, save_order=True)
+        
     def update_series_list(self):
 
         #TODO: gestion erreur bulk (BulkWriteError)
@@ -388,7 +401,7 @@ class Series(DlstatsCollection):
         for data in self.series_list:
             key = data['key']
             if not key in old_series:
-                bson = self.update_series(data,is_bulk=True)                                
+                bson = self.update_series(data,is_bulk=True)
                 bulk.insert(bson)
             else:
                 old_bson = old_series[key]
@@ -410,6 +423,9 @@ class Series(DlstatsCollection):
     def update_series(self, bson, old_bson=None, is_bulk=False):
         # gets either last_update passed to Datasets or the one provided
         # in the bson
+        if not 'slug' in bson:
+            bson['slug'] = self.slug(bson['key'])                                
+        
         last_update = self.last_update
         if 'lastUpdate' in bson:
             last_update = bson.pop('lastUpdate')
