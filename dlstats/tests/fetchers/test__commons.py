@@ -558,8 +558,6 @@ class DBDatasetTestCase(BaseDBTestCase):
                                                      "datasetCode": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
         
-        self.assertEqual(bson['tags'], ['afg', 'billions', 'd1', 'name', 'p1'])
-        
         
 class DBSeriesTestCase(BaseDBTestCase):
     
