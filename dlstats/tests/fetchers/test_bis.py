@@ -658,8 +658,16 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
 
         self._common_tests()
 
-        #TODO: meta_datas tests  
+    def test_agenda(self):
 
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_agenda
+
+        self.fetcher.schedule_agenda()
+
+
+
+        #TODO: meta_datas tests  
+        
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
 class FullBISDatasetsDBTestCase(BaseDBTestCase):

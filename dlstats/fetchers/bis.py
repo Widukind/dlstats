@@ -12,6 +12,8 @@ import logging
 
 import pandas
 import requests
+import re
+from bs4 import BeautifulSoup
 
 from dlstats import constants
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
@@ -97,6 +99,8 @@ PROVIDER_NAME = "BIS"
 DATASETS = {
     'LBS-DISS': { 
         'name': 'Locational Banking Statistics - disseminated data',
+        'agenda1': 'Banking statistics'
+        'agenda2': 'Locational'
         'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
         'url': 'http://www.bis.org/statistics/full_bis_lbs_diss_csv.zip',
         'filename': 'full_bis_lbs_diss_csv.zip',
@@ -108,6 +112,8 @@ DATASETS = {
     },
     'CBS': { 
         'name': 'Consolidated banking statistics',
+        'agenda1': 'Banking statistics'
+        'agenda2': 'Consolidated'
         'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
         'url': 'https://www.bis.org/statistics/full_bis_cbs_csv.zip',
         'filename': 'full_bis_cbs_csv.zip',
@@ -345,6 +351,24 @@ class BIS(Fetcher):
 
         self.provider.add_data_tree(data_tree)    
 
+    def schedule_agenda(self):
+        fh = open('/home/michel/projects/Widukind/michel/dlstats/dlstats/tests/resources/bis/agenda')
+        agenda = BeautifulSoup(fh,"lxml")
+        table = agenda.find('table')
+        rows = table.find_all('tr')
+        cells = rows[1].find_all('td')
+        months = []
+        for c in cells:
+            months.append(datetime.datetime.strptime(c.find('strong').text,'%B %Y'))
+        for r in rows[2:]:
+            cells = r.find_all('td')
+            dataset =  [k for k,v in DATASETS.items() if re.match(cells[1].text,v['name'])]
+            for i,c in enumerate(cells[2:]):
+                m = re.match('\d\d|\d',c.text)
+                if m:
+                    print(datetime.date(months[i].year,months[i].month,int(m.group(0))),dataset)
+        
+        
 class BIS_Data():
     
     def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):
