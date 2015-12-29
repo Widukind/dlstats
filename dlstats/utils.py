@@ -33,6 +33,10 @@ def create_or_update_indexes(db, force_mode=False):
         ("name", ASCENDING)], 
         name="name_idx", unique=True)
 
+    db[constants.COL_PROVIDERS].create_index([
+        ("slug", ASCENDING)], 
+        name="slug_idx", unique=True)
+
     '''********* CATEGORIES *******'''
     
     db[constants.COL_CATEGORIES].create_index([
@@ -49,9 +53,13 @@ def create_or_update_indexes(db, force_mode=False):
     
     #TODO: lastUpdate DESCENDING ?
     db[constants.COL_DATASETS].create_index([
-            ("provider", ASCENDING), 
-            ("datasetCode", ASCENDING)], 
-            name="provider_datasetCode_idx", unique=True)
+        ("provider", ASCENDING), 
+        ("datasetCode", ASCENDING)], 
+        name="provider_datasetCode_idx", unique=True)
+
+    db[constants.COL_DATASETS].create_index([
+        ("slug", ASCENDING)], 
+        name="slug_idx", unique=True)
         
     db[constants.COL_DATASETS].create_index([
         ("name", ASCENDING)], 
@@ -72,6 +80,10 @@ def create_or_update_indexes(db, force_mode=False):
         ("datasetCode", ASCENDING), 
         ("key", ASCENDING)], 
         name="provider_datasetCode_key_idx", unique=True)
+
+    db[constants.COL_SERIES].create_index([
+        ("slug", ASCENDING)], 
+        name="slug_idx", unique=True)
 
     db[constants.COL_SERIES].create_index([
         ("key", ASCENDING)], 
@@ -329,7 +341,7 @@ def generate_tags(db, doc, doc_type=None,
         query = {
             "provider": doc['provider'], 
             "datasetCode": doc['datasetCode']
-        }
+        }        
         dataset = doc_dataset or db[constants.COL_DATASETS].find_one(query)
         
         if not dataset:
@@ -419,10 +431,8 @@ def update_tags(db,
     #TODO: cumul des results bulk
     bulk = db[col_name].initialize_unordered_bulk_op()
     count = 0
-    query = {}
+    query = {"provider": provider_name}
     projection = None
-    doc_provider = None
-    doc_dataset = None
 
     if dataset_code:
         query['datasetCode'] = dataset_code
@@ -436,8 +446,7 @@ def update_tags(db,
     if col_name == constants.COL_SERIES:
         projection = {"releaseDates": False, "values": False}
 
-    for doc in db[col_name].find(query):
-        
+    for doc in db[col_name].find(query, projection=projection):
         #TODO: load dataset doc if search series ?
         tags = generate_tags(db, doc, doc_type=col_name)
         

@@ -248,6 +248,12 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         utils.update_tags(self.db, 
                     provider_name=d.provider_name, 
                     dataset_code=d.dataset_code, 
+                    col_name=constants.COL_DATASETS, 
+                    max_bulk=20)
+
+        utils.update_tags(self.db, 
+                    provider_name=d.provider_name, 
+                    dataset_code=d.dataset_code, 
                     col_name=constants.COL_SERIES, 
                     max_bulk=20)
 
@@ -261,6 +267,10 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         # nosetests -s -v dlstats.tests.test_search:DBTagsSearchTestCase.test_search_in_datasets
         
         self.db[constants.COL_DATASETS].reindex()
+
+        query = dict(provider="eurostat", datasetCode="name_a")
+        dataset = self.db[constants.COL_DATASETS].find_one(query)
+        self.assertIsNotNone(dataset)
         
         docs, query = utils.search_datasets_tags(self.db, 
                                           search_tags="Australie Euro Agriculture")
