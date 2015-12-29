@@ -329,7 +329,7 @@ def generate_tags(db, doc, doc_type=None,
         query = {
             "provider": doc['provider'], 
             "datasetCode": doc['datasetCode']
-        }
+        }        
         dataset = doc_dataset or db[constants.COL_DATASETS].find_one(query)
         
         if not dataset:
@@ -419,10 +419,8 @@ def update_tags(db,
     #TODO: cumul des results bulk
     bulk = db[col_name].initialize_unordered_bulk_op()
     count = 0
-    query = {}
+    query = {"provider": provider_name}
     projection = None
-    doc_provider = None
-    doc_dataset = None
 
     if dataset_code:
         query['datasetCode'] = dataset_code
@@ -436,8 +434,7 @@ def update_tags(db,
     if col_name == constants.COL_SERIES:
         projection = {"releaseDates": False, "values": False}
 
-    for doc in db[col_name].find(query):
-        
+    for doc in db[col_name].find(query, projection=projection):
         #TODO: load dataset doc if search series ?
         tags = generate_tags(db, doc, doc_type=col_name)
         

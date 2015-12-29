@@ -225,7 +225,7 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
               required=True,
               default=constants.COL_DATASETS,
               show_default=True,
-              type=click.Choice(constants.COL_ALL + ['ALL']),
+              type=click.Choice([constants.COL_DATASETS, constants.COL_SERIES, 'ALL']),
               help='Collection')
 @click.option('-g', '--aggregate', is_flag=True, 
               help='Run aggregate tags after update.')
