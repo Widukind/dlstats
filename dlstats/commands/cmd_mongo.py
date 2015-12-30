@@ -13,7 +13,6 @@ from dlstats import utils
 #TODO: move to schemas module
 CURRENT_SCHEMAS = {
     constants.COL_PROVIDERS: schemas.provider_schema,
-    constants.COL_CATEGORIES: schemas.category_schema,
     constants.COL_DATASETS: schemas.dataset_schema,
     constants.COL_SERIES: schemas.series_schema,
 }
@@ -191,7 +190,6 @@ def cmd_check_schemas(max_errors=None, **kwargs):
         providers            |          5 |          5 |          0 | 0.001
         datasets             |         23 |         23 |         17 | 0.017
         series               |     315032 |     315032 |       8786 | 208.991
-        categories           |       6875 |       6875 |         37 | 1.022
         --------------------------------------------------------------------
         time elapsed : 210.042 seconds        
         """
