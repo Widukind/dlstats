@@ -160,7 +160,7 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q'
         ]
-        self.selected_data_tree = {}
+        self.selected_datasets = {}
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
@@ -238,8 +238,8 @@ class Eurostat(Fetcher):
         self.provider.add_data_tree(data_tree)
         
         
-    def get_selected_data_tree(self):
-        """Collects the dataset codes that are in table of contents,
+    def get_selected_datasets(self):
+        """Collects the dataset codes that are in table of contents
         below the ones indicated in "selected_codes" provided in configuration
         :returns: list of codes"""
 
@@ -250,28 +250,35 @@ class Eurostat(Fetcher):
                 if len(node['children']) == 0:
                     # this is a leaf
                     node['exposed'] = True
-                    self.selected_data_tree.update({node['categoryCode']: node})
+                    self.selected_datasets.update({node['categoryCode']: node})
 
             for child in node['children']:
                 walktree1(child,selected)
 
         provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+        if provider is None:
+            self.upsert_categories()
+            provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+            
         walktree1(provider['data_tree'],False)
         
     def upsert_selected_datasets(self):
-        if self.selected_data_tree is None:
-            self.get_selected_data_tree()
-        for d in self.selected_data_tree:
+        if self.selected_datasets is None:
+            self.get_selected_datasets()
+        for d in self.selected_datasets:
             self.upsert_dataset(d)
 
     def datasets_list(self):
-        return self.get_selected_datasets()
+        datasets = self.selected_datasets
+        if not datasets:
+            self.get_selected_datasets()
+        return [d for d in self.selected_datasets]
 
     def datasets_long_list(self):
-        categoryCodes = self.datasets_list()
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'Eurostat', 'categoryCode': {"$in": categoryCodes}},
-                                                               {'categoryCode':True, 'name': True, '_id': False})
-        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+        datasets = self.selected_datasets
+        if not datasets:
+            self.get_selected_datasets()
+        return [(d[0],d[1]['name']) for d in self.selected_datasets.items()]
 
     def upsert_dataset(self,dataset_code):
         """Updates data in Database for selected datasets
@@ -279,9 +286,9 @@ class Eurostat(Fetcher):
         :returns: None"""
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        if self.selected_data_tree is None:
-            self.get_selected_data_tree()
-        cat = self.selected_data_tree[dataset_code]
+        if self.selected_datasets is None:
+            self.get_selected_datasets()
+        cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            last_update=cat['lastUpdate'],
@@ -299,13 +306,13 @@ class Eurostat(Fetcher):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_categories();
-        self.get_selected_data_tree()
+        self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'datasetCode': {'$in': list(self.selected_data_tree.keys())}},
+            {'provider': self.provider_name, 'datasetCode': {'$in': list(self.selected_datasets.keys())}},
             {'datasetCode': 1, 'lastUpdate': 1})
         selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
-        for d in self.selected_data_tree:
-            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_data_tree[d]['lastUpdate']):
+        for d in self.selected_datasets:
+            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_datasets[d]['lastUpdate']):
                 self.upsert_dataset(d)
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
