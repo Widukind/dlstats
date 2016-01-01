@@ -183,10 +183,12 @@ class Providers(DlstatsCollection):
 
     def add_data_tree(self,data_tree):
         schemas.data_tree_schema(data_tree)
-
-        return self.fetcher.db[constants.COL_PROVIDERS].find_one_and_update({'name': self.name},
-                                                                            {'$set': {'data_tree': data_tree}},
-                                                                            return_document=pymongo.ReturnDocument.AFTER)
+        result = self.fetcher.db[constants.COL_PROVIDERS].find_one_and_update({'name': self.name},
+                                                                              {'$set': {'data_tree': data_tree}},
+                                                                              return_document=pymongo.ReturnDocument.AFTER)
+        if result is None:
+            raise Exception('add_data_tree: Provider update failed')
+        return result
     
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
