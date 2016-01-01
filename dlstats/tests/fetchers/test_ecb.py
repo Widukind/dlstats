@@ -143,65 +143,92 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
         self.maxDiff = None
     @patch('sdmx.ecb.dataflows',dataflows)
     @patch('dlstats.fetchers.ecb.ECB.get_categories',get_categories)
-    def test_categories(self):
-        reference =[{'categoryCode': '1_1_1',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Name of 1_1_1',
-                     'provider': 'ECB'},
-                    {'categoryCode': '1_2_1',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Name of 1_2_1',
-                     'provider': 'ECB'},
-                    {'categoryCode': '1_2_2',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Name of 1_2_2',
-                     'provider': 'ECB'},
-                    {'categoryCode': '2_2_1',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Name of 2_2_1',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Concepts',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Concepts',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Example subcategory 1',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Example subcategory 1',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Example subcategory 1_1',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Example subcategory 1_1',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Example subcategory 1_2',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Example subcategory 1_2',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Example subcategory 2',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Example subcategory 2',
-                     'provider': 'ECB'},
-                    {'categoryCode': 'Example subcategory 2_2',
-                     'docHref': None,
-                     'exposed': True,
-                     'name': 'Example subcategory 2_2',
-                     'provider': 'ECB'}]
+    def test_data_tree(self):
+        reference = { 'name': 'ECB',
+                      'provider': 'ECB',
+                      'categoryCode': 'ecb_root',
+                      'lastUpdate': None,
+                      'exposed': False,
+                      'docHref': None,
+                      'children': [
+                          {'name': 'Example subcategory 1',
+                           'categoryCode': 'Example subcategory 1',
+                           'provider': 'ECB',
+                           'lastUpdate': None,
+                           'exposed': False,
+                           'docHref': None,
+                           'children': [
+                               {'name': 'Example subcategory 1_1',
+                                'categoryCode': 'Example subcategory 1_1',
+                                'provider': 'ECB',
+                                'lastUpdate': None,
+                                'exposed': False,
+                                'docHref': None,
+                                'children': [
+                                    {'name': 'Name of 1_1_1',
+                                     'categoryCode': '1_1_1',
+                                     'provider': 'ECB',
+                                     'lastUpdate': None,
+                                     'exposed': False,
+                                     'docHref': None,
+                                     'children': []}
+                                ]
+                               },
+                               {'name': 'Example subcategory 1_2',
+                                'categoryCode': 'Example subcategory 1_2',
+                                'provider': 'ECB',
+                                'lastUpdate': None,
+                                'exposed': False,
+                                'docHref': None,
+                                'children': [
+                                    {'name': 'Name of 1_2_1',
+                                     'categoryCode': '1_2_1',
+                                     'provider': 'ECB',
+                                     'lastUpdate': None,
+                                     'exposed': False,
+                                     'docHref': None,
+                                     'children': []},
+                                    {'name': 'Name of 1_2_2',
+                                     'categoryCode': '1_2_2',
+                                     'provider': 'ECB',
+                                     'lastUpdate': None,
+                                     'exposed': False,
+                                     'docHref': None,
+                                     'children': []}
+                                ]}
+                           ]},
+                          {'name': 'Example subcategory 2',
+                           'categoryCode': 'Example subcategory 2',
+                           'provider': 'ECB',
+                           'lastUpdate': None,
+                           'exposed': False,
+                           'docHref': None,
+                           'children': [
+                               {'name': 'Example subcategory 2_2',
+                                'categoryCode': 'Example subcategory 2_2',
+                                'provider': 'ECB',
+                                'lastUpdate': None,
+                                'exposed': False,
+                                'docHref': None,
+                                'children': [
+                                    {'name': 'Name of 2_2_1',
+                                     'categoryCode': '2_2_1',
+                                     'provider': 'ECB',
+                                     'lastUpdate': None,
+                                     'exposed': False,
+                                     'docHref': None,
+                                     'children': []}
+                                ]}
+                           ]}
+                      ]}
+
+        self.fetcher.provider.update_database()
         self.fetcher.upsert_categories()
         #We exclude ObjectIDs because their values are not determinitstic. We
         #can't test these elements
-        results = self.db[constants.COL_CATEGORIES].find(
-            {"provider": self.fetcher.provider_name},
-            {'_id': False, 'children': False, 'lastUpdate':False})
-        results = [result for result in results]
-        self.assertEqual(results, reference)
+        results = self.db[constants.COL_PROVIDERS].find_one(
+            {"name": self.fetcher.provider_name})
+        self.assertEqual(results['data_tree'], reference)
 
 
 class ECBDatasetDBTestCase(BaseDBTestCase):
@@ -270,7 +297,7 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
                       'slug': 'ecb-2-2-1-q-o2',
                       'startDate': 180,
                       'values': ['6', '5', '4', '3', '2']}]
-
+        self.fetcher.provider.update_database()
         self.fetcher.upsert_categories()
         self.fetcher.upsert_dataset('2_2_1')
         results = self.db[constants.COL_SERIES].find(

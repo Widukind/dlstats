@@ -29,62 +29,114 @@ class ECB(Fetcher):
                                   region='Europe',
                                   website='http://www.ecb.europa.eu/',
                                   fetcher=self)
-
+        self.selected_codes = ['ecb_root']
+        self.selected_datasets = {}
+        
     def get_categories(self):
         return sdmx.ecb.categories
 
-    def upsert_categories(self):
+    def build_data_tree(self):
         def walk_category(category):
-            children_ids = []
+            in_base_category = {}
             if 'flowrefs' in category:
-                children_ids_ = []
+                children_ = []
                 for flowref in category['flowrefs']:
                     dataflow_info = sdmx.ecb.dataflows(flowref)
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
-                    in_base_category_ = Categories(
-                        provider=self.provider_name,
-                        name=name,
-                        categoryCode=flowref,
-                        children=None,
-                        docHref=None,
-                        lastUpdate=datetime.now(),
-                        exposed=True,
-                        fetcher=self)
-                    children_ids_.append(in_base_category_.update_database())
-                in_base_category = Categories(
-                    provider=self.provider_name,
-                    name=category['name'],
-                    categoryCode=category['name'],
-                    children=children_ids_,
-                    docHref=None,
-                    lastUpdate=datetime.now(),
-                    exposed=True,
-                    fetcher=self)
+                    in_base_category_ = {
+                        'provider': self.provider_name,
+                        'name': name,
+                        'categoryCode': flowref,
+                        'children': [],
+                        'docHref': None,
+                        'lastUpdate': None,
+                        'exposed': False}
+                    children_.append(in_base_category_)
+                in_base_category = {
+                    'provider': self.provider_name,
+                    'name': category['name'],
+                    'categoryCode': category['name'],
+                    'children': children_,
+                    'docHref': None,
+                    'lastUpdate': None,
+                    'exposed': False}
             if 'subcategories' in category:
+                children_ = []
                 for subcategory in category['subcategories']:
-                    id = walk_category(subcategory)
-                    if id is not None:
-                        children_ids.append(id)
-                in_base_category = Categories(
-                    provider=self.provider_name,
-                    name=category['name'],
-                    categoryCode=category['name'],
-                    children=children_ids,
-                    docHref=None,
-                    lastUpdate=datetime.now(),
-                    exposed=True,
-                    fetcher=self)
-            try:
-                return in_base_category.update_database()
-            except NameError:
-                pass
-        walk_category(self.get_categories())
+                    child = walk_category(subcategory)
+                    if child:
+                        children_.append(child)
+                in_base_category = {
+                    'provider': self.provider_name,
+                    'name': category['name'],
+                    'categoryCode': category['name'],
+                    'children': children_,
+                    'docHref': None,
+                    'lastUpdate': None,
+                    'exposed': False}
+            return in_base_category
+
+        data_tree_ = walk_category(self.get_categories())
+        data_tree = {'provider': self.provider_name,
+                     'name': 'ECB',
+                     'docHref': None,
+                     'children': data_tree_['children'],
+                     'categoryCode': 'ecb_root',
+                     'exposed': False,
+                     'lastUpdate': None}
+        return data_tree
+    
+    def upsert_categories(self):
+        data_tree = self.build_data_tree()
+        self.provider.add_data_tree(data_tree)
+        
+    def get_selected_datasets(self):
+        """Collects the datasets
+        :returns: dict of datasets"""
+
+        def walktree1(node,selected):
+            if selected or (node['categoryCode'] in self.selected_codes):
+                selected = True
+                if len(node['children']) == 0:
+                    # this is a leaf
+                    node['exposed'] = True
+                    self.selected_datasets.update({node['categoryCode']: node})
+
+            for child in node['children']:
+                walktree1(child,selected)
+
+        provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+        if provider is None:
+            self.upsert_categories()
+            provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+
+        walktree1(provider['data_tree'],True)
+        
+    def upsert_selected_datasets(self):
+        if self.selected_datasets is None:
+            self.get_selected_datasets()
+        for d in self.selected_datasets:
+            self.upsert_dataset(d)
+
+    def datasets_list(self):
+        datasets = self.selected_datasets
+        if not datasets:
+            self.get_selected_datasets()
+        return [d for d in self.selected_datasets]
+
+    def datasets_long_list(self):
+        datasets = self.selected_datasets
+        if not datasets:
+            self.get_selected_datasets()
+        return [(d[0],d[1]['name']) for d in self.selected_datasets.items()]
 
     def upsert_dataset(self, dataset_code):
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        cat = self.db[constants.COL_CATEGORIES].find_one({'provider':self.provider_name, 'categoryCode': dataset_code})
+        if not self.selected_datasets:
+            self.get_selected_datasets()
+        cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
                            fetcher=self,
