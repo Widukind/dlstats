@@ -38,34 +38,10 @@ except ImportError:
     pass
 
 try:
-    from dlstats.fetchers.IMF import IMF, DATASETS as DATASETS_IMF
-    FETCHERS['IMF'] = IMF
-    FETCHERS_DATASETS['IMF'] = DATASETS_IMF
-    __all__.append('IMF')
-except ImportError:
-    pass
-
-try:
-    from dlstats.fetchers.BEA import BEA
-    FETCHERS['BEA'] = BEA
-    #TODO: FETCHERS_DATASETS['BEA'] = None
-    __all__.append('BEA')
-except ImportError:
-    pass
-
-try:
     from dlstats.fetchers.ecb import ECB
     FETCHERS['ECB'] = ECB
     #TODO: FETCHERS_DATASETS['ECB'] = None
     __all__.append('ECB')
-except ImportError:
-    pass
-
-try:
-    from dlstats.fetchers.esri import Esri
-    FETCHERS['esri'] = Esri
-    #TODO: FETCHERS_DATASETS['ESRI'] = None
-    __all__.append('Esri')
 except ImportError:
     pass
 
