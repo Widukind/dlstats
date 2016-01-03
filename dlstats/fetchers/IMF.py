@@ -12,7 +12,7 @@ import requests
 from lxml import etree
 import pandas
 
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 logger = logging.getLogger(__name__)
 
@@ -155,14 +155,16 @@ class IMF(Fetcher):
             self.update_metas(dataset_code)
         except Exception as err:
             logger.error(str(err))
-        
+
     def upsert_categories(self):
-        document = Categories(provider=self.provider_name, 
-                              name='WEO' , 
-                              categoryCode='WEO',
-                              exposed=True,
-                              fetcher=self)
-        return document.update_database()
+        data_tree = {'provider': self.provider_name,
+                     'name': 'IMF',
+                     'categoryCode': 'imf_root',
+                     'children': [{'provider': self.provider_name,
+                                   'name': 'WEO' , 
+                                   'categoryCode': 'WEO',
+                                   'exposed': True}]}
+        self.fetcher.provider.add_data_tree(data_tree)
         
 class WeoData():
     

@@ -180,73 +180,16 @@ class Providers(DlstatsCollection):
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
                                             ['name'], 
                                             self.bson)
-                
-class Categories(DlstatsCollection):
-    """Categories class
+
+    def add_data_tree(self,data_tree):
+        schemas.data_tree_schema(data_tree)
+        result = self.fetcher.db[constants.COL_PROVIDERS].find_one_and_update({'name': self.name},
+                                                                              {'$set': {'data_tree': data_tree}},
+                                                                              return_document=pymongo.ReturnDocument.AFTER)
+        if result is None:
+            raise Exception('add_data_tree: Provider update failed')
+        return result
     
-    Inherit from :class:`DlstatsCollection`
-    """
-    
-    def __init__(self,
-                 provider=None,
-                 name=None,
-                 docHref=None,
-                 children=None,
-                 categoryCode=None,
-                 lastUpdate=None,
-                 exposed=False,
-                 fetcher=None):
-        """
-        :param str provider: Provider name
-        :param str name: Category short name
-        :param str docHref: (Optional) Category - web link
-        :param bson.objectid.ObjectId children: Array of ObjectId or empty list        
-        :param str categoryCode: Unique Category Code
-        :param datetime.datetime lastUpdate: (Optional) Last updated date
-        :param bool exposed: Exposed ?
-        :param Fetcher fetcher: Fetcher instance
-        """        
-        super().__init__(fetcher=fetcher)
-        self.provider = provider
-        self.name = name
-        self.docHref = docHref
-        self.children = children
-        self.categoryCode = categoryCode
-        self.lastUpdate = lastUpdate
-        self.exposed = exposed
-        
-        self.validate = schemas.category_schema({
-            'provider': self.provider,
-            'categoryCode': self.categoryCode,
-            'name': self.name,
-            'children': self.children,
-            'docHref': self.docHref,
-            'lastUpdate': self.lastUpdate,
-            'exposed': self.exposed
-        })
-
-    def __repr__(self):
-        return pprint.pformat([(key, self.validate[key])
-                               for key in sorted(self.validate.keys())])
-
-    @property
-    def bson(self):
-        return {'provider': self.provider,
-                'name': self.name,
-                'docHref': self.docHref,
-                'children': self.children,
-                'categoryCode': self.categoryCode,
-                'lastUpdate': self.lastUpdate,
-                'exposed': self.exposed}
-        
-    def update_database(self):
-        # we will log to info when we switch to bulk update
-        schemas.category_schema(self.bson)
-        return self.update_mongo_collection(constants.COL_CATEGORIES, 
-                                            ['provider', 'categoryCode'],
-                                            self.bson, 
-                                            log_level=logging.DEBUG)
-
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     

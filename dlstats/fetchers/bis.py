@@ -14,7 +14,7 @@ import pandas
 import requests
 
 from dlstats import constants
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 __all__ = ['BIS']
 
@@ -330,16 +330,19 @@ class BIS(Fetcher):
         return [(key, dataset['name']) for key, dataset in DATASETS.items()]
 
     def upsert_categories(self):
+        data_tree = {'provider': self.provider_name,
+                     'name': 'Eurostat',
+                     'categoryCode': 'oecd_root',
+                     'children': []}
         
         for dataset_code in DATASETS.keys():
-            document = Categories(provider=self.provider_name, 
-                                  name=DATASETS[dataset_code]['name'], 
-                                  categoryCode=dataset_code,
-                                  exposed=True,
-                                  fetcher=self)
-            
-            #TODO: attention, plus de retour du result pymongo
-            document.update_database()                            
+            data_tree['children'].append({'provider': self.provider_name, 
+                                          'name': DATASETS[dataset_code]['name'], 
+                                          'categoryCode': dataset_code,
+                                          'exposed': True,
+                                          'children': None})
+
+        self.provider.add_data_tree(data_tree)    
 
 class BIS_Data():
     

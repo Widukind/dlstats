@@ -14,7 +14,7 @@ import json
 import pandas
 import requests
 
-from dlstats.fetchers._commons import Fetcher, Categories, Providers, Datasets
+from dlstats.fetchers._commons import Fetcher, Providers, Datasets
 
 logger = logging.getLogger(__name__)
 
@@ -172,14 +172,19 @@ class OECD(Fetcher):
         
     def upsert_categories(self):
         
+        data_tree = {'provider': self.provider_name,
+                     'name': 'Eurostat',
+                     'categoryCode': 'oecd_root',
+                     'children': []}
+        
         for dataset_code in DATASETS.keys():
-            document = Categories(provider=self.provider_name, 
-                                  name=DATASETS[dataset_code]['name'], 
-                                  categoryCode=dataset_code,
-                                  exposed=True,
-                                  fetcher=self)
-            
-            document.update_database()                            
+            data_tree['children'].append({'provider': self.provider_name, 
+                                          'name': DATASETS[dataset_code]['name'], 
+                                          'categoryCode': dataset_code,
+                                          'exposed': True,
+                                          'children': None})
+
+        self.provider.add_data_tree(data_tree)    
 
 class OECD_Data():
     

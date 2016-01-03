@@ -40,14 +40,17 @@ provider_schema = Schema({
     'website': All(str, Length(min=9))
     },required=True)
 
-category_schema = Schema({
+def _data_tree(value):
+    return data_tree_schema(value)
+
+data_tree_schema = Schema({
     'name': All(str, Length(min=1)),
     'provider': All(str, Length(min=1)),
-    'children': Any(None,[typecheck(bson.objectid.ObjectId)]), 
+    'children': Any(None,[_data_tree]), 
     Optional('docHref'): Any(None,str),
     Optional('lastUpdate'): Any(None,typecheck(datetime)),
     'categoryCode': All(str, Length(min=1)),
-    'exposed': typecheck(bool)
+    Optional('exposed'): typecheck(bool)
     }, required=True)
 
 
