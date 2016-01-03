@@ -27,6 +27,9 @@ import pymongo
 from dlstats import constants
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
+REGEX_DATE_P3M = re.compile(r"(\d+)-Q(\d)")
+REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
+
 __all__ = ['Eurostat']
 
 logger = logging.getLogger(__name__)
@@ -471,16 +474,16 @@ class EurostatData:
         dimensions = OrderedDict([(key.lower(), code_desc[key]) for key in dl])
         return (attributes,dimensions)
     
-    def parse_date(self,str,fmt):
+    def parse_date(self,_str,fmt):
         if (fmt == 'P1Y'):
-            return (str,'A')
+            return (_str,'A')
         elif (fmt == 'P3M'):
-            m = re.match(re.compile(r"(\d+)-Q(\d)"),str)
+            m = re.match(REGEX_DATE_P3M,_str)
             return (m.groups()[0]+'Q'+m.groups()[1],'Q')
         elif (fmt == 'P1M'):
-            return (str,'M')
+            return (_str,'M')
         elif (fmt == 'P1D'):
-            m = re.match(re.compile(r"(\d\d\d\d)(\d\d)(\d\d)"),str)
+            m = re.match(REGEX_DATE_P1D,_str)
             return ('-'.join(m.groups()),'D')
         else:
             msg = 'eurostat, '+self.datase_code+', TIME FORMAT not recognized'
