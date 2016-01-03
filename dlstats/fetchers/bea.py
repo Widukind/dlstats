@@ -34,39 +34,32 @@ class BEA(Fetcher):
                                   fetcher=self)
         #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
         #            'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
-         #           'Industry data_GDP by industry_Q': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
-          #          'Industry data_GDP by industry_A': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
-           #         'International transactions(ITA)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
-            #        'International services': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
-             #       'International investment position(IIP)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'}
-         
+        #            'Industry data_GDP by industry_Q': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
+        #            'Industry data_GDP by industry_A': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
+        #            'International transactions(ITA)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
+        #            'International services': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
+        #            'International investment position(IIP)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'}
+        
         self.urls= ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
-                     'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
-                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
-                     'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
-                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
-                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
-                     'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip']
+                    'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11']
+        #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
+        #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
+        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
+        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
+        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip']
                     
     def upsert_nipa(self):  
         for self.url in self.urls:
-            #self.url = self.urls[url_key]
-            print(self.url)
             response = urllib.request.urlopen(self.url)
             zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
-            #excel_filenames = iter(zipfile_.namelist())
-            #fname = next(excel_filenames)
-    
-            #if fname is None:
-            #    raise StopIteration()
             for section in zipfile_.namelist():
-                #print(section)
                 if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
-                    excel_book = xlrd.open_workbook(file_contents = zipfile_.read(section)) 
+                    file_contents = zipfile_.read(section)
+                    excel_book = xlrd.open_workbook(file_contents = file_contents) 
                     for sheet_name in excel_book.sheet_names(): 
                         sheet = excel_book.sheet_by_name(sheet_name)
                         if  sheet_name != 'Contents':
-                            datasetCode = sheet_name
+                            datasetCode = sheet_name.replace(' ','_')
                             self.upsert_dataset(datasetCode, sheet)                    
                 # else :
                 #ToDO: lip_PrevT3a, lip_PrevT3b, lip_PrevT3c          
@@ -105,20 +98,24 @@ class BeaData():
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
-        print(dataset.name)
         str = sheet.cell_value(2,0) #released Date
         info = []
+        self.frequency = None
         #retrieve frequency from url        
         if 'AllTablesQTR' in url :
             self.frequency = 'Q'
-        if  'AllTables.' in url : 
+        elif  'AllTables.' in url : 
             self.frequency = 'A'
         #retrieve frequency from sheet name  
         if 'Qtr' in sheet.name :
             self.frequency = 'Q' 
-        if 'Ann'  in sheet.name or 'Annual' in sheet.name:
+        elif 'Ann'  in sheet.name or 'Annual' in sheet.name:
             self.frequency = 'A'
-        print( url)
+        elif 'Month'in sheet.name:
+            self.frequency = 'M'
+        if self.frequency is None:
+            raise Exception(dataset.name + " " + sheet.name + " (" +
+                            url + "): frequency can't be found")  
         if 'Section' in  url :
             release_datesheet = sheet.cell_value(4,0)[15:] 
         else :
@@ -147,16 +144,24 @@ class BeaData():
             if sheet.col_values(0)[row_info]:
                 for row_no in range(row_info, sheet.nrows) : 
                     info.append(sheet.cell_value(row_no,0))
+        self.keys = []
 
    
     def __next__(self):
-        row = self.sheet.row(next(self.row_range))
-        if row is None:
-            raise StopIteration()
-        series = self.build_series(row)
-        if series is None:
-            raise StopIteration()            
-        return(series) 
+        while True:
+            row = self.sheet.row(next(self.row_range))
+            key = row[2].value
+            if row is None:
+                raise StopIteration()
+            # skip lines without key or with ZZZZZZx key
+            elif (len(key.replace(' ','')) == 0) or  key[0:6] == 'ZZZZZZ':
+                continue
+            elif key in self.keys:
+                continue
+            else:
+                self.keys.append(key)
+                break
+        return(self.build_series(row))
                                        
                                            
     def build_series(self,row):  
@@ -165,8 +170,7 @@ class BeaData():
         series_value = [] 
         #TO DO: Syncronize for all series
         series_name = row[1].value + self.frequency 
-        series_key = row[3].value
-        print(row[2].value)
+        series_key = row[2].value
         dimensions['concept'] = self.dimension_list.update_entry('concept',row[2].value,row[1].value)  
         dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
         for r in range(3, len(row)):
@@ -186,9 +190,20 @@ class BeaData():
         return(series)
 
 if __name__ == "__main__":
+    import sys
+    import os
+    import tempfile
+    print("WARNING : run main for testing only", file=sys.stderr)
+    try:
+        import requests_cache
+        cache_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 'dlstats_cache'))        
+        requests_cache.install_cache(cache_filepath, backend='sqlite', expire_after=None)#=60 * 60) #1H
+        print("requests cache in %s" % cache_filepath)
+    except ImportError:
+        pass
     w = BEA()
     w.provider.update_database()
-    w.upsert_categories()
+#    w.upsert_categories()
     w.upsert_nipa()
     
 
