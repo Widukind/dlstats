@@ -638,7 +638,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">GDP and main components (output, expenditure and income)</nt:title>
                         <nt:code>nama_10_gdp</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:last_update>26.10.2015</nt:last_update>
                         <nt:lastModified>11.08.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -653,7 +653,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Final consumption aggregates by durability</nt:title>
                         <nt:code>nama_10_fcs</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:last_update>26.10.2015</nt:last_update>
                         <nt:lastModified>12.10.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -674,7 +674,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Dset1</nt:title>
                         <nt:code>dset1</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:last_update>26.10.2015</nt:last_update>
                         <nt:lastModified>11.08.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -689,7 +689,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Dset2</nt:title>
                         <nt:code>dset2</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:last_update>26.10.2015</nt:last_update>
                         <nt:lastModified>12.10.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -724,7 +724,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                     <nt:title language="fr">Balance des paiements par pays - données mensuelles (BPM6)</nt:title>
                     <nt:title language="de">Zahlungsbilanzstatistiken nach Land - monatliche Daten (BPM6)</nt:title>
                     <nt:code>bop_c6_m</nt:code>
-                    <nt:lastUpdate>20.10.2015</nt:lastUpdate>
+                    <nt:last_update>20.10.2015</nt:last_update>
                     <nt:lastModified>20.10.2015</nt:lastModified>
                     <nt:dataStart>1991M01</nt:dataStart>
                     <nt:dataEnd>2015M08</nt:dataEnd>
@@ -745,7 +745,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                     <nt:title language="fr">Balance des paiements par pays - données trimestrielles (BPM6)</nt:title>
                     <nt:title language="de">Zahlungsbilanzstatistiken nach Land - vierteljährliche Daten (BPM6)</nt:title>
                     <nt:code>bop_c6_q</nt:code>
-                    <nt:lastUpdate>23.10.2015</nt:lastUpdate>
+                    <nt:last_update>23.10.2015</nt:last_update>
                     <nt:lastModified>23.10.2015</nt:lastModified>
                     <nt:dataStart>1982</nt:dataStart>
                     <nt:dataEnd>2015Q2</nt:dataEnd>
@@ -879,18 +879,18 @@ class EurostatDatasetsTestCase(BaseDBTestCase):
         pprint(datas)
 
         attempt = {'nama_10_gdp': {'series': [{'attributes': {},
-                                            'datasetCode': 'nama_10_gdp',
+                                            'dataset_code': 'nama_10_gdp',
                                             'dimensions': {'FREQ': "A",
                                                            'unit': "CLV05_MEUR",
                                                            'na_item': "B1G",
                                                            'geo': "AT",
                                                            'TIME_FORMAT': "P1Y"},
-                                            'endDate': 45,
+                                            'end_date': 45,
                                             'frequency': 'A',
                                             'key': 'A.CLV05_MEUR.B1G.AT',
                                             'name': '',
-                                  'provider': 'Eurostat',
-                                  'startDate': 25,
+                                  'provider_name': 'Eurostat',
+                                  'start_date': 25,
                                   'values': ["176840.7", "180307.4", "184320.1"]}]}}        
         self.assertDictEqual(datas, attempt)
 
@@ -980,15 +980,15 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
         
-        self.assertEqual(len(self.dataset["dimensionList"]), DATASETS[self.dataset_code]["dimensions_count"])
+        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimensions_count"])
         
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
         
         
@@ -1000,8 +1000,8 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "A.CLV05_MEUR.B1G.AT"})
         self.assertIsNotNone(series)
         
@@ -1018,8 +1018,8 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "M.MIO_EUR.CA.S1.S1.BAL.EA18.MT"})
         self.assertIsNotNone(series)
         
@@ -1043,8 +1043,8 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
         self.assertIsNotNone(series)
         
@@ -1060,8 +1060,8 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series["values"], [""])
         self.assertEqual(series['attributes']['obs_status'],["c"])
         
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "A.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
         self.assertIsNotNone(series)
         
@@ -1119,12 +1119,12 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
 
@@ -1167,12 +1167,12 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self.fetcher.upsert_dataset(dataset_code)
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": dataset_code})
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": dataset_code})
         self.assertIsNotNone(dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": dataset_code})
 
         self.assertEqual(series.count(), DATASETS[dataset_code]['series_count'])
 
@@ -1228,22 +1228,22 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         global TABLE_OF_CONTENT
         tc_orig = TABLE_OF_CONTENT
         tc = TABLE_OF_CONTENT.decode(encoding='UTF_8')
-        tc = tc.replace('lastUpdate>26.10.2015','lastUpdate>01.11.2015')
+        tc = tc.replace('last_update>26.10.2015','last_update>01.11.2015')
         TABLE_OF_CONTENT = tc.encode(encoding='UTF_8')
 
         self.fetcher.upsert_all_datasets()
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'nama_10_gdp'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                               "dataset_code": 'nama_10_gdp'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'dset1'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                               "dataset_code": 'dset1'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'dset2'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                               "dataset_code": 'dset2'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
         # restoring TABLE_OF_CONTENT to original
         TABLE_OF_CONTENT = tc_orig
@@ -1278,18 +1278,18 @@ class FullEurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
+        category = self.db[constants.COL_CATEGORIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                               "category_code": self.dataset_code})
         self.assertIsNotNone(category)
         
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         series_count = series.count()
         self.assertTrue(series_count > 1)

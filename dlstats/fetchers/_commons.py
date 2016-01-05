@@ -171,7 +171,7 @@ class Providers(DlstatsCollection):
     @property
     def bson(self):
         return {'name': self.name,
-                'longName': self.long_name,
+                'long_name': self.long_name,
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}
@@ -247,30 +247,30 @@ class Datasets(DlstatsCollection):
         
     @property
     def bson(self):
-        return {'provider': self.provider_name,
+        return {'provider_name': self.provider_name,
                 'name': self.name,
-                'datasetCode': self.dataset_code,
+                'dataset_code': self.dataset_code,
                 'slug': self.slug(),
-                'dimensionList': self.dimension_list.get_list(),
-                'attributeList': self.attribute_list.get_list(),
-                'docHref': self.doc_href,
-                'lastUpdate': self.last_update,
+                'dimension_list': self.dimension_list.get_list(),
+                'attribute_list': self.attribute_list.get_list(),
+                'doc_href': self.doc_href,
+                'last_update': self.last_update,
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
-                                            {'provider': provider_name,
-                                             'datasetCode': dataset_code})
+                                            {'provider_name': provider_name,
+                                             'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
-            self.dimension_list.set_from_list(dataset['dimensionList'])
-            self.attribute_list.set_from_list(dataset['attributeList'])
+            self.dimension_list.set_from_list(dataset['dimension_list'])
+            self.attribute_list.set_from_list(dataset['attribute_list'])
         
     def update_database(self):
         self.series.process_series_data()        
         schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            ['provider', 'datasetCode'],
+                                            ['provider_name', 'dataset_code'],
                                             self.bson)
 
 class Series(DlstatsCollection):
@@ -300,8 +300,8 @@ class Series(DlstatsCollection):
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
-                               ('datasetCode', self.dataset_code),
-                               ('lastUpdate', self.last_update)])
+                               ('dataset_code', self.dataset_code),
+                               ('last_update', self.last_update)])
 
     def process_series_data(self):
         count = 0
@@ -331,8 +331,8 @@ class Series(DlstatsCollection):
         keys = [s['key'] for s in self.series_list]
 
         old_series = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider': self.provider_name,
-                                        'datasetCode': self.dataset_code,
+                                        'provider_name': self.provider_name,
+                                        'dataset_code': self.dataset_code,
                                         'key': {'$in': keys}})
 
         old_series = {s['key']:s for s in old_series}
@@ -368,13 +368,13 @@ class Series(DlstatsCollection):
             bson['slug'] = self.slug(bson['key'])                                
         
         last_update = self.last_update
-        if 'lastUpdate' in bson:
-            last_update = bson.pop('lastUpdate')
+        if 'last_update' in bson:
+            last_update = bson.pop('last_update')
 
         col = self.fetcher.db[constants.COL_SERIES]
 
         if not old_bson:
-            bson['releaseDates'] = [last_update for v in bson['values']]
+            bson['release_dates'] = [last_update for v in bson['values']]
             schemas.series_schema(bson)
 
             self.check_values_attributes_releasedates(bson)
@@ -388,9 +388,9 @@ class Series(DlstatsCollection):
                 bson['revisions'] = old_bson['revisions']
                 revisions_is_present = True
 
-            start_date = bson['startDate']
-            old_start_date = old_bson['startDate']
-            bson['releaseDates'] = deepcopy(old_bson['releaseDates'])
+            start_date = bson['start_date']
+            old_start_date = old_bson['start_date']
+            bson['release_dates'] = deepcopy(old_bson['release_dates'])
             
             iv1 = iv2 = 0
             if start_date < old_start_date:
@@ -403,44 +403,44 @@ class Series(DlstatsCollection):
                     for p in sorted(ikeys,reverse=True):
                         bson['revisions'][str(p+offset)] = bson['revisions'][str(p)]
                         bson['revisions'].pop(str(p))
-                # add last_update in fron of releaseDates
-                bson['releaseDates'] = [last_update for r in range(iv2)] + bson['releaseDates']
+                # add last_update in fron of release_dates
+                bson['release_dates'] = [last_update for r in range(iv2)] + bson['release_dates']
                         
             elif start_date > old_start_date:
                 # previous, longer, series is kept
                 # fill beginning with na
                 for p in range(start_date-old_start_date):
-                    # insert in front of the values, releaseDates and attributes
+                    # insert in front of the values, release_dates and attributes
                     bson['values'].insert(0,'na')
-                    bson['releaseDates'][p] = last_update
+                    bson['release_dates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].insert(0,"") 
-                bson['startDate'] = old_bson['startDate']
+                bson['start_date'] = old_bson['start_date']
                 
-            if bson['endDate'] < old_bson['endDate']:
-                for p in range(old_bson['endDate']-bson['endDate']):
+            if bson['end_date'] < old_bson['end_date']:
+                for p in range(old_bson['end_date']-bson['end_date']):
                     bson['values'].append('na')
-                    bson['releaseDates'][p] = last_update
+                    bson['release_dates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
-                bson['endDate'] = old_bson['endDate']
+                bson['end_date'] = old_bson['end_date']
 
             for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
                 if values[0] != values[1]:
-                    bson['releaseDates'][position+iv2] = last_update
+                    bson['release_dates'][position+iv2] = last_update
                     if not revisions_is_present:
                         bson['revisions'] = {}
                         revisions_is_present = True
                     rev = {'value':values[0],
-                           'releaseDate':old_bson['releaseDates'][position+iv1]}
+                           'release_date':old_bson['release_dates'][position+iv1]}
                     if str(position+iv2) in bson['revisions']:
                         bson['revisions'][str(position+iv2)].append(rev)
                     else:
                         bson['revisions'][str(position+iv2)] = [rev]
 
-            if bson['endDate'] > old_bson['endDate']:
-                for p in range(bson['endDate']-old_bson['endDate']):
-                    bson['releaseDates'].append(last_update)
+            if bson['end_date'] > old_bson['end_date']:
+                for p in range(bson['end_date']-old_bson['end_date']):
+                    bson['release_dates'].append(last_update)
 
             self.check_values_attributes_releasedates(bson)
             
@@ -450,20 +450,20 @@ class Series(DlstatsCollection):
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
 
     def check_values_attributes_releasedates(self,bson):
-        # checking consistency of values, releaseDates and attributes
+        # checking consistency of values, release_dates and attributes
         n = len(bson['values'])
-        if len(bson['releaseDates']) != n:
-            logger.critical('releaseDates has not the right length')
+        if len(bson['release_dates']) != n:
+            logger.critical('release_dates has not the right length')
             logger.critical('series key: ' + bson['key'])
             logger.critical('values length: ' + str(len(bson['values'])))
-            logger.critical('releaseDates length: ' + str(len(bson['releaseDates'])))
-            raise Exception('releaseDates has not the right length')
+            logger.critical('release_dates length: ' + str(len(bson['release_dates'])))
+            raise Exception('release_dates has not the right length')
         for a in bson['attributes']:
             if len(bson['attributes'][a]) != n:
                 logger.critical('attributes has not the right length')
                 logger.critical('series key: ' + bson['key'])
                 logger.critical('values length: ' + str(len(bson['values'])))
-                logger.critical('attributes length: ' + str(len(bson['releaseDates'])))
+                logger.critical('attributes length: ' + str(len(bson['release_dates'])))
                 raise Exception('attributes has not the right length')
 
 class CodeDict():

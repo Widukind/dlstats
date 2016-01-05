@@ -184,8 +184,8 @@ class Eurostat(Fetcher):
                 _tree = {}
                 last_update = None
                 last_modified = None
-                _tree['provider'] = self.provider_name
-                _tree['docHref'] = None
+                _tree['provider_name'] = self.provider_name
+                _tree['doc_href'] = None
                 _tree['children'] = []
                 for element in branch.iterchildren():
                     if element.tag == '{' + ns['nt'] + '}' + 'title':
@@ -193,10 +193,10 @@ class Eurostat(Fetcher):
                             _tree['name'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'metadata':
                         if element.attrib.values()[0] == 'html':
-                            _tree['docHref'] = element.text
+                            _tree['doc_href'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'code':
-                        _tree['categoryCode'] = element.text
-                    elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
+                        _tree['category_code'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'last_update':
                         if not (element.text is None):
                             last_update = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
@@ -210,9 +210,9 @@ class Eurostat(Fetcher):
                     last_update = max(last_update,last_modified)
                 if last_update is not None and not isinstance(last_update,
                                                              datetime.datetime):
-                    _tree['lastUpdate'] = datetime.datetime(last_update)
+                    _tree['last_update'] = datetime.datetime(last_update)
                 else:
-                    _tree['lastUpdate'] = last_update
+                    _tree['last_update'] = last_update
                 _tree['exposed'] = False
                 children.append(_tree)
             return children
@@ -221,13 +221,13 @@ class Eurostat(Fetcher):
         ns = table_of_contents.nsmap
         branch = table_of_contents.find('nt:branch',namespaces=ns)
         children = walktree(branch.find('nt:children',namespaces=ns),ns)
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'Eurostat',
-                     'docHref': None,
+                     'doc_href': None,
                      'children': children,
-                     'categoryCode': 'eurostat_root',
+                     'category_code': 'eurostat_root',
                      'exposed': False,
-                     'lastUpdate': None}
+                     'last_update': None}
         return data_tree
     
     def get_table_of_contents(self):
@@ -248,12 +248,12 @@ class Eurostat(Fetcher):
 
         def walktree1(node,selected):
 
-            if selected or (node['categoryCode'] in self.selected_codes):
+            if selected or (node['category_code'] in self.selected_codes):
                 selected = True
                 if len(node['children']) == 0:
                     # this is a leaf
                     node['exposed'] = True
-                    self.selected_datasets.update({node['categoryCode']: node})
+                    self.selected_datasets.update({node['category_code']: node})
 
             for child in node['children']:
                 walktree1(child,selected)
@@ -292,10 +292,10 @@ class Eurostat(Fetcher):
         cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
-                           last_update=cat['lastUpdate'],
+                           last_update=cat['last_update'],
                            fetcher=self)
         dataset.name = cat['name']
-        dataset.doc_href = cat['docHref']
+        dataset.doc_href = cat['doc_href']
         data_iterator = EurostatData(dataset,filename = dataset_code)
         dataset.series.data_iterator = data_iterator
         dataset.update_database()
@@ -309,11 +309,11 @@ class Eurostat(Fetcher):
         self.upsert_categories();
         self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'datasetCode': {'$in': list(self.selected_datasets.keys())}},
-            {'datasetCode': 1, 'lastUpdate': 1})
-        selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
+            {'provider_name': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+            {'dataset_code': 1, 'last_update': 1})
+        selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
         for d in self.selected_datasets:
-            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_datasets[d]['lastUpdate']):
+            if (d not in selected_datasets) or (selected_datasets[d]['last_update'] < self.selected_datasets[d]['last_update']):
                 self.upsert_dataset(d)
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
@@ -415,21 +415,21 @@ class EurostatData:
         # force attributes' key to be lower case
         attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
-        bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
+        bson['provider_name'] = self.provider_name
+        bson['dataset_code'] = self.dataset_code
         bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())
         bson['values'] = values
-        bson['lastUpdate'] = self.last_update
+        bson['last_update'] = self.last_update
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
         (start_string, freq) = self.parse_date(
             raw_dates[0], time_format)
         (end_string, freq) = self.parse_date(
             raw_dates[-1], time_format)
-        bson['startDate'] = pandas.Period(start_string,freq=freq).ordinal
-        bson['endDate'] = pandas.Period(end_string,freq=freq).ordinal
+        bson['start_date'] = pandas.Period(start_string,freq=freq).ordinal
+        bson['end_date'] = pandas.Period(end_string,freq=freq).ordinal
         bson['frequency'] = freq
         return(bson)
     

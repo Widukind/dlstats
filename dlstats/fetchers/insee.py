@@ -130,13 +130,13 @@ class INSEE(Fetcher):
                           categorisation, 
                           dataflows, 
                           name=None, 
-                          categoryCode=None):
+                          category_code=None):
             
             if name is None:
                 name = category['name']
             
-            if categoryCode is None:
-                categoryCode = category['id']
+            if category_code is None:
+                category_code = category['id']
             
             children_ids = []
             
@@ -148,12 +148,12 @@ class INSEE(Fetcher):
                                                       categorisation, 
                                                       dataflows))
                 
-                category = Categories(provider=self.provider_name,
+                category = Categories(provider_name=self.provider_name,
                                       name=name,
-                                      categoryCode=categoryCode,
+                                      category_code=category_code,
                                       children=children_ids,
-                                      docHref=None,
-                                      lastUpdate=datetime.now(),
+                                      doc_href=None,
+                                      last_update=datetime.now(),
                                       exposed=False,
                                       fetcher=self)
                 
@@ -162,12 +162,12 @@ class INSEE(Fetcher):
             else:
                 for df_id in categorisation[category['id']]:
                     
-                    category = Categories(provider=self.provider_name,
+                    category = Categories(provider_name=self.provider_name,
                                           name=dataflows[df_id][2]['en'],
-                                          categoryCode=category['id'],
+                                          category_code=category['id'],
                                           children=children_ids,
-                                          docHref=None,
-                                          lastUpdate=datetime.now(),
+                                          doc_href=None,
+                                          last_update=datetime.now(),
                                           exposed=False,
                                           fetcher=self)
                     
@@ -177,7 +177,7 @@ class INSEE(Fetcher):
                       self._categorisation, 
                       self._dataflow,
                       name='root',
-                      categoryCode='INSEE_root')
+                      category_code='INSEE_root')
 
     
     def upsert_dataset(self, dataset_code):
@@ -192,10 +192,10 @@ class INSEE(Fetcher):
         
         dataflow = self._dataflows[dataset_code]
         
-        #cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
+        #cat = self.db[constants.COL_CATEGORIES].find_one({'category_code': dataset_code})
         #dataset.name = cat['name']
-        #dataset.doc_href = cat['docHref']
-        #dataset.last_update = cat['lastUpdate']
+        #dataset.doc_href = cat['doc_href']
+        #dataset.last_update = cat['last_update']
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
@@ -204,8 +204,8 @@ class INSEE(Fetcher):
                            last_update=datetime.now(), #TODO:
                            fetcher=self)
         
-        dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
-                                                                "datasetCode": dataset_code})
+        dataset_doc = self.db[constants.COL_DATASETS].find_one({'provider_name': self.provider_name,
+                                                                "dataset_code": dataset_code})
         
         insee_data = INSEE_Data(dataset=dataset,
                                 dataset_doc=dataset_doc, 
@@ -219,7 +219,7 @@ class INSEE(Fetcher):
         
         """
         > IDBANK:  A définir dynamiquement sur site ?
-        docHref d'une serie: http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=001694226
+        doc_href d'une serie: http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=001694226
         > CODE GROUPE: Balance des Paiements mensuelle - Compte de capital
         http://www.bdm.insee.fr/bdm2/choixCriteres?codeGroupe=1556
         """
@@ -239,7 +239,7 @@ class INSEE_Data(object):
         self.dataset_doc = dataset_doc
         self.last_update = None
         if self.dataset_doc:
-            self.last_update = self.dataset_doc["lastUpdate"]
+            self.last_update = self.dataset_doc["last_update"]
         #    self.dataset.last_update = self.last_update
         
         self.provider_name = self.dataset.provider_name
@@ -338,7 +338,7 @@ class INSEE_Data(object):
         _is_updated = series_updated > self.last_update
 
         if not _is_updated and logger.isEnabledFor(logging.INFO):
-            logger.info("bypass updated datasetCode[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
+            logger.info("bypass updated dataset_code[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
                                                                                  self.last_update, 
                                                                                  series.attrib.IDBANK,
                                                                                  series_updated))
@@ -467,11 +467,11 @@ class INSEE_Data(object):
         :param series: Instance of pandasdmx.model.Series
         """
         bson = {}
-        bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
+        bson['provider_name'] = self.provider_name
+        bson['dataset_code'] = self.dataset_code
         bson['key'] = self.get_series_key(series)
         bson['name'] = self.get_series_name(series)
-        bson['lastUpdate'] = self.get_last_update(series)
+        bson['last_update'] = self.get_last_update(series)
         
         self.debug_series(series, bson)
         
@@ -496,8 +496,8 @@ class INSEE_Data(object):
         
         '''INSEE ordered dates (desc) - 2015 -> 2000'''
         _dates = [o.dim for o in series.obs(with_values=False, with_attributes=False, reverse_obs=False)]
-        bson['startDate'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
-        bson['endDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
+        bson['start_date'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
+        bson['end_date'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
         
         bson['values'] = []
         for o in series.obs(with_values=True, with_attributes=False, reverse_obs=True):

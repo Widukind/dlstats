@@ -157,12 +157,12 @@ class IMF(Fetcher):
             logger.error(str(err))
 
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'IMF',
-                     'categoryCode': 'imf_root',
-                     'children': [{'provider': self.provider_name,
+                     'category_code': 'imf_root',
+                     'children': [{'provider_name': self.provider_name,
                                    'name': 'WEO' , 
-                                   'categoryCode': 'WEO',
+                                   'category_code': 'WEO',
                                    'exposed': True}]}
         self.fetcher.provider.add_data_tree(data_tree)
         
@@ -225,8 +225,8 @@ class WeoData():
             release_dates = [self.release_date for v in values]
             #print("release_dates : ", release_dates)
             #datetime.datetime(2006, 9, 1, 0, 0)
-            series['provider'] = self.provider_name
-            series['datasetCode'] = self.dataset_code
+            series['provider_name'] = self.provider_name
+            series['dataset_code'] = self.dataset_code
             series['name'] = series_name
             series['key'] = series_key
             series['values'] = values
@@ -237,11 +237,11 @@ class WeoData():
             series['dimensions'] = dimensions
             
             #TODO: a verifier
-            series['lastUpdate'] = self.release_date
+            series['last_update'] = self.release_date
             
-            series['releaseDates'] = release_dates
-            series['startDate'] = self.start_date.ordinal
-            series['endDate'] = self.end_date.ordinal
+            series['release_dates'] = release_dates
+            series['start_date'] = self.start_date.ordinal
+            series['end_date'] = self.end_date.ordinal
             series['frequency'] = 'A'
             
             if row['Subject Notes']:

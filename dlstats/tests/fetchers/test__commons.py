@@ -107,13 +107,13 @@ class FakeDatas():
             frequency = choice(['A','Q']) 
             start_date = randint(10,100)
             end_date = start_date + n - 1
-            data = {'provider': self.provider_name, 
-                    'datasetCode': self.dataset_code,
+            data = {'provider_name': self.provider_name, 
+                    'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': key,
                     'frequency': frequency,
-                    'startDate': start_date,
-                    'endDate': end_date,
+                    'start_date': start_date,
+                    'end_date': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -122,13 +122,13 @@ class FakeDatas():
                         'Scale': 'Billions'
                     }}
             """
-            data = {'provider': self.provider_name, 
-                    'datasetCode': self.dataset_code,
+            data = {'provider_name': self.provider_name, 
+                    'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': key,
                     'frequency': frequency,
-                    'startDate': start_date,
-                    'endDate': end_date,
+                    'start_date': start_date,
+                    'end_date': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -223,7 +223,7 @@ class ProviderTestCase(BaseTestCase):
         
         bson = p.bson
         self.assertEqual(bson["name"], "p1")
-        self.assertEqual(bson["longName"], "Provider One")
+        self.assertEqual(bson["long_name"], "Provider One")
         self.assertEqual(bson["region"], "Dreamland")
         self.assertEqual(bson["website"], "http://www.example.com")
         self.assertEqual(bson["slug"], "p1")
@@ -254,13 +254,13 @@ class DatasetTestCase(BaseTestCase):
         self.assertTrue(isinstance(d.attribute_list, CodeDict))
         
         bson = d.bson
-        self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["datasetCode"], "d1")
+        self.assertEqual(bson['provider_name'], "p1")
+        self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertTrue(isinstance(bson["dimensionList"], dict))
-        self.assertTrue(isinstance(bson["attributeList"], dict))
-        self.assertIsNone(bson["lastUpdate"])
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
+        self.assertTrue(isinstance(bson["dimension_list"], dict))
+        self.assertTrue(isinstance(bson["attribute_list"], dict))
+        self.assertIsNone(bson["last_update"])
         self.assertEqual(bson["slug"], "p1-d1")
 
         #TODO: last_update        
@@ -362,15 +362,15 @@ class DBProviderTestCase(BaseDBTestCase):
                       fetcher=f)
         p.update_database()
         
-        data_tree = {'provider': "p1",
+        data_tree = {'provider_name': "p1",
                      'name': "p1_root",
-                     'categoryCode': "c0",
-                     'docHref': 'http://www.example.com',
+                     'category_code': "c0",
+                     'doc_href': 'http://www.example.com',
                      'children': [
-                         {'provider': "p1",
+                         {'provider_name': "p1",
                           'name': "cat1", 
-                          'categoryCode': "c1",
-                          'lastUpdate': datetime(2010,1,5),
+                          'category_code': "c1",
+                          'last_update': datetime(2010,1,5),
                           'exposed': False,
                           'children': None}]
                      }
@@ -378,16 +378,16 @@ class DBProviderTestCase(BaseDBTestCase):
         res = p.add_data_tree(data_tree)
         
         bson = res['data_tree']
-        self.assertEqual(bson["categoryCode"], "c0")
+        self.assertEqual(bson["category_code"], "c0")
         self.assertEqual(bson["name"], "p1_root")
-        self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
+        self.assertEqual(bson['provider_name'], "p1")
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
 
         bson1 = res['data_tree']['children'][0]
-        self.assertEqual(bson1["categoryCode"], "c1")
+        self.assertEqual(bson1["category_code"], "c1")
         self.assertEqual(bson1["name"], "cat1")
-        self.assertEqual(bson1["provider"], "p1")
-        self.assertEqual(bson1["lastUpdate"],datetime(2010,1,5))
+        self.assertEqual(bson1['provider_name'], "p1")
+        self.assertEqual(bson1["last_update"],datetime(2010,1,5))
         self.assertFalse(bson1["exposed"])
 
 class DBDatasetTestCase(BaseDBTestCase):
@@ -426,7 +426,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
                         
         with self.assertRaises(DuplicateKeyError):
-            existing_dataset = dict(provider="p1", datasetCode="d1")
+            existing_dataset = dict(provider_name="p1", dataset_code="d1")
             self.db[constants.COL_DATASETS].insert(existing_dataset)
 
 
@@ -461,18 +461,18 @@ class DBDatasetTestCase(BaseDBTestCase):
         
         #print(result.raw)
 
-        bson = self.db[constants.COL_DATASETS].find_one({"provider": "p1", "datasetCode": "d1"})
+        bson = self.db[constants.COL_DATASETS].find_one({'provider_name': "p1", "dataset_code": "d1"})
         self.assertIsNotNone(bson)
     
-        self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["datasetCode"], "d1")
+        self.assertEqual(bson['provider_name'], "p1")
+        self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
-        self.assertTrue(isinstance(bson["dimensionList"], dict))
-        self.assertTrue(isinstance(bson["attributeList"], dict))
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
+        self.assertTrue(isinstance(bson["dimension_list"], dict))
+        self.assertTrue(isinstance(bson["attribute_list"], dict))
 
-        series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": d.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
+                                                     "dataset_code": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
         
         
@@ -523,8 +523,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(self.db[constants.COL_SERIES].count(), datas.max_record)
 
         '''Count series for this provider and dataset'''
-        series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
+                                                     "dataset_code": dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
         tags.update_tags(self.db, 
@@ -532,8 +532,8 @@ class DBSeriesTestCase(BaseDBTestCase):
                     col_name=constants.COL_SERIES)        
 
         '''Count series for this provider and dataset and in keys[]'''
-        series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": dataset_code,
+        series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
+                                                     "dataset_code": dataset_code,
                                                      "key": {"$in": datas.keys}})
         
         self.assertEqual(series.count(), datas.max_record)
@@ -599,8 +599,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         for i,r in enumerate(datas2.rows):
             r['key'] = datas2.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
-            r['startDate'] = datas1.rows[i]['startDate']
-            r['endDate'] = datas1.rows[i]['endDate']
+            r['start_date'] = datas1.rows[i]['start_date']
+            r['end_date'] = datas1.rows[i]['end_date']
         datas2.rows[0]['values'] = deepcopy(datas1.rows[0]['values'])
         datas2.rows[0]['values'][1] = str(float(datas2.rows[0]['values'][1]) + 1.5)
         datas2.rows[0]['values'][8] = str(float(datas2.rows[0]['values'][8]) - 0.9)
@@ -613,14 +613,14 @@ class DBSeriesTestCase(BaseDBTestCase):
         test_key = datas2.keys[0]
         test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
         self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
-        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
-        self.assertEqual(test_series['releaseDates'][1],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][8],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
-        self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
-        self.assertEqual(test_series['startDate'],datas1.rows[0]['startDate'])
-        self.assertEqual(test_series['endDate'],datas1.rows[0]['endDate'])
+        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
+        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
+        self.assertEqual(test_series['release_dates'][1],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][8],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][0],datetime(2013,4,1))
+        self.assertEqual(test_series['release_dates'][2:8],[datetime(2013,4,1) for i in range(6)])
+        self.assertEqual(test_series['start_date'],datas1.rows[0]['start_date'])
+        self.assertEqual(test_series['end_date'],datas1.rows[0]['end_date'])
 
         # B. adding observations at the beginning of the series
         s3 = Series(provider_name=f.provider_name, 
@@ -638,10 +638,10 @@ class DBSeriesTestCase(BaseDBTestCase):
         for i,r in enumerate(datas3.rows):
             r['key'] = datas3.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
-            r['startDate'] = datas1.rows[i]['startDate']
-            r['endDate'] = datas1.rows[i]['endDate']
+            r['start_date'] = datas1.rows[i]['start_date']
+            r['end_date'] = datas1.rows[i]['end_date']
         
-        datas3.rows[0]['startDate'] = datas1.rows[0]['startDate'] - 2;    
+        datas3.rows[0]['start_date'] = datas1.rows[0]['start_date'] - 2;    
         datas3.rows[0]['values'] = [ '10', '10'] + datas1.rows[0]['values']
         datas3.rows[0]['values'][3] = str(float(datas3.rows[0]['values'][3]) + 1.5)
         datas3.rows[0]['values'][10] = str(float(datas3.rows[0]['values'][10]) - 0.9)
@@ -654,18 +654,18 @@ class DBSeriesTestCase(BaseDBTestCase):
         test_key = datas3.keys[0]
         test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
         self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
-        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
-        self.assertEqual(len(test_series['releaseDates']),len(test_series['values']))
-        self.assertEqual(test_series['releaseDates'][3],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][0:2],[datetime(2014,4,1) for i in range(2)])
-        self.assertEqual(test_series['releaseDates'][2],datetime(2013,4,1))
-        self.assertEqual(test_series['releaseDates'][4:10],[datetime(2013,4,1) for i in range(6)])
+        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
+        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
+        self.assertEqual(len(test_series['release_dates']),len(test_series['values']))
+        self.assertEqual(test_series['release_dates'][3],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][10],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][0:2],[datetime(2014,4,1) for i in range(2)])
+        self.assertEqual(test_series['release_dates'][2],datetime(2013,4,1))
+        self.assertEqual(test_series['release_dates'][4:10],[datetime(2013,4,1) for i in range(6)])
         self.assertEqual(len(test_series['values']),11)
-        self.assertEqual(len(test_series['releaseDates']),11)
-        self.assertEqual(test_series['startDate'],datas2.rows[0]['startDate']-2)
-        self.assertEqual(test_series['endDate'],datas2.rows[0]['endDate'])
+        self.assertEqual(len(test_series['release_dates']),11)
+        self.assertEqual(test_series['start_date'],datas2.rows[0]['start_date']-2)
+        self.assertEqual(test_series['end_date'],datas2.rows[0]['end_date'])
             
         # C. adding observations at the end of the series
         s4 = Series(provider_name=f.provider_name, 
@@ -683,10 +683,10 @@ class DBSeriesTestCase(BaseDBTestCase):
         for i,r in enumerate(datas4.rows):
             r['key'] = datas4.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
-            r['startDate'] = datas3.rows[i]['startDate']
-            r['endDate'] = datas3.rows[i]['endDate']
+            r['start_date'] = datas3.rows[i]['start_date']
+            r['end_date'] = datas3.rows[i]['end_date']
         
-        datas4.rows[0]['endDate'] = datas3.rows[0]['endDate'] + 1;    
+        datas4.rows[0]['end_date'] = datas3.rows[0]['end_date'] + 1;    
         datas4.rows[0]['values'] = datas3.rows[0]['values'] + ['1.0']
         s4.data_iterator = datas4
         
@@ -699,10 +699,10 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(len(test_series['revisions']),2)
         self.assertEqual(len(test_series['values']),12)
         self.assertEqual(test_series['values'][11],'1.0')
-        self.assertEqual(len(test_series['releaseDates']),12)
-        self.assertEqual(test_series['releaseDates'][11],datetime(2014,5,1))
-        self.assertEqual(test_series['startDate'],datas3.rows[0]['startDate'])
-        self.assertEqual(test_series['endDate'],datas3.rows[0]['endDate']+1)
+        self.assertEqual(len(test_series['release_dates']),12)
+        self.assertEqual(test_series['release_dates'][11],datetime(2014,5,1))
+        self.assertEqual(test_series['start_date'],datas3.rows[0]['start_date'])
+        self.assertEqual(test_series['end_date'],datas3.rows[0]['end_date']+1)
             
         # D. removing observations at the beginning and the end of the series
         s5 = Series(provider_name=f.provider_name, 
@@ -720,11 +720,11 @@ class DBSeriesTestCase(BaseDBTestCase):
         for i,r in enumerate(datas5.rows):
             r['key'] = datas4.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
-            r['startDate'] = datas4.rows[i]['startDate']
-            r['endDate'] = datas4.rows[i]['endDate']
+            r['start_date'] = datas4.rows[i]['start_date']
+            r['end_date'] = datas4.rows[i]['end_date']
         
-        datas5.rows[0]['startDate'] = datas4.rows[0]['startDate'] + 1;    
-        datas5.rows[0]['endDate'] = datas4.rows[0]['endDate'] - 1;    
+        datas5.rows[0]['start_date'] = datas4.rows[0]['start_date'] + 1;    
+        datas5.rows[0]['end_date'] = datas4.rows[0]['end_date'] - 1;    
         datas5.rows[0]['values'] = datas4.rows[0]['values'][1:-1]
         s5.data_iterator = datas5
         
@@ -740,12 +740,12 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['values'][1],datas4.rows[0]['values'][1])
         self.assertEqual(test_series['values'][10],datas4.rows[0]['values'][-2])
         self.assertEqual(test_series['values'][11],'na')
-        self.assertEqual(test_series['releaseDates'][0],datetime(2014,6,1))
-        self.assertEqual(test_series['releaseDates'][1],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
-        self.assertEqual(test_series['releaseDates'][11],datetime(2014,6,1))
-        self.assertEqual(test_series['startDate'],datas4.rows[0]['startDate'])
-        self.assertEqual(test_series['endDate'],datas4.rows[0]['endDate'])
+        self.assertEqual(test_series['release_dates'][0],datetime(2014,6,1))
+        self.assertEqual(test_series['release_dates'][1],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][10],datetime(2014,4,1))
+        self.assertEqual(test_series['release_dates'][11],datetime(2014,6,1))
+        self.assertEqual(test_series['start_date'],datas4.rows[0]['start_date'])
+        self.assertEqual(test_series['end_date'],datas4.rows[0]['end_date'])
                                                              
 if __name__ == '__main__':
     unittest.main()

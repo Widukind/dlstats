@@ -47,7 +47,7 @@ class Esri(Fetcher):
         links_ = [href_.values() for href_ in hrefs_]
         deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
         self.url_all = gdp_urls + deflator_urls
-        self.datasetCode_list = ['Nominal Gross Domestic Product (original series)',
+        self.dataset_code_list = ['Nominal Gross Domestic Product (original series)',
                 'Annual Nominal GDP (fiscal year)',                
                 'Nominal Gross Domestic Product (seasonally adjusted series)',
                 'Annual Nominal GDP (calendar year)',
@@ -60,24 +60,24 @@ class Esri(Fetcher):
                 'Deflators (fiscal year)',
                 'Deflators (calendar year)']
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name, 
+        data_tree = {'provider_name': self.provider_name, 
                      'name': 'esri', 
-                     'categoryCode': 'esri',
+                     'category_code': 'esri',
                      'children': None}
         self.fetcher.provider.add_data_tree(data_tree)
         
     def esri_issue(self):
         for self.url in self.url_all :
-            datasetCode = self.datasetCode_list[self.url_all.index(self.url)]
-            self.upsert_dataset(datasetCode)
+            dataset_code = self.dataset_code_list[self.url_all.index(self.url)]
+            self.upsert_dataset(dataset_code)
 
-    def upsert_dataset(self, datasetCode):
+    def upsert_dataset(self, dataset_code):
         start = time.time()
-        logger.info("upsert dataset[%s] - START" % (datasetCode))
-        self.upsert_sna(self.url,datasetCode)                  
-        self.update_metas(datasetCode)
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
+        self.upsert_sna(self.url,dataset_code)                  
+        self.update_metas(dataset_code)
         end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def upsert_sna(self, url, dataset_code):
         dataset = Datasets(self.provider_name,dataset_code,
@@ -85,7 +85,7 @@ class Esri(Fetcher):
         sna_data = EsriData(dataset,url)
         dataset.name = dataset_code
         dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
-        dataset.last_update = sna_data.releaseDate
+        dataset.last_update = sna_data.release_date
         dataset.series.data_iterator = sna_data
         dataset.update_database()
 
@@ -98,8 +98,8 @@ class EsriData():
         self.attribute_list = dataset.attribute_list
         self.panda_csv = pandas.read_csv(url)
         response = urllib.request.urlopen(url)
-        releaseDate = response.info()['Last-Modified'] 
-        self.releaseDate = datetime.strptime(releaseDate, 
+        release_date = response.info()['Last-Modified'] 
+        self.release_date = datetime.strptime(release_date, 
                                                       "%a, %d %b %Y %H:%M:%S GMT")                                                  
  
         if self.panda_csv.icol(0)[6] == '4' :
@@ -158,15 +158,15 @@ class EsriData():
         #print(dimensions['concept'])
         for r in range(6, len(column)):
             series_value.append(str(column[r]))    
-        #release_dates = [self.releaseDate for v in series_value] 
+        #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
-        series['provider'] = self.provider_name       
-        series['datasetCode'] = self.dataset_code
+        series['provider_name'] = self.provider_name       
+        series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key
-        series['startDate'] = self.start_date
-        series['endDate'] = self.end_date  
-        series['lastUpdate'] = self.releaseDate
+        series['start_date'] = self.start_date
+        series['end_date'] = self.end_date  
+        series['last_update'] = self.release_date
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}

@@ -330,15 +330,15 @@ class BIS(Fetcher):
         return [(key, dataset['name']) for key, dataset in DATASETS.items()]
 
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'Eurostat',
-                     'categoryCode': 'oecd_root',
+                     'category_code': 'oecd_root',
                      'children': []}
         
         for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'provider': self.provider_name, 
+            data_tree['children'].append({'provider_name': self.provider_name, 
                                           'name': DATASETS[dataset_code]['name'], 
-                                          'categoryCode': dataset_code,
+                                          'category_code': dataset_code,
                                           'exposed': True,
                                           'children': None})
 
@@ -401,12 +401,12 @@ class BIS_Data():
     def is_updated(self):
 
         dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(
-                                                {"provider": self.dataset.provider_name,
-                                                "datasetCode": self.dataset.dataset_code})
+                                                {'provider_name': self.dataset.provider_name,
+                                                "dataset_code": self.dataset.dataset_code})
         if not dataset_doc:
             return True
 
-        if self.release_date > dataset_doc['lastUpdate']:
+        if self.release_date > dataset_doc['last_update']:
             return True
 
         return False
@@ -440,16 +440,16 @@ class BIS_Data():
 
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
         
-        data = {'provider': self.dataset.provider_name,
-                'datasetCode': self.dataset.dataset_code,
+        data = {'provider_name': self.dataset.provider_name,
+                'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,
                 'values': values,
                 'attributes': {},
                 'dimensions': dimensions,
-                'lastUpdate': self.release_date,
-                'startDate': self.start_date.ordinal,
-                'endDate': self.end_date.ordinal,
+                'last_update': self.release_date,
+                'start_date': self.start_date.ordinal,
+                'end_date': self.end_date.ordinal,
                 'frequency': self.frequency}
 
         return(data)

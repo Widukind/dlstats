@@ -45,21 +45,21 @@ class ECB(Fetcher):
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
                     in_base_category_ = {
-                        'provider': self.provider_name,
+                        'provider_name': self.provider_name,
                         'name': name,
-                        'categoryCode': flowref,
+                        'category_code': flowref,
                         'children': [],
-                        'docHref': None,
-                        'lastUpdate': None,
+                        'doc_href': None,
+                        'last_update': None,
                         'exposed': False}
                     children_.append(in_base_category_)
                 in_base_category = {
-                    'provider': self.provider_name,
+                    'provider_name': self.provider_name,
                     'name': category['name'],
-                    'categoryCode': category['name'],
+                    'category_code': category['name'],
                     'children': children_,
-                    'docHref': None,
-                    'lastUpdate': None,
+                    'doc_href': None,
+                    'last_update': None,
                     'exposed': False}
             if 'subcategories' in category:
                 children_ = []
@@ -68,23 +68,23 @@ class ECB(Fetcher):
                     if child:
                         children_.append(child)
                 in_base_category = {
-                    'provider': self.provider_name,
+                    'provider_name': self.provider_name,
                     'name': category['name'],
-                    'categoryCode': category['name'],
+                    'category_code': category['name'],
                     'children': children_,
-                    'docHref': None,
-                    'lastUpdate': None,
+                    'doc_href': None,
+                    'last_update': None,
                     'exposed': False}
             return in_base_category
 
         data_tree_ = walk_category(self.get_categories())
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'ECB',
-                     'docHref': None,
+                     'doc_href': None,
                      'children': data_tree_['children'],
-                     'categoryCode': 'ecb_root',
+                     'category_code': 'ecb_root',
                      'exposed': False,
-                     'lastUpdate': None}
+                     'last_update': None}
         return data_tree
     
     def upsert_categories(self):
@@ -96,12 +96,12 @@ class ECB(Fetcher):
         :returns: dict of datasets"""
 
         def walktree1(node,selected):
-            if selected or (node['categoryCode'] in self.selected_codes):
+            if selected or (node['category_code'] in self.selected_codes):
                 selected = True
                 if len(node['children']) == 0:
                     # this is a leaf
                     node['exposed'] = True
-                    self.selected_datasets.update({node['categoryCode']: node})
+                    self.selected_datasets.update({node['category_code']: node})
 
             for child in node['children']:
                 walktree1(child,selected)
@@ -141,7 +141,7 @@ class ECB(Fetcher):
                            dataset_code,
                            fetcher=self,
                            last_update=datetime.now(),
-                           doc_href=cat['docHref'], name=cat['name'])
+                           doc_href=cat['doc_href'], name=cat['name'])
         ecb_data = ECBData(dataset)
         dataset.series.data_iterator = ecb_data
         dataset.update_database()
@@ -149,18 +149,18 @@ class ECB(Fetcher):
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def datasets_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
-        return [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        return [dataset_code['category_code'] for dataset_code in dataset_codes]
 
     def datasets_long_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, 'name': True, '_id': False})
-        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, 'name': True, '_id': False})
+        return [(dataset_code['category_code'], dataset_code['name']) for dataset_code in dataset_codes]
 
     def upsert_all_datasets(self):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
-        dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        dataset_codes = [dataset_code['category_code'] for dataset_code in dataset_codes]
         for dataset_code in dataset_codes:
             self.upsert_dataset(dataset_code)
         end = time.time() - start
@@ -214,8 +214,8 @@ class ECBData(object):
                     self.__next__()
         current_key = self.keys_to_process.pop()
         series = dict()
-        series['provider'] = self.provider_name
-        series['datasetCode'] = self.dataset_code
+        series['provider_name'] = self.provider_name
+        series['dataset_code'] = self.dataset_code
         series['key'] = current_key
         series['name'] = "-".join([self.current_raw_data[3][current_key][key]
                                   for key in self.current_raw_data[3][current_key]])
@@ -224,20 +224,20 @@ class ECBData(object):
         if series['frequency'] == 'W':
             start_date = self.current_raw_data[1][current_key][0].split('-W')
             end_date = self.current_raw_data[1][current_key][-1].split('-W')
-            series['startDate'] = pandas.Period(
+            series['start_date'] = pandas.Period(
                 year=int(start_date[0]),
                 freq=series['frequency']
             ).ordinal + int(start_date[1])
-            series['endDate'] = pandas.Period(
+            series['end_date'] = pandas.Period(
                 year=int(end_date[0]),
                 freq=series['frequency']
             ).ordinal + int(end_date[1])
         else:
-            series['startDate'] = pandas.Period(
+            series['start_date'] = pandas.Period(
                 self.current_raw_data[1][current_key][0],
                 freq=series['frequency']
             ).ordinal
-            series['endDate'] = pandas.Period(
+            series['end_date'] = pandas.Period(
                 self.current_raw_data[1][current_key][-1],
                 freq=series['frequency']
             ).ordinal

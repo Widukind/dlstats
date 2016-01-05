@@ -47,13 +47,13 @@ class FakeDatas():
             frequency = choice(['A', 'Q', 'M']) 
             start_date = randint(10, 100)
             end_date = start_date + n - 1
-            data = {'provider': self.provider_name, 
-                    'datasetCode': self.dataset_code,
+            data = {'provider_name': self.provider_name, 
+                    'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': "%s %s - %s" % (self.dataset_code, dimensions['Country'], i),
                     'frequency': frequency,
-                    'startDate': start_date,
-                    'endDate': end_date,
+                    'start_date': start_date,
+                    'end_date': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -138,7 +138,7 @@ class DBTagsTestCase(BaseDBTestCase):
         tags = utils.generate_tags(self.db, doc, 
                                    doc_type=constants.COL_DATASETS)
         
-        query = {"provider": d.provider_name, "datasetCode": d.dataset_code}
+        query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
         self.assertEqual(series.count(), max_record)
         
@@ -190,7 +190,7 @@ class DBTagsTestCase(BaseDBTestCase):
         doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
         self.assertListEqual(doc['tags'], sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france']))
 
-        query = {"provider": d.provider_name, "datasetCode": d.dataset_code}
+        query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
         self.assertEqual(series.count(), max_record)
         
@@ -266,7 +266,7 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         
         self.db[constants.COL_DATASETS].reindex()
 
-        query = dict(provider="eurostat", datasetCode="name_a")
+        query = dict(provider_name="eurostat", dataset_code="name_a")
         dataset = self.db[constants.COL_DATASETS].find_one(query)
         self.assertIsNotNone(dataset)
         

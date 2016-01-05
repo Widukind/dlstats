@@ -93,8 +93,8 @@ class OECDDatasetsTestCase(BaseTestCase):
         
         result = self.oecd_data.build_serie(row)
         
-        data = {'provider': self.dataset.provider_name,
-                'datasetCode': self.dataset.dataset_code,
+        data = {'provider_name': self.dataset.provider_name,
+                'dataset_code': self.dataset.dataset_code,
                 'name': 'France - Annual - Main Economic Indicators - Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives',
                 'key': "FRA.A.MEI.BPFAFD01",
                 'values': [str(v) for v in row['values']],
@@ -111,9 +111,9 @@ class OECDDatasetsTestCase(BaseTestCase):
                 #    "Frequency" : "Annual",
                 #    "Subject" : "Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives"
                 #},
-                'lastUpdate': self.oecd_data.prepared,
-                'startDate': 10,
-                'endDate': 11,
+                'last_update': self.oecd_data.prepared,
+                'start_date': 10,
+                'end_date': 11,
                 'frequency': 'A'}        
 
         self.assertDictEqual(result, data)
