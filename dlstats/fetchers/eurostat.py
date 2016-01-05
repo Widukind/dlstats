@@ -289,7 +289,7 @@ class Eurostat(Fetcher):
         :returns: None"""
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        if self.selected_datasets is None:
+        if not self.selected_datasets:
             self.get_selected_datasets()
         cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
