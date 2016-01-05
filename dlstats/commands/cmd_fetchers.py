@@ -4,10 +4,11 @@ import sys
 from pprint import pprint
 import click
 
+from widukind_common import tags
+
 from dlstats import constants
 from dlstats.fetchers import FETCHERS, FETCHERS_DATASETS
 from dlstats import client
-from dlstats import utils
 
 opt_fetcher = click.option('--fetcher', '-f', 
               required=True, type=click.Choice(FETCHERS.keys()), 
@@ -261,7 +262,7 @@ def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20,
         for col in cols:
             #TODO: serie_key
             #TODO: cumul result et rapport
-            result = utils.update_tags(db, 
+            result = tags.update_tags(db, 
                                        provider_name=fetcher, 
                                        dataset_code=dataset, 
                                        serie_key=None,
@@ -269,8 +270,8 @@ def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20,
                                        max_bulk=max_bulk)
 
         if aggregate:
-            result_datasets = utils.aggregate_tags_datasets(db, max_bulk=max_bulk)
-            result_series = utils.aggregate_tags_series(db, max_bulk=max_bulk)
+            result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
+            result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -321,7 +322,7 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     
     query = dict()
 
-    result = utils.search_tags(db,
+    result = tags.search_tags(db,
                                search_type=search_type, 
                                provider_name=fetcher, 
                                dataset_code=dataset, 

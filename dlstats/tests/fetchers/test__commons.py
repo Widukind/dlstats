@@ -12,6 +12,8 @@ from voluptuous import MultipleInvalid
 
 from pymongo.errors import DuplicateKeyError
 
+from widukind_common import tags
+
 from dlstats import constants
 from dlstats.fetchers._commons import (Fetcher, 
                                        CodeDict, 
@@ -19,7 +21,6 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Providers,
                                        Datasets, 
                                        Series)
-from dlstats.utils import generate_tags, update_tags
 
 import unittest
 
@@ -526,7 +527,7 @@ class DBSeriesTestCase(BaseDBTestCase):
                                                      "datasetCode": dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
-        update_tags(self.db, 
+        tags.update_tags(self.db, 
                     provider_name=f.provider_name, dataset_code=dataset_code,  
                     col_name=constants.COL_SERIES)        
 

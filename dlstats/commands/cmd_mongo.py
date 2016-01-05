@@ -5,10 +5,11 @@ from pprint import pprint
 
 import click
 
+from widukind_common.utils import create_or_update_indexes
+
 from dlstats import constants
 from dlstats import client
 from dlstats.fetchers import schemas
-from dlstats import utils
 
 #TODO: move to schemas module
 CURRENT_SCHEMAS = {
@@ -38,7 +39,7 @@ def cmd_reindex(**kwargs):
     
         db = ctx.mongo_database()
         
-        utils.create_or_update_indexes(db)
+        create_or_update_indexes(db)
         
         with click.progressbar(constants.COL_ALL,
                                length=len(constants.COL_ALL),

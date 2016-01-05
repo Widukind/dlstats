@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
-import os
 import uuid
 from datetime import datetime
 from random import choice, randint
 
+from widukind_common import tags as utils
+
 from dlstats import constants
-from dlstats.fetchers._commons import (Fetcher, 
-                                       Datasets)
-from dlstats import utils
+from dlstats.fetchers._commons import (Fetcher, Datasets)
 
 from dlstats.tests.base import BaseTestCase, BaseDBTestCase
 
@@ -132,9 +130,9 @@ class DBTagsTestCase(BaseDBTestCase):
                           max_record=max_record)
         d.series.data_iterator = datas
         
-        id = d.update_database()
+        _id = d.update_database()
         
-        doc = self.db[constants.COL_DATASETS].find_one({"_id": id})        
+        doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})        
         self.assertIsNotNone(doc)
         
         tags = utils.generate_tags(self.db, doc, 
@@ -175,7 +173,7 @@ class DBTagsTestCase(BaseDBTestCase):
                           dataset_code=d.dataset_code,
                           max_record=max_record)
         d.series.data_iterator = datas
-        id = d.update_database()
+        _id = d.update_database()
 
         utils.update_tags(self.db, 
                     provider_name=d.provider_name, 
@@ -189,7 +187,7 @@ class DBTagsTestCase(BaseDBTestCase):
                     col_name=constants.COL_SERIES, 
                     max_bulk=20)
 
-        doc = self.db[constants.COL_DATASETS].find_one({"_id": id})
+        doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
         self.assertListEqual(doc['tags'], sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france']))
 
         query = {"provider": d.provider_name, "datasetCode": d.dataset_code}
@@ -243,7 +241,7 @@ class DBTagsSearchTestCase(BaseDBTestCase):
                           max_record=max_record,
                           dimensions_generator=dimensions_generator)
         d.series.data_iterator = datas
-        id = d.update_database()
+        _id = d.update_database()
 
         utils.update_tags(self.db, 
                     provider_name=d.provider_name, 
