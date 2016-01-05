@@ -266,7 +266,7 @@ class DBTagsSearchTestCase(BaseDBTestCase):
         
         self.db[constants.COL_DATASETS].reindex()
 
-        query = dict(provider="eurostat", dataset_code="name_a")
+        query = dict(provider_name="eurostat", dataset_code="name_a")
         dataset = self.db[constants.COL_DATASETS].find_one(query)
         self.assertIsNotNone(dataset)
         

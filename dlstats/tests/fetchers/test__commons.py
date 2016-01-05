@@ -426,7 +426,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
                         
         with self.assertRaises(DuplicateKeyError):
-            existing_dataset = dict(provider="p1", dataset_code="d1")
+            existing_dataset = dict(provider_name="p1", dataset_code="d1")
             self.db[constants.COL_DATASETS].insert(existing_dataset)
 
 

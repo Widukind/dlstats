@@ -148,7 +148,7 @@ class INSEE(Fetcher):
                                                       categorisation, 
                                                       dataflows))
                 
-                category = Categories(provider=self.provider_name,
+                category = Categories(provider_name=self.provider_name,
                                       name=name,
                                       category_code=category_code,
                                       children=children_ids,
@@ -162,7 +162,7 @@ class INSEE(Fetcher):
             else:
                 for df_id in categorisation[category['id']]:
                     
-                    category = Categories(provider=self.provider_name,
+                    category = Categories(provider_name=self.provider_name,
                                           name=dataflows[df_id][2]['en'],
                                           category_code=category['id'],
                                           children=children_ids,
