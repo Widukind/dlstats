@@ -59,27 +59,27 @@ class BEA(Fetcher):
                     for sheet_name in excel_book.sheet_names(): 
                         sheet = excel_book.sheet_by_name(sheet_name)
                         if  sheet_name != 'Contents':
-                            datasetCode = sheet_name.replace(' ','_')
-                            self.upsert_dataset(datasetCode, sheet)                    
+                            dataset_code = sheet_name.replace(' ','_')
+                            self.upsert_dataset(dataset_code, sheet)                    
                 # else :
                 #ToDO: lip_PrevT3a, lip_PrevT3b, lip_PrevT3c          
                     
                         
-    def upsert_dataset(self, datasetCode, sheet):    
+    def upsert_dataset(self, dataset_code, sheet):    
         start = time.time()
-        logger.info("upsert dataset[%s] - START" % (datasetCode))
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
         
-        dataset = Datasets(self.provider_name,datasetCode,
+        dataset = Datasets(self.provider_name,dataset_code,
                            fetcher=self)
         bea_data = BeaData(dataset,self.url, sheet)
-        dataset.name = datasetCode
+        dataset.name = dataset_code
         dataset.doc_href = 'http://www.bea.gov/newsreleases/national/gdp/gdpnewsrelease.htm'
         dataset.last_update = bea_data.release_date
         dataset.series.data_iterator = bea_data
         dataset.update_database()
-        self.update_metas(datasetCode)
+        self.update_metas(dataset_code)
         end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
 
         
@@ -178,7 +178,7 @@ class BeaData():
         #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
         series['provider'] = self.provider_name       
-        series['datasetCode'] = self.dataset_code
+        series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key
         series['startDate'] = self.start_date

@@ -249,7 +249,7 @@ class Datasets(DlstatsCollection):
     def bson(self):
         return {'provider': self.provider_name,
                 'name': self.name,
-                'datasetCode': self.dataset_code,
+                'dataset_code': self.dataset_code,
                 'slug': self.slug(),
                 'dimensionList': self.dimension_list.get_list(),
                 'attributeList': self.attribute_list.get_list(),
@@ -260,7 +260,7 @@ class Datasets(DlstatsCollection):
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
                                             {'provider': provider_name,
-                                             'datasetCode': dataset_code})
+                                             'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
             self.dimension_list.set_from_list(dataset['dimensionList'])
@@ -270,7 +270,7 @@ class Datasets(DlstatsCollection):
         self.series.process_series_data()        
         schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            ['provider', 'datasetCode'],
+                                            ['provider', 'dataset_code'],
                                             self.bson)
 
 class Series(DlstatsCollection):
@@ -300,7 +300,7 @@ class Series(DlstatsCollection):
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
-                               ('datasetCode', self.dataset_code),
+                               ('dataset_code', self.dataset_code),
                                ('lastUpdate', self.last_update)])
 
     def process_series_data(self):
@@ -332,7 +332,7 @@ class Series(DlstatsCollection):
 
         old_series = self.fetcher.db[constants.COL_SERIES].find({
                                         'provider': self.provider_name,
-                                        'datasetCode': self.dataset_code,
+                                        'dataset_code': self.dataset_code,
                                         'key': {'$in': keys}})
 
         old_series = {s['key']:s for s in old_series}

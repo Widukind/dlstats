@@ -47,7 +47,7 @@ class Esri(Fetcher):
         links_ = [href_.values() for href_ in hrefs_]
         deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
         self.url_all = gdp_urls + deflator_urls
-        self.datasetCode_list = ['Nominal Gross Domestic Product (original series)',
+        self.dataset_code_list = ['Nominal Gross Domestic Product (original series)',
                 'Annual Nominal GDP (fiscal year)',                
                 'Nominal Gross Domestic Product (seasonally adjusted series)',
                 'Annual Nominal GDP (calendar year)',
@@ -68,16 +68,16 @@ class Esri(Fetcher):
         
     def esri_issue(self):
         for self.url in self.url_all :
-            datasetCode = self.datasetCode_list[self.url_all.index(self.url)]
-            self.upsert_dataset(datasetCode)
+            dataset_code = self.dataset_code_list[self.url_all.index(self.url)]
+            self.upsert_dataset(dataset_code)
 
-    def upsert_dataset(self, datasetCode):
+    def upsert_dataset(self, dataset_code):
         start = time.time()
-        logger.info("upsert dataset[%s] - START" % (datasetCode))
-        self.upsert_sna(self.url,datasetCode)                  
-        self.update_metas(datasetCode)
+        logger.info("upsert dataset[%s] - START" % (dataset_code))
+        self.upsert_sna(self.url,dataset_code)                  
+        self.update_metas(dataset_code)
         end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (datasetCode, end))
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def upsert_sna(self, url, dataset_code):
         dataset = Datasets(self.provider_name,dataset_code,
@@ -161,7 +161,7 @@ class EsriData():
         #release_dates = [self.releaseDate for v in series_value] 
         series['values'] = series_value                
         series['provider'] = self.provider_name       
-        series['datasetCode'] = self.dataset_code
+        series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key
         series['startDate'] = self.start_date

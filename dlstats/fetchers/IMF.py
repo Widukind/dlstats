@@ -226,7 +226,7 @@ class WeoData():
             #print("release_dates : ", release_dates)
             #datetime.datetime(2006, 9, 1, 0, 0)
             series['provider'] = self.provider_name
-            series['datasetCode'] = self.dataset_code
+            series['dataset_code'] = self.dataset_code
             series['name'] = series_name
             series['key'] = series_key
             series['values'] = values

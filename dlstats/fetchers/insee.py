@@ -205,7 +205,7 @@ class INSEE(Fetcher):
                            fetcher=self)
         
         dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
-                                                                "datasetCode": dataset_code})
+                                                                "dataset_code": dataset_code})
         
         insee_data = INSEE_Data(dataset=dataset,
                                 dataset_doc=dataset_doc, 
@@ -338,7 +338,7 @@ class INSEE_Data(object):
         _is_updated = series_updated > self.last_update
 
         if not _is_updated and logger.isEnabledFor(logging.INFO):
-            logger.info("bypass updated datasetCode[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
+            logger.info("bypass updated dataset_code[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
                                                                                  self.last_update, 
                                                                                  series.attrib.IDBANK,
                                                                                  series_updated))
@@ -468,7 +468,7 @@ class INSEE_Data(object):
         """
         bson = {}
         bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
+        bson['dataset_code'] = self.dataset_code
         bson['key'] = self.get_series_key(series)
         bson['name'] = self.get_series_name(series)
         bson['lastUpdate'] = self.get_last_update(series)

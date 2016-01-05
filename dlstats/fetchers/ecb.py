@@ -215,7 +215,7 @@ class ECBData(object):
         current_key = self.keys_to_process.pop()
         series = dict()
         series['provider'] = self.provider_name
-        series['datasetCode'] = self.dataset_code
+        series['dataset_code'] = self.dataset_code
         series['key'] = current_key
         series['name'] = "-".join([self.current_raw_data[3][current_key][key]
                                   for key in self.current_raw_data[3][current_key]])

@@ -48,15 +48,15 @@ class WorldBank(Fetcher):
                                    'exposed': True}]}
         self.fetcher.provider.add_data_tree(data_tree)
 
-    def upsert_dataset(self, datasetCode):
+    def upsert_dataset(self, dataset_code):
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
         #TODO return the _id field of the corresponding dataset. Update the category accordingly.
-        if datasetCode=='GEM':
-            self.upsert_gem(datasetCode)
+        if dataset_code=='GEM':
+            self.upsert_gem(dataset_code)
         else:
             raise Exception("This dataset is unknown" + dataCode)                 
-        self.update_metas(datasetCode)        
+        self.update_metas(dataset_code)        
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
@@ -193,7 +193,7 @@ class GemData:
         series_key += col_header + '.' + self.frequency
         series = {}
         series['provider'] = self.provider_name
-        series['datasetCode'] = self.dataset_code
+        series['dataset_code'] = self.dataset_code
         series['name'] = self.series_name + '; ' + col_header + '; ' + self.freq_long_name[self.frequency]
         series['key'] = series_key
         series['values'] = values

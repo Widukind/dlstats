@@ -57,7 +57,7 @@ data_tree_schema = Schema({
 dataset_schema = Schema({
     'name': All(str, Length(min=1)),
     'provider': All(str, Length(min=1)),
-    'datasetCode': All(str, Length(min=1)),
+    'dataset_code': All(str, Length(min=1)),
     'docHref': Any(None,str),
     'lastUpdate': typecheck(datetime),
     'dimensionList': {str: [All()]},
@@ -71,7 +71,7 @@ series_schema = Schema({
     'name': All(str, Length(min=1)),
     'provider': All(str, Length(min=1)),
     'key': All(str, Length(min=1)),
-    'datasetCode': All(str, Length(min=1)),
+    'dataset_code': All(str, Length(min=1)),
     'startDate': int,
     'endDate': int,
     'values': [Any(str)],

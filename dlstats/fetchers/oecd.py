@@ -380,7 +380,7 @@ class OECD_Data():
                                                                  series_key))
 
         data = {'provider': self.dataset.provider_name,
-                'datasetCode': self.dataset.dataset_code,
+                'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,
                 'values': values,

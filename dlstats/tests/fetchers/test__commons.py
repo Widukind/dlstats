@@ -108,7 +108,7 @@ class FakeDatas():
             start_date = randint(10,100)
             end_date = start_date + n - 1
             data = {'provider': self.provider_name, 
-                    'datasetCode': self.dataset_code,
+                    'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': key,
                     'frequency': frequency,
@@ -123,7 +123,7 @@ class FakeDatas():
                     }}
             """
             data = {'provider': self.provider_name, 
-                    'datasetCode': self.dataset_code,
+                    'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': key,
                     'frequency': frequency,
@@ -255,7 +255,7 @@ class DatasetTestCase(BaseTestCase):
         
         bson = d.bson
         self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["datasetCode"], "d1")
+        self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
         self.assertEqual(bson["docHref"], "http://www.example.com")
         self.assertTrue(isinstance(bson["dimensionList"], dict))
@@ -426,7 +426,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
                         
         with self.assertRaises(DuplicateKeyError):
-            existing_dataset = dict(provider="p1", datasetCode="d1")
+            existing_dataset = dict(provider="p1", dataset_code="d1")
             self.db[constants.COL_DATASETS].insert(existing_dataset)
 
 
@@ -461,18 +461,18 @@ class DBDatasetTestCase(BaseDBTestCase):
         
         #print(result.raw)
 
-        bson = self.db[constants.COL_DATASETS].find_one({"provider": "p1", "datasetCode": "d1"})
+        bson = self.db[constants.COL_DATASETS].find_one({"provider": "p1", "dataset_code": "d1"})
         self.assertIsNotNone(bson)
     
         self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["datasetCode"], "d1")
+        self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
         self.assertEqual(bson["docHref"], "http://www.example.com")
         self.assertTrue(isinstance(bson["dimensionList"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
 
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": d.dataset_code})
+                                                     "dataset_code": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
         
         
@@ -524,7 +524,7 @@ class DBSeriesTestCase(BaseDBTestCase):
 
         '''Count series for this provider and dataset'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": dataset_code})
+                                                     "dataset_code": dataset_code})
         self.assertEqual(series.count(), datas.max_record)
 
         tags.update_tags(self.db, 
@@ -533,7 +533,7 @@ class DBSeriesTestCase(BaseDBTestCase):
 
         '''Count series for this provider and dataset and in keys[]'''
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
-                                                     "datasetCode": dataset_code,
+                                                     "dataset_code": dataset_code,
                                                      "key": {"$in": datas.keys}})
         
         self.assertEqual(series.count(), datas.max_record)

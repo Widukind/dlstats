@@ -74,7 +74,7 @@ def mock_upsert_dataset(self, dataset_code):
                        last_update=datetime(2015, 12, 24),
                        fetcher=self)
     
-    query = {"provider": self.provider_name, "datasetCode": dataset_code}
+    query = {"provider": self.provider_name, "dataset_code": dataset_code}
     dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
     
     self.insee_data = MockINSEE_Data(dataset=dataset,
@@ -148,7 +148,7 @@ class InseeTestCase(BaseDBTestCase):
         
         query = {
             "provider": self.insee.provider_name,
-            "datasetCode": dataset_code
+            "dataset_code": dataset_code
         }
 
         dataset = self.db[constants.COL_DATASETS].find_one(query)
@@ -235,7 +235,7 @@ class InseeTestCase(BaseDBTestCase):
         '''series avec un LAST_UPDATE > au dataset'''
         query = {
             "provider": self.insee.provider_name,
-            "datasetCode": dataset_code
+            "dataset_code": dataset_code
         }
         new_datetime = datetime(2015, 12, 9)
         result = self.db[constants.COL_DATASETS].update_one(query, {"$set": {'lastUpdate': new_datetime}})

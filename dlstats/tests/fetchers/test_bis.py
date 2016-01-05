@@ -265,7 +265,7 @@ class BISDatasetsTestCase(BaseTestCase):
         pprint(datas)
 
         attempt = {'LBS-DISS': {'series': [{'attributes': {},
-                                  'datasetCode': 'LBS-DISS',
+                                  'dataset_code': 'LBS-DISS',
                                   'dimensions': {'Balance sheet position': 'C',
                                                  'Counterparty country': '1C',
                                                  'Counterparty sector': 'A',
@@ -307,7 +307,7 @@ class BISDatasetsTestCase(BaseTestCase):
         datas = load_fake_datas('CNFS')
         
         attempt = {'CNFS': {'series': [{'attributes': {},
-                      'datasetCode': 'CNFS',
+                      'dataset_code': 'CNFS',
                       'dimensions': {"Borrowers' country": 'AR',
                                      'Borrowing sector': 'C',
                                      'Frequency': 'Q',
@@ -390,14 +390,14 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         dataset.update_database()
 
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+                                                            "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
         
         self.assertEqual(len(self.dataset["dimensionList"]), DATASETS[self.dataset_code]["dimensions_count"])
         
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+                                                     "dataset_code": self.dataset_code})
         self.assertEqual(series.count(), SERIES_COUNT)
         
         
@@ -410,7 +410,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:F:C:A:CHF:A:5J:A:5A:A:1C:N"})
         self.assertIsNotNone(serie)
         
@@ -434,7 +434,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:S:5A:4B:F:B:A:A:LC1:A:1C"})
         self.assertIsNotNone(serie)
         
@@ -447,7 +447,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:1C:3P:1:1:C:A:A:EU1:A:A:A:A:A:C"})
         self.assertIsNotNone(serie)
 
@@ -460,7 +460,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AR:C:A:M:770:A"})
         self.assertIsNotNone(serie)
         
@@ -480,7 +480,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AU:H"})
         self.assertIsNotNone(serie)
         
@@ -493,7 +493,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AT:N:628"})
         self.assertIsNotNone(serie)
         
@@ -506,7 +506,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AU"})
         self.assertIsNotNone(serie)
 
@@ -519,7 +519,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         self._common_tests()        
 
         serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "M:N:B:AE"})
         self.assertIsNotNone(serie)
 
@@ -573,11 +573,11 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         self.fetcher.upsert_dataset(self.dataset_code)
         
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+                                                     "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), SERIES_COUNT)
 
@@ -694,11 +694,11 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
         self.fetcher.upsert_dataset(self.dataset_code)
         
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+                                                     "dataset_code": self.dataset_code})
 
         series_count = series.count()
         self.assertTrue(series_count > 1)

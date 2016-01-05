@@ -309,9 +309,9 @@ class Eurostat(Fetcher):
         self.upsert_categories();
         self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'datasetCode': {'$in': list(self.selected_datasets.keys())}},
-            {'datasetCode': 1, 'lastUpdate': 1})
-        selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
+            {'provider': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+            {'dataset_code': 1, 'lastUpdate': 1})
+        selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
         for d in self.selected_datasets:
             if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_datasets[d]['lastUpdate']):
                 self.upsert_dataset(d)
@@ -416,7 +416,7 @@ class EurostatData:
         attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
         bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
+        bson['dataset_code'] = self.dataset_code
         bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())

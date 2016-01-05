@@ -402,7 +402,7 @@ class BIS_Data():
 
         dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(
                                                 {"provider": self.dataset.provider_name,
-                                                "datasetCode": self.dataset.dataset_code})
+                                                "dataset_code": self.dataset.dataset_code})
         if not dataset_doc:
             return True
 
@@ -441,7 +441,7 @@ class BIS_Data():
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
         
         data = {'provider': self.dataset.provider_name,
-                'datasetCode': self.dataset.dataset_code,
+                'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,
                 'values': values,
