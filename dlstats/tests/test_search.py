@@ -47,7 +47,7 @@ class FakeDatas():
             frequency = choice(['A', 'Q', 'M']) 
             start_date = randint(10, 100)
             end_date = start_date + n - 1
-            data = {'provider': self.provider_name, 
+            data = {'provider_name': self.provider_name, 
                     'dataset_code': self.dataset_code,
                     'key': key, 
                     'name': "%s %s - %s" % (self.dataset_code, dimensions['Country'], i),
@@ -138,7 +138,7 @@ class DBTagsTestCase(BaseDBTestCase):
         tags = utils.generate_tags(self.db, doc, 
                                    doc_type=constants.COL_DATASETS)
         
-        query = {"provider": d.provider_name, "dataset_code": d.dataset_code}
+        query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
         self.assertEqual(series.count(), max_record)
         
@@ -190,7 +190,7 @@ class DBTagsTestCase(BaseDBTestCase):
         doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
         self.assertListEqual(doc['tags'], sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france']))
 
-        query = {"provider": d.provider_name, "dataset_code": d.dataset_code}
+        query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
         self.assertEqual(series.count(), max_record)
         

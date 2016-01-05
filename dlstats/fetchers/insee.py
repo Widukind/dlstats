@@ -204,7 +204,7 @@ class INSEE(Fetcher):
                            last_update=datetime.now(), #TODO:
                            fetcher=self)
         
-        dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider": self.provider_name,
+        dataset_doc = self.db[constants.COL_DATASETS].find_one({'provider_name': self.provider_name,
                                                                 "dataset_code": dataset_code})
         
         insee_data = INSEE_Data(dataset=dataset,
@@ -467,7 +467,7 @@ class INSEE_Data(object):
         :param series: Instance of pandasdmx.model.Series
         """
         bson = {}
-        bson['provider'] = self.provider_name
+        bson['provider_name'] = self.provider_name
         bson['dataset_code'] = self.dataset_code
         bson['key'] = self.get_series_key(series)
         bson['name'] = self.get_series_name(series)

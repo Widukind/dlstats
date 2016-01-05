@@ -184,7 +184,7 @@ class Eurostat(Fetcher):
                 _tree = {}
                 last_update = None
                 last_modified = None
-                _tree['provider'] = self.provider_name
+                _tree['provider_name'] = self.provider_name
                 _tree['doc_href'] = None
                 _tree['children'] = []
                 for element in branch.iterchildren():
@@ -221,7 +221,7 @@ class Eurostat(Fetcher):
         ns = table_of_contents.nsmap
         branch = table_of_contents.find('nt:branch',namespaces=ns)
         children = walktree(branch.find('nt:children',namespaces=ns),ns)
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'Eurostat',
                      'doc_href': None,
                      'children': children,
@@ -309,7 +309,7 @@ class Eurostat(Fetcher):
         self.upsert_categories();
         self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+            {'provider_name': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
             {'dataset_code': 1, 'last_update': 1})
         selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
         for d in self.selected_datasets:
@@ -415,7 +415,7 @@ class EurostatData:
         # force attributes' key to be lower case
         attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
-        bson['provider'] = self.provider_name
+        bson['provider_name'] = self.provider_name
         bson['dataset_code'] = self.dataset_code
         bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
                              for n,v in dimensions.items()])

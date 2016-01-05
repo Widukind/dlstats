@@ -330,13 +330,13 @@ class BIS(Fetcher):
         return [(key, dataset['name']) for key, dataset in DATASETS.items()]
 
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'Eurostat',
                      'category_code': 'oecd_root',
                      'children': []}
         
         for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'provider': self.provider_name, 
+            data_tree['children'].append({'provider_name': self.provider_name, 
                                           'name': DATASETS[dataset_code]['name'], 
                                           'category_code': dataset_code,
                                           'exposed': True,
@@ -401,7 +401,7 @@ class BIS_Data():
     def is_updated(self):
 
         dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(
-                                                {"provider": self.dataset.provider_name,
+                                                {'provider_name': self.dataset.provider_name,
                                                 "dataset_code": self.dataset.dataset_code})
         if not dataset_doc:
             return True
@@ -440,7 +440,7 @@ class BIS_Data():
 
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
         
-        data = {'provider': self.dataset.provider_name,
+        data = {'provider_name': self.dataset.provider_name,
                 'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,

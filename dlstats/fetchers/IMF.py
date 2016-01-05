@@ -157,10 +157,10 @@ class IMF(Fetcher):
             logger.error(str(err))
 
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'IMF',
                      'category_code': 'imf_root',
-                     'children': [{'provider': self.provider_name,
+                     'children': [{'provider_name': self.provider_name,
                                    'name': 'WEO' , 
                                    'category_code': 'WEO',
                                    'exposed': True}]}
@@ -225,7 +225,7 @@ class WeoData():
             release_dates = [self.release_date for v in values]
             #print("release_dates : ", release_dates)
             #datetime.datetime(2006, 9, 1, 0, 0)
-            series['provider'] = self.provider_name
+            series['provider_name'] = self.provider_name
             series['dataset_code'] = self.dataset_code
             series['name'] = series_name
             series['key'] = series_key

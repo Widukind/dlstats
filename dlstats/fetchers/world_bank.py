@@ -39,10 +39,10 @@ class WorldBank(Fetcher):
                                  fetcher=self)
        
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'World Bank',
                      'category_code': 'worldbank_root',
-                     'children': [{'provider': self.provider_name,
+                     'children': [{'provider_name': self.provider_name,
                                    'name': 'GEM' , 
                                    'category_code': 'GEM',
                                    'exposed': True}]}
@@ -192,7 +192,7 @@ class GemData:
             series_key += '.'
         series_key += col_header + '.' + self.frequency
         series = {}
-        series['provider'] = self.provider_name
+        series['provider_name'] = self.provider_name
         series['dataset_code'] = self.dataset_code
         series['name'] = self.series_name + '; ' + col_header + '; ' + self.freq_long_name[self.frequency]
         series['key'] = series_key

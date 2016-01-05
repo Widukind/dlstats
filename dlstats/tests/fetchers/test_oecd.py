@@ -93,7 +93,7 @@ class OECDDatasetsTestCase(BaseTestCase):
         
         result = self.oecd_data.build_serie(row)
         
-        data = {'provider': self.dataset.provider_name,
+        data = {'provider_name': self.dataset.provider_name,
                 'dataset_code': self.dataset.dataset_code,
                 'name': 'France - Annual - Main Economic Indicators - Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives',
                 'key': "FRA.A.MEI.BPFAFD01",

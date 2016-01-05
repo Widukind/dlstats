@@ -84,7 +84,7 @@ class BEA(Fetcher):
 
         
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name, 
+        data_tree = {'provider_name': self.provider_name, 
                      'name': 'BEA' , 
                      'category_code': 'bea_root',
                      'children': []}
@@ -177,7 +177,7 @@ class BeaData():
             series_value.append(str(row[r].value))  
         #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
-        series['provider'] = self.provider_name       
+        series['provider_name'] = self.provider_name       
         series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key

@@ -247,7 +247,7 @@ class Datasets(DlstatsCollection):
         
     @property
     def bson(self):
-        return {'provider': self.provider_name,
+        return {'provider_name': self.provider_name,
                 'name': self.name,
                 'dataset_code': self.dataset_code,
                 'slug': self.slug(),
@@ -259,7 +259,7 @@ class Datasets(DlstatsCollection):
 
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
-                                            {'provider': provider_name,
+                                            {'provider_name': provider_name,
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
@@ -270,7 +270,7 @@ class Datasets(DlstatsCollection):
         self.series.process_series_data()        
         schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            ['provider', 'dataset_code'],
+                                            ['provider_name', 'dataset_code'],
                                             self.bson)
 
 class Series(DlstatsCollection):
@@ -331,7 +331,7 @@ class Series(DlstatsCollection):
         keys = [s['key'] for s in self.series_list]
 
         old_series = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider': self.provider_name,
+                                        'provider_name': self.provider_name,
                                         'dataset_code': self.dataset_code,
                                         'key': {'$in': keys}})
 

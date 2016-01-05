@@ -889,7 +889,7 @@ class EurostatDatasetsTestCase(BaseDBTestCase):
                                             'frequency': 'A',
                                             'key': 'A.CLV05_MEUR.B1G.AT',
                                             'name': '',
-                                  'provider': 'Eurostat',
+                                  'provider_name': 'Eurostat',
                                   'start_date': 25,
                                   'values': ["176840.7", "180307.4", "184320.1"]}]}}        
         self.assertDictEqual(datas, attempt)
@@ -980,14 +980,14 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
         
         self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimensions_count"])
         
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
         
@@ -1000,7 +1000,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
                                                         "dataset_code": self.dataset_code,
                                                         "key": "A.CLV05_MEUR.B1G.AT"})
         self.assertIsNotNone(series)
@@ -1018,7 +1018,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
                                                         "dataset_code": self.dataset_code,
                                                         "key": "M.MIO_EUR.CA.S1.S1.BAL.EA18.MT"})
         self.assertIsNotNone(series)
@@ -1043,7 +1043,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
                                                         "dataset_code": self.dataset_code,
                                                         "key": "Q.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
         self.assertIsNotNone(series)
@@ -1060,7 +1060,7 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series["values"], [""])
         self.assertEqual(series['attributes']['obs_status'],["c"])
         
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
                                                         "dataset_code": self.dataset_code,
                                                         "key": "A.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
         self.assertIsNotNone(series)
@@ -1119,11 +1119,11 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
@@ -1167,11 +1167,11 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self.fetcher.upsert_dataset(dataset_code)
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                             "dataset_code": dataset_code})
         self.assertIsNotNone(dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
                                                      "dataset_code": dataset_code})
 
         self.assertEqual(series.count(), DATASETS[dataset_code]['series_count'])
@@ -1233,15 +1233,15 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_all_datasets()
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                                "dataset_code": 'nama_10_gdp'})
         self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                                "dataset_code": 'dset1'})
         self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                                "dataset_code": 'dset2'})
         self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
@@ -1278,17 +1278,17 @@ class FullEurostatDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
+        category = self.db[constants.COL_CATEGORIES].find_one({'provider_name': self.fetcher.provider_name, 
                                                                "category_code": self.dataset_code})
         self.assertIsNotNone(category)
         
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
 
         series_count = series.count()

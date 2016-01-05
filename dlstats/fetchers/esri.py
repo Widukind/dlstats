@@ -60,7 +60,7 @@ class Esri(Fetcher):
                 'Deflators (fiscal year)',
                 'Deflators (calendar year)']
     def upsert_categories(self):
-        data_tree = {'provider': self.provider_name, 
+        data_tree = {'provider_name': self.provider_name, 
                      'name': 'esri', 
                      'category_code': 'esri',
                      'children': None}
@@ -160,7 +160,7 @@ class EsriData():
             series_value.append(str(column[r]))    
         #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
-        series['provider'] = self.provider_name       
+        series['provider_name'] = self.provider_name       
         series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key

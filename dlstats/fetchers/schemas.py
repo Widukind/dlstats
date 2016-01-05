@@ -45,7 +45,7 @@ def _data_tree(value):
 
 data_tree_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
+    'provider_name': All(str, Length(min=1)),
     'children': Any(None,[_data_tree]), 
     Optional('doc_href'): Any(None,str),
     Optional('last_update'): Any(None,typecheck(datetime)),
@@ -56,7 +56,7 @@ data_tree_schema = Schema({
 
 dataset_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
+    'provider_name': All(str, Length(min=1)),
     'dataset_code': All(str, Length(min=1)),
     'doc_href': Any(None,str),
     'last_update': typecheck(datetime),
@@ -69,7 +69,7 @@ dataset_schema = Schema({
 
 series_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
+    'provider_name': All(str, Length(min=1)),
     'key': All(str, Length(min=1)),
     'dataset_code': All(str, Length(min=1)),
     'start_date': int,

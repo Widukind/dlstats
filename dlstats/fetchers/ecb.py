@@ -45,7 +45,7 @@ class ECB(Fetcher):
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
                     in_base_category_ = {
-                        'provider': self.provider_name,
+                        'provider_name': self.provider_name,
                         'name': name,
                         'category_code': flowref,
                         'children': [],
@@ -54,7 +54,7 @@ class ECB(Fetcher):
                         'exposed': False}
                     children_.append(in_base_category_)
                 in_base_category = {
-                    'provider': self.provider_name,
+                    'provider_name': self.provider_name,
                     'name': category['name'],
                     'category_code': category['name'],
                     'children': children_,
@@ -68,7 +68,7 @@ class ECB(Fetcher):
                     if child:
                         children_.append(child)
                 in_base_category = {
-                    'provider': self.provider_name,
+                    'provider_name': self.provider_name,
                     'name': category['name'],
                     'category_code': category['name'],
                     'children': children_,
@@ -78,7 +78,7 @@ class ECB(Fetcher):
             return in_base_category
 
         data_tree_ = walk_category(self.get_categories())
-        data_tree = {'provider': self.provider_name,
+        data_tree = {'provider_name': self.provider_name,
                      'name': 'ECB',
                      'doc_href': None,
                      'children': data_tree_['children'],
@@ -149,17 +149,17 @@ class ECB(Fetcher):
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def datasets_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, '_id': False})
         return [dataset_code['category_code'] for dataset_code in dataset_codes]
 
     def datasets_long_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, 'name': True, '_id': False})
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, 'name': True, '_id': False})
         return [(dataset_code['category_code'], dataset_code['name']) for dataset_code in dataset_codes]
 
     def upsert_all_datasets(self):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider_name': 'ECB', 'children': None},{'category_code':True, '_id': False})
         dataset_codes = [dataset_code['category_code'] for dataset_code in dataset_codes]
         for dataset_code in dataset_codes:
             self.upsert_dataset(dataset_code)
@@ -214,7 +214,7 @@ class ECBData(object):
                     self.__next__()
         current_key = self.keys_to_process.pop()
         series = dict()
-        series['provider'] = self.provider_name
+        series['provider_name'] = self.provider_name
         series['dataset_code'] = self.dataset_code
         series['key'] = current_key
         series['name'] = "-".join([self.current_raw_data[3][current_key][key]

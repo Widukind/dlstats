@@ -164,9 +164,9 @@ def cmd_report(**kwargs):
     print(fmt.format("Provider", "Dataset", "Series", "last Update"))
     print("----------------------------------------------------------------------------------------------------------")
     for provider in db[constants.COL_PROVIDERS].find({}):
-        for dataset in db[constants.COL_DATASETS].find({"provider": provider['name']}):
+        for dataset in db[constants.COL_DATASETS].find({'provider_name': provider['name']}):
             last_update = str(dataset['last_update'])
-            series_count = db[constants.COL_SERIES].count({"provider": provider['name'], "dataset_code": dataset['dataset_code']})
+            series_count = db[constants.COL_SERIES].count({'provider_name': provider['name'], "dataset_code": dataset['dataset_code']})
             print(fmt.format(provider['name'], dataset['dataset_code'], series_count, last_update))
     print("----------------------------------------------------------------------------------------------------------")
         
@@ -202,7 +202,7 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
             ctx.log("Update Metas for dataset[%s]" % dataset)
             f.update_metas(dataset)            
         else:
-            datasets = db[constants.COL_DATASETS].find({"provider": fetcher},
+            datasets = db[constants.COL_DATASETS].find({'provider_name': fetcher},
                                                        projection={"dataset_code": True})
             for dataset in datasets:
                 ctx.log("Update Metas for dataset[%s]" % dataset['dataset_code'])
@@ -334,9 +334,9 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     for doc in result:
         #TODO: value/release_dates, ...
         if search_type == constants.COL_SERIES:
-            fields = [doc['provider'], doc['dataset_code'], doc['key'], doc['name']]
+            fields = [doc['provider_name'], doc['dataset_code'], doc['key'], doc['name']]
         else:
-            fields = [doc['provider'], doc['dataset_code'], doc['name']]
+            fields = [doc['provider_name'], doc['dataset_code'], doc['name']]
         if ctx.debug:
             fields.append(doc['tags'])
             
