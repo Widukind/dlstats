@@ -241,7 +241,7 @@ class WeoData():
             
             series['releaseDates'] = release_dates
             series['start_date'] = self.start_date.ordinal
-            series['endDate'] = self.end_date.ordinal
+            series['end_date'] = self.end_date.ordinal
             series['frequency'] = 'A'
             
             if row['Subject Notes']:

@@ -165,7 +165,7 @@ class EsriData():
         series['name'] = series_name
         series['key'] = series_key
         series['start_date'] = self.start_date
-        series['endDate'] = self.end_date  
+        series['end_date'] = self.end_date  
         series['last_update'] = self.releaseDate
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency

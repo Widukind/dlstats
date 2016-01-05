@@ -228,7 +228,7 @@ class ECBData(object):
                 year=int(start_date[0]),
                 freq=series['frequency']
             ).ordinal + int(start_date[1])
-            series['endDate'] = pandas.Period(
+            series['end_date'] = pandas.Period(
                 year=int(end_date[0]),
                 freq=series['frequency']
             ).ordinal + int(end_date[1])
@@ -237,7 +237,7 @@ class ECBData(object):
                 self.current_raw_data[1][current_key][0],
                 freq=series['frequency']
             ).ordinal
-            series['endDate'] = pandas.Period(
+            series['end_date'] = pandas.Period(
                 self.current_raw_data[1][current_key][-1],
                 freq=series['frequency']
             ).ordinal

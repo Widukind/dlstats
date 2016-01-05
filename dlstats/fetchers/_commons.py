@@ -417,13 +417,13 @@ class Series(DlstatsCollection):
                         bson['attributes'][a].insert(0,"") 
                 bson['start_date'] = old_bson['start_date']
                 
-            if bson['endDate'] < old_bson['endDate']:
-                for p in range(old_bson['endDate']-bson['endDate']):
+            if bson['end_date'] < old_bson['end_date']:
+                for p in range(old_bson['end_date']-bson['end_date']):
                     bson['values'].append('na')
                     bson['releaseDates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
-                bson['endDate'] = old_bson['endDate']
+                bson['end_date'] = old_bson['end_date']
 
             for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
                 if values[0] != values[1]:
@@ -438,8 +438,8 @@ class Series(DlstatsCollection):
                     else:
                         bson['revisions'][str(position+iv2)] = [rev]
 
-            if bson['endDate'] > old_bson['endDate']:
-                for p in range(bson['endDate']-old_bson['endDate']):
+            if bson['end_date'] > old_bson['end_date']:
+                for p in range(bson['end_date']-old_bson['end_date']):
                     bson['releaseDates'].append(last_update)
 
             self.check_values_attributes_releasedates(bson)

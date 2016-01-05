@@ -174,8 +174,8 @@ class InseeTestCase(BaseDBTestCase):
         start_date = str(pandas.Period(ordinal=series_001654489["start_date"], freq=frequency))
         self.assertEqual(start_date, '1990-01')
 
-        endDate = str(pandas.Period(ordinal=series_001654489["endDate"], freq=frequency))
-        self.assertEqual(endDate, '2015-10')
+        end_date = str(pandas.Period(ordinal=series_001654489["end_date"], freq=frequency))
+        self.assertEqual(end_date, '2015-10')
         
     @unittest.skipIf(True, "TODO")
     def test_dimensions_to_dict(self):

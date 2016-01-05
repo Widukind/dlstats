@@ -497,7 +497,7 @@ class INSEE_Data(object):
         '''INSEE ordered dates (desc) - 2015 -> 2000'''
         _dates = [o.dim for o in series.obs(with_values=False, with_attributes=False, reverse_obs=False)]
         bson['start_date'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
-        bson['endDate'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
+        bson['end_date'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
         
         bson['values'] = []
         for o in series.obs(with_values=True, with_attributes=False, reverse_obs=True):

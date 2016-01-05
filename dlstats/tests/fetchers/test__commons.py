@@ -113,7 +113,7 @@ class FakeDatas():
                     'name': key,
                     'frequency': frequency,
                     'start_date': start_date,
-                    'endDate': end_date,
+                    'end_date': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -128,7 +128,7 @@ class FakeDatas():
                     'name': key,
                     'frequency': frequency,
                     'start_date': start_date,
-                    'endDate': end_date,
+                    'end_date': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},
                     'revisions': {},
@@ -600,7 +600,7 @@ class DBSeriesTestCase(BaseDBTestCase):
             r['key'] = datas2.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
             r['start_date'] = datas1.rows[i]['start_date']
-            r['endDate'] = datas1.rows[i]['endDate']
+            r['end_date'] = datas1.rows[i]['end_date']
         datas2.rows[0]['values'] = deepcopy(datas1.rows[0]['values'])
         datas2.rows[0]['values'][1] = str(float(datas2.rows[0]['values'][1]) + 1.5)
         datas2.rows[0]['values'][8] = str(float(datas2.rows[0]['values'][8]) - 0.9)
@@ -620,7 +620,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][0],datetime(2013,4,1))
         self.assertEqual(test_series['releaseDates'][2:8],[datetime(2013,4,1) for i in range(6)])
         self.assertEqual(test_series['start_date'],datas1.rows[0]['start_date'])
-        self.assertEqual(test_series['endDate'],datas1.rows[0]['endDate'])
+        self.assertEqual(test_series['end_date'],datas1.rows[0]['end_date'])
 
         # B. adding observations at the beginning of the series
         s3 = Series(provider_name=f.provider_name, 
@@ -639,7 +639,7 @@ class DBSeriesTestCase(BaseDBTestCase):
             r['key'] = datas3.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
             r['start_date'] = datas1.rows[i]['start_date']
-            r['endDate'] = datas1.rows[i]['endDate']
+            r['end_date'] = datas1.rows[i]['end_date']
         
         datas3.rows[0]['start_date'] = datas1.rows[0]['start_date'] - 2;    
         datas3.rows[0]['values'] = [ '10', '10'] + datas1.rows[0]['values']
@@ -665,7 +665,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(len(test_series['values']),11)
         self.assertEqual(len(test_series['releaseDates']),11)
         self.assertEqual(test_series['start_date'],datas2.rows[0]['start_date']-2)
-        self.assertEqual(test_series['endDate'],datas2.rows[0]['endDate'])
+        self.assertEqual(test_series['end_date'],datas2.rows[0]['end_date'])
             
         # C. adding observations at the end of the series
         s4 = Series(provider_name=f.provider_name, 
@@ -684,9 +684,9 @@ class DBSeriesTestCase(BaseDBTestCase):
             r['key'] = datas4.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
             r['start_date'] = datas3.rows[i]['start_date']
-            r['endDate'] = datas3.rows[i]['endDate']
+            r['end_date'] = datas3.rows[i]['end_date']
         
-        datas4.rows[0]['endDate'] = datas3.rows[0]['endDate'] + 1;    
+        datas4.rows[0]['end_date'] = datas3.rows[0]['end_date'] + 1;    
         datas4.rows[0]['values'] = datas3.rows[0]['values'] + ['1.0']
         s4.data_iterator = datas4
         
@@ -702,7 +702,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(len(test_series['releaseDates']),12)
         self.assertEqual(test_series['releaseDates'][11],datetime(2014,5,1))
         self.assertEqual(test_series['start_date'],datas3.rows[0]['start_date'])
-        self.assertEqual(test_series['endDate'],datas3.rows[0]['endDate']+1)
+        self.assertEqual(test_series['end_date'],datas3.rows[0]['end_date']+1)
             
         # D. removing observations at the beginning and the end of the series
         s5 = Series(provider_name=f.provider_name, 
@@ -721,10 +721,10 @@ class DBSeriesTestCase(BaseDBTestCase):
             r['key'] = datas4.keys[i]
             r['frequency'] = datas1.rows[i]['frequency']
             r['start_date'] = datas4.rows[i]['start_date']
-            r['endDate'] = datas4.rows[i]['endDate']
+            r['end_date'] = datas4.rows[i]['end_date']
         
         datas5.rows[0]['start_date'] = datas4.rows[0]['start_date'] + 1;    
-        datas5.rows[0]['endDate'] = datas4.rows[0]['endDate'] - 1;    
+        datas5.rows[0]['end_date'] = datas4.rows[0]['end_date'] - 1;    
         datas5.rows[0]['values'] = datas4.rows[0]['values'][1:-1]
         s5.data_iterator = datas5
         
@@ -745,7 +745,7 @@ class DBSeriesTestCase(BaseDBTestCase):
         self.assertEqual(test_series['releaseDates'][10],datetime(2014,4,1))
         self.assertEqual(test_series['releaseDates'][11],datetime(2014,6,1))
         self.assertEqual(test_series['start_date'],datas4.rows[0]['start_date'])
-        self.assertEqual(test_series['endDate'],datas4.rows[0]['endDate'])
+        self.assertEqual(test_series['end_date'],datas4.rows[0]['end_date'])
                                                              
 if __name__ == '__main__':
     unittest.main()

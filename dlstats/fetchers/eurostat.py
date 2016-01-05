@@ -429,7 +429,7 @@ class EurostatData:
         (end_string, freq) = self.parse_date(
             raw_dates[-1], time_format)
         bson['start_date'] = pandas.Period(start_string,freq=freq).ordinal
-        bson['endDate'] = pandas.Period(end_string,freq=freq).ordinal
+        bson['end_date'] = pandas.Period(end_string,freq=freq).ordinal
         bson['frequency'] = freq
         return(bson)
     

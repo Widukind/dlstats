@@ -885,7 +885,7 @@ class EurostatDatasetsTestCase(BaseDBTestCase):
                                                            'na_item': "B1G",
                                                            'geo': "AT",
                                                            'TIME_FORMAT': "P1Y"},
-                                            'endDate': 45,
+                                            'end_date': 45,
                                             'frequency': 'A',
                                             'key': 'A.CLV05_MEUR.B1G.AT',
                                             'name': '',

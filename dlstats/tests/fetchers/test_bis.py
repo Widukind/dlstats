@@ -278,7 +278,7 @@ class BISDatasetsTestCase(BaseTestCase):
                                                  'Reporting country': '5A',
                                                  'Type of instruments': 'A',
                                                  'Type of reporting institutions': 'A'},
-                                  'endDate': 183,
+                                  'end_date': 183,
                                   'frequency': 'Q',
                                   'key': 'Q:F:C:A:CHF:A:5J:A:5A:A:1C:N',
                                   'name': 'Q:Quarterly-F:FX and break adjusted '
@@ -315,7 +315,7 @@ class BISDatasetsTestCase(BaseTestCase):
                                      'Type of adjustment': 'A',
                                      'Unit type': '770',
                                      'Valuation': 'M'},
-                      'endDate': 183,
+                      'end_date': 183,
                       'frequency': 'Q',
                       'key': 'Q:AR:C:A:M:770:A',
                       'name': 'Q:Quarterly-AR:Argentina-C:Non financial '

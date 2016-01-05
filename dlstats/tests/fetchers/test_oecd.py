@@ -113,7 +113,7 @@ class OECDDatasetsTestCase(BaseTestCase):
                 #},
                 'last_update': self.oecd_data.prepared,
                 'start_date': 10,
-                'endDate': 11,
+                'end_date': 11,
                 'frequency': 'A'}        
 
         self.assertDictEqual(result, data)
