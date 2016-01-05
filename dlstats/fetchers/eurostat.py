@@ -185,7 +185,7 @@ class Eurostat(Fetcher):
                 last_update = None
                 last_modified = None
                 _tree['provider'] = self.provider_name
-                _tree['docHref'] = None
+                _tree['doc_href'] = None
                 _tree['children'] = []
                 for element in branch.iterchildren():
                     if element.tag == '{' + ns['nt'] + '}' + 'title':
@@ -193,7 +193,7 @@ class Eurostat(Fetcher):
                             _tree['name'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'metadata':
                         if element.attrib.values()[0] == 'html':
-                            _tree['docHref'] = element.text
+                            _tree['doc_href'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'code':
                         _tree['categoryCode'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
@@ -223,7 +223,7 @@ class Eurostat(Fetcher):
         children = walktree(branch.find('nt:children',namespaces=ns),ns)
         data_tree = {'provider': self.provider_name,
                      'name': 'Eurostat',
-                     'docHref': None,
+                     'doc_href': None,
                      'children': children,
                      'categoryCode': 'eurostat_root',
                      'exposed': False,
@@ -295,7 +295,7 @@ class Eurostat(Fetcher):
                            last_update=cat['lastUpdate'],
                            fetcher=self)
         dataset.name = cat['name']
-        dataset.doc_href = cat['docHref']
+        dataset.doc_href = cat['doc_href']
         data_iterator = EurostatData(dataset,filename = dataset_code)
         dataset.series.data_iterator = data_iterator
         dataset.update_database()

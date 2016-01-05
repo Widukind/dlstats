@@ -253,7 +253,7 @@ class Datasets(DlstatsCollection):
                 'slug': self.slug(),
                 'dimensionList': self.dimension_list.get_list(),
                 'attributeList': self.attribute_list.get_list(),
-                'docHref': self.doc_href,
+                'doc_href': self.doc_href,
                 'lastUpdate': self.last_update,
                 'notes': self.notes}
 

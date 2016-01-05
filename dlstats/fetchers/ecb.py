@@ -49,7 +49,7 @@ class ECB(Fetcher):
                         'name': name,
                         'categoryCode': flowref,
                         'children': [],
-                        'docHref': None,
+                        'doc_href': None,
                         'lastUpdate': None,
                         'exposed': False}
                     children_.append(in_base_category_)
@@ -58,7 +58,7 @@ class ECB(Fetcher):
                     'name': category['name'],
                     'categoryCode': category['name'],
                     'children': children_,
-                    'docHref': None,
+                    'doc_href': None,
                     'lastUpdate': None,
                     'exposed': False}
             if 'subcategories' in category:
@@ -72,7 +72,7 @@ class ECB(Fetcher):
                     'name': category['name'],
                     'categoryCode': category['name'],
                     'children': children_,
-                    'docHref': None,
+                    'doc_href': None,
                     'lastUpdate': None,
                     'exposed': False}
             return in_base_category
@@ -80,7 +80,7 @@ class ECB(Fetcher):
         data_tree_ = walk_category(self.get_categories())
         data_tree = {'provider': self.provider_name,
                      'name': 'ECB',
-                     'docHref': None,
+                     'doc_href': None,
                      'children': data_tree_['children'],
                      'categoryCode': 'ecb_root',
                      'exposed': False,
@@ -141,7 +141,7 @@ class ECB(Fetcher):
                            dataset_code,
                            fetcher=self,
                            last_update=datetime.now(),
-                           doc_href=cat['docHref'], name=cat['name'])
+                           doc_href=cat['doc_href'], name=cat['name'])
         ecb_data = ECBData(dataset)
         dataset.series.data_iterator = ecb_data
         dataset.update_database()

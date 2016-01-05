@@ -149,28 +149,28 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
                       'categoryCode': 'ecb_root',
                       'lastUpdate': None,
                       'exposed': False,
-                      'docHref': None,
+                      'doc_href': None,
                       'children': [
                           {'name': 'Example subcategory 1',
                            'categoryCode': 'Example subcategory 1',
                            'provider': 'ECB',
                            'lastUpdate': None,
                            'exposed': False,
-                           'docHref': None,
+                           'doc_href': None,
                            'children': [
                                {'name': 'Example subcategory 1_1',
                                 'categoryCode': 'Example subcategory 1_1',
                                 'provider': 'ECB',
                                 'lastUpdate': None,
                                 'exposed': False,
-                                'docHref': None,
+                                'doc_href': None,
                                 'children': [
                                     {'name': 'Name of 1_1_1',
                                      'categoryCode': '1_1_1',
                                      'provider': 'ECB',
                                      'lastUpdate': None,
                                      'exposed': False,
-                                     'docHref': None,
+                                     'doc_href': None,
                                      'children': []}
                                 ]
                                },
@@ -179,21 +179,21 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
                                 'provider': 'ECB',
                                 'lastUpdate': None,
                                 'exposed': False,
-                                'docHref': None,
+                                'doc_href': None,
                                 'children': [
                                     {'name': 'Name of 1_2_1',
                                      'categoryCode': '1_2_1',
                                      'provider': 'ECB',
                                      'lastUpdate': None,
                                      'exposed': False,
-                                     'docHref': None,
+                                     'doc_href': None,
                                      'children': []},
                                     {'name': 'Name of 1_2_2',
                                      'categoryCode': '1_2_2',
                                      'provider': 'ECB',
                                      'lastUpdate': None,
                                      'exposed': False,
-                                     'docHref': None,
+                                     'doc_href': None,
                                      'children': []}
                                 ]}
                            ]},
@@ -202,21 +202,21 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
                            'provider': 'ECB',
                            'lastUpdate': None,
                            'exposed': False,
-                           'docHref': None,
+                           'doc_href': None,
                            'children': [
                                {'name': 'Example subcategory 2_2',
                                 'categoryCode': 'Example subcategory 2_2',
                                 'provider': 'ECB',
                                 'lastUpdate': None,
                                 'exposed': False,
-                                'docHref': None,
+                                'doc_href': None,
                                 'children': [
                                     {'name': 'Name of 2_2_1',
                                      'categoryCode': '2_2_1',
                                      'provider': 'ECB',
                                      'lastUpdate': None,
                                      'exposed': False,
-                                     'docHref': None,
+                                     'doc_href': None,
                                      'children': []}
                                 ]}
                            ]}

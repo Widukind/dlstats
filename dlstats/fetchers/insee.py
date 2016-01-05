@@ -152,7 +152,7 @@ class INSEE(Fetcher):
                                       name=name,
                                       categoryCode=categoryCode,
                                       children=children_ids,
-                                      docHref=None,
+                                      doc_href=None,
                                       lastUpdate=datetime.now(),
                                       exposed=False,
                                       fetcher=self)
@@ -166,7 +166,7 @@ class INSEE(Fetcher):
                                           name=dataflows[df_id][2]['en'],
                                           categoryCode=category['id'],
                                           children=children_ids,
-                                          docHref=None,
+                                          doc_href=None,
                                           lastUpdate=datetime.now(),
                                           exposed=False,
                                           fetcher=self)
@@ -194,7 +194,7 @@ class INSEE(Fetcher):
         
         #cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
         #dataset.name = cat['name']
-        #dataset.doc_href = cat['docHref']
+        #dataset.doc_href = cat['doc_href']
         #dataset.last_update = cat['lastUpdate']
 
         dataset = Datasets(provider_name=self.provider_name, 
@@ -219,7 +219,7 @@ class INSEE(Fetcher):
         
         """
         > IDBANK:  A définir dynamiquement sur site ?
-        docHref d'une serie: http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=001694226
+        doc_href d'une serie: http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=001694226
         > CODE GROUPE: Balance des Paiements mensuelle - Compte de capital
         http://www.bdm.insee.fr/bdm2/choixCriteres?codeGroupe=1556
         """

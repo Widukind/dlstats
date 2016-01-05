@@ -257,7 +257,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(bson["provider"], "p1")
         self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
         self.assertTrue(isinstance(bson["dimensionList"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
         self.assertIsNone(bson["lastUpdate"])
@@ -365,7 +365,7 @@ class DBProviderTestCase(BaseDBTestCase):
         data_tree = {'provider': "p1",
                      'name': "p1_root",
                      'categoryCode': "c0",
-                     'docHref': 'http://www.example.com',
+                     'doc_href': 'http://www.example.com',
                      'children': [
                          {'provider': "p1",
                           'name': "cat1", 
@@ -381,7 +381,7 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson["categoryCode"], "c0")
         self.assertEqual(bson["name"], "p1_root")
         self.assertEqual(bson["provider"], "p1")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
 
         bson1 = res['data_tree']['children'][0]
         self.assertEqual(bson1["categoryCode"], "c1")
@@ -467,7 +467,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(bson["provider"], "p1")
         self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
-        self.assertEqual(bson["docHref"], "http://www.example.com")
+        self.assertEqual(bson["doc_href"], "http://www.example.com")
         self.assertTrue(isinstance(bson["dimensionList"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
 
