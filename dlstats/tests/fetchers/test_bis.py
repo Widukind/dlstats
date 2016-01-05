@@ -394,7 +394,7 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self.assertIsNotNone(self.dataset)
         
-        self.assertEqual(len(self.dataset["dimensionList"]), DATASETS[self.dataset_code]["dimensions_count"])
+        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimensions_count"])
         
         series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})

@@ -60,7 +60,7 @@ dataset_schema = Schema({
     'dataset_code': All(str, Length(min=1)),
     'doc_href': Any(None,str),
     'lastUpdate': typecheck(datetime),
-    'dimensionList': {str: [All()]},
+    'dimension_list': {str: [All()]},
     'attributeList': Any(None, {str: [(str,str)]}),
     Optional('notes'): str,
     Optional('tags'): [Any(str)],

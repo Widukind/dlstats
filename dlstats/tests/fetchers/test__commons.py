@@ -258,7 +258,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
         self.assertEqual(bson["doc_href"], "http://www.example.com")
-        self.assertTrue(isinstance(bson["dimensionList"], dict))
+        self.assertTrue(isinstance(bson["dimension_list"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
         self.assertIsNone(bson["lastUpdate"])
         self.assertEqual(bson["slug"], "p1-d1")
@@ -468,7 +468,7 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertEqual(bson["dataset_code"], "d1")
         self.assertEqual(bson["name"], "d1 Name")
         self.assertEqual(bson["doc_href"], "http://www.example.com")
-        self.assertTrue(isinstance(bson["dimensionList"], dict))
+        self.assertTrue(isinstance(bson["dimension_list"], dict))
         self.assertTrue(isinstance(bson["attributeList"], dict))
 
         series = self.db[constants.COL_SERIES].find({"provider": f.provider_name, 
