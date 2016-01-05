@@ -370,11 +370,6 @@ class Series(DlstatsCollection):
         if 'lastUpdate' in bson:
             last_update = bson.pop('lastUpdate')
 
-        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
-            'provider': self.provider_name,
-            'datasetCode': self.dataset_code,
-            'key': bson['key']})
-                
         col = self.fetcher.db[constants.COL_SERIES]
 
         if not old_bson:
