@@ -69,7 +69,7 @@ class WorldBank(Fetcher):
                            doc_href=d['doc_href'], 
                            fetcher=self)
         gem_data = GemData(dataset, url)
-        dataset.last_update = gem_data.releaseDate
+        dataset.last_update = gem_data.release_date
         dataset.series.data_iterator = gem_data
         dataset.update_database()
         
@@ -147,7 +147,7 @@ class GemData:
         self.columns = iter([])
         self.sheets = iter([])
         self.url = url
-        self.releaseDate = None
+        self.release_date = None
         self.excel_filenames = []
         self.freq_long_name = {'A': 'Annual', 'Q': 'Quarterly', 'M': 'Monthly', 'D': 'Daily'}
         self.zipfile = None
@@ -157,10 +157,10 @@ class GemData:
             
     def load_datas(self):
         
-        releaseDate_str, filepath = self.dataset.fetcher.download(dataset_code=self.dataset_code, 
+        release_date_str, filepath = self.dataset.fetcher.download(dataset_code=self.dataset_code, 
                                                                   url=self.url)
             
-        self.releaseDate = datetime.datetime.strptime(releaseDate_str, 
+        self.release_date = datetime.datetime.strptime(release_date_str, 
                                                       "%a, %d %b %Y %H:%M:%S GMT")
         
         self.zipfile = zipfile.ZipFile(filepath)

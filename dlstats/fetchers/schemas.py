@@ -28,7 +28,7 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = {str: [{Required('value'): str,
-                          Required('releaseDate'): date_validator}]}
+                          Required('release_date'): date_validator}]}
 
 codedict_schema = Schema({Extra: dict})
 

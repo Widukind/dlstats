@@ -85,7 +85,7 @@ class Esri(Fetcher):
         sna_data = EsriData(dataset,url)
         dataset.name = dataset_code
         dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
-        dataset.last_update = sna_data.releaseDate
+        dataset.last_update = sna_data.release_date
         dataset.series.data_iterator = sna_data
         dataset.update_database()
 
@@ -98,8 +98,8 @@ class EsriData():
         self.attribute_list = dataset.attribute_list
         self.panda_csv = pandas.read_csv(url)
         response = urllib.request.urlopen(url)
-        releaseDate = response.info()['Last-Modified'] 
-        self.releaseDate = datetime.strptime(releaseDate, 
+        release_date = response.info()['Last-Modified'] 
+        self.release_date = datetime.strptime(release_date, 
                                                       "%a, %d %b %Y %H:%M:%S GMT")                                                  
  
         if self.panda_csv.icol(0)[6] == '4' :
@@ -158,7 +158,7 @@ class EsriData():
         #print(dimensions['concept'])
         for r in range(6, len(column)):
             series_value.append(str(column[r]))    
-        #release_dates = [self.releaseDate for v in series_value] 
+        #release_dates = [self.release_date for v in series_value] 
         series['values'] = series_value                
         series['provider'] = self.provider_name       
         series['dataset_code'] = self.dataset_code
@@ -166,7 +166,7 @@ class EsriData():
         series['key'] = series_key
         series['start_date'] = self.start_date
         series['end_date'] = self.end_date  
-        series['last_update'] = self.releaseDate
+        series['last_update'] = self.release_date
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}

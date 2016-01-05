@@ -432,7 +432,7 @@ class Series(DlstatsCollection):
                         bson['revisions'] = {}
                         revisions_is_present = True
                     rev = {'value':values[0],
-                           'releaseDate':old_bson['release_dates'][position+iv1]}
+                           'release_date':old_bson['release_dates'][position+iv1]}
                     if str(position+iv2) in bson['revisions']:
                         bson['revisions'][str(position+iv2)].append(rev)
                     else:

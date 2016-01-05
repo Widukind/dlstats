@@ -613,8 +613,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         test_key = datas2.keys[0]
         test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
         self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
-        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
+        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
+        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
         self.assertEqual(test_series['release_dates'][1],datetime(2014,4,1))
         self.assertEqual(test_series['release_dates'][8],datetime(2014,4,1))
         self.assertEqual(test_series['release_dates'][0],datetime(2013,4,1))
@@ -654,8 +654,8 @@ class DBSeriesTestCase(BaseDBTestCase):
         test_key = datas3.keys[0]
         test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
         self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'releaseDate':s1.last_update}])
-        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'releaseDate':s1.last_update}])
+        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
+        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
         self.assertEqual(len(test_series['release_dates']),len(test_series['values']))
         self.assertEqual(test_series['release_dates'][3],datetime(2014,4,1))
         self.assertEqual(test_series['release_dates'][10],datetime(2014,4,1))
