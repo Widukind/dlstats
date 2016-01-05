@@ -890,7 +890,7 @@ class EurostatDatasetsTestCase(BaseDBTestCase):
                                             'key': 'A.CLV05_MEUR.B1G.AT',
                                             'name': '',
                                   'provider': 'Eurostat',
-                                  'startDate': 25,
+                                  'start_date': 25,
                                   'values': ["176840.7", "180307.4", "184320.1"]}]}}        
         self.assertDictEqual(datas, attempt)
 

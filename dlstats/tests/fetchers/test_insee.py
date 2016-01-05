@@ -171,8 +171,8 @@ class InseeTestCase(BaseDBTestCase):
         self.assertEqual(series_001654489["values"][-1], "105.61")
         
         frequency = series_001654489["frequency"]
-        startDate = str(pandas.Period(ordinal=series_001654489["startDate"], freq=frequency))
-        self.assertEqual(startDate, '1990-01')
+        start_date = str(pandas.Period(ordinal=series_001654489["start_date"], freq=frequency))
+        self.assertEqual(start_date, '1990-01')
 
         endDate = str(pandas.Period(ordinal=series_001654489["endDate"], freq=frequency))
         self.assertEqual(endDate, '2015-10')

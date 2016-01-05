@@ -181,7 +181,7 @@ class BeaData():
         series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key
-        series['startDate'] = self.start_date
+        series['start_date'] = self.start_date
         series['endDate'] = self.end_date  
         series['last_update'] = self.release_date
         series['dimensions'] = dimensions

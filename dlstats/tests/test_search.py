@@ -52,7 +52,7 @@ class FakeDatas():
                     'key': key, 
                     'name': "%s %s - %s" % (self.dataset_code, dimensions['Country'], i),
                     'frequency': frequency,
-                    'startDate': start_date,
+                    'start_date': start_date,
                     'endDate': end_date,
                     'values': [str(randint(i+1, 100)) for i in range(n)],
                     'attributes': {},

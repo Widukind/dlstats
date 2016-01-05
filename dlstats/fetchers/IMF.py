@@ -240,7 +240,7 @@ class WeoData():
             series['last_update'] = self.release_date
             
             series['releaseDates'] = release_dates
-            series['startDate'] = self.start_date.ordinal
+            series['start_date'] = self.start_date.ordinal
             series['endDate'] = self.end_date.ordinal
             series['frequency'] = 'A'
             

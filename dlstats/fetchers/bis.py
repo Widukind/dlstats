@@ -448,7 +448,7 @@ class BIS_Data():
                 'attributes': {},
                 'dimensions': dimensions,
                 'last_update': self.release_date,
-                'startDate': self.start_date.ordinal,
+                'start_date': self.start_date.ordinal,
                 'endDate': self.end_date.ordinal,
                 'frequency': self.frequency}
 

@@ -201,7 +201,7 @@ class GemData:
         series['dimensions'] = dimensions
         series['last_update'] = self.last_update
         #series['releaseDates'] = release_dates
-        series['startDate'] = self.start_date
+        series['start_date'] = self.start_date
         series['endDate'] = self.end_date
         series['frequency'] = self.frequency
         return(series)

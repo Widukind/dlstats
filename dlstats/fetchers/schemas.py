@@ -72,7 +72,7 @@ series_schema = Schema({
     'provider': All(str, Length(min=1)),
     'key': All(str, Length(min=1)),
     'dataset_code': All(str, Length(min=1)),
-    'startDate': int,
+    'start_date': int,
     'endDate': int,
     'values': [Any(str)],
     'releaseDates': [date_validator],

@@ -388,8 +388,8 @@ class Series(DlstatsCollection):
                 bson['revisions'] = old_bson['revisions']
                 revisions_is_present = True
 
-            start_date = bson['startDate']
-            old_start_date = old_bson['startDate']
+            start_date = bson['start_date']
+            old_start_date = old_bson['start_date']
             bson['releaseDates'] = deepcopy(old_bson['releaseDates'])
             
             iv1 = iv2 = 0
@@ -415,7 +415,7 @@ class Series(DlstatsCollection):
                     bson['releaseDates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].insert(0,"") 
-                bson['startDate'] = old_bson['startDate']
+                bson['start_date'] = old_bson['start_date']
                 
             if bson['endDate'] < old_bson['endDate']:
                 for p in range(old_bson['endDate']-bson['endDate']):

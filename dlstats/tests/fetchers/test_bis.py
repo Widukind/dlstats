@@ -295,7 +295,7 @@ class BISDatasetsTestCase(BaseTestCase):
                                   'releaseDates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35)],
-                                  'startDate': -80,
+                                  'start_date': -80,
                                   'values': ['NaN', '-1.636', '39.632']}]}}        
         
         self.assertDictEqual(datas, attempt)
@@ -326,7 +326,7 @@ class BISDatasetsTestCase(BaseTestCase):
                       'releaseDates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20)],
-                      'startDate': -80,
+                      'start_date': -80,
                       'values': ['', '10.1', '20.2']}]}}
         
         self.assertDictEqual(datas, attempt)        
