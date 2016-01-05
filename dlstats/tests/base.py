@@ -5,8 +5,11 @@ import unittest
 from unittest import mock
 import imp
 
+from widukind_common.utils import get_mongo_db, create_or_update_indexes
+from widukind_common import tests_tools as utils
+from widukind_common import constants as common_constants
+
 from dlstats import constants
-from dlstats import utils
 
 from dlstats.tests import resources
 
@@ -22,25 +25,28 @@ class BaseTestCase(unittest.TestCase):
 class BaseDBTestCase(BaseTestCase):
     """Tests with MongoDB or ElasticSearch
     """
-    MONGODB_NAME = "widukind_test"
+    MONGODB_URL = "mongodb://localhost/widukind_test"
 
     @mock.patch.dict(os.environ)
     def setUp(self):
         BaseTestCase.setUp(self)
 
         os.environ.update(
-            WIDUKIND_MONGODB_NAME=self.MONGODB_NAME,
+            WIDUKIND_MONGODB_URL=self.MONGODB_URL,
         )
 
+        imp.reload(common_constants)
         imp.reload(constants)
         
-        self.db = utils.get_mongo_db()
+        self.db = get_mongo_db()
+        
+        self.assertEqual(self.db.name, "widukind_test")
 
         #self._releases_verify_ok()
         
         utils.clean_mongodb(self.db)
                 
-        utils.create_or_update_indexes(self.db, force_mode=True)
+        create_or_update_indexes(self.db, force_mode=True)
 
     def tearDown(self):
         BaseTestCase.tearDown(self)
@@ -89,4 +95,6 @@ class BaseDBTestCase(BaseTestCase):
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
+        self.assertEqual(self.db[constants.COL_TAGS_DATASETS].count(), 0)
+        self.assertEqual(self.db[constants.COL_TAGS_SERIES].count(), 0)
         

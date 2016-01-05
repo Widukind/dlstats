@@ -9,14 +9,15 @@ import gridfs
 
 import click
 
-from dlstats import utils
+from widukind_common.utils import get_mongo_url, get_mongo_client, configure_logging
+
 from dlstats import version
 
 DLSTATS_SETTINGS = dict(auto_envvar_prefix='DLSTATS')
 
 opt_mongo_url = click.option('--mongo-url',
-                             envvar='DLSTATS_MONGODB_URL',
-                             default=utils.get_mongo_url(),
+                             envvar='WIDUKIND_MONGODB_URL',
+                             default=get_mongo_url(),
                              show_default=True,
                              help="URL for MongoDB connection.")
 
@@ -66,7 +67,7 @@ class Context(object):
         self.client_es = None
         self.fs_mongo = None
         
-        self.logger = utils.configure_logging(debug=self.debug, 
+        self.logger = configure_logging(debug=self.debug, 
                                 #stdout_enable, 
                                 config_file=self.log_config, 
                                 level=self.log_level)
@@ -105,7 +106,7 @@ class Context(object):
 
     def mongo_client(self):
         if not self.client_mongo:
-            self.client_mongo = utils.get_mongo_client(self.mongo_url)
+            self.client_mongo = get_mongo_client(self.mongo_url)
         return self.client_mongo
     
     def mongo_database(self):

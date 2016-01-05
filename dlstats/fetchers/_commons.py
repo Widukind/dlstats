@@ -11,9 +11,10 @@ from copy import deepcopy
 
 from slugify import slugify
 
+from widukind_common.utils import get_mongo_db, create_or_update_indexes
+
 from dlstats import constants
 from dlstats.fetchers import schemas
-from dlstats import utils
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +36,11 @@ class Fetcher(object):
             raise ValueError("provider_name is required")
 
         self.provider_name = provider_name
-        self.db = db or utils.get_mongo_db()
+        self.db = db or get_mongo_db()
         self.provider = None
         
         if is_indexes:
-            utils.create_or_update_indexes(self.db)
+            create_or_update_indexes(self.db)
         
     def upsert_categories(self):
         """Upsert the categories in MongoDB
@@ -370,11 +371,6 @@ class Series(DlstatsCollection):
         if 'lastUpdate' in bson:
             last_update = bson.pop('lastUpdate')
 
-        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
-            'provider': self.provider_name,
-            'datasetCode': self.dataset_code,
-            'key': bson['key']})
-                
         col = self.fetcher.db[constants.COL_SERIES]
 
         if not old_bson:
