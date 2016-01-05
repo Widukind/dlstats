@@ -41,10 +41,10 @@ class WorldBank(Fetcher):
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name,
                      'name': 'World Bank',
-                     'categoryCode': 'worldbank_root',
+                     'category_code': 'worldbank_root',
                      'children': [{'provider': self.provider_name,
                                    'name': 'GEM' , 
-                                   'categoryCode': 'GEM',
+                                   'category_code': 'GEM',
                                    'exposed': True}]}
         self.fetcher.provider.add_data_tree(data_tree)
 

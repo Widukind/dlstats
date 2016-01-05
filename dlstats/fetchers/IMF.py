@@ -159,10 +159,10 @@ class IMF(Fetcher):
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name,
                      'name': 'IMF',
-                     'categoryCode': 'imf_root',
+                     'category_code': 'imf_root',
                      'children': [{'provider': self.provider_name,
                                    'name': 'WEO' , 
-                                   'categoryCode': 'WEO',
+                                   'category_code': 'WEO',
                                    'exposed': True}]}
         self.fetcher.provider.add_data_tree(data_tree)
         

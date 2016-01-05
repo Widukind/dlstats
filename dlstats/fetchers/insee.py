@@ -130,13 +130,13 @@ class INSEE(Fetcher):
                           categorisation, 
                           dataflows, 
                           name=None, 
-                          categoryCode=None):
+                          category_code=None):
             
             if name is None:
                 name = category['name']
             
-            if categoryCode is None:
-                categoryCode = category['id']
+            if category_code is None:
+                category_code = category['id']
             
             children_ids = []
             
@@ -150,7 +150,7 @@ class INSEE(Fetcher):
                 
                 category = Categories(provider=self.provider_name,
                                       name=name,
-                                      categoryCode=categoryCode,
+                                      category_code=category_code,
                                       children=children_ids,
                                       doc_href=None,
                                       last_update=datetime.now(),
@@ -164,7 +164,7 @@ class INSEE(Fetcher):
                     
                     category = Categories(provider=self.provider_name,
                                           name=dataflows[df_id][2]['en'],
-                                          categoryCode=category['id'],
+                                          category_code=category['id'],
                                           children=children_ids,
                                           doc_href=None,
                                           last_update=datetime.now(),
@@ -177,7 +177,7 @@ class INSEE(Fetcher):
                       self._categorisation, 
                       self._dataflow,
                       name='root',
-                      categoryCode='INSEE_root')
+                      category_code='INSEE_root')
 
     
     def upsert_dataset(self, dataset_code):
@@ -192,7 +192,7 @@ class INSEE(Fetcher):
         
         dataflow = self._dataflows[dataset_code]
         
-        #cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
+        #cat = self.db[constants.COL_CATEGORIES].find_one({'category_code': dataset_code})
         #dataset.name = cat['name']
         #dataset.doc_href = cat['doc_href']
         #dataset.last_update = cat['last_update']

@@ -195,7 +195,7 @@ class Eurostat(Fetcher):
                         if element.attrib.values()[0] == 'html':
                             _tree['doc_href'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'code':
-                        _tree['categoryCode'] = element.text
+                        _tree['category_code'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'last_update':
                         if not (element.text is None):
                             last_update = datetime.datetime.strptime(
@@ -225,7 +225,7 @@ class Eurostat(Fetcher):
                      'name': 'Eurostat',
                      'doc_href': None,
                      'children': children,
-                     'categoryCode': 'eurostat_root',
+                     'category_code': 'eurostat_root',
                      'exposed': False,
                      'last_update': None}
         return data_tree
@@ -248,12 +248,12 @@ class Eurostat(Fetcher):
 
         def walktree1(node,selected):
 
-            if selected or (node['categoryCode'] in self.selected_codes):
+            if selected or (node['category_code'] in self.selected_codes):
                 selected = True
                 if len(node['children']) == 0:
                     # this is a leaf
                     node['exposed'] = True
-                    self.selected_datasets.update({node['categoryCode']: node})
+                    self.selected_datasets.update({node['category_code']: node})
 
             for child in node['children']:
                 walktree1(child,selected)

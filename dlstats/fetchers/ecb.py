@@ -47,7 +47,7 @@ class ECB(Fetcher):
                     in_base_category_ = {
                         'provider': self.provider_name,
                         'name': name,
-                        'categoryCode': flowref,
+                        'category_code': flowref,
                         'children': [],
                         'doc_href': None,
                         'last_update': None,
@@ -56,7 +56,7 @@ class ECB(Fetcher):
                 in_base_category = {
                     'provider': self.provider_name,
                     'name': category['name'],
-                    'categoryCode': category['name'],
+                    'category_code': category['name'],
                     'children': children_,
                     'doc_href': None,
                     'last_update': None,
@@ -70,7 +70,7 @@ class ECB(Fetcher):
                 in_base_category = {
                     'provider': self.provider_name,
                     'name': category['name'],
-                    'categoryCode': category['name'],
+                    'category_code': category['name'],
                     'children': children_,
                     'doc_href': None,
                     'last_update': None,
@@ -82,7 +82,7 @@ class ECB(Fetcher):
                      'name': 'ECB',
                      'doc_href': None,
                      'children': data_tree_['children'],
-                     'categoryCode': 'ecb_root',
+                     'category_code': 'ecb_root',
                      'exposed': False,
                      'last_update': None}
         return data_tree
@@ -96,12 +96,12 @@ class ECB(Fetcher):
         :returns: dict of datasets"""
 
         def walktree1(node,selected):
-            if selected or (node['categoryCode'] in self.selected_codes):
+            if selected or (node['category_code'] in self.selected_codes):
                 selected = True
                 if len(node['children']) == 0:
                     # this is a leaf
                     node['exposed'] = True
-                    self.selected_datasets.update({node['categoryCode']: node})
+                    self.selected_datasets.update({node['category_code']: node})
 
             for child in node['children']:
                 walktree1(child,selected)
@@ -149,18 +149,18 @@ class ECB(Fetcher):
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def datasets_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
-        return [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        return [dataset_code['category_code'] for dataset_code in dataset_codes]
 
     def datasets_long_list(self):
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, 'name': True, '_id': False})
-        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, 'name': True, '_id': False})
+        return [(dataset_code['category_code'], dataset_code['name']) for dataset_code in dataset_codes]
 
     def upsert_all_datasets(self):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'categoryCode':True, '_id': False})
-        dataset_codes = [dataset_code['categoryCode'] for dataset_code in dataset_codes]
+        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'ECB', 'children': None},{'category_code':True, '_id': False})
+        dataset_codes = [dataset_code['category_code'] for dataset_code in dataset_codes]
         for dataset_code in dataset_codes:
             self.upsert_dataset(dataset_code)
         end = time.time() - start

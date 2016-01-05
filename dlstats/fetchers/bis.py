@@ -332,13 +332,13 @@ class BIS(Fetcher):
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name,
                      'name': 'Eurostat',
-                     'categoryCode': 'oecd_root',
+                     'category_code': 'oecd_root',
                      'children': []}
         
         for dataset_code in DATASETS.keys():
             data_tree['children'].append({'provider': self.provider_name, 
                                           'name': DATASETS[dataset_code]['name'], 
-                                          'categoryCode': dataset_code,
+                                          'category_code': dataset_code,
                                           'exposed': True,
                                           'children': None})
 

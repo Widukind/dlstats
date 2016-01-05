@@ -364,12 +364,12 @@ class DBProviderTestCase(BaseDBTestCase):
         
         data_tree = {'provider': "p1",
                      'name': "p1_root",
-                     'categoryCode': "c0",
+                     'category_code': "c0",
                      'doc_href': 'http://www.example.com',
                      'children': [
                          {'provider': "p1",
                           'name': "cat1", 
-                          'categoryCode': "c1",
+                          'category_code': "c1",
                           'last_update': datetime(2010,1,5),
                           'exposed': False,
                           'children': None}]
@@ -378,13 +378,13 @@ class DBProviderTestCase(BaseDBTestCase):
         res = p.add_data_tree(data_tree)
         
         bson = res['data_tree']
-        self.assertEqual(bson["categoryCode"], "c0")
+        self.assertEqual(bson["category_code"], "c0")
         self.assertEqual(bson["name"], "p1_root")
         self.assertEqual(bson["provider"], "p1")
         self.assertEqual(bson["doc_href"], "http://www.example.com")
 
         bson1 = res['data_tree']['children'][0]
-        self.assertEqual(bson1["categoryCode"], "c1")
+        self.assertEqual(bson1["category_code"], "c1")
         self.assertEqual(bson1["name"], "cat1")
         self.assertEqual(bson1["provider"], "p1")
         self.assertEqual(bson1["last_update"],datetime(2010,1,5))

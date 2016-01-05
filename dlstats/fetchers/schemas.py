@@ -49,7 +49,7 @@ data_tree_schema = Schema({
     'children': Any(None,[_data_tree]), 
     Optional('doc_href'): Any(None,str),
     Optional('last_update'): Any(None,typecheck(datetime)),
-    'categoryCode': All(str, Length(min=1)),
+    'category_code': All(str, Length(min=1)),
     Optional('exposed'): typecheck(bool)
     }, required=True)
 

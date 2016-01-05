@@ -62,7 +62,7 @@ class Esri(Fetcher):
     def upsert_categories(self):
         data_tree = {'provider': self.provider_name, 
                      'name': 'esri', 
-                     'categoryCode': 'esri',
+                     'category_code': 'esri',
                      'children': None}
         self.fetcher.provider.add_data_tree(data_tree)
         

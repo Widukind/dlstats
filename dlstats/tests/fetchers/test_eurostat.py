@@ -1279,7 +1279,7 @@ class FullEurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self.fetcher.upsert_categories()
         category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
+                                                               "category_code": self.dataset_code})
         self.assertIsNotNone(category)
         
         self.fetcher.upsert_dataset(self.dataset_code)
