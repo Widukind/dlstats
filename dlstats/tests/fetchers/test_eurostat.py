@@ -1155,6 +1155,30 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
     @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
+    def test_upsert_dataset(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_upsert_dataset
+
+        self._collections_is_empty()
+
+        self.fetcher.provider.update_database()
+
+        dataset_code = 'nama_10_gdp'
+        
+        self.fetcher.upsert_dataset(dataset_code)
+
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
+                                                            "datasetCode": dataset_code})
+        self.assertIsNotNone(dataset)
+
+        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
+                                                     "datasetCode": dataset_code})
+
+        self.assertEqual(series.count(), DATASETS[dataset_code]['series_count'])
+
+    @mock.patch('requests.get', local_get)
+    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
     def test_selected_datasets(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_data_tre

@@ -259,27 +259,25 @@ class Eurostat(Fetcher):
                 walktree1(child,selected)
 
         provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
-        if provider is None:
+        if 'data_tree' not in provider:
             self.upsert_categories()
             provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
             
         walktree1(provider['data_tree'],False)
         
     def upsert_selected_datasets(self):
-        if self.selected_datasets is None:
+        if not self.selected_datasets:
             self.get_selected_datasets()
         for d in self.selected_datasets:
             self.upsert_dataset(d)
 
     def datasets_list(self):
-        datasets = self.selected_datasets
-        if not datasets:
+        if not self.selected_datasets:
             self.get_selected_datasets()
         return [d for d in self.selected_datasets]
 
     def datasets_long_list(self):
-        datasets = self.selected_datasets
-        if not datasets:
+        if not self.selected_datasets:
             self.get_selected_datasets()
         return [(d[0],d[1]['name']) for d in self.selected_datasets.items()]
 
@@ -289,7 +287,7 @@ class Eurostat(Fetcher):
         :returns: None"""
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        if self.selected_datasets is None:
+        if not self.selected_datasets:
             self.get_selected_datasets()
         cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
