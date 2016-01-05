@@ -50,7 +50,7 @@ class ECB(Fetcher):
                         'categoryCode': flowref,
                         'children': [],
                         'doc_href': None,
-                        'lastUpdate': None,
+                        'last_update': None,
                         'exposed': False}
                     children_.append(in_base_category_)
                 in_base_category = {
@@ -59,7 +59,7 @@ class ECB(Fetcher):
                     'categoryCode': category['name'],
                     'children': children_,
                     'doc_href': None,
-                    'lastUpdate': None,
+                    'last_update': None,
                     'exposed': False}
             if 'subcategories' in category:
                 children_ = []
@@ -73,7 +73,7 @@ class ECB(Fetcher):
                     'categoryCode': category['name'],
                     'children': children_,
                     'doc_href': None,
-                    'lastUpdate': None,
+                    'last_update': None,
                     'exposed': False}
             return in_base_category
 
@@ -84,7 +84,7 @@ class ECB(Fetcher):
                      'children': data_tree_['children'],
                      'categoryCode': 'ecb_root',
                      'exposed': False,
-                     'lastUpdate': None}
+                     'last_update': None}
         return data_tree
     
     def upsert_categories(self):

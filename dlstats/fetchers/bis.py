@@ -406,7 +406,7 @@ class BIS_Data():
         if not dataset_doc:
             return True
 
-        if self.release_date > dataset_doc['lastUpdate']:
+        if self.release_date > dataset_doc['last_update']:
             return True
 
         return False
@@ -447,7 +447,7 @@ class BIS_Data():
                 'values': values,
                 'attributes': {},
                 'dimensions': dimensions,
-                'lastUpdate': self.release_date,
+                'last_update': self.release_date,
                 'startDate': self.start_date.ordinal,
                 'endDate': self.end_date.ordinal,
                 'frequency': self.frequency}

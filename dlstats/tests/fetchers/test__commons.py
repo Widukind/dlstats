@@ -260,7 +260,7 @@ class DatasetTestCase(BaseTestCase):
         self.assertEqual(bson["doc_href"], "http://www.example.com")
         self.assertTrue(isinstance(bson["dimension_list"], dict))
         self.assertTrue(isinstance(bson["attribute_list"], dict))
-        self.assertIsNone(bson["lastUpdate"])
+        self.assertIsNone(bson["last_update"])
         self.assertEqual(bson["slug"], "p1-d1")
 
         #TODO: last_update        
@@ -370,7 +370,7 @@ class DBProviderTestCase(BaseDBTestCase):
                          {'provider': "p1",
                           'name': "cat1", 
                           'categoryCode': "c1",
-                          'lastUpdate': datetime(2010,1,5),
+                          'last_update': datetime(2010,1,5),
                           'exposed': False,
                           'children': None}]
                      }
@@ -387,7 +387,7 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson1["categoryCode"], "c1")
         self.assertEqual(bson1["name"], "cat1")
         self.assertEqual(bson1["provider"], "p1")
-        self.assertEqual(bson1["lastUpdate"],datetime(2010,1,5))
+        self.assertEqual(bson1["last_update"],datetime(2010,1,5))
         self.assertFalse(bson1["exposed"])
 
 class DBDatasetTestCase(BaseDBTestCase):

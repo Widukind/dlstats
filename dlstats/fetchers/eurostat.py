@@ -196,7 +196,7 @@ class Eurostat(Fetcher):
                             _tree['doc_href'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'code':
                         _tree['categoryCode'] = element.text
-                    elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
+                    elif element.tag == '{' + ns['nt'] + '}' + 'last_update':
                         if not (element.text is None):
                             last_update = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
@@ -210,9 +210,9 @@ class Eurostat(Fetcher):
                     last_update = max(last_update,last_modified)
                 if last_update is not None and not isinstance(last_update,
                                                              datetime.datetime):
-                    _tree['lastUpdate'] = datetime.datetime(last_update)
+                    _tree['last_update'] = datetime.datetime(last_update)
                 else:
-                    _tree['lastUpdate'] = last_update
+                    _tree['last_update'] = last_update
                 _tree['exposed'] = False
                 children.append(_tree)
             return children
@@ -227,7 +227,7 @@ class Eurostat(Fetcher):
                      'children': children,
                      'categoryCode': 'eurostat_root',
                      'exposed': False,
-                     'lastUpdate': None}
+                     'last_update': None}
         return data_tree
     
     def get_table_of_contents(self):
@@ -292,7 +292,7 @@ class Eurostat(Fetcher):
         cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
-                           last_update=cat['lastUpdate'],
+                           last_update=cat['last_update'],
                            fetcher=self)
         dataset.name = cat['name']
         dataset.doc_href = cat['doc_href']
@@ -310,10 +310,10 @@ class Eurostat(Fetcher):
         self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
             {'provider': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
-            {'dataset_code': 1, 'lastUpdate': 1})
+            {'dataset_code': 1, 'last_update': 1})
         selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
         for d in self.selected_datasets:
-            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < self.selected_datasets[d]['lastUpdate']):
+            if (d not in selected_datasets) or (selected_datasets[d]['last_update'] < self.selected_datasets[d]['last_update']):
                 self.upsert_dataset(d)
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
@@ -421,7 +421,7 @@ class EurostatData:
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())
         bson['values'] = values
-        bson['lastUpdate'] = self.last_update
+        bson['last_update'] = self.last_update
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
         (start_string, freq) = self.parse_date(

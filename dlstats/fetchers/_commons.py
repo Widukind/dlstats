@@ -254,7 +254,7 @@ class Datasets(DlstatsCollection):
                 'dimension_list': self.dimension_list.get_list(),
                 'attribute_list': self.attribute_list.get_list(),
                 'doc_href': self.doc_href,
-                'lastUpdate': self.last_update,
+                'last_update': self.last_update,
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
@@ -301,7 +301,7 @@ class Series(DlstatsCollection):
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code),
-                               ('lastUpdate', self.last_update)])
+                               ('last_update', self.last_update)])
 
     def process_series_data(self):
         count = 0
@@ -368,8 +368,8 @@ class Series(DlstatsCollection):
             bson['slug'] = self.slug(bson['key'])                                
         
         last_update = self.last_update
-        if 'lastUpdate' in bson:
-            last_update = bson.pop('lastUpdate')
+        if 'last_update' in bson:
+            last_update = bson.pop('last_update')
 
         col = self.fetcher.db[constants.COL_SERIES]
 

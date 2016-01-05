@@ -48,7 +48,7 @@ data_tree_schema = Schema({
     'provider': All(str, Length(min=1)),
     'children': Any(None,[_data_tree]), 
     Optional('doc_href'): Any(None,str),
-    Optional('lastUpdate'): Any(None,typecheck(datetime)),
+    Optional('last_update'): Any(None,typecheck(datetime)),
     'categoryCode': All(str, Length(min=1)),
     Optional('exposed'): typecheck(bool)
     }, required=True)
@@ -59,7 +59,7 @@ dataset_schema = Schema({
     'provider': All(str, Length(min=1)),
     'dataset_code': All(str, Length(min=1)),
     'doc_href': Any(None,str),
-    'lastUpdate': typecheck(datetime),
+    'last_update': typecheck(datetime),
     'dimension_list': {str: [All()]},
     'attribute_list': Any(None, {str: [(str,str)]}),
     Optional('notes'): str,

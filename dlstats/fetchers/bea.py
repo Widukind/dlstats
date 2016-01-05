@@ -183,7 +183,7 @@ class BeaData():
         series['key'] = series_key
         series['startDate'] = self.start_date
         series['endDate'] = self.end_date  
-        series['lastUpdate'] = self.release_date
+        series['last_update'] = self.release_date
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}

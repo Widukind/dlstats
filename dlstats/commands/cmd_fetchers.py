@@ -165,9 +165,9 @@ def cmd_report(**kwargs):
     print("----------------------------------------------------------------------------------------------------------")
     for provider in db[constants.COL_PROVIDERS].find({}):
         for dataset in db[constants.COL_DATASETS].find({"provider": provider['name']}):
-            lastUpdate = str(dataset['lastUpdate'])
+            last_update = str(dataset['last_update'])
             series_count = db[constants.COL_SERIES].count({"provider": provider['name'], "dataset_code": dataset['dataset_code']})
-            print(fmt.format(provider['name'], dataset['dataset_code'], series_count, lastUpdate))
+            print(fmt.format(provider['name'], dataset['dataset_code'], series_count, last_update))
     print("----------------------------------------------------------------------------------------------------------")
         
 @cli.command('update-metas', context_settings=client.DLSTATS_SETTINGS)

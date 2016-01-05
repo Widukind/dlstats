@@ -386,7 +386,7 @@ class OECD_Data():
                 'values': values,
                 'attributes': {},
                 'dimensions': dimensions,
-                'lastUpdate': self.prepared,
+                'last_update': self.prepared,
                 'startDate': start_date.ordinal,
                 'endDate': end_date.ordinal,
                 'frequency': frequency}

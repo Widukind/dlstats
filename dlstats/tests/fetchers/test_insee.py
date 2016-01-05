@@ -238,7 +238,7 @@ class InseeTestCase(BaseDBTestCase):
             "dataset_code": dataset_code
         }
         new_datetime = datetime(2015, 12, 9)
-        result = self.db[constants.COL_DATASETS].update_one(query, {"$set": {'lastUpdate': new_datetime}})
+        result = self.db[constants.COL_DATASETS].update_one(query, {"$set": {'last_update': new_datetime}})
         pprint(result.raw_result)
         self._load_dataset(dataset_code)
         self.insee.upsert_dataset(dataset_code)
@@ -247,7 +247,7 @@ class InseeTestCase(BaseDBTestCase):
         for s in _series:
             print(s['key'])
         d = self.db[constants.COL_DATASETS].find_one(query)
-        print("dataset : ", d['lastUpdate'])
+        print("dataset : ", d['last_update'])
         self.assertEqual(len(_series), 11)
         
         

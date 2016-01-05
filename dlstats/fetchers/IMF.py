@@ -237,7 +237,7 @@ class WeoData():
             series['dimensions'] = dimensions
             
             #TODO: a verifier
-            series['lastUpdate'] = self.release_date
+            series['last_update'] = self.release_date
             
             series['releaseDates'] = release_dates
             series['startDate'] = self.start_date.ordinal

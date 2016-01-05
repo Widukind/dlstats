@@ -153,7 +153,7 @@ class INSEE(Fetcher):
                                       categoryCode=categoryCode,
                                       children=children_ids,
                                       doc_href=None,
-                                      lastUpdate=datetime.now(),
+                                      last_update=datetime.now(),
                                       exposed=False,
                                       fetcher=self)
                 
@@ -167,7 +167,7 @@ class INSEE(Fetcher):
                                           categoryCode=category['id'],
                                           children=children_ids,
                                           doc_href=None,
-                                          lastUpdate=datetime.now(),
+                                          last_update=datetime.now(),
                                           exposed=False,
                                           fetcher=self)
                     
@@ -195,7 +195,7 @@ class INSEE(Fetcher):
         #cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
         #dataset.name = cat['name']
         #dataset.doc_href = cat['doc_href']
-        #dataset.last_update = cat['lastUpdate']
+        #dataset.last_update = cat['last_update']
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
@@ -239,7 +239,7 @@ class INSEE_Data(object):
         self.dataset_doc = dataset_doc
         self.last_update = None
         if self.dataset_doc:
-            self.last_update = self.dataset_doc["lastUpdate"]
+            self.last_update = self.dataset_doc["last_update"]
         #    self.dataset.last_update = self.last_update
         
         self.provider_name = self.dataset.provider_name
@@ -471,7 +471,7 @@ class INSEE_Data(object):
         bson['dataset_code'] = self.dataset_code
         bson['key'] = self.get_series_key(series)
         bson['name'] = self.get_series_name(series)
-        bson['lastUpdate'] = self.get_last_update(series)
+        bson['last_update'] = self.get_last_update(series)
         
         self.debug_series(series, bson)
         

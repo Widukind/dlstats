@@ -111,7 +111,7 @@ class OECDDatasetsTestCase(BaseTestCase):
                 #    "Frequency" : "Annual",
                 #    "Subject" : "Balance of Payments > Financial Account > Financial derivatives > Net financial derivatives"
                 #},
-                'lastUpdate': self.oecd_data.prepared,
+                'last_update': self.oecd_data.prepared,
                 'startDate': 10,
                 'endDate': 11,
                 'frequency': 'A'}        
