@@ -302,7 +302,7 @@ class ECBDatasetDBTestCase(BaseDBTestCase):
         self.fetcher.upsert_dataset('2_2_1')
         results = self.db[constants.COL_SERIES].find(
             {"provider": self.fetcher.provider_name},
-            {'_id': False, 'releaseDates': False})
+            {'_id': False, 'release_dates': False})
         results = [result for result in results]
         self.assertEqual(results, reference)
 

@@ -292,7 +292,7 @@ class BISDatasetsTestCase(BaseTestCase):
                                           'sectors-1C:International '
                                           'organisations-N:Cross-border',
                                   'provider': 'BIS',
-                                  'releaseDates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
+                                  'release_dates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35)],
                                   'start_date': -80,
@@ -323,7 +323,7 @@ class BISDatasetsTestCase(BaseTestCase):
                               'value-770:Percentage of GDP-A:Adjusted for '
                               'breaks',
                       'provider': 'BIS',
-                      'releaseDates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
+                      'release_dates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20)],
                       'start_date': -80,

@@ -332,7 +332,7 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     
     ctx.log("Count result : %s" % result.count())
     for doc in result:
-        #TODO: value/releaseDates, ...
+        #TODO: value/release_dates, ...
         if search_type == constants.COL_SERIES:
             fields = [doc['provider'], doc['dataset_code'], doc['key'], doc['name']]
         else:

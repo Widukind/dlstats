@@ -75,7 +75,7 @@ series_schema = Schema({
     'start_date': int,
     'end_date': int,
     'values': [Any(str)],
-    'releaseDates': [date_validator],
+    'release_dates': [date_validator],
     'attributes': Any({}, {str: [str]}),
     Optional('revisions'): Any(None, revision_schema),
     'dimensions': {str: str},

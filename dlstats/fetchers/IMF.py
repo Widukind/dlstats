@@ -239,7 +239,7 @@ class WeoData():
             #TODO: a verifier
             series['last_update'] = self.release_date
             
-            series['releaseDates'] = release_dates
+            series['release_dates'] = release_dates
             series['start_date'] = self.start_date.ordinal
             series['end_date'] = self.end_date.ordinal
             series['frequency'] = 'A'
