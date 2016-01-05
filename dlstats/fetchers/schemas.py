@@ -61,7 +61,7 @@ dataset_schema = Schema({
     'doc_href': Any(None,str),
     'lastUpdate': typecheck(datetime),
     'dimension_list': {str: [All()]},
-    'attributeList': Any(None, {str: [(str,str)]}),
+    'attribute_list': Any(None, {str: [(str,str)]}),
     Optional('notes'): str,
     Optional('tags'): [Any(str)],
     'slug': All(str, Length(min=1)),

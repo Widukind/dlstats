@@ -252,7 +252,7 @@ class Datasets(DlstatsCollection):
                 'dataset_code': self.dataset_code,
                 'slug': self.slug(),
                 'dimension_list': self.dimension_list.get_list(),
-                'attributeList': self.attribute_list.get_list(),
+                'attribute_list': self.attribute_list.get_list(),
                 'doc_href': self.doc_href,
                 'lastUpdate': self.last_update,
                 'notes': self.notes}
@@ -264,7 +264,7 @@ class Datasets(DlstatsCollection):
         if dataset:
             # convert to dict of dict
             self.dimension_list.set_from_list(dataset['dimension_list'])
-            self.attribute_list.set_from_list(dataset['attributeList'])
+            self.attribute_list.set_from_list(dataset['attribute_list'])
         
     def update_database(self):
         self.series.process_series_data()        
