@@ -223,7 +223,7 @@ class ProviderTestCase(BaseTestCase):
         
         bson = p.bson
         self.assertEqual(bson["name"], "p1")
-        self.assertEqual(bson["longName"], "Provider One")
+        self.assertEqual(bson["long_name"], "Provider One")
         self.assertEqual(bson["region"], "Dreamland")
         self.assertEqual(bson["website"], "http://www.example.com")
         self.assertEqual(bson["slug"], "p1")

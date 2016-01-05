@@ -171,7 +171,7 @@ class Providers(DlstatsCollection):
     @property
     def bson(self):
         return {'name': self.name,
-                'longName': self.long_name,
+                'long_name': self.long_name,
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}

@@ -34,7 +34,7 @@ codedict_schema = Schema({Extra: dict})
 
 provider_schema = Schema({
     'name': All(str, Length(min=1)),
-    'longName': All(str, Length(min=1)),
+    'long_name': All(str, Length(min=1)),
     'slug': All(str, Length(min=1)),
     'region': All(str, Length(min=1)),
     'website': All(str, Length(min=9))
