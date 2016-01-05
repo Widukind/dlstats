@@ -16,7 +16,7 @@ env:
 
 before_install:
   - docker pull $MONGO_IMAGE
-  - docker run -d --name=mongodb $MONGO_IMAGE mongod --smallfiles --noauth --directoryperdb 
+  - docker run -d --name=mongodb $MONGO_IMAGE mongod --noauth
   - docker build -t widukind/dlstats -f DockerfileTests .
   - pip install coveralls
  
