@@ -376,6 +376,11 @@ class Series(DlstatsCollection):
                  
         self.series_list = []
         return result
+
+    def format_last_update(self, date_value):
+        if not date_value:
+            return None
+        return datetime(date_value.year, date_value.month, date_value.day, date_value.hour, date_value.minute)
             
     def update_series(self, bson, old_bson=None, is_bulk=False):
         # gets either last_update passed to Datasets or the one provided
@@ -383,9 +388,9 @@ class Series(DlstatsCollection):
         if not 'slug' in bson:
             bson['slug'] = self.slug(bson['key'])                                
         
-        last_update = self.last_update
+        last_update = self.format_last_update(self.last_update)
         if 'last_update' in bson:
-            last_update = bson.pop('last_update')
+            last_update = self.format_last_update(bson.pop('last_update'))
 
         col = self.fetcher.db[constants.COL_SERIES]
 
