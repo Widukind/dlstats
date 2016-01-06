@@ -228,6 +228,9 @@ class Datasets(DlstatsCollection):
         self.bulk_size = bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
+
+        self.download_first = None
+        self.download_last = None
         
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
@@ -258,6 +261,8 @@ class Datasets(DlstatsCollection):
                 'attribute_list': self.attribute_list.get_list(),
                 'doc_href': self.doc_href,
                 'last_update': self.last_update,
+                'download_first': self.download_first,
+                'download_last': self.download_last,
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
@@ -266,11 +271,19 @@ class Datasets(DlstatsCollection):
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
+            self.download_first = dataset['download_first']
             self.dimension_list.set_from_list(dataset['dimension_list'])
             self.attribute_list.set_from_list(dataset['attribute_list'])
         
     def update_database(self):
-        self.series.process_series_data()        
+        self.series.process_series_data()
+
+        now = datetime.now()
+        if not self.download_first:
+            self.download_first = now
+        if not self.download_last:
+            self.download_last = now
+
         schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
                                             ['provider_name', 'dataset_code'],

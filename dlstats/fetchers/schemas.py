@@ -66,6 +66,8 @@ dataset_schema = Schema({
     Optional('notes'): str,
     Optional('tags'): [Any(str)],
     'slug': All(str, Length(min=1)),
+    'download_first': typecheck(datetime),
+    'download_last': typecheck(datetime),
     },required=True)
 
 series_schema = Schema({
