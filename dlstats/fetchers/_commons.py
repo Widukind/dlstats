@@ -274,9 +274,28 @@ class Datasets(DlstatsCollection):
             self.download_first = dataset['download_first']
             self.dimension_list.set_from_list(dataset['dimension_list'])
             self.attribute_list.set_from_list(dataset['attribute_list'])
+
+    def is_recordable(self):
+        
+        query = {"provider_name": self.provider_name,
+                 "dataset_code": self.dataset_code}
+        projection = {"provider_name": True, "dataset_code": True}
+        
+        doc = self.fetcher.db[constants.COL_DATASETS].find_one(query, projection)
+        if doc:
+            return True
+        
+        count_series = self.fetcher.db[constants.COL_SERIES].count(query)
+        if count_series > 0:
+            return True
+        
+        return False
         
     def update_database(self):
-        self.series.process_series_data()
+        try:
+            self.series.process_series_data()
+        except Exception as err:
+            logger.critical(err)
 
         now = datetime.now()
         if not self.download_first:
@@ -285,9 +304,14 @@ class Datasets(DlstatsCollection):
             self.download_last = now
 
         schemas.dataset_schema(self.bson)
+        
+        if not self.is_recordable():
+            logger.warning("Not recordable dataset[%s]" % self.dataset_code)
+            return
+        
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            ['provider_name', 'dataset_code'],
-                                            self.bson)
+                                                ['provider_name', 'dataset_code'],
+                                                self.bson)
 
 class Series(DlstatsCollection):
     """Time Series class
