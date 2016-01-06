@@ -20,6 +20,8 @@ import requests
 from lxml import etree
 import logging
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +33,7 @@ class Esri(Fetcher):
         self.provider_name = 'esri'
         self.provider = Providers(name=self.provider_name,
                                   long_name='Economic and Social Research Institute, Cabinet Office',
+                                  version=VERSION,
                                   region='Japan',
                                   website='http://www.esri.cao.go.jp/index-e.html',
                                   fetcher=self)

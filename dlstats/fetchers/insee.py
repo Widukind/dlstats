@@ -24,6 +24,8 @@ HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 class ContinueRequest(Exception):
@@ -63,6 +65,7 @@ class INSEE(Fetcher):
         
         self.provider = Providers(name=self.provider_name,
                                  long_name='National Institute of Statistics and Economic Studies',
+                                 version=VERSION,
                                  region='France',
                                  website='http://www.insee.fr',
                                  fetcher=self)

@@ -142,6 +142,7 @@ class Providers(DlstatsCollection):
     def __init__(self,
                  name=None,
                  long_name=None,
+                 version=0,
                  region=None,
                  website=None,
                  fetcher=None):
@@ -155,6 +156,7 @@ class Providers(DlstatsCollection):
         super().__init__(fetcher=fetcher)
         self.name = name
         self.long_name = long_name
+        self.version = version
         self.region = region
         self.website = website
 
@@ -172,6 +174,7 @@ class Providers(DlstatsCollection):
     def bson(self):
         return {'name': self.name,
                 'long_name': self.long_name,
+                'version': self.version,
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}

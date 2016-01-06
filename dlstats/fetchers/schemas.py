@@ -3,7 +3,7 @@
 from datetime import datetime
 import bson
 
-from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra
+from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra, Range
 
 def date_validator(value):
     """Custom validator (only a few types are natively implemented in voluptuous)
@@ -35,6 +35,7 @@ codedict_schema = Schema({Extra: dict})
 provider_schema = Schema({
     'name': All(str, Length(min=1)),
     'long_name': All(str, Length(min=1)),
+    'version': All(int, Range(min=1)),
     'slug': All(str, Length(min=1)),
     'region': All(str, Length(min=1)),
     'website': All(str, Length(min=9))

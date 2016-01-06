@@ -18,6 +18,8 @@ from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 __all__ = ['BIS']
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 def extract_zip_file(filepath):
@@ -272,6 +274,7 @@ class BIS(Fetcher):
         
         self.provider = Providers(name=self.provider_name,
                                   long_name='Bank for International Settlements',
+                                  version=VERSION,
                                   region='world',
                                   website='http://www.bis.org', 
                                   fetcher=self)

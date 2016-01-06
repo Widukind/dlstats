@@ -13,6 +13,8 @@ import requests
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 DATASETS = {
@@ -34,6 +36,7 @@ class WorldBank(Fetcher):
         
         self.provider = Providers(name=self.provider_name,
                                  long_name='World Bank',
+                                 version=VERSION,
                                  region='world',
                                  website='http://www.worldbank.org/',
                                  fetcher=self)

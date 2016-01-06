@@ -217,6 +217,7 @@ class ProviderTestCase(BaseTestCase):
                 
         p = Providers(name="p1",
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
@@ -304,6 +305,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1", 
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
@@ -318,6 +320,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p2", 
                       long_name="Provider One",
+                      version=1,                      
                       region="Dreamland",
                       website="http://www.example.com",
                       fetcher=f)
@@ -336,6 +339,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1", 
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
@@ -357,6 +361,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1",
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)

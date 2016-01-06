@@ -14,6 +14,8 @@ import pandas
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 DATASETS = {
@@ -73,7 +75,8 @@ class IMF(Fetcher):
         super().__init__(provider_name='IMF', db=db, **kwargs)
         
         self.provider = Providers(name=self.provider_name, 
-                                  long_name="International Monetary Fund", 
+                                  long_name="International Monetary Fund",
+                                  version=VERSION, 
                                   region='world', 
                                   website='http://www.imf.org/', 
                                   fetcher=self)

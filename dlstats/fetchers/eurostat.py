@@ -32,6 +32,8 @@ REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
 
 __all__ = ['Eurostat']
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 def extract_zip_file(zipfilepath):
@@ -141,6 +143,7 @@ class Eurostat(Fetcher):
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,
                                   long_name='Eurostat',
+                                  version=VERSION,
                                   region='Europe',
                                   website='http://ec.europa.eu/eurostat',
                                   fetcher=self)
