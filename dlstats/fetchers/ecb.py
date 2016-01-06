@@ -16,8 +16,9 @@ from dlstats import constants
 from lxml.etree import XMLSyntaxError
 import logging
 
-logger = logging.getLogger(__name__)
+VERSION = 1
 
+logger = logging.getLogger(__name__)
 
 class ECB(Fetcher):
     def __init__(self, db=None):
@@ -25,7 +26,9 @@ class ECB(Fetcher):
         self.provider_name = 'ECB'
         self.requests_client = requests.Session()
         sdmx.ecb.requests_client = self.requests_client
-        self.provider = Providers(name=self.provider_name, long_name='European Central Bank',
+        self.provider = Providers(name=self.provider_name, 
+                                  long_name='European Central Bank',
+                                  version=VERSION,
                                   region='Europe',
                                   website='http://www.ecb.europa.eu/',
                                   fetcher=self)

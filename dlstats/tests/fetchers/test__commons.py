@@ -217,6 +217,7 @@ class ProviderTestCase(BaseTestCase):
                 
         p = Providers(name="p1",
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
@@ -304,10 +305,11 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1", 
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
-        p.update_database()
+        p.update_database()        
 
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 1)
         
@@ -318,12 +320,39 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p2", 
                       long_name="Provider One",
+                      version=1,                      
                       region="Dreamland",
                       website="http://www.example.com",
                       fetcher=f)
         p.update_database()
 
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 2)
+
+    def test_version_field(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_version_field
+
+        self._collections_is_empty()
+
+        f = Fetcher(provider_name="p1", 
+                    db=self.db)
+
+        with self.assertRaises(MultipleInvalid):
+            Providers(name="p1", 
+                      long_name="Provider One",
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
+
+        p = Providers(name="p1", 
+                      long_name="Provider One",
+                      version=1,
+                      region="Dreamland",
+                      website="http://www.example.com", 
+                      fetcher=f)
+        p.update_database()        
+
+        self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 1)
 
     def test_update_database(self):
 
@@ -336,6 +365,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1", 
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
@@ -357,6 +387,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
         p = Providers(name="p1",
                       long_name="Provider One",
+                      version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)

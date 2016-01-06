@@ -142,6 +142,7 @@ class Providers(DlstatsCollection):
     def __init__(self,
                  name=None,
                  long_name=None,
+                 version=0,
                  region=None,
                  website=None,
                  fetcher=None):
@@ -155,6 +156,7 @@ class Providers(DlstatsCollection):
         super().__init__(fetcher=fetcher)
         self.name = name
         self.long_name = long_name
+        self.version = version
         self.region = region
         self.website = website
 
@@ -172,6 +174,7 @@ class Providers(DlstatsCollection):
     def bson(self):
         return {'name': self.name,
                 'long_name': self.long_name,
+                'version': self.version,
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}
@@ -225,6 +228,9 @@ class Datasets(DlstatsCollection):
         self.bulk_size = bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
+
+        self.download_first = None
+        self.download_last = None
         
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
@@ -255,6 +261,8 @@ class Datasets(DlstatsCollection):
                 'attribute_list': self.attribute_list.get_list(),
                 'doc_href': self.doc_href,
                 'last_update': self.last_update,
+                'download_first': self.download_first,
+                'download_last': self.download_last,
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
@@ -263,11 +271,19 @@ class Datasets(DlstatsCollection):
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
+            self.download_first = dataset['download_first']
             self.dimension_list.set_from_list(dataset['dimension_list'])
             self.attribute_list.set_from_list(dataset['attribute_list'])
         
     def update_database(self):
-        self.series.process_series_data()        
+        self.series.process_series_data()
+
+        now = datetime.now()
+        if not self.download_first:
+            self.download_first = now
+        if not self.download_last:
+            self.download_last = now
+
         schemas.dataset_schema(self.bson)
         return self.update_mongo_collection(constants.COL_DATASETS,
                                             ['provider_name', 'dataset_code'],
@@ -360,6 +376,11 @@ class Series(DlstatsCollection):
                  
         self.series_list = []
         return result
+
+    def format_last_update(self, date_value):
+        if not date_value:
+            return None
+        return datetime(date_value.year, date_value.month, date_value.day, date_value.hour, date_value.minute)
             
     def update_series(self, bson, old_bson=None, is_bulk=False):
         # gets either last_update passed to Datasets or the one provided
@@ -367,9 +388,9 @@ class Series(DlstatsCollection):
         if not 'slug' in bson:
             bson['slug'] = self.slug(bson['key'])                                
         
-        last_update = self.last_update
+        last_update = self.format_last_update(self.last_update)
         if 'last_update' in bson:
-            last_update = bson.pop('last_update')
+            last_update = self.format_last_update(bson.pop('last_update'))
 
         col = self.fetcher.db[constants.COL_SERIES]
 

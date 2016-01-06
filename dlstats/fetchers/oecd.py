@@ -16,6 +16,8 @@ import requests
 
 from dlstats.fetchers._commons import Fetcher, Providers, Datasets
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 DATASETS = {
@@ -124,6 +126,7 @@ class OECD(Fetcher):
         self.provider_name = 'OECD'
         self.provider = Providers(name=self.provider_name, 
                                   long_name='Organisation for Economic Co-operation and Development',
+                                  version=VERSION,
                                   region='world',
                                   website='http://www.oecd.org', 
                                   fetcher=self)

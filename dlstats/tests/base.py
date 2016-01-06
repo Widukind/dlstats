@@ -24,6 +24,9 @@ class BaseDBTestCase(BaseTestCase):
     def setUp(self):
         BaseTestCase.setUp(self)
         
+        if not os.environ.get("WIDUKIND_MONGODB_URL", None):
+            self.fail("The environment variable WIDUKIND_MONGODB_URL must be set with the value: WIDUKIND_MONGODB_URL=mongodb://localhost/widukind_test")
+        
         self.db = get_mongo_db()
         
         self.assertEqual(self.db.name, "widukind_test")

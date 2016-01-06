@@ -21,6 +21,8 @@ import zipfile
 import io
 import logging
 
+VERSION = 1
+
 logger = logging.getLogger(__name__)
 
 class BEA(Fetcher):
