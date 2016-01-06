@@ -215,7 +215,7 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         
         # upsert_categories
 #        self.fetcher.upsert_categories()
-#        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
+#        category = self.db[constants.COL_CATEGORIES].find_one({"provider_name": self.fetcher.provider_name, 
 #                                                               "categoryCode": self.dataset_code})
 #        self.assertIsNotNone(category)
         
@@ -231,15 +231,15 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         dataset.last_update = DATASETS[self.dataset_code]['last_update']
         dataset.update_database()
 
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
         
-        self.assertEqual(len(self.dataset["dimensionList"]), DATASETS[self.dataset_code]["dimension_count"])
+        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimension_count"])
         
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({"provider_name": self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
         
@@ -254,12 +254,12 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
 
         attempt = DATASETS['gaku-mg1522']
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
 
         self.assertEqual(dataset['name'], attempt['name'])
-        self.assertEqual(dataset['provider'], 'esri')
-        self.assertEqual(dataset['lastUpdate'], attempt['last_update'])
+        self.assertEqual(dataset['provider_name'], 'esri')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
         index = 0
         dimensions = []
         for name in DATASETS['series_names']:
@@ -267,34 +267,34 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
                 dimensions.append([str(index), name])
                 index += 1
         self.maxDiff = None
-        self.assertEqual(dataset['dimensionList'], {'concept': dimensions})
-        self.assertEqual(dataset['attributeList'], {})
-        self.assertEqual(dataset['docHref'], None)
+        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
                     
         
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '0'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '0')
         self.assertEqual(series['frequency'], 'Q')
-        self.assertEqual(series['startDate'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '119,879.2')
         self.assertEqual(series['values'][-1], '123,819.7')
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '24'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '24')
         self.assertEqual(series['frequency'], 'Q')
-        self.assertEqual(series['startDate'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '8,252.0')
         self.assertEqual(series['values'][-1], '23,152.0')
 
@@ -308,12 +308,12 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
 
         attempt = DATASETS['gaku-mfy1522']
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
 
         self.assertEqual(dataset['name'], attempt['name'])
-        self.assertEqual(dataset['provider'], 'esri')
-        self.assertEqual(dataset['lastUpdate'], attempt['last_update'])
+        self.assertEqual(dataset['provider_name'], 'esri')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
         index = 0
         dimensions = []
         for name in DATASETS['series_names']:
@@ -321,34 +321,34 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
                 dimensions.append([str(index), name])
                 index += 1
         self.maxDiff = None
-        self.assertEqual(dataset['dimensionList'], {'concept': dimensions})
-        self.assertEqual(dataset['attributeList'], {})
-        self.assertEqual(dataset['docHref'], None)
+        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
                     
         
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '0'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '0')
         self.assertEqual(series['frequency'], 'A')
-        self.assertEqual(series['startDate'], pandas.Period('1994',freq='A').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
         self.assertEqual(series['values'][0], '495,612.2')
         self.assertEqual(series['values'][-1], '490,786.8')
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '24'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '24')
         self.assertEqual(series['frequency'], 'A')
-        self.assertEqual(series['startDate'], pandas.Period('1994',freq='A').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
         self.assertEqual(series['values'][0], '35,177.4')
         self.assertEqual(series['values'][-1], '99,695.5')
 
@@ -362,12 +362,12 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
 
         attempt = DATASETS['def-qg1522']
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
 
         self.assertEqual(dataset['name'], attempt['name'])
-        self.assertEqual(dataset['provider'], 'esri')
-        self.assertEqual(dataset['lastUpdate'], attempt['last_update'])
+        self.assertEqual(dataset['provider_name'], 'esri')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
         index = 0
         dimensions = []
         for name in DATASETS['series_names']:
@@ -375,34 +375,34 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
                 dimensions.append([str(index), name])
                 index += 1
         self.maxDiff = None
-        self.assertEqual(dataset['dimensionList'], {'concept': dimensions})
-        self.assertEqual(dataset['attributeList'], {})
-        self.assertEqual(dataset['docHref'], None)
+        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
                     
         
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '0'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '0')
         self.assertEqual(series['frequency'], 'Q')
-        self.assertEqual(series['startDate'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '109.8')
         self.assertEqual(series['values'][-1], '95.6')
 
-        series = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                         "datasetCode": self.dataset_code,
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
                                                          "key": '24'})
         self.assertIsNotNone(series)
         
         d = series['dimensions']
         self.assertEqual(d["concept"], '24')
         self.assertEqual(series['frequency'], 'Q')
-        self.assertEqual(series['startDate'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['endDate'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '86.7')
         self.assertEqual(series['values'][-1], '118.9')
 
@@ -441,18 +441,18 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
 #        self.fetcher.upsert_categories()
-#        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
+#        category = self.db[constants.COL_CATEGORIES].find_one({"provider_name": self.fetcher.provider_name, 
 #                                                               "categoryCode": self.dataset_code})
 #        self.assertIsNotNone(category)
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({"provider_name": self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
 
@@ -509,7 +509,7 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_all_datasets()
 
-        categories = self.db[constants.COL_CATEGORIES].find({"provider": self.fetcher.provider_name, 
+        categories = self.db[constants.COL_CATEGORIES].find({"provider_name": self.fetcher.provider_name, 
                                                              "exposed": True})
         self.assertEqual(categories.count(),3)
 
@@ -518,22 +518,22 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
         global TABLE_OF_CONTENT
         tc_orig = TABLE_OF_CONTENT
         tc = TABLE_OF_CONTENT.decode(encoding='UTF_8')
-        tc = tc.replace('lastUpdate>26.10.2015','lastUpdate>01.11.2015')
+        tc = tc.replace('last_update>26.10.2015','last_update>01.11.2015')
         TABLE_OF_CONTENT = tc.encode(encoding='UTF_8')
 
         self.fetcher.upsert_all_datasets()
         
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'nama_10_gdp'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                               "dataset_code": 'nama_10_gdp'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'dset1'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                               "dataset_code": 'dset1'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
-        dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                               "datasetCode": 'dset2'})
-        self.assertEqual(dataset['lastUpdate'],datetime.datetime(2015,11,1))
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                               "dataset_code": 'dset2'})
+        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
 
         # restoring TABLE_OF_CONTENT to original
         TABLE_OF_CONTENT = tc_orig
@@ -568,18 +568,18 @@ class FullEsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
+        category = self.db[constants.COL_CATEGORIES].find_one({"provider_name": self.fetcher.provider_name, 
                                                                "categoryCode": self.dataset_code})
         self.assertIsNotNone(category)
         
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({"provider_name": self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         series_count = series.count()
         self.assertTrue(series_count > 1)
