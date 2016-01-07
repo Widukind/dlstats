@@ -32,7 +32,7 @@ REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
 
 __all__ = ['Eurostat']
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +199,7 @@ class Eurostat(Fetcher):
                             _tree['doc_href'] = element.text
                     elif element.tag == '{' + ns['nt'] + '}' + 'code':
                         _tree['category_code'] = element.text
-                    elif element.tag == '{' + ns['nt'] + '}' + 'last_update':
+                    elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
                         if not (element.text is None):
                             last_update = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')

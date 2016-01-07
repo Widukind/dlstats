@@ -505,6 +505,37 @@ class DBDatasetTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
                                                      "dataset_code": d.dataset_code})
         self.assertEqual(series.count(), datas.max_record)
+
+    def test_not_recordable_dataset(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_not_recordable_dataset
+
+        self._collections_is_empty()
+
+        f = Fetcher(provider_name="p1", 
+                    db=self.db)
+
+        d = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    doc_href="http://www.example.com",
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        d.dimension_list.update_entry("Scale", "Billions", "Billions")
+        d.dimension_list.update_entry("country", "AFG", "AFG")
+        
+        class EmptySeriesIterator():
+            def __next__(self):
+                raise StopIteration            
+
+        datas = EmptySeriesIterator()
+        d.series.data_iterator = datas
+
+        id = d.update_database()
+        self.assertIsNone(id)
+        
+        self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         
         
 class DBSeriesTestCase(BaseDBTestCase):

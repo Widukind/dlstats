@@ -638,7 +638,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">GDP and main components (output, expenditure and income)</nt:title>
                         <nt:code>nama_10_gdp</nt:code>
-                        <nt:last_update>26.10.2015</nt:last_update>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>11.08.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -653,7 +653,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Final consumption aggregates by durability</nt:title>
                         <nt:code>nama_10_fcs</nt:code>
-                        <nt:last_update>26.10.2015</nt:last_update>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>12.10.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -674,7 +674,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Dset1</nt:title>
                         <nt:code>dset1</nt:code>
-                        <nt:last_update>26.10.2015</nt:last_update>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>11.08.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -689,7 +689,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                       <nt:leaf type="dataset">
                         <nt:title language="en">Dset2</nt:title>
                         <nt:code>dset2</nt:code>
-                        <nt:last_update>26.10.2015</nt:last_update>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
                         <nt:lastModified>12.10.2015</nt:lastModified>
                         <nt:dataStart>1975</nt:dataStart>
                         <nt:dataEnd>2014</nt:dataEnd>
@@ -724,7 +724,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                     <nt:title language="fr">Balance des paiements par pays - données mensuelles (BPM6)</nt:title>
                     <nt:title language="de">Zahlungsbilanzstatistiken nach Land - monatliche Daten (BPM6)</nt:title>
                     <nt:code>bop_c6_m</nt:code>
-                    <nt:last_update>20.10.2015</nt:last_update>
+                    <nt:lastUpdate>20.10.2015</nt:lastUpdate>
                     <nt:lastModified>20.10.2015</nt:lastModified>
                     <nt:dataStart>1991M01</nt:dataStart>
                     <nt:dataEnd>2015M08</nt:dataEnd>
@@ -745,7 +745,7 @@ TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
                     <nt:title language="fr">Balance des paiements par pays - données trimestrielles (BPM6)</nt:title>
                     <nt:title language="de">Zahlungsbilanzstatistiken nach Land - vierteljährliche Daten (BPM6)</nt:title>
                     <nt:code>bop_c6_q</nt:code>
-                    <nt:last_update>23.10.2015</nt:last_update>
+                    <nt:lastUpdate>23.10.2015</nt:lastUpdate>
                     <nt:lastModified>23.10.2015</nt:lastModified>
                     <nt:dataStart>1982</nt:dataStart>
                     <nt:dataEnd>2015Q2</nt:dataEnd>
@@ -1228,7 +1228,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         global TABLE_OF_CONTENT
         tc_orig = TABLE_OF_CONTENT
         tc = TABLE_OF_CONTENT.decode(encoding='UTF_8')
-        tc = tc.replace('last_update>26.10.2015','last_update>01.11.2015')
+        tc = tc.replace('lastUpdate>26.10.2015','lastUpdate>01.11.2015')
         TABLE_OF_CONTENT = tc.encode(encoding='UTF_8')
 
         self.fetcher.upsert_all_datasets()
