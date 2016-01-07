@@ -32,7 +32,7 @@ REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
 
 __all__ = ['Eurostat']
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
