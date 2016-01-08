@@ -306,7 +306,7 @@ class Datasets(DlstatsCollection):
         schemas.dataset_schema(self.bson)
         
         if not self.is_recordable():
-            logger.warning("Not recordable dataset[%s]" % self.dataset_code)
+            logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
             return
         
         return self.update_mongo_collection(constants.COL_DATASETS,
