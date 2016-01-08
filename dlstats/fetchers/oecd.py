@@ -175,7 +175,7 @@ class OECD(Fetcher):
         
     def upsert_categories(self):
         
-        data_tree = {'name': 'Eurostat',
+        data_tree = {'name': 'OECD',
                      'category_code': 'oecd_root',
                      'children': []}
         
