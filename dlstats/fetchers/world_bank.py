@@ -46,8 +46,9 @@ class WorldBank(Fetcher):
                      'category_code': 'worldbank_root',
                      'children': [{'name': 'GEM' , 
                                    'category_code': 'GEM',
-                                   'exposed': True}]}
-        self.fetcher.provider.add_data_tree(data_tree)
+                                   'exposed': True,
+                                   'children': []}]}
+        self.provider.add_data_tree(data_tree)
 
     def upsert_dataset(self, dataset_code):
         start = time.time()
