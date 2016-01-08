@@ -32,15 +32,6 @@ revision_schema = {str: [{Required('value'): str,
 
 codedict_schema = Schema({Extra: dict})
 
-provider_schema = Schema({
-    'name': All(str, Length(min=1)),
-    'long_name': All(str, Length(min=1)),
-    'version': All(int, Range(min=1)),
-    'slug': All(str, Length(min=1)),
-    'region': All(str, Length(min=1)),
-    'website': All(str, Length(min=9))
-    },required=True)
-
 def _data_tree(value):
     return data_tree_schema(value)
 
@@ -53,6 +44,15 @@ data_tree_schema = Schema({
     Optional('exposed'): typecheck(bool)
     }, required=True)
 
+provider_schema = Schema({
+    'name': All(str, Length(min=1)),
+    'long_name': All(str, Length(min=1)),
+    'version': All(int, Range(min=1)),
+    'slug': All(str, Length(min=1)),
+    'region': All(str, Length(min=1)),
+    'website': All(str, Length(min=9)),
+    Optional('data_tree'): data_tree_schema
+},required=True)
 
 dataset_schema = Schema({
     'name': All(str, Length(min=1)),
