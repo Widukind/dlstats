@@ -46,7 +46,6 @@ def _data_tree(value):
 
 data_tree_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider_name': All(str, Length(min=1)),
     'children': Any(None,[_data_tree]), 
     Optional('doc_href'): Any(None,str),
     Optional('last_update'): Any(None,typecheck(datetime)),

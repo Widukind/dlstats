@@ -187,7 +187,6 @@ class Eurostat(Fetcher):
                 _tree = {}
                 last_update = None
                 last_modified = None
-                _tree['provider_name'] = self.provider_name
                 _tree['doc_href'] = None
                 _tree['children'] = []
                 for element in branch.iterchildren():
@@ -224,8 +223,7 @@ class Eurostat(Fetcher):
         ns = table_of_contents.nsmap
         branch = table_of_contents.find('nt:branch',namespaces=ns)
         children = walktree(branch.find('nt:children',namespaces=ns),ns)
-        data_tree = {'provider_name': self.provider_name,
-                     'name': 'Eurostat',
+        data_tree = {'name': 'Eurostat',
                      'doc_href': None,
                      'children': children,
                      'category_code': 'eurostat_root',
