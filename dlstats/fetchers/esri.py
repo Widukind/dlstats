@@ -29,6 +29,20 @@ import re
 REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
 REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
 
+REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
+REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
+
+PROVIDER_NAME = 'ESRI'
+
+DATABASES = {
+    'QGDP' : {
+        'name': 'Quarterly Estimates of GDP',
+        'url': 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html',
+        'filename': 'toukei_top.html',
+        'store_filepath': '/tmp/esri'
+    }
+}
+
 def parse_quarter(quarter_str):
     if quarter_str == '1- 3':
         quarter = 1
@@ -250,6 +264,35 @@ class Esri(Fetcher):
     def upsert_all_datasets(self):
         self.upsert_categories()
         self.esri_issue()
+        
+    def upsert_all_datasets(self):
+        self.upsert_categories()
+        self.esri_issue()
+
+    def upsert_latest_quarterly_estimates_of_gdp(self):
+        self.parse_quarterly_esimates_of_gdp_release_archive_page()
+
+    def parse_quarterly_esimates_of_gdp_release_archive_page(self):
+        # TODO: timeout, replace
+        download = Downloader(url=DATABASES['QGDP']['url']+DATABASES['QGDP']['filename'],
+                              filename=DATABASES['QGDP']['filename'],
+                              store_filepath=DATABASES['QGDP']['store_filepath'])
+        with open(download.get_filepath(force_replace=False),'r') as f:
+            page = f.read()
+        # find latest data
+        html = etree.HTML(page)
+        print(etree.tostring(html, pretty_print=True, method="html"))
+        ul = html.find('.//ul[@class="bulletList ml20"]')
+        li = ul.find('li')
+        a = li.find('a')
+        # Go to release archive
+        dowload =  Downloader(url=DATABASES['QGDP']['url'] + a.get('href'),
+                              filename=DATABASES['QGDP']['filename'],
+                              store_filepath=DATABASES['QGDP']['store_filepath'])
+        with open(download.get_filepath(force_replace=False),'r') as f:
+            page = f.read()
+        # find latest data
+        html = etree.HTML(page)
         
 class EsriData():
     def __init__(self, dataset,  filename=None, store_filepath=None):
