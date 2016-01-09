@@ -42,14 +42,13 @@ class WorldBank(Fetcher):
                                  fetcher=self)
        
     def upsert_categories(self):
-        data_tree = {'provider_name': self.provider_name,
-                     'name': 'World Bank',
+        data_tree = {'name': 'World Bank',
                      'category_code': 'worldbank_root',
-                     'children': [{'provider_name': self.provider_name,
-                                   'name': 'GEM' , 
+                     'children': [{'name': 'GEM' , 
                                    'category_code': 'GEM',
-                                   'exposed': True}]}
-        self.fetcher.provider.add_data_tree(data_tree)
+                                   'exposed': True,
+                                   'children': []}]}
+        self.provider.add_data_tree(data_tree)
 
     def upsert_dataset(self, dataset_code):
         start = time.time()

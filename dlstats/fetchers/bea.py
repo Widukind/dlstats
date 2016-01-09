@@ -86,8 +86,7 @@ class BEA(Fetcher):
 
         
     def upsert_categories(self):
-        data_tree = {'provider_name': self.provider_name, 
-                     'name': 'BEA' , 
+        data_tree = {'name': 'BEA' , 
                      'category_code': 'bea_root',
                      'children': []}
 

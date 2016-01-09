@@ -160,14 +160,13 @@ class IMF(Fetcher):
             logger.error(str(err))
 
     def upsert_categories(self):
-        data_tree = {'provider_name': self.provider_name,
-                     'name': 'IMF',
+        data_tree = {'name': 'IMF',
                      'category_code': 'imf_root',
-                     'children': [{'provider_name': self.provider_name,
-                                   'name': 'WEO' , 
+                     'children': [{'name': 'WEO' , 
                                    'category_code': 'WEO',
-                                   'exposed': True}]}
-        self.fetcher.provider.add_data_tree(data_tree)
+                                   'exposed': True,
+                                   'children': []}]}
+        self.provider.add_data_tree(data_tree)
         
 class WeoData():
     

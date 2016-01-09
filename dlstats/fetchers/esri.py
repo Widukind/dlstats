@@ -235,8 +235,7 @@ class Esri(Fetcher):
         self.dataset_name = {'esri' +str(index+1): s for index, s in enumerate(self.dataset_name_list)}
         
     def upsert_categories(self):
-        data_tree = {'provider_name': self.provider_name, 
-                     'name': 'esri', 
+        data_tree = {'name': 'esri', 
                      'category_code': 'esri',
                      'children': None}
         self.fetcher.provider.add_data_tree(data_tree)

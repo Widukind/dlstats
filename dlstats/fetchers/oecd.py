@@ -175,14 +175,12 @@ class OECD(Fetcher):
         
     def upsert_categories(self):
         
-        data_tree = {'provider_name': self.provider_name,
-                     'name': 'Eurostat',
+        data_tree = {'name': 'OECD',
                      'category_code': 'oecd_root',
                      'children': []}
         
         for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'provider_name': self.provider_name, 
-                                          'name': DATASETS[dataset_code]['name'], 
+            data_tree['children'].append({'name': DATASETS[dataset_code]['name'], 
                                           'category_code': dataset_code,
                                           'exposed': True,
                                           'children': None})

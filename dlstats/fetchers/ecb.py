@@ -48,7 +48,6 @@ class ECB(Fetcher):
                     key_family = list(dataflow_info.keys())[0]
                     name = dataflow_info[key_family][2]['en']
                     in_base_category_ = {
-                        'provider_name': self.provider_name,
                         'name': name,
                         'category_code': flowref,
                         'children': [],
@@ -57,7 +56,6 @@ class ECB(Fetcher):
                         'exposed': False}
                     children_.append(in_base_category_)
                 in_base_category = {
-                    'provider_name': self.provider_name,
                     'name': category['name'],
                     'category_code': category['name'],
                     'children': children_,
@@ -71,7 +69,6 @@ class ECB(Fetcher):
                     if child:
                         children_.append(child)
                 in_base_category = {
-                    'provider_name': self.provider_name,
                     'name': category['name'],
                     'category_code': category['name'],
                     'children': children_,
@@ -81,8 +78,7 @@ class ECB(Fetcher):
             return in_base_category
 
         data_tree_ = walk_category(self.get_categories())
-        data_tree = {'provider_name': self.provider_name,
-                     'name': 'ECB',
+        data_tree = {'name': 'ECB',
                      'doc_href': None,
                      'children': data_tree_['children'],
                      'category_code': 'ecb_root',

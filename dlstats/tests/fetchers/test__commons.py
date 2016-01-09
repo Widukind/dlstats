@@ -381,7 +381,7 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson["website"], "http://www.example.com")
 
     def test_add_data_tree(self):
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_constructor
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_add_data_tree
 
         f = Fetcher(provider_name="p1", is_indexes=False)
 
@@ -393,13 +393,11 @@ class DBProviderTestCase(BaseDBTestCase):
                       fetcher=f)
         p.update_database()
         
-        data_tree = {'provider_name': "p1",
-                     'name': "p1_root",
+        data_tree = {'name': "p1_root",
                      'category_code': "c0",
                      'doc_href': 'http://www.example.com',
                      'children': [
-                         {'provider_name': "p1",
-                          'name': "cat1", 
+                         {'name': "cat1", 
                           'category_code': "c1",
                           'last_update': datetime(2010,1,5),
                           'exposed': False,
@@ -411,13 +409,11 @@ class DBProviderTestCase(BaseDBTestCase):
         bson = res['data_tree']
         self.assertEqual(bson["category_code"], "c0")
         self.assertEqual(bson["name"], "p1_root")
-        self.assertEqual(bson['provider_name'], "p1")
         self.assertEqual(bson["doc_href"], "http://www.example.com")
 
         bson1 = res['data_tree']['children'][0]
         self.assertEqual(bson1["category_code"], "c1")
         self.assertEqual(bson1["name"], "cat1")
-        self.assertEqual(bson1['provider_name'], "p1")
         self.assertEqual(bson1["last_update"],datetime(2010,1,5))
         self.assertFalse(bson1["exposed"])
 
