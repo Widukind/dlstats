@@ -122,6 +122,9 @@ Subject,"BIS effective exchange rates"
 "M:Monthly","N:Nominal","B:Broad (61 economies)","AE:United Arab Emirates","M:N:B:AE","","119.52"
 """
 
+#---AGENDA
+AGENDA = {'filename': './tests/resources/bis/agenda.html'}
+
 def mock_get_store_path(self):
     return os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                         self.dataset.provider_name, 
@@ -206,8 +209,13 @@ def load_fake_datas(select_dataset_code=None):
             row = bis.csv_dict(dataset_datas.headers, d)
             results[dataset_code]['series'].append(dataset_datas.build_serie(d))
             
-    #pprint(results)
+            #pprint(results)
     return results
+
+def get_agenda():
+    with open(AGENDA['filename']) as fh:
+        page = fh.read()
+    return page
 
 class BISUtilsTestCase(BaseTestCase):
     """BIS Utils
@@ -658,12 +666,32 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
 
         self._common_tests()
 
-    def test_agenda(self):
+    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+    def test_parse_agenda(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_agenda
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_parse_agenda
 
-        self.fetcher.schedule_agenda()
+        attempt = ([[None, None, datetime.datetime(2015, 12, 1, 0, 0), datetime.datetime(2016, 1, 1, 0, 0),
+                     datetime.datetime(2016, 2, 1, 0, 0), datetime.datetime(2016, 3, 1, 0, 0),
+                     datetime.datetime(2016, 4, 1, 0, 0), datetime.datetime(2016, 5, 1, 0, 0)],
+                    ['Banking statistics', 'Locational', '6', '22', None, '6', '22', None],
+                    ['Banking statistics', 'Consolidated', '6', '22', None, '6', '22', None],
+                    ['Debt securities statistics', 'International', '6', None, None, '6', None, None],
+                    ['Debt securities statistics', 'Domestic and total', '6', None, None, '6', None, None],
+                    ['Derivatives statistics', 'OTC', '6', None, None, '6', None, '13'],
+                    ['Derivatives statistics', 'Exchange-traded', '6', None, None, '6', None, None],
+                    ['Global liquidity indicators', None, '6', None, None, '6', None, None],
+                    ['Credit to non-financial sector', None, '6', None, None, '6', None, None],
+                    ['Debt service ratio', None, '6', None, None, '6', None, None],
+                    ['Property prices', 'Detailed data', '18', '22', '19', '18', '22', '20'],
+                    ['Property prices', 'Selected', None, None, '19', None, None, '20'],
+                    ['Effective exchange rates', None, '16', '18', '16', '16', '18', '17'],
+                    ['BIS Statistical Bulletin', None, '6', None, None, '6', None, None]])
+        
+        agenda = self.fetcher.parse_agenda()
 
+        self.assertEqual(agenda,attempt)
+                    
 
 
         #TODO: meta_datas tests  
