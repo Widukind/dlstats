@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""
-217 series / secondes
-"""
+#TODO: ne pas oublier writer comment dans Response
 
 import time
 from datetime import datetime
@@ -22,12 +20,25 @@ HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
 class ContinueRequest(Exception):
     pass
+
+SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.genericdata+xml;version=2.1'}
+SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
+
+class ECBRequest(Request):
+    Request._agencies['ECB']['resources'] = {
+        'data': {
+            'headers': SDMX_DATA_HEADERS,
+        },
+    }
+    for r in Request._resources:
+        Request._agencies['ECB']['resources'][r] = {'headers': SDMX_METADATA_HEADERS}
+ 
 
 class ECB(Fetcher):
     
@@ -41,7 +52,7 @@ class ECB(Fetcher):
                                  website='http://www.ecb.europa.eu',
                                  fetcher=self)
         
-        self.sdmx = sdmx or Request(agency=self.provider_name)
+        self.sdmx = sdmx or ECBRequest(agency=self.provider_name)
         self.sdmx.timeout = 90
         
         self._dataflows = None
@@ -60,14 +71,14 @@ class ECB(Fetcher):
         logger.debug(categoryscheme_response.url)
         self._categoryschemes = categoryscheme_response.msg.categoryschemes
     
-        #http://www.bdm.insee.fr/series/sdmx/categorisation
+        #http://sdw-wsrest.ecb.europa.eu/service/categorisation
         categorisation_response = self.sdmx.get(resource_type='categorisation')
         logger.debug(categorisation_response.url)
         self._categorisations = categorisation_response.msg.categorisations
         """
     
         #http://sdw-wsrest.ecb.europa.eu/service/dataflow
-        dataflows_response = self.sdmx.get(resource_type='dataflow', agency=self.provider_name)    
+        dataflows_response = self.sdmx.get(resource_type='dataflow')#, agency=self.provider_name)    
         logger.debug(dataflows_response.url)
         self._dataflows = dataflows_response.msg.dataflows
 
@@ -114,21 +125,16 @@ class ECB(Fetcher):
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
                            name=dataflow.name.en,
-                           doc_href=None,
+                           doc_href=self.provider.website,
                            last_update=datetime.now(),
                            fetcher=self)
         
-        #dataset_doc = self.db[constants.COL_DATASETS].find_one({"provider_name": self.provider_name,
-        #                                                        "dataset_code": dataset_code})
-        
-        insee_data = ECB_Data(dataset=dataset,
-                              #dataset_doc=dataset_doc, 
-                              sdmx=self.sdmx)
-        dataset.series.data_iterator = insee_data
+        _data = ECB_Data(dataset=dataset)
+        dataset.series.data_iterator = _data
         result = dataset.update_database()
         
         dataflow = None
-        insee_data = None
+        _data = None
 
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
@@ -137,27 +143,21 @@ class ECB(Fetcher):
 
 class ECB_Data(object):
     
-    def __init__(self, dataset=None, 
-                 #dataset_doc=None, 
-                 sdmx=None):
+    def __init__(self, dataset=None):
         """
         :param Datasets dataset: Datasets instance
-        :param pandasdmx.model.DataflowDefinition dataflow: instance of DataflowDefinition
-        :param RequestINSEE sdmx: SDMX Client  
         """        
         
         self.dataset = dataset
-        #self.dataset_doc = dataset_doc
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
-        self.sdmx = sdmx
+        self.sdmx = ECBRequest(agency=self.provider_name)
         
         dataflows_response = self.sdmx.get(resource_type='dataflow', 
-                                           agency=self.provider_name, 
+                                           #agency=self.provider_name, 
                                            resource_id=self.dataset_code,
                                            memcache='dataflow' + self.dataset_code)    
-        
-        logger.debug(dataflows_response.url)
+        #logger.debug(dataflows_response.url)
         
         self.dataflow = dataflows_response.msg.dataflows[self.dataset_code] 
 
@@ -180,12 +180,10 @@ class ECB_Data(object):
         self.dsd_id = self.dataflow.structure.id
         self.datastructure = self.sdmx.get(resource_type='datastructure', 
                                  resource_id=self.dsd_id,
-                                 agency=self.dataset.provider_name,
-                                 headers={"Accept-Encoding": "gzip, deflate"},
-                                 params=dict(references='all'))
+                                 #agency=self.dataset.provider_name,
+                                 )
         
         #TODO: voir si necessaire avec dataflow + reference ???
-        
         self.dsd = self.datastructure.msg.datastructures[self.dsd_id]
         
         self.dimensions = OrderedDict([(dim.id, dim) for dim in self.dsd.dimensions.aslist() if dim.id not in ['TIME', 'TIME_PERIOD']])
@@ -201,14 +199,20 @@ class ECB_Data(object):
             self.dim_select_values = self.cube_region[self.dim_select_key]
         else:
             self.dim_select_values = self.dim_select.local_repr.enum.keys()
+            
+        self.dim_select_frequency_values = None
+        if self.cube_region and "FREQ" in self.cube_region:
+            self.dim_select_frequency_values = self.cube_region["FREQ"]
+        elif "FREQ" in self.dimensions:
+            self.dim_select_frequency_values = self.dimensions["FREQ"].local_repr.enum.keys()
 
-        print("self.dim_select_key : ", self.dim_select_key)
-        print("self.dim_select_values : ", self.dim_select_values)
+        msg = "dataset[%s] - dim_select_key[%s] - dim_select_values[%s]" % (self.dataset_code, self.dim_select_key, "|".join(self.dim_select_values))
+        #2016-01-08 17:01:15 dlstats.fetchers.ecb: [INFO] - dataset[SEC] - dim_select_key[REF_AREA] - dim_select_values[A1|AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|I8|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK|U2|V3] frequencies[A|M]
+        if self.dim_select_frequency_values:
+            msg += " frequencies[%s]" % "|".join(self.dim_select_frequency_values)
+        logger.info(msg)
         
         self.rows = self.get_series(self.dataset_code)
-        
-    def get_dim_values_for_select(self):
-        pass
         
     def dimensions_to_dict(self):
         _dimensions = {}
@@ -243,7 +247,7 @@ class ECB_Data(object):
             for dim_id, dim in self.dimensions.items():
                 _dimensions[len(dim.local_repr.enum.keys())] = dim_id
         
-        select_value = max(_dimensions.keys())
+        select_value = max(_dimensions.keys())        
         return _dimensions[select_value] 
 
     def is_valid_frequency(self, series):
@@ -272,11 +276,14 @@ class ECB_Data(object):
         
         if not frequency:
             valid = False        
-        elif not frequency in ["A", "D", "M", "Q", "W"]: #TODO: N (minute) ?
+        elif not frequency in ["A", "M", "Q", "W"]: #TODO: N (minute) ?, "D", 
             valid = False
         
         if not valid:
-            logger.warning("Not valid frequency[%s] - dataset[%s] - key[%s]" % (frequency, self.dataset_code, self.get_series_key(series)))
+            logger.warning("Not valid frequency[%s] - provider[%s] - dataset[%s] - key[%s]" % (frequency, 
+                                                                                               self.provider_name, 
+                                                                                               self.dataset_code, 
+                                                                                               self.get_series_key(series)))
         
         return valid
     
@@ -306,27 +313,38 @@ class ECB_Data(object):
         """
         raise NotImplementedError()
 
+    def get_dim_select(self):
+        dim_select_values = []
+        if self.dim_select_frequency_values:
+            for freq in self.dim_select_frequency_values:
+                for code in self.dim_select_values:
+                    dim_select_values.append({self.dim_select_key: code, "FREQ": freq})
+        else:
+            for code in self.dim_select_values:
+                dim_select_values.append({self.dim_select_key: code})
+        return dim_select_values
+
     def get_series(self, dataset_code):
-        """Load series for current dataset
+        """Load all series for current dataset
+        
+        Generator function - return one series by loop
         """
 
         def _request(key):
             return self.sdmx.get(resource_type='data', 
                                  resource_id=dataset_code,
-                                 agency=self.dataset.provider_name,
-                                 key=key,
-                                 #headers={"Accept-Encoding": "gzip, deflate"}, 
-                                 )
+                                 #agency=self.dataset.provider_name,
+                                 key=key)
             
         try:
-            codes = self.dim_select_values
+                    
+            dim_select_values = self.get_dim_select()
             
-            for code in codes:
-                key = {self.dim_select_key: code}
+            for key in dim_select_values:                
                 try:
                     _data = _request(key)
-                    logger.info(_data.url)
-                    logger.info(_data.http_headers)
+                    logger.info("load data for url[%s]" % _data.url)
+                    #logger.info(_data.http_headers)
                     for s in _data.msg.data.series:
                         if self.is_valid_frequency(s):
                             yield s
@@ -335,11 +353,16 @@ class ECB_Data(object):
                 except requests.exceptions.HTTPError as err:
                     if err.response.status_code == HTTP_ERROR_NO_RESULT:
                         continue
+                        #raise ContinueRequest("No result")
                     else:
+                        logger.critical("AUTRE ERREUR HTTP : %s" % err.response.status_code)
                         raise
                                             
         except Exception as err:
-            logger.error(str(err))
+            #TODO: capturer mieux l'erreur avec traceback ?
+            import traceback
+            traceback.print_exc()
+            logger.error(err)
             raise
         
     def __next__(self):          
@@ -390,7 +413,7 @@ class ECB_Data(object):
                 }            
                 logger.debug(json.dumps(_debug))
             except Exception as err:
-                print("JSON EXCEPTION : ", err)
+                logger.error(err)
     
     def get_attributes(self, series):
         attributes = {}
@@ -421,10 +444,12 @@ class ECB_Data(object):
             
         dimensions = dict(series.key._asdict())
         
+        '''Ajout à dimension des attributs qui concerne toute la series'''
         for d, value in series.attrib._asdict().items():
             if d in ['TITLE', 'TITLE_COMPL']:
                 continue
             dim_short_id = value
+            #FIXME: concept_name
             dim_long_id = self.concept_name(d)
             dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
 
@@ -438,26 +463,3 @@ class ECB_Data(object):
 
         return bson
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, filename="ecb.log", 
-                        format='%(asctime)s %(name)s: [%(levelname)s] - %(message)s')
-
-    cache_options = dict(backend='sqlite', 
-                         expire_after=None,
-                         location="C:/temp/cepremap/fetchers-sources/ECB/cache")
-    
-    sdmx = Request(agency='ECB', cache=cache_options)
-    
-    ecb = ECB(sdmx=sdmx)
-    
-    ecb.db[constants.COL_CATEGORIES].remove({"provider": "ECB"})
-    ecb.db[constants.COL_DATASETS].remove({"provider": "ECB"})
-    ecb.db[constants.COL_SERIES].remove({"provider": "ECB"})
-    
-    #ecb.upsert_all_datasets()
-    
-    #ecb.upsert_categories()
-    ecb.upsert_dataset('EXR')
-    
-    
-    
