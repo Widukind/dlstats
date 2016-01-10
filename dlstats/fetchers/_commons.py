@@ -306,7 +306,7 @@ class Datasets(DlstatsCollection):
         schemas.dataset_schema(self.bson)
         
         if not self.is_recordable():
-            logger.warning("Not recordable dataset[%s]" % self.dataset_code)
+            logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
             return
         
         return self.update_mongo_collection(constants.COL_DATASETS,
@@ -503,6 +503,7 @@ class Series(DlstatsCollection):
             logger.critical('values length: ' + str(len(bson['values'])))
             logger.critical('release_dates length: ' + str(len(bson['release_dates'])))
             raise Exception('release_dates has not the right length')
+        """
         for a in bson['attributes']:
             if len(bson['attributes'][a]) != n:
                 logger.critical('attributes has not the right length')
@@ -510,7 +511,7 @@ class Series(DlstatsCollection):
                 logger.critical('values length: ' + str(len(bson['values'])))
                 logger.critical('attributes length: ' + str(len(bson['release_dates'])))
                 raise Exception('attributes has not the right length')
-
+        """
 class CodeDict():
     """Class for handling code lists
     

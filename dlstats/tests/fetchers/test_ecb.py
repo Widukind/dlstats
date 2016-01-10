@@ -1,140 +1,86 @@
-import unittest
-from unittest.mock import MagicMock, patch, Mock
-from dlstats.fetchers import ecb
+# -*- coding: utf-8 -*-
+
+from datetime import datetime
+import os
+from pprint import pprint
+
+import pandas
+
+from dlstats.fetchers._commons import Datasets
+from dlstats.fetchers.ecb import ECB as Fetcher, ECB_Data as FetcherData, ContinueRequest
 from dlstats import constants
-from dlstats.tests.base import BaseDBTestCase
-import pickle
-import pkgutil
-import sdmx
-import datetime
-from collections import OrderedDict
 
+import unittest
+from unittest import mock
+import httpretty
 
-CATEGORIES = {
-    'name': 'Concepts',
-    'subcategories':[
-        {'name': 'Example subcategory 1',
-         'subcategories': [
-             {'name': 'Example subcategory 1_1',
-              'flowrefs': ['1_1_1']},
-             {'name': 'Example subcategory 1_2',
-              'flowrefs': ['1_2_1','1_2_2']}
-         ]},
-        {'name': 'Example subcategory 2',
-         'subcategories': [
-             {'name': 'Example subcategory 2_1'},
-             {'name': 'Example subcategory 2_2',
-              'flowrefs': ['2_2_1']}
-         ]}
-    ]}
+from dlstats.tests.base import RESOURCES_DIR, BaseDBTestCase
 
-DATAFLOWS = dict()
-DATAFLOWS['1_1_1'] = {'ECB_TEST': ('ECB', '1.0', {'en': 'Name of 1_1_1'})}
-DATAFLOWS['1_2_1'] = {'ECB_TEST': ('ECB', '1.0', {'en': 'Name of 1_2_1'})}
-DATAFLOWS['1_2_2'] = {'ECB_TEST': ('ECB', '1.0', {'en': 'Name of 1_2_2'})}
-DATAFLOWS['2_2_1'] = {'ECB_TEST': ('ECB', '1.0', {'en': 'Name of 2_2_1'})}
+"""
+Load files with httpie tools:
+    http "http://sdw-wsrest.ecb.int/service/dataflow/ECB" > ecb-dataflow.xml
+    http "http://sdw-wsrest.ecb.europa.eu/service/dataflow/ECB/EXR?references=all" > ecb-EXR-dataflow.xml
+    http "http://sdw-wsrest.ecb.europa.eu/service/datastructure/ECB/ECB_EXR1?references=all" > ecb-ECB_EXR1-datastructure.xml
+    http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > ecb-data-M.NOK.EUR.SP00.A.xml
+    http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" > ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml
+"""
+DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-dataflow.xml"))
 
-CODES = dict()
+DATAFLOW_COUNT = 56
 
-CODES = {'TEST':{'FREQ': {'M': 'Monthly',
-         'Q': 'Quarterly'},
-       'OTHER_DIM': {'O1': 'Option 1',
-         'O2': 'Option',
-         'O3': 'Option'}}}
+DATASETS = {
+    'EXR': {
+        'dataflow-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-EXR-dataflow.xml")),
+        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-M.NOK.EUR.SP00.A.xml")),
+        #'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml")),        
+        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-ECB_EXR1-datastructure.xml")),
+        'series_count': 1
+    },
+}
 
-RAW_DATA = dict()
-RAW_DATA['2_2_1'] = dict()
-RAW_DATA['2_2_1']['M'] = ({'M.O1':['1','2','3','4','5'],
-                           'M.O2':['2','3','4','5','6'],
-                           'M.O3':['2','3','4','5','6']},
-                          {'M.O1':['1999-01','1999-02','1999-03',
-                                   '1999-04','1999-05'],
-                           'M.O2':['1999-02','1999-03','1999-04',
-                                   '1999-05','1999-06'],
-                           'M.O3':['1999-02','1999-03','1999-04',
-                                   '1999-05','1999-06']},
-                          {'M.O1':[{'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
-                                   {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
-                                   {'OBS_STATUS':'A'}],
-                           'M.O2':[{'OBS_STATUS':'F'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'}],
-                           'M.O3':[{'OBS_STATUS':'F'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'}]},
-                          {'M.O1':OrderedDict([('FREQ','M'),('OTHER_DIM','O1')]),
-                           'M.O2':OrderedDict([('FREQ','M'),('OTHER_DIM','O2')]),
-                           'M.O3':OrderedDict([('FREQ','M'),('OTHER_DIM','O3')])}
-                         )
-RAW_DATA['2_2_1']['Q'] = ({'Q.O1':['5','4','3','2','1'],
-                           'Q.O2':['6','5','4','3','2']},
-                          {'Q.O1':['2014-Q1','2014-Q2','2014-Q3',
-                                   '2014-Q4','2015-Q1'],
-                           'Q.O2':['2015-Q1','2015-Q2','2015-Q3',
-                                   '2015-Q4','2016-Q1']},
-                          {'Q.O1':[{'OBS_STATUS':'F'},{'OBS_STATUS':'A'},
-                                   {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
-                                   {'OBS_STATUS':'A'}],
-                           'Q.O2':[{'OBS_STATUS':'A'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'},{'OBS_STATS':'A'},
-                                   {'OBS_STATUS':'A'}]},
-                          {'Q.O1':OrderedDict([('FREQ','Q'),('OTHER_DIM','O1')]),
-                           'Q.O2':OrderedDict([('FREQ','Q'),('OTHER_DIM','O2')])}
-                         )
+class Mock_Data(FetcherData):
+    
+    def __init__(self, **kwargs):
+        self._series = []
+        super().__init__(**kwargs)
 
-RAW_DATA['2_2_1']['O1'] = ({'Q.O1':['5','4','3','2','1'],
-                            'M.O1':['1','2','3','4','5']},
-                           {'Q.O1':['2014-Q1','2014-Q2','2014-Q3',
-                                    '2014-Q4','2015-Q1'],
-                            'M.O1':['1999-01','1999-02','1999-03',
-                                    '1999-04','1999-05']},
-                           {'Q.O1':[{'OBS_STATS':'F'},{'OBS_STATUS':'A'},
-                                    {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
-                                    {'OBS_STATUS':'A'}],
-                            'M.O1':[{'OBS_STATS':'A'},{'OBS_STATS':'A'},
-                                    {'OBS_STATS':'A'},{'OBS_STATS':'A'},
-                                    {'OBS_STATS':'A'}]},
-                           {'Q.O1':OrderedDict([('FREQ','Q'),('OTHER_DIM','O1')]),
-                            'M.O1':OrderedDict([('FREQ','M'),('OTHER_DIM','O1')])}
-                          )
+    def __next__(self):          
+        try:      
+            _series = next(self.rows)
+            if not _series:
+                raise StopIteration()
+        except ContinueRequest:
+            _series = next(self.rows)
+            
+        bson = self.build_series(_series)
+        self._series.append(bson)
+        return bson
+    
+    def get_dim_select(self):
+        #return [None]
+        return [{"FREQ": "M"}]
+    
+def mock_upsert_dataset(self, dataset_code):
 
-RAW_DATA['2_2_1']['O2'] = ({'Q.O2':['6','5','4','3','2'],
-                            'M.O2':['2','3','4','5','6']},
-                           {'Q.O2':['2015-Q1','2015-Q2','2015-Q3',
-                                    '2015-Q4','2016-Q1'],
-                            'M.O2':['1999-02','1999-03','1999-04',
-                                    '1999-05','1999-06']},
-                           {'Q.O2':[{'OBS_STATS':'A'},{'OBS_STATUS':'A'},
-                                    {'OBS_STATUS':'A'},{'OBS_STATUS':'A'},
-                                    {'OBS_STATUS':'A'}],
-                            'M.O2':[{'OBS_STATS':'F'},{'OBS_STATS':'A'},
-                                    {'OBS_STATS':'A'},{'OBS_STATS':'A'},
-                                    {'OBS_STATS':'A'}]},
-                           {'Q.O2':OrderedDict([('FREQ','Q'),('OTHER_DIM','O2')]),
-                            'M.O2':OrderedDict([('FREQ','M'),('OTHER_DIM','O2')])}
-                          )
+    self.load_structure(force=False)
+    
+    if not dataset_code in self._dataflows:
+        raise Exception("This dataset is unknown" + dataset_code)
+    
+    dataflow = self._dataflows[dataset_code]
+    
+    dataset = Datasets(provider_name=self.provider_name, 
+                       dataset_code=dataset_code,
+                       name=dataflow.name.en,
+                       doc_href=None,
+                       last_update=datetime(2015, 12, 24),
+                       fetcher=self)
+    
+    self._data = Mock_Data(dataset=dataset)
+    dataset.series.data_iterator = self._data
+    result = dataset.update_database()
 
-RAW_DATA['2_2_1']['O3'] = ({'M.O3':['2','3','4','5','6']},
-                           {'M.O3':['1999-02','1999-03','1999-04',
-                                    '1999-05','1999-06']},
-                           {'M.O3':[{'OBS_STATUS':'F'},{'OBS_STATS':'A'},
-                                    {'OBS_STATUS':'A'},{'OBS_STATS':'A'},
-                                    {'OBS_STATUS':'A'}]},
-                           {'M.O3':OrderedDict([('FREQ','M'),('OTHER_DIM','O3')])}
-                          )
-
-def dataflows(flowref):
-    return DATAFLOWS[flowref]
-
-def codes(key_family):
-    return CODES[key_family]
-
-def get_categories(self):
-    return CATEGORIES
-
-def raw_data(flowref, key):
-    return RAW_DATA[flowref][list(key.values())[0]]
-
+    return result
 
 class ECBCategoriesDBTestCase(BaseDBTestCase):
     def setUp(self):
@@ -220,81 +166,181 @@ class ECBCategoriesDBTestCase(BaseDBTestCase):
             {"name": self.fetcher.provider_name})
         self.assertEqual(results['data_tree'], reference)
 
-
-class ECBDatasetDBTestCase(BaseDBTestCase):
+class FetcherTestCase(BaseDBTestCase):
+    
+    # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase
+    
     def setUp(self):
-        self.maxDiff = None
         BaseDBTestCase.setUp(self)
-        self.fetcher = ecb.ECB(db=self.db)
-    @patch('sdmx.ecb.codes', codes)
-    @patch('sdmx.ecb.dataflows', dataflows)
-    @patch('sdmx.ecb.raw_data', raw_data)
-    @patch('dlstats.fetchers.ecb.ECB.get_categories', get_categories)
-    def test_upsert_dataset(self):
+        self.fetcher = Fetcher(db=self.db)
+        
+    def _load_dataset(self, dataset_code):
 
-        reference = [{'attributes': {},
-                      'dataset_code': '2_2_1',
-                      'dimensions': {'FREQ': 'M', 'OTHER_DIM': 'O1'},
-                      'end_date': 352,
-                      'frequency': 'M',
-                      'key': 'M.O1',
-                      'name': 'M-O1',
-                      'provider_name': 'ECB',
-                      'slug': 'ecb-2-2-1-m-o1',
-                      'start_date': 348,
-                      'values': ['1', '2', '3', '4', '5']},
-                     {'attributes': {},
-                      'dataset_code': '2_2_1',
-                      'dimensions': {'FREQ': 'M', 'OTHER_DIM': 'O2'},
-                      'end_date': 353,
-                      'frequency': 'M',
-                      'key': 'M.O2',
-                      'name': 'M-O2',
-                      'provider_name': 'ECB',
-                      'slug': 'ecb-2-2-1-m-o2',
-                      'start_date': 349,
-                      'values': ['2', '3', '4', '5', '6']},
-                     {'attributes': {},
-                      'dataset_code': '2_2_1',
-                      'dimensions': {'FREQ': 'M', 'OTHER_DIM': 'O3'},
-                      'end_date': 353,
-                      'frequency': 'M',
-                      'key': 'M.O3',
-                      'name': 'M-O3',
-                      'provider_name': 'ECB',
-                      'slug': 'ecb-2-2-1-m-o3',
-                      'start_date': 349,
-                      'values': ['2', '3', '4', '5', '6']},
-                     {'attributes': {},
-                      'dataset_code': '2_2_1',
-                      'dimensions': {'FREQ': 'Q', 'OTHER_DIM': 'O1'},
-                      'end_date': 180,
-                      'frequency': 'Q',
-                      'key': 'Q.O1',
-                      'name': 'Q-O1',
-                      'provider_name': 'ECB',
-                      'slug': 'ecb-2-2-1-q-o1',
-                      'start_date': 176,
-                      'values': ['5', '4', '3', '2', '1']},
-                     {'attributes': {},
-                      'dataset_code': '2_2_1',
-                      'dimensions': {'FREQ': 'Q', 'OTHER_DIM': 'O2'},
-                      'end_date': 184,
-                      'frequency': 'Q',
-                      'key': 'Q.O2',
-                      'name': 'Q-O2',
-                      'provider_name': 'ECB',
-                      'slug': 'ecb-2-2-1-q-o2',
-                      'start_date': 180,
-                      'values': ['6', '5', '4', '3', '2']}]
-        self.fetcher.provider.update_database()
-        self.fetcher.upsert_categories()
-        self.fetcher.upsert_dataset('2_2_1')
-        results = self.db[constants.COL_SERIES].find(
-            {'provider_name': self.fetcher.provider_name},
-            {'_id': False, 'release_dates': False})
-        results = [result for result in results]
-        self.assertEqual(results, reference)
+        #TODO: use tests.utils
+        def _body(filepath):
+            '''body for large file'''
+            with open(filepath, 'rb') as fp:
+                for line in fp:
+                    yield line        
+        
+        #http://sdw-wsrest.ecb.int/service/dataflow/ECB
+        url_dataflow = "http://sdw-wsrest.ecb.int/service/dataflow/ECB"
+        httpretty.register_uri(httpretty.GET, 
+                               url_dataflow,
+                               body=_body(DATAFLOW_FP),
+                               #match_querystring=True,
+                               status=200,
+                               streaming=True,
+                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
 
-if __name__ == '__main__':
-    unittest.main()
+        url_dataflow_for_dataset = "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR?references=all"
+        httpretty.register_uri(httpretty.GET, 
+                               url_dataflow_for_dataset,
+                               body=_body(DATASETS[dataset_code]['dataflow-fp']),
+                               match_querystring=True,
+                               status=200,
+                               streaming=True,
+                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
+        
+        url_datastructure = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all"# % dataset_code
+        httpretty.register_uri(httpretty.GET, 
+                               url_datastructure,
+                               body=_body(DATASETS[dataset_code]['datastructure-fp']),
+                               match_querystring=True,
+                               status=200,
+                               streaming=True,
+                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
+
+        def request_callback(request, uri, headers):
+            #print("request : ", request)
+            #print("uri : ", uri)
+            #print("headers : ", headers)
+            #uri :  http://sdw-wsrest.ecb.int/service/data/EXR/M....
+            return (200, {"Content-Type": 'application/vnd.sdmx.genericdata+xml;version=2.1'}, _body(DATASETS[dataset_code]['data-fp']))
+    
+        #http://sdw-wsrest.ecb.int/service/data/EXR/A.ARS...
+        #http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A
+        url_data = "http://sdw-wsrest.ecb.int/service/data/EXR/M...." #% dataset_code
+        httpretty.register_uri(httpretty.GET, 
+                               url_data,
+                               body=_body(DATASETS[dataset_code]['data-fp']), #request_callback, 
+                               match_querystring=True,
+                               status=200,
+                               streaming=True,
+                               content_type='application/vnd.sdmx.genericdata+xml;version=2.1')
+
+        url_data = "http://sdw-wsrest.ecb.int/service/data/EXR"
+        httpretty.register_uri(httpretty.GET, 
+                               url_data,
+                               body=_body(DATASETS[dataset_code]['data-fp']), 
+                               match_querystring=True,
+                               status=200,
+                               streaming=True,
+                               content_type='application/vnd.sdmx.genericdata+xml;version=2.1')
+
+    @httpretty.activate     
+    def test_headers(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_headers
+
+        dataset_code = 'EXR'
+        
+        self._load_dataset(dataset_code)
+
+        response = self.fetcher.sdmx.get(resource_type='dataflow')
+        self.assertEqual(response.http_headers['server'], 'Python/HTTPretty')
+        self.assertEqual(response.url, 'http://sdw-wsrest.ecb.int/service/dataflow/ECB')
+        self.assertEqual(response.http_headers['content-type'], 'application/vnd.sdmx.structure+xml;version=2.1')
+        
+        response = self.fetcher.sdmx.get(resource_type='data', 
+                                 resource_id=dataset_code,
+                                 key={"FREQ": "M"})        
+        self.assertEqual(response.http_headers['server'], 'Python/HTTPretty')
+        self.assertEqual(response.url, 'http://sdw-wsrest.ecb.int/service/data/EXR/M....')
+        self.assertEqual(response.http_headers['content-type'], 'application/vnd.sdmx.genericdata+xml;version=2.1')
+   
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.ecb.ECB.upsert_dataset', mock_upsert_dataset)    
+    def test_load_dataset(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_load_dataset
+        
+        dataset_code = 'EXR'
+        
+        self._load_dataset(dataset_code)
+        
+        self.fetcher.load_structure()
+        
+        self.assertEqual(len(self.fetcher._dataflows.keys()), DATAFLOW_COUNT)
+        
+        self.assertTrue(dataset_code in self.fetcher._dataflows)
+
+        result = self.fetcher.upsert_dataset(dataset_code)
+        
+        query = {
+            'provider_name': self.fetcher.provider_name,
+            "dataset_code": dataset_code
+        }
+
+        dataset = self.db[constants.COL_DATASETS].find_one(query)
+        self.assertIsNotNone(dataset)
+        
+        series_list = self.db[constants.COL_SERIES].find(query)
+        
+        #print(self.fetcher._data._series)
+        
+        count = series_list.count()
+        
+        #print("count : ", len(self.fetcher._data._series))
+        
+        self.assertEqual(count, 1)#DATASETS[dataset_code]['series_count'])
+        
+        # https://sdw-wsrest.ecb.europa.eu/service/data/EXR/M.NOK.EUR.SP00.A
+        query['key'] = "M.NOK.EUR.SP00.A" 
+        series_sample = self.db[constants.COL_SERIES].find_one(query)
+        self.assertIsNotNone(series_sample)
+        
+        #1990-01
+        self.assertEqual(series_sample["values"][0], "8.651225")
+
+        #2015-10
+        self.assertEqual(series_sample["values"][-1], "9.464159090909094")
+        
+        frequency = series_sample["frequency"]
+        self.assertEqual(frequency, "M")
+        
+        start_date = str(pandas.Period(ordinal=series_sample["start_date"], freq=frequency))
+        self.assertEqual(start_date, '1999-01')
+
+        end_date = str(pandas.Period(ordinal=series_sample["end_date"], freq=frequency))
+        self.assertEqual(end_date, '2015-12')
+        
+        self.assertEqual(series_sample['dimensions'], {'SOURCE_AGENCY': '4F0', 'UNIT': 'NOK', 'UNIT_MULT': '0', 'CURRENCY': 'NOK', 'EXR_SUFFIX': 'A', 'EXR_TYPE': 'SP00', 'CURRENCY_DENOM': 'EUR', 'COLLECTION': 'A', 'DECIMALS': '4', 'FREQ': 'M'})
+        
+        
+    @unittest.skipIf(True, "TODO")
+    def test_dimensions_to_dict(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")
+    def test_select_short_dimension(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_is_valid_frequency(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_get_series(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_build_series(self):
+        pass
+    
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.ecb.ECB.upsert_dataset', mock_upsert_dataset)    
+    @unittest.skipIf(True, "TODO")
+    def test_is_updated(self):
+        pass
+
