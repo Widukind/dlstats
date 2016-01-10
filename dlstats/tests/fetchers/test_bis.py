@@ -692,8 +692,89 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
 
         self.assertEqual(agenda,attempt)
                     
+    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+    def test_get_calendar(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_get_calendar
 
+        attempt = [{'kwargs': {'dataset_code': 'CNFS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSRP'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CNFS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSRP'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 17 , 8, 0, 0)} }]
 
+        for a in attempt:
+            a['period_kwargs'].update({'timezone': ['Europe/Zurich']})
+            a['kwargs'].update({'provider_name': 'BIS'})
+            a.update({"action": "update_node", "period_type": "date"})
+        
+        # test generator
+        res = []
+        for s in self.fetcher.get_calendar():
+            self.assertIn(s,attempt)
+            res.append(s)
+        for a in attempt:
+            self.assertIn(a,res)
+        
         #TODO: meta_datas tests  
         
 

@@ -8,6 +8,7 @@ import csv
 import datetime
 import tempfile
 import time
+import pytz
 import logging
 
 import pandas
@@ -191,7 +192,7 @@ DATASETS = {
     },     
     'EERI': {
         'name': 'Effective exchange rate indices',
-        'agenda1': 'Effective exchange rate',
+        'agenda1': 'Effective exchange rates',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_eer_csv.zip',
         'filename': 'full_bis_eer_csv.zip',
@@ -205,7 +206,8 @@ DATASETS = {
 
 AGENDA = {'url': 'http://www.bis.org/statistics/relcal.htm?m=6|37|68',
           'filename': 'agenda.html',
-          'store_filepath': '/tmp/bis'
+          'store_filepath': '/tmp/bis',
+          'country': 'ch'
 }
 
 class Downloader():
@@ -429,9 +431,63 @@ class BIS(Fetcher):
                 ir += 1
         return agenda
 
+    def get_calendar(self):
+        agenda = self.parse_agenda()
+        schedule = []
+        for m in range(len(agenda[0])-2):
+            date_base = agenda[0][m+2]
+            for d in DATASETS.items():
+                trigger_day = None
+                if 'agenda2' in d:
+                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
+                                   and  (a[1] == d[1]['agenda2'])]
+                    if trigger_day and trigger_day[0][m+2]:
+                        schedule.append(
+                            {'action': "update_node",
+                             "kwargs": {"provider_name": "BIS",
+                                        "dataset_code": d[1]['dataset_code']},
+                             "period_type": "date",
+                             "period_kwargs": {"run_date": datetimedatetime(date_base.year,
+                                                                            date_base.month,
+                                                                            int(trigger_day[0][m+2]),
+                                                                            8, 0, 0),
+                                               "timezone": pytz.country_timezones(AGENDA['country'])}
+                             }
+                            )
+                    if 'agenda3' in d:
+                        trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
+                                       and  (a[1] == d[1]['agenda3'])]
+                        if trigger_day and trigger_day[0][m+2]:
+                            schedule.append(
+                                {'action': "update_node",
+                                 "kwargs": {"provider_name": "BIS",
+                                            "dataset_code": d[1]['dataset_code']},
+                                 "period_type": "date",
+                                 "period_kwargs": {"run_date": datetime.datetime(date_base.year,
+                                                                                 date_base.month,
+                                                                                 int(trigger_day[0][m+2]),
+                                                                                 8, 0, 0),
+                                                   "timezone": pytz.country_timezones(AGENDA['country'])}
+                                 }
+                                )
+                else:
+                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])]
+                    if trigger_day and trigger_day[0][m+2]:
+                        schedule.append(
+                            {'action': "update_node",
+                             "kwargs": {"provider_name": "BIS",
+                                        "dataset_code": d[0]},
+                             "period_type": "date",
+                             "period_kwargs": {"run_date": datetime.datetime(date_base.year,
+                                                                             date_base.month,
+                                                                             int(trigger_day[0][m+2]),
+                                                                             8, 0, 0),
+                                               "timezone": pytz.country_timezones(AGENDA['country'])}
+                             }
+                            )
 
-    
-                #                    print(datetime.date(months[i].year,months[i].month,int(m.group(0))),dataset)
+        for s in schedule:
+            yield s
         
         
 class BIS_Data():
@@ -565,4 +621,4 @@ def download_all_sources():
         
 if __name__ == '__main__':
     b = BIS()
-    print(b.parse_agenda())
+    b.get_calendar_()
