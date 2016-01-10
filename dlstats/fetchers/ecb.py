@@ -107,6 +107,54 @@ class ECB(Fetcher):
         self.load_structure(force=False)
         return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
 
+    def build_data_tree(self):
+        def walk_category(category):
+            in_base_category = {}
+            if 'flowrefs' in category:
+                children_ = []
+                for flowref in category['flowrefs']:
+                    dataflow_info = sdmx.ecb.dataflows(flowref)
+                    key_family = list(dataflow_info.keys())[0]
+                    name = dataflow_info[key_family][2]['en']
+                    in_base_category_ = {
+                        'name': name,
+                        'category_code': flowref,
+                        'children': [],
+                        'doc_href': None,
+                        'last_update': None,
+                        'exposed': False}
+                    children_.append(in_base_category_)
+                in_base_category = {
+                    'name': category['name'],
+                    'category_code': category['name'],
+                    'children': children_,
+                    'doc_href': None,
+                    'last_update': None,
+                    'exposed': False}
+            if 'subcategories' in category:
+                children_ = []
+                for subcategory in category['subcategories']:
+                    child = walk_category(subcategory)
+                    if child:
+                        children_.append(child)
+                in_base_category = {
+                    'name': category['name'],
+                    'category_code': category['name'],
+                    'children': children_,
+                    'doc_href': None,
+                    'last_update': None,
+                    'exposed': False}
+            return in_base_category
+
+        data_tree_ = walk_category(self.get_categories())
+        data_tree = {'name': 'ECB',
+                     'doc_href': None,
+                     'children': data_tree_['children'],
+                     'category_code': 'ecb_root',
+                     'exposed': False,
+                     'last_update': None}
+        return data_tree
+    
     def upsert_categories(self):
         return
     

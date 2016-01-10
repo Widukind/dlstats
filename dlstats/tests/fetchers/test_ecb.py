@@ -82,6 +82,89 @@ def mock_upsert_dataset(self, dataset_code):
 
     return result
 
+class ECBCategoriesDBTestCase(BaseDBTestCase):
+    def setUp(self):
+        BaseDBTestCase.setUp(self)
+        self.fetcher = ecb.ECB(db=self.db)
+        self.maxDiff = None
+    @patch('sdmx.ecb.dataflows',dataflows)
+    @patch('dlstats.fetchers.ecb.ECB.get_categories',get_categories)
+    def test_data_tree(self):
+        reference = { 'name': 'ECB',
+                      'category_code': 'ecb_root',
+                      'last_update': None,
+                      'exposed': False,
+                      'doc_href': None,
+                      'children': [
+                          {'name': 'Example subcategory 1',
+                           'category_code': 'Example subcategory 1',
+                           'last_update': None,
+                           'exposed': False,
+                           'doc_href': None,
+                           'children': [
+                               {'name': 'Example subcategory 1_1',
+                                'category_code': 'Example subcategory 1_1',
+                                'last_update': None,
+                                'exposed': False,
+                                'doc_href': None,
+                                'children': [
+                                    {'name': 'Name of 1_1_1',
+                                     'category_code': '1_1_1',
+                                     'last_update': None,
+                                     'exposed': False,
+                                     'doc_href': None,
+                                     'children': []}
+                                ]
+                               },
+                               {'name': 'Example subcategory 1_2',
+                                'category_code': 'Example subcategory 1_2',
+                                'last_update': None,
+                                'exposed': False,
+                                'doc_href': None,
+                                'children': [
+                                    {'name': 'Name of 1_2_1',
+                                     'category_code': '1_2_1',
+                                     'last_update': None,
+                                     'exposed': False,
+                                     'doc_href': None,
+                                     'children': []},
+                                    {'name': 'Name of 1_2_2',
+                                     'category_code': '1_2_2',
+                                     'last_update': None,
+                                     'exposed': False,
+                                     'doc_href': None,
+                                     'children': []}
+                                ]}
+                           ]},
+                          {'name': 'Example subcategory 2',
+                           'category_code': 'Example subcategory 2',
+                           'last_update': None,
+                           'exposed': False,
+                           'doc_href': None,
+                           'children': [
+                               {'name': 'Example subcategory 2_2',
+                                'category_code': 'Example subcategory 2_2',
+                                'last_update': None,
+                                'exposed': False,
+                                'doc_href': None,
+                                'children': [
+                                    {'name': 'Name of 2_2_1',
+                                     'category_code': '2_2_1',
+                                     'last_update': None,
+                                     'exposed': False,
+                                     'doc_href': None,
+                                     'children': []}
+                                ]}
+                           ]}
+                      ]}
+
+        self.fetcher.provider.update_database()
+        self.fetcher.upsert_categories()
+        #We exclude ObjectIDs because their values are not determinitstic. We
+        #can't test these elements
+        results = self.db[constants.COL_PROVIDERS].find_one(
+            {"name": self.fetcher.provider_name})
+        self.assertEqual(results['data_tree'], reference)
 
 class FetcherTestCase(BaseDBTestCase):
     
