@@ -2,6 +2,7 @@
 
 #TODO: ne pas oublier writer comment dans Response
 
+
 import time
 from datetime import datetime
 import logging
@@ -38,7 +39,7 @@ class ECBRequest(Request):
     }
     for r in Request._resources:
         Request._agencies['ECB']['resources'][r] = {'headers': SDMX_METADATA_HEADERS}
- 
+
 
 class ECB(Fetcher):
     
@@ -65,18 +66,6 @@ class ECB(Fetcher):
         if self._dataflows and not force:
             return
         
-        """
-        #http://sdw-wsrest.ecb.europa.eu/service/categoryscheme?references=parentsandsiblings
-        categoryscheme_response = self.sdmx.get(resource_type='categoryscheme')
-        logger.debug(categoryscheme_response.url)
-        self._categoryschemes = categoryscheme_response.msg.categoryschemes
-    
-        #http://sdw-wsrest.ecb.europa.eu/service/categorisation
-        categorisation_response = self.sdmx.get(resource_type='categorisation')
-        logger.debug(categorisation_response.url)
-        self._categorisations = categorisation_response.msg.categorisations
-        """
-    
         #http://sdw-wsrest.ecb.europa.eu/service/dataflow
         dataflows_response = self.sdmx.get(resource_type='dataflow')#, agency=self.provider_name)    
         logger.debug(dataflows_response.url)
@@ -108,56 +97,11 @@ class ECB(Fetcher):
         return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
 
     def build_data_tree(self):
-        def walk_category(category):
-            in_base_category = {}
-            if 'flowrefs' in category:
-                children_ = []
-                for flowref in category['flowrefs']:
-                    dataflow_info = sdmx.ecb.dataflows(flowref)
-                    key_family = list(dataflow_info.keys())[0]
-                    name = dataflow_info[key_family][2]['en']
-                    in_base_category_ = {
-                        'name': name,
-                        'category_code': flowref,
-                        'children': [],
-                        'doc_href': None,
-                        'last_update': None,
-                        'exposed': False}
-                    children_.append(in_base_category_)
-                in_base_category = {
-                    'name': category['name'],
-                    'category_code': category['name'],
-                    'children': children_,
-                    'doc_href': None,
-                    'last_update': None,
-                    'exposed': False}
-            if 'subcategories' in category:
-                children_ = []
-                for subcategory in category['subcategories']:
-                    child = walk_category(subcategory)
-                    if child:
-                        children_.append(child)
-                in_base_category = {
-                    'name': category['name'],
-                    'category_code': category['name'],
-                    'children': children_,
-                    'doc_href': None,
-                    'last_update': None,
-                    'exposed': False}
-            return in_base_category
+        pass
 
-        data_tree_ = walk_category(self.get_categories())
-        data_tree = {'name': 'ECB',
-                     'doc_href': None,
-                     'children': data_tree_['children'],
-                     'category_code': 'ecb_root',
-                     'exposed': False,
-                     'last_update': None}
-        return data_tree
-    
     def upsert_categories(self):
         return
-    
+        
     def upsert_dataset(self, dataset_code):
 
         self.load_structure(force=False)
