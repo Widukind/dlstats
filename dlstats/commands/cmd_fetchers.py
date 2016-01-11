@@ -4,10 +4,11 @@ import sys
 from pprint import pprint
 import click
 
+from widukind_common import tags
+
 from dlstats import constants
 from dlstats.fetchers import FETCHERS, FETCHERS_DATASETS
 from dlstats import client
-from dlstats import utils
 
 opt_fetcher = click.option('--fetcher', '-f', 
               required=True, type=click.Choice(FETCHERS.keys()), 
@@ -138,36 +139,32 @@ def cmd_report(**kwargs):
         
     """
     Report example:
-    ----------------------------------------------------------------------------------------------------------
+    ---------------------------------------------------------------------------------------------------------------------------
     MongoDB: mongodb://localhost/widukind :
-    ----------------------------------------------------------------------------------------------------------
-    Provider             | Dataset                        | Series     | last Update
-    ----------------------------------------------------------------------------------------------------------
-    WorldBank            | GEM                            |       9346 | 2015-09-15 21:38:18
-    Eurostat             | demo_pjanbroad                 |        834 | 2015-04-23 00:00:00
-    Eurostat             | gov_10q_ggdebt                 |       6170 | 2015-04-21 00:00:00
-    Eurostat             | namq_gdp_p                     |      11956 | 2015-04-13 00:00:00
-    INSEE                | 1430                           |         42 | 1900-01-01 00:00:00
-    INSEE                | 158                            |        393 | 1900-01-01 00:00:00
-    IMF                  | WEO                            |      10936 | 2015-04-01 00:00:00
-    BIS                  | CNFS                           |        938 | 2015-09-16 09:34:20
-    BIS                  | DSRP                           |         66 | 2015-09-16 08:47:38
-    ----------------------------------------------------------------------------------------------------------    
+    ---------------------------------------------------------------------------------------------------------------------------
+    Provider             | Version   | Dataset                        | Series     | First Download       | last Download
+    ---------------------------------------------------------------------------------------------------------------------------
+    BIS                  |         1 | PP-LS                          |         23 | 2016-01-06 - 09:38   | 2016-01-06 - 09:38
+    INSEE                |         1 | CNT-2010-PIB-RF                |         11 | 2016-01-06 - 09:37   | 2016-01-06 - 09:37    
+    ---------------------------------------------------------------------------------------------------------------------------
     """
     ctx = client.Context(**kwargs)
     db = ctx.mongo_database()
-    fmt = "{0:20} | {1:30} | {2:10} | {3:20}"
-    print("----------------------------------------------------------------------------------------------------------")
+    fmt = "{0:20} | {1:9} | {2:30} | {3:10} | {4:20} | {5:20}"
+    print("---------------------------------------------------------------------------------------------------------------------------")
     print("MongoDB: %s :" % ctx.mongo_url)
-    print("----------------------------------------------------------------------------------------------------------")
-    print(fmt.format("Provider", "Dataset", "Series", "last Update"))
-    print("----------------------------------------------------------------------------------------------------------")
+    print("---------------------------------------------------------------------------------------------------------------------------")
+    print(fmt.format("Provider", "Version", "Dataset", "Series", "First Download", "last Download"))
+    print("---------------------------------------------------------------------------------------------------------------------------")
     for provider in db[constants.COL_PROVIDERS].find({}):
-        for dataset in db[constants.COL_DATASETS].find({"provider": provider['name']}):
-            lastUpdate = str(dataset['lastUpdate'])
-            series_count = db[constants.COL_SERIES].count({"provider": provider['name'], "datasetCode": dataset['datasetCode']})
-            print(fmt.format(provider['name'], dataset['datasetCode'], series_count, lastUpdate))
-    print("----------------------------------------------------------------------------------------------------------")
+        for dataset in db[constants.COL_DATASETS].find({'provider_name': provider['name']}):
+            series_count = db[constants.COL_SERIES].count({'provider_name': provider['name'], "dataset_code": dataset['dataset_code']})
+            print(fmt.format(provider['name'], provider['version'], 
+                             dataset['dataset_code'], 
+                             series_count, 
+                             str(dataset['download_first'].strftime("%Y-%m-%d - %H:%M")), 
+                             str(dataset['download_last'].strftime("%Y-%m-%d - %H:%M"))))
+    print("---------------------------------------------------------------------------------------------------------------------------")
         
 @cli.command('update-metas', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -201,11 +198,11 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
             ctx.log("Update Metas for dataset[%s]" % dataset)
             f.update_metas(dataset)            
         else:
-            datasets = db[constants.COL_DATASETS].find({"provider": fetcher},
-                                                       projection={"datasetCode": True})
+            datasets = db[constants.COL_DATASETS].find({'provider_name': fetcher},
+                                                       projection={"dataset_code": True})
             for dataset in datasets:
-                ctx.log("Update Metas for dataset[%s]" % dataset['datasetCode'])
-                f.update_metas(dataset['datasetCode'])
+                ctx.log("Update Metas for dataset[%s]" % dataset['dataset_code'])
+                f.update_metas(dataset['dataset_code'])
 
 @cli.command('update-tags', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -225,7 +222,7 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
               required=True,
               default=constants.COL_DATASETS,
               show_default=True,
-              type=click.Choice(constants.COL_ALL + ['ALL']),
+              type=click.Choice([constants.COL_DATASETS, constants.COL_SERIES, 'ALL']),
               help='Collection')
 @click.option('-g', '--aggregate', is_flag=True, 
               help='Run aggregate tags after update.')
@@ -261,7 +258,7 @@ def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20,
         for col in cols:
             #TODO: serie_key
             #TODO: cumul result et rapport
-            result = utils.update_tags(db, 
+            result = tags.update_tags(db, 
                                        provider_name=fetcher, 
                                        dataset_code=dataset, 
                                        serie_key=None,
@@ -269,8 +266,8 @@ def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20,
                                        max_bulk=max_bulk)
 
         if aggregate:
-            result_datasets = utils.aggregate_tags_datasets(db, max_bulk=max_bulk)
-            result_series = utils.aggregate_tags_series(db, max_bulk=max_bulk)
+            result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
+            result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -321,7 +318,7 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     
     query = dict()
 
-    result = utils.search_tags(db,
+    result = tags.search_tags(db,
                                search_type=search_type, 
                                provider_name=fetcher, 
                                dataset_code=dataset, 
@@ -331,11 +328,11 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     
     ctx.log("Count result : %s" % result.count())
     for doc in result:
-        #TODO: value/releaseDates, ...
+        #TODO: value/release_dates, ...
         if search_type == constants.COL_SERIES:
-            fields = [doc['provider'], doc['datasetCode'], doc['key'], doc['name']]
+            fields = [doc['provider_name'], doc['dataset_code'], doc['key'], doc['name']]
         else:
-            fields = [doc['provider'], doc['datasetCode'], doc['name']]
+            fields = [doc['provider_name'], doc['dataset_code'], doc['name']]
         if ctx.debug:
             fields.append(doc['tags'])
             

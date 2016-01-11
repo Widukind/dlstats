@@ -9,9 +9,12 @@ import pprint
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 
+from slugify import slugify
+
+from widukind_common.utils import get_mongo_db, create_or_update_indexes
+
 from dlstats import constants
 from dlstats.fetchers import schemas
-from dlstats import utils
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +36,11 @@ class Fetcher(object):
             raise ValueError("provider_name is required")
 
         self.provider_name = provider_name
-        self.db = db or utils.get_mongo_db()
+        self.db = db or get_mongo_db()
         self.provider = None
         
         if is_indexes:
-            utils.create_or_update_indexes(self.db)
+            create_or_update_indexes(self.db)
         
     def upsert_categories(self):
         """Upsert the categories in MongoDB
@@ -120,9 +123,6 @@ class DlstatsCollection(object):
         lgr = logging.getLogger(__name__)
         key = {k: bson[k] for k in keys}
         try:
-            if collection  == constants.COL_DATASETS:
-                bson["tags"] = utils.generate_tags(self.fetcher.db, bson, doc_type=collection)
-
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
             result = result['_id']
@@ -142,6 +142,7 @@ class Providers(DlstatsCollection):
     def __init__(self,
                  name=None,
                  long_name=None,
+                 version=0,
                  region=None,
                  website=None,
                  fetcher=None):
@@ -155,23 +156,26 @@ class Providers(DlstatsCollection):
         super().__init__(fetcher=fetcher)
         self.name = name
         self.long_name = long_name
+        self.version = version
         self.region = region
         self.website = website
 
-        self.validate = schemas.provider_schema({
-            'name': self.name,
-            'longName': self.long_name,
-            'region': self.region,
-            'website': self.website
-         })
+        self.validate = schemas.provider_schema(self.bson)
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
 
+    def slug(self):
+        if not self.name:
+            return 
+        return slugify(self.name, word_boundary=False, save_order=True)
+
     @property
     def bson(self):
         return {'name': self.name,
-                'longName': self.long_name,
+                'long_name': self.long_name,
+                'version': self.version,
+                'slug': self.slug(),
                 'region': self.region,
                 'website': self.website}
 
@@ -180,73 +184,16 @@ class Providers(DlstatsCollection):
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
                                             ['name'], 
                                             self.bson)
-                
-class Categories(DlstatsCollection):
-    """Categories class
+
+    def add_data_tree(self,data_tree):
+        schemas.data_tree_schema(data_tree)
+        result = self.fetcher.db[constants.COL_PROVIDERS].find_one_and_update({'name': self.name},
+                                                                              {'$set': {'data_tree': data_tree}},
+                                                                              return_document=pymongo.ReturnDocument.AFTER)
+        if result is None:
+            raise Exception('add_data_tree: Provider update failed')
+        return result
     
-    Inherit from :class:`DlstatsCollection`
-    """
-    
-    def __init__(self,
-                 provider=None,
-                 name=None,
-                 docHref=None,
-                 children=None,
-                 categoryCode=None,
-                 lastUpdate=None,
-                 exposed=False,
-                 fetcher=None):
-        """
-        :param str provider: Provider name
-        :param str name: Category short name
-        :param str docHref: (Optional) Category - web link
-        :param bson.objectid.ObjectId children: Array of ObjectId or empty list        
-        :param str categoryCode: Unique Category Code
-        :param datetime.datetime lastUpdate: (Optional) Last updated date
-        :param bool exposed: Exposed ?
-        :param Fetcher fetcher: Fetcher instance
-        """        
-        super().__init__(fetcher=fetcher)
-        self.provider = provider
-        self.name = name
-        self.docHref = docHref
-        self.children = children
-        self.categoryCode = categoryCode
-        self.lastUpdate = lastUpdate
-        self.exposed = exposed
-        
-        self.validate = schemas.category_schema({
-            'provider': self.provider,
-            'categoryCode': self.categoryCode,
-            'name': self.name,
-            'children': self.children,
-            'docHref': self.docHref,
-            'lastUpdate': self.lastUpdate,
-            'exposed': self.exposed
-        })
-
-    def __repr__(self):
-        return pprint.pformat([(key, self.validate[key])
-                               for key in sorted(self.validate.keys())])
-
-    @property
-    def bson(self):
-        return {'provider': self.provider,
-                'name': self.name,
-                'docHref': self.docHref,
-                'children': self.children,
-                'categoryCode': self.categoryCode,
-                'lastUpdate': self.lastUpdate,
-                'exposed': self.exposed}
-        
-    def update_database(self):
-        # we will log to info when we switch to bulk update
-        schemas.category_schema(self.bson)
-        return self.update_mongo_collection(constants.COL_CATEGORIES, 
-                                            ['provider', 'categoryCode'],
-                                            self.bson, 
-                                            log_level=logging.DEBUG)
-
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
@@ -259,7 +206,7 @@ class Datasets(DlstatsCollection):
                  name=None,
                  doc_href=None,
                  last_update=None,
-                 bulk_size=1000,
+                 bulk_size=100,
                  fetcher=None, 
                  is_load_previous_version=True):
         """
@@ -281,6 +228,9 @@ class Datasets(DlstatsCollection):
         self.bulk_size = bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
+
+        self.download_first = None
+        self.download_last = None
         
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
@@ -296,32 +246,72 @@ class Datasets(DlstatsCollection):
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code)])
+        
+    def slug(self):
+        txt = "-".join([self.provider_name, self.dataset_code])
+        return slugify(txt, word_boundary=False, save_order=True)
+        
     @property
     def bson(self):
-        return {'provider': self.provider_name,
+        return {'provider_name': self.provider_name,
                 'name': self.name,
-                'datasetCode': self.dataset_code,
-                'dimensionList': self.dimension_list.get_list(),
-                'attributeList': self.attribute_list.get_list(),
-                'docHref': self.doc_href,
-                'lastUpdate': self.last_update,
+                'dataset_code': self.dataset_code,
+                'slug': self.slug(),
+                'dimension_list': self.dimension_list.get_list(),
+                'attribute_list': self.attribute_list.get_list(),
+                'doc_href': self.doc_href,
+                'last_update': self.last_update,
+                'download_first': self.download_first,
+                'download_last': self.download_last,
                 'notes': self.notes}
 
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
-                                            {'provider': provider_name,
-                                             'datasetCode': dataset_code})
+                                            {'provider_name': provider_name,
+                                             'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
-            self.dimension_list.set_from_list(dataset['dimensionList'])
-            self.attribute_list.set_from_list(dataset['attributeList'])
+            self.download_first = dataset['download_first']
+            self.dimension_list.set_from_list(dataset['dimension_list'])
+            self.attribute_list.set_from_list(dataset['attribute_list'])
+
+    def is_recordable(self):
+        
+        query = {"provider_name": self.provider_name,
+                 "dataset_code": self.dataset_code}
+        projection = {"provider_name": True, "dataset_code": True}
+        
+        doc = self.fetcher.db[constants.COL_DATASETS].find_one(query, projection)
+        if doc:
+            return True
+        
+        count_series = self.fetcher.db[constants.COL_SERIES].count(query)
+        if count_series > 0:
+            return True
+        
+        return False
         
     def update_database(self):
-        self.series.process_series_data()        
+        try:
+            self.series.process_series_data()
+        except Exception as err:
+            logger.critical(err)
+
+        now = datetime.now()
+        if not self.download_first:
+            self.download_first = now
+        if not self.download_last:
+            self.download_last = now
+
         schemas.dataset_schema(self.bson)
+        
+        if not self.is_recordable():
+            logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
+            return
+        
         return self.update_mongo_collection(constants.COL_DATASETS,
-                                            ['provider', 'datasetCode'],
-                                            self.bson)
+                                                ['provider_name', 'dataset_code'],
+                                                self.bson)
 
 class Series(DlstatsCollection):
     """Time Series class
@@ -331,7 +321,7 @@ class Series(DlstatsCollection):
                  provider_name=None, 
                  dataset_code=None, 
                  last_update=None, 
-                 bulk_size=1000, 
+                 bulk_size=100,
                  fetcher=None):
         """        
         :param str provider_name: Provider name
@@ -350,8 +340,8 @@ class Series(DlstatsCollection):
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
-                               ('datasetCode', self.dataset_code),
-                               ('lastUpdate', self.last_update)])
+                               ('dataset_code', self.dataset_code),
+                               ('last_update', self.last_update)])
 
     def process_series_data(self):
         count = 0
@@ -370,6 +360,10 @@ class Series(DlstatsCollection):
         if count > 0:
             self.update_series_list()
 
+    def slug(self, key):
+        txt = "-".join([self.provider_name, self.dataset_code, key])
+        return slugify(txt, word_boundary=False, save_order=True)
+        
     def update_series_list(self):
 
         #TODO: gestion erreur bulk (BulkWriteError)
@@ -377,8 +371,8 @@ class Series(DlstatsCollection):
         keys = [s['key'] for s in self.series_list]
 
         old_series = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider': self.provider_name,
-                                        'datasetCode': self.dataset_code,
+                                        'provider_name': self.provider_name,
+                                        'dataset_code': self.dataset_code,
                                         'key': {'$in': keys}})
 
         old_series = {s['key']:s for s in old_series}
@@ -388,7 +382,7 @@ class Series(DlstatsCollection):
         for data in self.series_list:
             key = data['key']
             if not key in old_series:
-                bson = self.update_series(data,is_bulk=True)                                
+                bson = self.update_series(data,is_bulk=True)
                 bulk.insert(bson)
             else:
                 old_bson = old_series[key]
@@ -406,23 +400,26 @@ class Series(DlstatsCollection):
                  
         self.series_list = []
         return result
+
+    def format_last_update(self, date_value):
+        if not date_value:
+            return None
+        return datetime(date_value.year, date_value.month, date_value.day, date_value.hour, date_value.minute)
             
     def update_series(self, bson, old_bson=None, is_bulk=False):
         # gets either last_update passed to Datasets or the one provided
         # in the bson
-        last_update = self.last_update
-        if 'lastUpdate' in bson:
-            last_update = bson.pop('lastUpdate')
+        if not 'slug' in bson:
+            bson['slug'] = self.slug(bson['key'])                                
+        
+        last_update = self.format_last_update(self.last_update)
+        if 'last_update' in bson:
+            last_update = self.format_last_update(bson.pop('last_update'))
 
-        old_bson = old_bson or self.fetcher.db[constants.COL_SERIES].find_one({
-            'provider': self.provider_name,
-            'datasetCode': self.dataset_code,
-            'key': bson['key']})
-                
         col = self.fetcher.db[constants.COL_SERIES]
 
         if not old_bson:
-            bson['releaseDates'] = [last_update for v in bson['values']]
+            bson['release_dates'] = [last_update for v in bson['values']]
             schemas.series_schema(bson)
 
             self.check_values_attributes_releasedates(bson)
@@ -436,9 +433,9 @@ class Series(DlstatsCollection):
                 bson['revisions'] = old_bson['revisions']
                 revisions_is_present = True
 
-            start_date = bson['startDate']
-            old_start_date = old_bson['startDate']
-            bson['releaseDates'] = deepcopy(old_bson['releaseDates'])
+            start_date = bson['start_date']
+            old_start_date = old_bson['start_date']
+            bson['release_dates'] = deepcopy(old_bson['release_dates'])
             
             iv1 = iv2 = 0
             if start_date < old_start_date:
@@ -451,44 +448,44 @@ class Series(DlstatsCollection):
                     for p in sorted(ikeys,reverse=True):
                         bson['revisions'][str(p+offset)] = bson['revisions'][str(p)]
                         bson['revisions'].pop(str(p))
-                # add last_update in fron of releaseDates
-                bson['releaseDates'] = [last_update for r in range(iv2)] + bson['releaseDates']
+                # add last_update in fron of release_dates
+                bson['release_dates'] = [last_update for r in range(iv2)] + bson['release_dates']
                         
             elif start_date > old_start_date:
                 # previous, longer, series is kept
                 # fill beginning with na
                 for p in range(start_date-old_start_date):
-                    # insert in front of the values, releaseDates and attributes
+                    # insert in front of the values, release_dates and attributes
                     bson['values'].insert(0,'na')
-                    bson['releaseDates'][p] = last_update
+                    bson['release_dates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].insert(0,"") 
-                bson['startDate'] = old_bson['startDate']
+                bson['start_date'] = old_bson['start_date']
                 
-            if bson['endDate'] < old_bson['endDate']:
-                for p in range(old_bson['endDate']-bson['endDate']):
+            if bson['end_date'] < old_bson['end_date']:
+                for p in range(old_bson['end_date']-bson['end_date']):
                     bson['values'].append('na')
-                    bson['releaseDates'][p] = last_update
+                    bson['release_dates'][p] = last_update
                     for a in bson['attributes']:
                         bson['attributes'][a].append("")
-                bson['endDate'] = old_bson['endDate']
+                bson['end_date'] = old_bson['end_date']
 
             for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
                 if values[0] != values[1]:
-                    bson['releaseDates'][position+iv2] = last_update
+                    bson['release_dates'][position+iv2] = last_update
                     if not revisions_is_present:
                         bson['revisions'] = {}
                         revisions_is_present = True
                     rev = {'value':values[0],
-                           'releaseDate':old_bson['releaseDates'][position+iv1]}
+                           'release_date':old_bson['release_dates'][position+iv1]}
                     if str(position+iv2) in bson['revisions']:
                         bson['revisions'][str(position+iv2)].append(rev)
                     else:
                         bson['revisions'][str(position+iv2)] = [rev]
 
-            if bson['endDate'] > old_bson['endDate']:
-                for p in range(bson['endDate']-old_bson['endDate']):
-                    bson['releaseDates'].append(last_update)
+            if bson['end_date'] > old_bson['end_date']:
+                for p in range(bson['end_date']-old_bson['end_date']):
+                    bson['release_dates'].append(last_update)
 
             self.check_values_attributes_releasedates(bson)
             
@@ -498,22 +495,23 @@ class Series(DlstatsCollection):
             return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
 
     def check_values_attributes_releasedates(self,bson):
-        # checking consistency of values, releaseDates and attributes
+        # checking consistency of values, release_dates and attributes
         n = len(bson['values'])
-        if len(bson['releaseDates']) != n:
-            logger.critical('releaseDates has not the right length')
+        if len(bson['release_dates']) != n:
+            logger.critical('release_dates has not the right length')
             logger.critical('series key: ' + bson['key'])
             logger.critical('values length: ' + str(len(bson['values'])))
-            logger.critical('releaseDates length: ' + str(len(bson['releaseDates'])))
-            raise Exception('releaseDates has not the right length')
+            logger.critical('release_dates length: ' + str(len(bson['release_dates'])))
+            raise Exception('release_dates has not the right length')
+        """
         for a in bson['attributes']:
             if len(bson['attributes'][a]) != n:
                 logger.critical('attributes has not the right length')
                 logger.critical('series key: ' + bson['key'])
                 logger.critical('values length: ' + str(len(bson['values'])))
-                logger.critical('attributes length: ' + str(len(bson['releaseDates'])))
+                logger.critical('attributes length: ' + str(len(bson['release_dates'])))
                 raise Exception('attributes has not the right length')
-
+        """
 class CodeDict():
     """Class for handling code lists
     

@@ -12,7 +12,9 @@ import requests
 from lxml import etree
 import pandas
 
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+
+VERSION = 1
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +75,8 @@ class IMF(Fetcher):
         super().__init__(provider_name='IMF', db=db, **kwargs)
         
         self.provider = Providers(name=self.provider_name, 
-                                  long_name="International Monetary Fund", 
+                                  long_name="International Monetary Fund",
+                                  version=VERSION, 
                                   region='world', 
                                   website='http://www.imf.org/', 
                                   fetcher=self)
@@ -155,14 +158,15 @@ class IMF(Fetcher):
             self.update_metas(dataset_code)
         except Exception as err:
             logger.error(str(err))
-        
+
     def upsert_categories(self):
-        document = Categories(provider=self.provider_name, 
-                              name='WEO' , 
-                              categoryCode='WEO',
-                              exposed=True,
-                              fetcher=self)
-        return document.update_database()
+        data_tree = {'name': 'IMF',
+                     'category_code': 'imf_root',
+                     'children': [{'name': 'WEO' , 
+                                   'category_code': 'WEO',
+                                   'exposed': True,
+                                   'children': []}]}
+        self.provider.add_data_tree(data_tree)
         
 class WeoData():
     
@@ -223,8 +227,8 @@ class WeoData():
             release_dates = [self.release_date for v in values]
             #print("release_dates : ", release_dates)
             #datetime.datetime(2006, 9, 1, 0, 0)
-            series['provider'] = self.provider_name
-            series['datasetCode'] = self.dataset_code
+            series['provider_name'] = self.provider_name
+            series['dataset_code'] = self.dataset_code
             series['name'] = series_name
             series['key'] = series_key
             series['values'] = values
@@ -235,11 +239,11 @@ class WeoData():
             series['dimensions'] = dimensions
             
             #TODO: a verifier
-            series['lastUpdate'] = self.release_date
+            series['last_update'] = self.release_date
             
-            series['releaseDates'] = release_dates
-            series['startDate'] = self.start_date.ordinal
-            series['endDate'] = self.end_date.ordinal
+            series['release_dates'] = release_dates
+            series['start_date'] = self.start_date.ordinal
+            series['end_date'] = self.end_date.ordinal
             series['frequency'] = 'A'
             
             if row['Subject Notes']:

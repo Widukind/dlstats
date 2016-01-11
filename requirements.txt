@@ -1,3 +1,5 @@
+https://github.com/Widukind/widukind-common/tarball/master
+python-slugify
 click>=5.1
 colorama>=0.3.3
 requests>=2.4.3
@@ -8,3 +10,4 @@ xlrd>=0.8
 beautifulsoup4>=4.4.0
 lxml>=3.4.0
 https://github.com/Widukind/pysdmx/tarball/master
+https://github.com/dr-leo/pandaSDMX/tarball/master

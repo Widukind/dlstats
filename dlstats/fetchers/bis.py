@@ -8,15 +8,21 @@ import csv
 import datetime
 import tempfile
 import time
+import pytz
 import logging
 
 import pandas
 import requests
+import re
+from lxml import etree
+from io import StringIO
 
 from dlstats import constants
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 __all__ = ['BIS']
+
+VERSION = 1
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +101,8 @@ PROVIDER_NAME = "BIS"
 DATASETS = {
     'LBS-DISS': { 
         'name': 'Locational Banking Statistics - disseminated data',
+        'agenda1': 'Banking statistics',
+        'agenda2': 'Locational',
         'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
         'url': 'http://www.bis.org/statistics/full_bis_lbs_diss_csv.zip',
         'filename': 'full_bis_lbs_diss_csv.zip',
@@ -106,6 +114,8 @@ DATASETS = {
     },
     'CBS': { 
         'name': 'Consolidated banking statistics',
+        'agenda1': 'Banking statistics',
+        'agenda2': 'Consolidated',
         'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
         'url': 'https://www.bis.org/statistics/full_bis_cbs_csv.zip',
         'filename': 'full_bis_cbs_csv.zip',
@@ -117,6 +127,10 @@ DATASETS = {
     },
     'DSS': {
         'name': 'Debt securities statistics',
+        'agenda1': 'Debt securities statistics',
+        # same data set for 'Internationa' and 'Domestic and total'
+        'agenda2': 'International',
+        'agenda3': 'Domestic and total',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_debt_sec2_csv.zip',
         'filename': 'full_bis_debt_sec2_csv.zip',
@@ -128,6 +142,7 @@ DATASETS = {
     },     
     'CNFS': {
         'name': 'Credit to the non-financial sector',
+        'agenda1': 'Credit to non-financial sector',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_total_credit_csv.zip',
         'filename': 'full_bis_total_credit_csv.zip',
@@ -139,6 +154,7 @@ DATASETS = {
     },     
     'DSRP': {
         'name': 'Debt service ratios for the private non-financial sector',
+        'agenda1': 'Debt service ratio',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_dsr_csv.zip',
         'filename': 'full_bis_dsr_csv.zip',
@@ -150,6 +166,8 @@ DATASETS = {
     },     
     'PP-SS': {
         'name': 'Property prices - selected series',
+        'agenda1': 'Property prices',
+        'agenda2': 'Selected and long',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_selected_pp_csv.zip',
         'filename': 'full_bis_selected_pp_csv.zip',
@@ -161,6 +179,8 @@ DATASETS = {
     },     
     'PP-LS': {
         'name': 'Property prices - long series',
+        'agenda1': 'Property prices',
+        'agenda2': 'Selected and long',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_long_pp_csv.zip',
         'filename': 'full_bis_long_pp_csv.zip',
@@ -172,6 +192,7 @@ DATASETS = {
     },     
     'EERI': {
         'name': 'Effective exchange rate indices',
+        'agenda1': 'Effective exchange rates',
         'doc_href': 'TODO:',
         'url': 'https://www.bis.org/statistics/full_bis_eer_csv.zip',
         'filename': 'full_bis_eer_csv.zip',
@@ -180,7 +201,13 @@ DATASETS = {
             'release_date': 1,
             'headers': 4
         }
-    },     
+    },
+}
+
+AGENDA = {'url': 'http://www.bis.org/statistics/relcal.htm?m=6|37|68',
+          'filename': 'agenda.html',
+          'store_filepath': '/tmp/bis',
+          'country': 'ch'
 }
 
 class Downloader():
@@ -263,6 +290,15 @@ class Downloader():
         
         return self.filepath
 
+def get_agenda():
+    download = Downloader(url=AGENDA['url'],
+                          filename=AGENDA['filename'],
+                          store_filepath=AGENDA['store_filepath'])
+    with open(download.get_filepath(),'r') as f:
+        page = f.read()
+    return page
+    
+
 class BIS(Fetcher):
     
     def __init__(self, db=None):
@@ -272,6 +308,7 @@ class BIS(Fetcher):
         
         self.provider = Providers(name=self.provider_name,
                                   long_name='Bank for International Settlements',
+                                  version=VERSION,
                                   region='world',
                                   website='http://www.bis.org', 
                                   fetcher=self)
@@ -330,17 +367,129 @@ class BIS(Fetcher):
         return [(key, dataset['name']) for key, dataset in DATASETS.items()]
 
     def upsert_categories(self):
+        data_tree = {'name': 'BIS',
+                     'category_code': 'oecd_root',
+                     'children': []}
         
         for dataset_code in DATASETS.keys():
-            document = Categories(provider=self.provider_name, 
-                                  name=DATASETS[dataset_code]['name'], 
-                                  categoryCode=dataset_code,
-                                  exposed=True,
-                                  fetcher=self)
-            
-            #TODO: attention, plus de retour du result pymongo
-            document.update_database()                            
+            data_tree['children'].append({'name': DATASETS[dataset_code]['name'], 
+                                          'category_code': dataset_code,
+                                          'exposed': True,
+                                          'children': None})
 
+        self.provider.add_data_tree(data_tree)    
+
+    def parse_agenda(self):
+        agenda = etree.HTML(get_agenda())
+        table = agenda.find('.//table')
+        # only one table
+        rows = table[0].findall('tr')
+        # skipping first row
+        cells = rows[1].findall('td')
+        agenda = []
+        months = [None,None]
+        for c in rows[1].iterfind('td'):
+            content = c.find('strong')
+            if content.text is None:
+                content = content.find('strong')
+            months.append(datetime.datetime.strptime(content.text,'%B %Y'))
+        agenda.append(months)
+        ir = 2
+        while ir < len(rows):
+            cells = rows[ir].findall('td')
+            content = cells[0]
+            if content.text is None:
+                content = content.find('a')
+            item = [content.text]
+            if cells[0].get('rowspan') == '2':
+                two_rows = True
+                content = cells[1].find('a')
+                item.append(content.text)
+                offset = 2
+            else:
+                two_rows = False
+                item.append(None)
+                offset = 1
+            for ic,c in enumerate(cells[offset:]):
+                if c.text[0] != chr(160):
+                    item.append(re.match('\d\d|\d',c.text).group(0))
+                else:
+                    item.append(None)
+            agenda.append(item)
+            ir += 1
+            if two_rows:
+                item = [item[0]]
+                cells = rows[ir].findall('td')
+                content = cells[0].find('a')
+                item.append(content.text)
+                for ic,c in enumerate(cells[1:]):
+                    if c.text[0] != chr(160):
+                        item.append(re.match('\d\d|\d',c.text).group(0))
+                    else:
+                        item.append(None)
+                agenda.append(item)
+                ir += 1
+        return agenda
+
+    def get_calendar(self):
+        agenda = self.parse_agenda()
+        schedule = []
+        for m in range(len(agenda[0])-2):
+            date_base = agenda[0][m+2]
+            for d in DATASETS.items():
+                trigger_day = None
+                if 'agenda2' in d:
+                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
+                                   and  (a[1] == d[1]['agenda2'])]
+                    if trigger_day and trigger_day[0][m+2]:
+                        schedule.append(
+                            {'action': "update_node",
+                             "kwargs": {"provider_name": "BIS",
+                                        "dataset_code": d[1]['dataset_code']},
+                             "period_type": "date",
+                             "period_kwargs": {"run_date": datetimedatetime(date_base.year,
+                                                                            date_base.month,
+                                                                            int(trigger_day[0][m+2]),
+                                                                            8, 0, 0),
+                                               "timezone": pytz.country_timezones(AGENDA['country'])}
+                             }
+                            )
+                    if 'agenda3' in d:
+                        trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
+                                       and  (a[1] == d[1]['agenda3'])]
+                        if trigger_day and trigger_day[0][m+2]:
+                            schedule.append(
+                                {'action': "update_node",
+                                 "kwargs": {"provider_name": "BIS",
+                                            "dataset_code": d[1]['dataset_code']},
+                                 "period_type": "date",
+                                 "period_kwargs": {"run_date": datetime.datetime(date_base.year,
+                                                                                 date_base.month,
+                                                                                 int(trigger_day[0][m+2]),
+                                                                                 8, 0, 0),
+                                                   "timezone": pytz.country_timezones(AGENDA['country'])}
+                                 }
+                                )
+                else:
+                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])]
+                    if trigger_day and trigger_day[0][m+2]:
+                        schedule.append(
+                            {'action': "update_node",
+                             "kwargs": {"provider_name": "BIS",
+                                        "dataset_code": d[0]},
+                             "period_type": "date",
+                             "period_kwargs": {"run_date": datetime.datetime(date_base.year,
+                                                                             date_base.month,
+                                                                             int(trigger_day[0][m+2]),
+                                                                             8, 0, 0),
+                                               "timezone": pytz.country_timezones(AGENDA['country'])}
+                             }
+                            )
+
+        for s in schedule:
+            yield s
+        
+        
 class BIS_Data():
     
     def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):
@@ -398,12 +547,12 @@ class BIS_Data():
     def is_updated(self):
 
         dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(
-                                                {"provider": self.dataset.provider_name,
-                                                "datasetCode": self.dataset.dataset_code})
+                                                {'provider_name': self.dataset.provider_name,
+                                                "dataset_code": self.dataset.dataset_code})
         if not dataset_doc:
             return True
 
-        if self.release_date > dataset_doc['lastUpdate']:
+        if self.release_date > dataset_doc['last_update']:
             return True
 
         return False
@@ -437,16 +586,16 @@ class BIS_Data():
 
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
         
-        data = {'provider': self.dataset.provider_name,
-                'datasetCode': self.dataset.dataset_code,
+        data = {'provider_name': self.dataset.provider_name,
+                'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,
                 'values': values,
                 'attributes': {},
                 'dimensions': dimensions,
-                'lastUpdate': self.release_date,
-                'startDate': self.start_date.ordinal,
-                'endDate': self.end_date.ordinal,
+                'last_update': self.release_date,
+                'start_date': self.start_date.ordinal,
+                'end_date': self.end_date.ordinal,
                 'frequency': self.frequency}
 
         return(data)
@@ -470,3 +619,6 @@ def download_all_sources():
         
     return filepaths
         
+if __name__ == '__main__':
+    b = BIS()
+    b.get_calendar_()

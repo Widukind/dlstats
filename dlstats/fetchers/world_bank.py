@@ -11,7 +11,9 @@ import xlrd
 import pandas
 import requests
 
-from dlstats.fetchers._commons import Fetcher, Categories, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+
+VERSION = 1
 
 logger = logging.getLogger(__name__)
 
@@ -34,27 +36,29 @@ class WorldBank(Fetcher):
         
         self.provider = Providers(name=self.provider_name,
                                  long_name='World Bank',
+                                 version=VERSION,
                                  region='world',
                                  website='http://www.worldbank.org/',
                                  fetcher=self)
        
     def upsert_categories(self):
-        document = Categories(provider = self.provider_name, 
-                            name = 'GEM', 
-                            categoryCode ='GEM',
-                            children = None,
-                            fetcher=self)
-        return document.update_database()
+        data_tree = {'name': 'World Bank',
+                     'category_code': 'worldbank_root',
+                     'children': [{'name': 'GEM' , 
+                                   'category_code': 'GEM',
+                                   'exposed': True,
+                                   'children': []}]}
+        self.provider.add_data_tree(data_tree)
 
-    def upsert_dataset(self, datasetCode):
+    def upsert_dataset(self, dataset_code):
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
         #TODO return the _id field of the corresponding dataset. Update the category accordingly.
-        if datasetCode=='GEM':
-            self.upsert_gem(datasetCode)
+        if dataset_code=='GEM':
+            self.upsert_gem(dataset_code)
         else:
             raise Exception("This dataset is unknown" + dataCode)                 
-        self.update_metas(datasetCode)        
+        self.update_metas(dataset_code)        
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
@@ -67,7 +71,7 @@ class WorldBank(Fetcher):
                            doc_href=d['doc_href'], 
                            fetcher=self)
         gem_data = GemData(dataset, url)
-        dataset.last_update = gem_data.releaseDate
+        dataset.last_update = gem_data.release_date
         dataset.series.data_iterator = gem_data
         dataset.update_database()
         
@@ -145,7 +149,7 @@ class GemData:
         self.columns = iter([])
         self.sheets = iter([])
         self.url = url
-        self.releaseDate = None
+        self.release_date = None
         self.excel_filenames = []
         self.freq_long_name = {'A': 'Annual', 'Q': 'Quarterly', 'M': 'Monthly', 'D': 'Daily'}
         self.zipfile = None
@@ -155,10 +159,10 @@ class GemData:
             
     def load_datas(self):
         
-        releaseDate_str, filepath = self.dataset.fetcher.download(dataset_code=self.dataset_code, 
+        release_date_str, filepath = self.dataset.fetcher.download(dataset_code=self.dataset_code, 
                                                                   url=self.url)
             
-        self.releaseDate = datetime.datetime.strptime(releaseDate_str, 
+        self.release_date = datetime.datetime.strptime(release_date_str, 
                                                       "%a, %d %b %Y %H:%M:%S GMT")
         
         self.zipfile = zipfile.ZipFile(filepath)
@@ -190,17 +194,17 @@ class GemData:
             series_key += '.'
         series_key += col_header + '.' + self.frequency
         series = {}
-        series['provider'] = self.provider_name
-        series['datasetCode'] = self.dataset_code
+        series['provider_name'] = self.provider_name
+        series['dataset_code'] = self.dataset_code
         series['name'] = self.series_name + '; ' + col_header + '; ' + self.freq_long_name[self.frequency]
         series['key'] = series_key
         series['values'] = values
         series['attributes'] = {}
         series['dimensions'] = dimensions
-        series['lastUpdate'] = self.last_update
-        #series['releaseDates'] = release_dates
-        series['startDate'] = self.start_date
-        series['endDate'] = self.end_date
+        series['last_update'] = self.last_update
+        #series['release_dates'] = release_dates
+        series['start_date'] = self.start_date
+        series['end_date'] = self.end_date
         series['frequency'] = self.frequency
         return(series)
     

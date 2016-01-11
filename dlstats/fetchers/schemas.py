@@ -3,7 +3,7 @@
 from datetime import datetime
 import bson
 
-from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra
+from voluptuous import Required, All, Length, Schema, Invalid, Optional, Any, Extra, Range
 
 def date_validator(value):
     """Custom validator (only a few types are natively implemented in voluptuous)
@@ -28,54 +28,62 @@ def typecheck(type, msg=None):
 
 #Schema definition in voluptuous
 revision_schema = {str: [{Required('value'): str,
-                          Required('releaseDate'): date_validator}]}
+                          Required('release_date'): date_validator}]}
 
 codedict_schema = Schema({Extra: dict})
 
-provider_schema = Schema({
-    'name': All(str, Length(min=1)),
-    'longName': All(str, Length(min=1)),
-    'region': All(str, Length(min=1)),
-    'website': All(str, Length(min=9))
-    },required=True)
+def _data_tree(value):
+    return data_tree_schema(value)
 
-category_schema = Schema({
+data_tree_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
-    'children': Any(None,[typecheck(bson.objectid.ObjectId)]), 
-    Optional('docHref'): Any(None,str),
-    Optional('lastUpdate'): Any(None,typecheck(datetime)),
-    'categoryCode': All(str, Length(min=1)),
-    'exposed': typecheck(bool)
+    'children': Any(None,[_data_tree]), 
+    Optional('doc_href'): Any(None,str),
+    Optional('last_update'): Any(None,typecheck(datetime)),
+    'category_code': All(str, Length(min=1)),
+    Optional('exposed'): typecheck(bool)
     }, required=True)
 
+provider_schema = Schema({
+    'name': All(str, Length(min=1)),
+    'long_name': All(str, Length(min=1)),
+    'version': All(int, Range(min=1)),
+    'slug': All(str, Length(min=1)),
+    'region': All(str, Length(min=1)),
+    'website': All(str, Length(min=9)),
+    Optional('data_tree'): data_tree_schema
+},required=True)
 
 dataset_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
-    'datasetCode': All(str, Length(min=1)),
-    'docHref': Any(None,str),
-    'lastUpdate': typecheck(datetime),
-    'dimensionList': {str: [All()]},
-    'attributeList': Any(None, {str: [(str,str)]}),
+    'provider_name': All(str, Length(min=1)),
+    'dataset_code': All(str, Length(min=1)),
+    'doc_href': Any(None,str),
+    'last_update': typecheck(datetime),
+    'dimension_list': {str: [All()]},
+    'attribute_list': Any(None, {str: [(str,str)]}),
     Optional('notes'): str,
     Optional('tags'): [Any(str)],
+    'slug': All(str, Length(min=1)),
+    'download_first': typecheck(datetime),
+    'download_last': typecheck(datetime),
     },required=True)
 
 series_schema = Schema({
     'name': All(str, Length(min=1)),
-    'provider': All(str, Length(min=1)),
+    'provider_name': All(str, Length(min=1)),
     'key': All(str, Length(min=1)),
-    'datasetCode': All(str, Length(min=1)),
-    'startDate': int,
-    'endDate': int,
+    'dataset_code': All(str, Length(min=1)),
+    'start_date': int,
+    'end_date': int,
     'values': [Any(str)],
-    'releaseDates': [date_validator],
+    'release_dates': [date_validator],
     'attributes': Any({}, {str: [str]}),
     Optional('revisions'): Any(None, revision_schema),
     'dimensions': {str: str},
     'frequency': All(str, Length(min=1)),
     Optional('notes'): Any(None, str),
     Optional('tags'): [Any(str)],
+    'slug': All(str, Length(min=1)),
     },required=True)
 

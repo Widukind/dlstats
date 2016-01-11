@@ -122,6 +122,9 @@ Subject,"BIS effective exchange rates"
 "M:Monthly","N:Nominal","B:Broad (61 economies)","AE:United Arab Emirates","M:N:B:AE","","119.52"
 """
 
+#---AGENDA
+AGENDA = {'filename': './tests/resources/bis/agenda.html'}
+
 def mock_get_store_path(self):
     return os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                         self.dataset.provider_name, 
@@ -206,8 +209,13 @@ def load_fake_datas(select_dataset_code=None):
             row = bis.csv_dict(dataset_datas.headers, d)
             results[dataset_code]['series'].append(dataset_datas.build_serie(d))
             
-    #pprint(results)
+            #pprint(results)
     return results
+
+def get_agenda():
+    with open(AGENDA['filename']) as fh:
+        page = fh.read()
+    return page
 
 class BISUtilsTestCase(BaseTestCase):
     """BIS Utils
@@ -265,7 +273,7 @@ class BISDatasetsTestCase(BaseTestCase):
         pprint(datas)
 
         attempt = {'LBS-DISS': {'series': [{'attributes': {},
-                                  'datasetCode': 'LBS-DISS',
+                                  'dataset_code': 'LBS-DISS',
                                   'dimensions': {'Balance sheet position': 'C',
                                                  'Counterparty country': '1C',
                                                  'Counterparty sector': 'A',
@@ -278,7 +286,7 @@ class BISDatasetsTestCase(BaseTestCase):
                                                  'Reporting country': '5A',
                                                  'Type of instruments': 'A',
                                                  'Type of reporting institutions': 'A'},
-                                  'endDate': 183,
+                                  'end_date': 183,
                                   'frequency': 'Q',
                                   'key': 'Q:F:C:A:CHF:A:5J:A:5A:A:1C:N',
                                   'name': 'Q:Quarterly-F:FX and break adjusted '
@@ -291,11 +299,11 @@ class BISDatasetsTestCase(BaseTestCase):
                                           'reporting countries-A:All '
                                           'sectors-1C:International '
                                           'organisations-N:Cross-border',
-                                  'provider': 'BIS',
-                                  'releaseDates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
+                                  'provider_name': 'BIS',
+                                  'release_dates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35),
                                                    datetime.datetime(2015, 9, 16, 8, 13, 35)],
-                                  'startDate': -80,
+                                  'start_date': -80,
                                   'values': ['NaN', '-1.636', '39.632']}]}}        
         
         self.assertDictEqual(datas, attempt)
@@ -307,7 +315,7 @@ class BISDatasetsTestCase(BaseTestCase):
         datas = load_fake_datas('CNFS')
         
         attempt = {'CNFS': {'series': [{'attributes': {},
-                      'datasetCode': 'CNFS',
+                      'dataset_code': 'CNFS',
                       'dimensions': {"Borrowers' country": 'AR',
                                      'Borrowing sector': 'C',
                                      'Frequency': 'Q',
@@ -315,18 +323,18 @@ class BISDatasetsTestCase(BaseTestCase):
                                      'Type of adjustment': 'A',
                                      'Unit type': '770',
                                      'Valuation': 'M'},
-                      'endDate': 183,
+                      'end_date': 183,
                       'frequency': 'Q',
                       'key': 'Q:AR:C:A:M:770:A',
                       'name': 'Q:Quarterly-AR:Argentina-C:Non financial '
                               'sector-A:All sectors-M:Market '
                               'value-770:Percentage of GDP-A:Adjusted for '
                               'breaks',
-                      'provider': 'BIS',
-                      'releaseDates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
+                      'provider_name': 'BIS',
+                      'release_dates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20),
                                        datetime.datetime(2015, 9, 16, 9, 34, 20)],
-                      'startDate': -80,
+                      'start_date': -80,
                       'values': ['', '10.1', '20.2']}]}}
         
         self.assertDictEqual(datas, attempt)        
@@ -372,9 +380,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         # upsert_categories
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name}) 
+        self.assertIsNotNone(provider['data_tree'])
         
         dataset = Datasets(provider_name=self.fetcher.provider_name, 
                            dataset_code=self.dataset_code, 
@@ -390,15 +397,15 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         dataset.series.data_iterator = fetcher_data
         dataset.update_database()
 
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
         
-        self.assertEqual(len(self.dataset["dimensionList"]), DATASETS[self.dataset_code]["dimensions_count"])
+        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimensions_count"])
         
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
         self.assertEqual(series.count(), SERIES_COUNT)
         
         
@@ -410,8 +417,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:F:C:A:CHF:A:5J:A:5A:A:1C:N"})
         self.assertIsNotNone(serie)
         
@@ -434,8 +441,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:S:5A:4B:F:B:A:A:LC1:A:1C"})
         self.assertIsNotNone(serie)
         
@@ -447,8 +454,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:1C:3P:1:1:C:A:A:EU1:A:A:A:A:A:C"})
         self.assertIsNotNone(serie)
 
@@ -460,8 +467,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
 
         self._common_tests()
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AR:C:A:M:770:A"})
         self.assertIsNotNone(serie)
         
@@ -480,8 +487,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AU:H"})
         self.assertIsNotNone(serie)
         
@@ -493,8 +500,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AT:N:628"})
         self.assertIsNotNone(serie)
         
@@ -506,8 +513,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "Q:AU"})
         self.assertIsNotNone(serie)
 
@@ -519,8 +526,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         
         self._common_tests()        
 
-        serie = self.db[constants.COL_SERIES].find_one({"provider": self.fetcher.provider_name, 
-                                                        "datasetCode": self.dataset_code,
+        serie = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
+                                                        "dataset_code": self.dataset_code,
                                                         "key": "M:N:B:AE"})
         self.assertIsNotNone(serie)
 
@@ -568,18 +575,17 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider['data_tree'])
 
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         self.assertEqual(series.count(), SERIES_COUNT)
 
@@ -660,8 +666,117 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
 
         self._common_tests()
 
-        #TODO: meta_datas tests  
+    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+    def test_parse_agenda(self):
 
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_parse_agenda
+
+        attempt = ([[None, None, datetime.datetime(2015, 12, 1, 0, 0), datetime.datetime(2016, 1, 1, 0, 0),
+                     datetime.datetime(2016, 2, 1, 0, 0), datetime.datetime(2016, 3, 1, 0, 0),
+                     datetime.datetime(2016, 4, 1, 0, 0), datetime.datetime(2016, 5, 1, 0, 0)],
+                    ['Banking statistics', 'Locational', '6', '22', None, '6', '22', None],
+                    ['Banking statistics', 'Consolidated', '6', '22', None, '6', '22', None],
+                    ['Debt securities statistics', 'International', '6', None, None, '6', None, None],
+                    ['Debt securities statistics', 'Domestic and total', '6', None, None, '6', None, None],
+                    ['Derivatives statistics', 'OTC', '6', None, None, '6', None, '13'],
+                    ['Derivatives statistics', 'Exchange-traded', '6', None, None, '6', None, None],
+                    ['Global liquidity indicators', None, '6', None, None, '6', None, None],
+                    ['Credit to non-financial sector', None, '6', None, None, '6', None, None],
+                    ['Debt service ratio', None, '6', None, None, '6', None, None],
+                    ['Property prices', 'Detailed data', '18', '22', '19', '18', '22', '20'],
+                    ['Property prices', 'Selected', None, None, '19', None, None, '20'],
+                    ['Effective exchange rates', None, '16', '18', '16', '16', '18', '17'],
+                    ['BIS Statistical Bulletin', None, '6', None, None, '6', None, None]])
+        
+        agenda = self.fetcher.parse_agenda()
+
+        self.assertEqual(agenda,attempt)
+                    
+    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+    def test_get_calendar(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_get_calendar
+
+        attempt = [{'kwargs': {'dataset_code': 'CNFS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSRP'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CNFS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSRP'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'DSS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 16 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'LBS-DISS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 18 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'CBS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-SS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'PP-LS'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
+                   {'kwargs': {'dataset_code': 'EERI'},
+                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 17 , 8, 0, 0)} }]
+
+        for a in attempt:
+            a['period_kwargs'].update({'timezone': ['Europe/Zurich']})
+            a['kwargs'].update({'provider_name': 'BIS'})
+            a.update({"action": "update_node", "period_type": "date"})
+        
+        # test generator
+        res = []
+        for s in self.fetcher.get_calendar():
+            self.assertIn(s,attempt)
+            res.append(s)
+        for a in attempt:
+            self.assertIn(a,res)
+        
+        #TODO: meta_datas tests  
+        
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
 class FullBISDatasetsDBTestCase(BaseDBTestCase):
@@ -690,18 +805,17 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
         
         self.fetcher.upsert_categories()
-        category = self.db[constants.COL_CATEGORIES].find_one({"provider": self.fetcher.provider_name, 
-                                                               "categoryCode": self.dataset_code})
-        self.assertIsNotNone(category)
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider['data_tree'])
         
         self.fetcher.upsert_dataset(self.dataset_code)
         
-        self.dataset = self.db[constants.COL_DATASETS].find_one({"provider": self.fetcher.provider_name, 
-                                                            "datasetCode": self.dataset_code})
+        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
         self.assertIsNotNone(self.dataset)
 
-        series = self.db[constants.COL_SERIES].find({"provider": self.fetcher.provider_name, 
-                                                     "datasetCode": self.dataset_code})
+        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
+                                                     "dataset_code": self.dataset_code})
 
         series_count = series.count()
         self.assertTrue(series_count > 1)

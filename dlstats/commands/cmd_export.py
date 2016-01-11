@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import sys
 import click
 
-from dlstats import constants
+from widukind_common.tasks import export_files
+
 from dlstats import client
-from dlstats import utils
-from dlstats.tasks import export_files
 from dlstats.fetchers import FETCHERS
 
 opt_provider = click.option('--provider', '-p', 

@@ -25,9 +25,14 @@ import time
 import pymongo
 
 from dlstats import constants
-from dlstats.fetchers._commons import Fetcher, Categories, Series, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+
+REGEX_DATE_P3M = re.compile(r"(\d+)-Q(\d)")
+REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
 
 __all__ = ['Eurostat']
+
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +143,7 @@ class Eurostat(Fetcher):
         self.provider_name = 'Eurostat'
         self.provider = Providers(name=self.provider_name,
                                   long_name='Eurostat',
+                                  version=VERSION,
                                   region='Europe',
                                   website='http://ec.europa.eu/eurostat',
                                   fetcher=self)
@@ -160,15 +166,14 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q'
         ]
+        self.selected_datasets = {}
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
-    def upsert_categories(self):
-        """Update the categories in MongoDB
-
-        If a category doesn't exit, it is created
+    def build_data_tree(self):
+        """Builds the data tree 
         """
-        def walktree(child):
+        def walktree(child,ns):
             """Recursive function for parsing table_of_contents.xml
 
             :param branch: The current branch explored. The function
@@ -177,100 +182,105 @@ class Eurostat(Fetcher):
             :param parent_id: The id of the previous branch
             :type parent_id: MongoObject(Id)
             """
-            children_ids = []
+            children = []
             for branch in child.iterchildren():
-                title = None
-                docHref = None
-                lastUpdate = None
-                lastModified = None
-                code = None
-                children = []
+                _tree = {}
+                last_update = None
+                last_modified = None
+                _tree['doc_href'] = None
+                _tree['children'] = []
                 for element in branch.iterchildren():
-                    if element.tag[-5:] == 'title':
+                    if element.tag == '{' + ns['nt'] + '}' + 'title':
                         if element.attrib.values()[0] == 'en':
-                            title = element.text
-                    elif element.tag[-5:] == 'metadata':
+                            _tree['name'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'metadata':
                         if element.attrib.values()[0] == 'html':
-                            docHref = element.text
-                    elif element.tag[-4:] == 'code':
-                        code = element.text
-                    elif element.tag[-10:] == 'lastUpdate':
+                            _tree['doc_href'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'code':
+                        _tree['category_code'] = element.text
+                    elif element.tag == '{' + ns['nt'] + '}' + 'lastUpdate':
                         if not (element.text is None):
-                            lastUpdate = datetime.datetime.strptime(
+                            last_update = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
-                    elif element.tag[-12:] == 'lastModified':
+                    elif element.tag == '{' + ns['nt'] + '}' + 'lastModified':
                         if not (element.text is None):
-                            lastModified = datetime.datetime.strptime(
+                            last_modified = datetime.datetime.strptime(
                                 element.text,'%d.%m.%Y')
-                    elif element.tag[-8:] == 'children':
-                        children = walktree(element)
-                if not ((lastUpdate is None) | (lastModified is None)):
-                    lastUpdate = max(lastUpdate,lastModified)
-                if lastUpdate is not None and not isinstance(lastUpdate,
+                    elif element.tag == '{' + ns['nt'] + '}' + 'children':
+                        _tree['children'] = walktree(element,ns)
+                if not ((last_update is None) | (last_modified is None)):
+                    last_update = max(last_update,last_modified)
+                if last_update is not None and not isinstance(last_update,
                                                              datetime.datetime):
-                    lastUpdate = datetime.datetime(lastUpdate)
-                if docHref is not None:
-                    document = Categories(provider=self.provider_name,name=title,
-                                          docHref=doc_href,children=children,
-                                          categoryCode=code,lastUpdate=lastUpdate,
-                                          fetcher=self)
+                    _tree['last_update'] = datetime.datetime(last_update)
                 else:
-                    document = Categories(provider=self.provider_name,name=title,
-                                          children=children,categoryCode=code,
-                                          lastUpdate=lastUpdate,fetcher=self)
-                id = document.update_database()
-                children_ids += [bson.objectid.ObjectId(id)]
-            return children_ids
+                    _tree['last_update'] = last_update
+                _tree['exposed'] = False
+                children.append(_tree)
+            return children
 
         table_of_contents = lxml.etree.fromstring(self.get_table_of_contents())
-        branch = table_of_contents.find('{urn:eu.europa.ec.eurostat.navtree}branch',namespaces=table_of_contents.nsmap)
-        _id = walktree(branch.find('{urn:eu.europa.ec.eurostat.navtree}children'))
-        document = Categories(provider=self.provider_name,name='root',children=_id,
-                              lastUpdate=None,categoryCode='eurostat_root',fetcher=self)
-        document.update_database()
-
+        ns = table_of_contents.nsmap
+        branch = table_of_contents.find('nt:branch',namespaces=ns)
+        children = walktree(branch.find('nt:children',namespaces=ns),ns)
+        data_tree = {'name': 'Eurostat',
+                     'doc_href': None,
+                     'children': children,
+                     'category_code': 'eurostat_root',
+                     'exposed': False,
+                     'last_update': None}
+        return data_tree
+    
     def get_table_of_contents(self):
         webpage = requests.get(self.url_table_of_contents,
                                timeout=7)
         return webpage.content
+
+    def upsert_categories(self):
+        data_tree = self.build_data_tree()
+
+        self.provider.add_data_tree(data_tree)
+        
         
     def get_selected_datasets(self):
-        """Collects the dataset codes that are in table of contents,
+        """Collects the dataset codes that are in table of contents
         below the ones indicated in "selected_codes" provided in configuration
         :returns: list of codes"""
-        def walktree1(id):
-            datasets1 = []
-            c = self.db[constants.COL_CATEGORIES].find_one({'_id': bson.objectid.ObjectId(id)})
-            if 'children' in c and c['children'] is not None and len(c['children']) > 0 :
-                for child in  c['children']:
-                    datasets1 += walktree1(child)
-                return datasets1
-            else:
-                return [c['categoryCode']]
-        datasets = []
-        for code in self.selected_codes:
-            cc = self.db[constants.COL_CATEGORIES].find_one({'provider': self.provider_name,
-                                              'categoryCode': code})
-            if len(cc['children']) == 0:
-                datasets += [code]
-            else:
-                for c in cc['children']:
-                    datasets += walktree1(c)
-        return datasets
 
+        def walktree1(node,selected):
+
+            if selected or (node['category_code'] in self.selected_codes):
+                selected = True
+                if len(node['children']) == 0:
+                    # this is a leaf
+                    node['exposed'] = True
+                    self.selected_datasets.update({node['category_code']: node})
+
+            for child in node['children']:
+                walktree1(child,selected)
+
+        provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+        if 'data_tree' not in provider:
+            self.upsert_categories()
+            provider = self.db[constants.COL_PROVIDERS].find_one({'name': self.provider_name},{'data_tree': 1})
+            
+        walktree1(provider['data_tree'],False)
+        
     def upsert_selected_datasets(self):
-        datasets = self.get_selected_datasets()
-        for d in datasets:
+        if not self.selected_datasets:
+            self.get_selected_datasets()
+        for d in self.selected_datasets:
             self.upsert_dataset(d)
 
     def datasets_list(self):
-        return self.get_selected_datasets()
+        if not self.selected_datasets:
+            self.get_selected_datasets()
+        return [d for d in self.selected_datasets]
 
     def datasets_long_list(self):
-        categoryCodes = self.datasets_list()
-        dataset_codes = self.db[constants.COL_CATEGORIES].find({'provider': 'Eurostat', 'categoryCode': {"$in": categoryCodes}},
-                                                               {'categoryCode':True, 'name': True, '_id': False})
-        return [(dataset_code['categoryCode'], dataset_code['name']) for dataset_code in dataset_codes]
+        if not self.selected_datasets:
+            self.get_selected_datasets()
+        return [(d[0],d[1]['name']) for d in self.selected_datasets.items()]
 
     def upsert_dataset(self,dataset_code):
         """Updates data in Database for selected datasets
@@ -278,13 +288,15 @@ class Eurostat(Fetcher):
         :returns: None"""
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        cat = self.db[constants.COL_CATEGORIES].find_one({'categoryCode': dataset_code})
+        if not self.selected_datasets:
+            self.get_selected_datasets()
+        cat = self.selected_datasets[dataset_code]
         dataset = Datasets(self.provider_name,
                            dataset_code,
-                           last_update=cat['lastUpdate'],
+                           last_update=cat['last_update'],
                            fetcher=self)
         dataset.name = cat['name']
-        dataset.doc_href = cat['docHref']
+        dataset.doc_href = cat['doc_href']
         data_iterator = EurostatData(dataset,filename = dataset_code)
         dataset.series.data_iterator = data_iterator
         dataset.update_database()
@@ -296,29 +308,14 @@ class Eurostat(Fetcher):
         start = time.time()
         logger.info("update fetcher[%s] - START" % (self.provider_name))
         self.upsert_categories();
-        datasets = self.get_selected_datasets()
+        self.get_selected_datasets()
         selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider': self.provider_name, 'datasetCode': {'$in': datasets}},
-            {'datasetCode': 1, 'lastUpdate': 1})
-        selected_datasets = {s['datasetCode'] : s for s in selected_datasets}
-        selected_categories = self.db[constants.COL_CATEGORIES].find(
-            {'provider': self.provider_name, 'categoryCode': {'$in': datasets}},
-            {'categoryCode': 1, 'lastUpdate': 1})
-        selected_categories = {s['categoryCode'] : s for s in selected_categories}
-        bulk = self.db[constants.COL_CATEGORIES].initialize_ordered_bulk_op()
-        is_bulk = False
-        for d in datasets:
-            if (d not in selected_datasets) or (selected_datasets[d]['lastUpdate'] < selected_categories[d]['lastUpdate']):
+            {'provider_name': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+            {'dataset_code': 1, 'last_update': 1})
+        selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
+        for d in self.selected_datasets:
+            if (d not in selected_datasets) or (selected_datasets[d]['last_update'] < self.selected_datasets[d]['last_update']):
                 self.upsert_dataset(d)
-                bulk.find({'_id': selected_categories[d]['_id']}).update({'$set': {'exposed': True}})
-                is_bulk = True
-        if is_bulk:
-            try:
-                result = bulk.execute()
-            except pymongo.errors.BulkWriteError as err:
-                logger.critical(str(err.details))
-                pprint.pprint(err.details)
-                raise
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
@@ -419,21 +416,21 @@ class EurostatData:
         # force attributes' key to be lower case
         attributes = {k.lower() : attributes[k] for k in attributes} 
         bson = {}
-        bson['provider'] = self.provider_name
-        bson['datasetCode'] = self.dataset_code
+        bson['provider_name'] = self.provider_name
+        bson['dataset_code'] = self.dataset_code
         bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
                              for n,v in dimensions.items()])
         bson['key'] = ".".join(dimensions.values())
         bson['values'] = values
-        bson['lastUpdate'] = self.last_update
+        bson['last_update'] = self.last_update
         bson['attributes'] = attributes
         bson['dimensions'] = dimensions
         (start_string, freq) = self.parse_date(
             raw_dates[0], time_format)
         (end_string, freq) = self.parse_date(
             raw_dates[-1], time_format)
-        bson['startDate'] = pandas.Period(start_string,freq=freq).ordinal
-        bson['endDate'] = pandas.Period(end_string,freq=freq).ordinal
+        bson['start_date'] = pandas.Period(start_string,freq=freq).ordinal
+        bson['end_date'] = pandas.Period(end_string,freq=freq).ordinal
         bson['frequency'] = freq
         return(bson)
     
@@ -476,16 +473,16 @@ class EurostatData:
         dimensions = OrderedDict([(key.lower(), code_desc[key]) for key in dl])
         return (attributes,dimensions)
     
-    def parse_date(self,str,fmt):
+    def parse_date(self,_str,fmt):
         if (fmt == 'P1Y'):
-            return (str,'A')
+            return (_str,'A')
         elif (fmt == 'P3M'):
-            m = re.match(re.compile(r"(\d+)-Q(\d)"),str)
+            m = re.match(REGEX_DATE_P3M,_str)
             return (m.groups()[0]+'Q'+m.groups()[1],'Q')
         elif (fmt == 'P1M'):
-            return (str,'M')
+            return (_str,'M')
         elif (fmt == 'P1D'):
-            m = re.match(re.compile(r"(\d\d\d\d)(\d\d)(\d\d)"),str)
+            m = re.match(REGEX_DATE_P1D,_str)
             return ('-'.join(m.groups()),'D')
         else:
             msg = 'eurostat, '+self.datase_code+', TIME FORMAT not recognized'
