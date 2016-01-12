@@ -2,13 +2,13 @@
 
 #TODO: ne pas oublier writer comment dans Response
 
-
 import time
 from datetime import datetime
 import pytz
 import requests
 import tempfile
 import logging
+from collections import OrderedDict
 
 import requests
 import pandas
@@ -16,8 +16,6 @@ import pandas
 from pandasdmx.api import Request
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
-from dlstats import constants
-from collections import OrderedDict
 
 import lxml.html
 import re
@@ -46,62 +44,81 @@ class ECBRequest(Request):
     for r in Request._resources:
         Request._agencies['ECB']['resources'][r] = {'headers': SDMX_METADATA_HEADERS}
 
-
 class ECB(Fetcher):
     
     def __init__(self, db=None, sdmx=None, **kwargs):        
         super().__init__(provider_name='ECB', db=db, **kwargs)
         
         self.provider = Providers(name=self.provider_name,
-                                 long_name='European Central Bank',
-                                 version=VERSION,
-                                 region='Europe',
-                                 website='http://www.ecb.europa.eu',
-                                 fetcher=self)
+                                  long_name='European Central Bank',
+                                  version=VERSION,
+                                  region='Europe',
+                                  website='http://www.ecb.europa.eu',
+                                  fetcher=self)
         
         self.sdmx = sdmx or ECBRequest(agency=self.provider_name)
         self.sdmx.timeout = 90
         
         self._dataflows = None
-        self._constraints = None
         self._categoryschemes = None
         self._categorisations = None
-    
-    def load_structure(self, force=False):
+
+    def _load_structure(self, force=False):
+        """Load structure and build data_tree
+        """
         
-        if self._dataflows and not force:
+        if (self._dataflows and self._categoryschemes and self._categorisations) and not force:
             return
         
-        #http://sdw-wsrest.ecb.europa.eu/service/dataflow
-        dataflows_response = self.sdmx.get(resource_type='dataflow')#, agency=self.provider_name)    
-        logger.debug(dataflows_response.url)
-        self._dataflows = dataflows_response.msg.dataflows
-
-    def upsert_all_datasets(self):
-        start = time.time()        
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
+        '''Force URL for select only ECB agency'''
+        categoryschemes_response = self.sdmx.get(resource_type='categoryscheme', url='http://sdw-wsrest.ecb.int/service/categoryscheme/%s?references=parentsandsiblings' % self.provider_name)
+        self._categorisations = categoryschemes_response.msg.categorisations
+        self._categoryschemes = categoryschemes_response.msg.categoryschemes
+        self._dataflows = categoryschemes_response.msg.dataflows
         
-        self.load_structure(force=False)
+    def build_data_tree(self):
+        """Build data_tree from structure datas
+        """
+        if self.provider.count_data_tree() > 1:
+            return self.provider.data_tree
         
-        for dataset_code in self.datasets_list():
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+        self._load_structure()
 
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+        """        
+        data_tree_root = dict(name=self.provider_name, 
+                              category_code=self.provider_name, 
+                              doc_href=self.provider.website,
+                              is_root=True)        
+        self.provider.add_category(data_tree_root)
+        """
 
-    def datasets_list(self):
-        #TODO: from Categories
-        self.load_structure(force=False)
-        return self._dataflows.keys()
+        for category in self._categoryschemes.aslist():
+            
+            _category = dict(name=category.name.en,
+                             category_code=category.id)
+            category_key = self.provider.add_category(_category)
+             
+            for subcategory in category.values():
+                
+                if not subcategory.id in self._categorisations:
+                    continue
+                
+                _subcategory = dict(name=subcategory.name.en,
+                                    category_code=subcategory.id)
+                _subcategory_key = self.provider.add_category(_subcategory,
+                                           parent_code=category_key)
+                
+                try:
+                    _categorisation = self._categorisations[subcategory.id]
+                    for i in _categorisation:
+                        _d = self._dataflows[i.artefact.id]
+                        self.provider.add_dataset(dict(dataset_code=_d.id, name=_d.name.en), _subcategory_key)                        
+                except Exception as err:
+                    logger.error(err)   
+                    raise                             
+
+        return self.provider.data_tree
         
-    def datasets_long_list(self):
-        #TODO: from Categories
-        self.load_structure(force=False)
-        return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
-
     def parse_agenda(self):
         page = requests.get("http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
         with tempfile.TemporaryFile() as file:
@@ -137,27 +154,14 @@ class ECB(Fetcher):
                       }
                      )
 
-    def build_data_tree(self):
-        pass
-
-    def upsert_categories(self):
-        return
-        
     def upsert_dataset(self, dataset_code):
-
-        self.load_structure(force=False)
         
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        
-        if not dataset_code in self._dataflows:
-            raise Exception("This dataset is unknown" + dataset_code)
-        
-        dataflow = self._dataflows[dataset_code]
-        
+
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
-                           name=dataflow.name.en,
+                           name=None,
                            doc_href=self.provider.website,
                            last_update=datetime.now(),
                            fetcher=self)
@@ -166,13 +170,34 @@ class ECB(Fetcher):
         dataset.series.data_iterator = _data
         result = dataset.update_database()
         
-        dataflow = None
         _data = None
 
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
         
         return result
+
+    def load_datasets_first(self):
+        start = time.time()        
+        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
+        
+        self._load_structure()
+        self.provider.update_database()
+        self.upsert_data_tree()
+
+        datasets_list = [d["dataset_code"] for d in self.datasets_list()]
+        for dataset_code in datasets_list:
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+
+        end = time.time() - start
+        logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+
+    def load_datasets_update(self):
+        pass
+
 
 class ECB_Data(object):
     
@@ -187,13 +212,25 @@ class ECB_Data(object):
         self.sdmx = ECBRequest(agency=self.provider_name)
         
         dataflows_response = self.sdmx.get(resource_type='dataflow', 
-                                           #agency=self.provider_name, 
                                            resource_id=self.dataset_code,
                                            memcache='dataflow' + self.dataset_code)    
-        #logger.debug(dataflows_response.url)
         
-        self.dataflow = dataflows_response.msg.dataflows[self.dataset_code] 
+        self.dataflow = dataflows_response.msg.dataflows[self.dataset_code]
+        self.dataset.name = self.dataflow.name.en
+        
+        self.conceptschemes = dataflows_response.msg.conceptschemes
 
+        '''ECB Specific limited dimensions values'''
+        """
+        TODO: direct download constraints if exist. 
+        required replace resource_type='dataflow' with resource_type='datastructure'
+        AND self.dataflow.structure.id ???
+         
+        try:
+            constraints_response = self.sdmx.get(url='http://sdw-wsrest.ecb.int/service/contentconstraint/ECB/EXR2_CONSTRAINTS')
+        except: #404
+            pass
+        """
         constraints = dataflows_response.msg.constraints
         
         constraints = [c for c in constraints.aslist() 
@@ -211,20 +248,14 @@ class ECB_Data(object):
         self.attribute_list = self.dataset.attribute_list
         
         self.dsd_id = self.dataflow.structure.id
-        self.datastructure = self.sdmx.get(resource_type='datastructure', 
-                                 resource_id=self.dsd_id,
-                                 #agency=self.dataset.provider_name,
-                                 )
-        
-        #TODO: voir si necessaire avec dataflow + reference ???
-        self.dsd = self.datastructure.msg.datastructures[self.dsd_id]
+        self.dsd = dataflows_response.msg.datastructures[self.dsd_id]
         
         self.dimensions = OrderedDict([(dim.id, dim) for dim in self.dsd.dimensions.aslist() if dim.id not in ['TIME', 'TIME_PERIOD']])
         self.dim_keys = list(self.dimensions.keys())
-        self.dimension_list.set_dict(self.dimensions_to_dict())
+        #self.dimension_list.set_dict(self.dimensions_to_dict())
         
         '''Selection de la dimension avec le plus de variantes'''
-        self.dim_select_key = self.select_dimension_split()
+        self.dim_select_key = self._select_dimension_split()
         self.dim_select = self.dimensions[self.dim_select_key]
         self.dim_select_values = None
         
@@ -247,6 +278,7 @@ class ECB_Data(object):
         
         self.rows = self.get_series(self.dataset_code)
         
+    """
     def dimensions_to_dict(self):
         _dimensions = {}
         
@@ -261,12 +293,9 @@ class ECB_Data(object):
                     _dimensions[key][dim_key] = _dim.name.fr
                 
         return _dimensions
+    """
     
-    def concept_name(self, concept_id):
-        #TODO: pas normal, l'information devrait être dans la self.dsd
-        return self.datastructure.conceptschemes.aslist()[0][concept_id].name.en
-        
-    def select_dimension_split(self):
+    def _select_dimension_split(self):
         """Renvoi le nom de la dimension qui contiens le plus de valeur
         pour servir ensuite de filtre dans le chargement des données (...)
         
@@ -447,16 +476,71 @@ class ECB_Data(object):
                 logger.debug(json.dumps(_debug))
             except Exception as err:
                 logger.error(err)
+
+    def get_dimensions(self, series):
+        dimensions = OrderedDict()
+        """
+        >>> dict(series[0].attrib._asdict())
+        {'COLLECTION': 'A', 'DECIMALS': '4', 'UNIT_MULT': '0', 'TITLE_COMPL': 'ECB reference exchange rate, Norwegian krone/Euro, 2:15 pm (C.E.T.)', 'TITLE': 'Norwegian krone/Euro', 'SOURCE_AGENCY': '4F0', 'UNIT': 'NOK'}
+        >>> dsd.attributes.keys()
+        dict_keys(['OBS_COM', 'COLLECTION', 'BREAKS', 'NAT_TITLE', 'OBS_PRE_BREAK', 'UNIT_INDEX_BASE', 'TIME_FORMAT', 'OBS_STATUS', 'PUBL_ECB', 'UNIT', 'TITLE', 'DOM_SER_IDS', 'PUBL_MU', 'OBS_CONF', 'DECIMALS', 'PUBL_PUBLIC', 'TITLE_COMPL', 'COMPILATION', 'SOURCE_PUB', 'SOURCE_AGENCY', 'COVERAGE', 'UNIT_MULT'])
+        >>> dsd.attributes['COLLECTION']
+        
+        > Pour les attributes des values/obs
+        >>> list(dsd.attributes['OBS_STATUS'].local_repr.enum)
+        ['V', 'A', 'M', 'B', 'J', 'P', 'F', 'S', 'H', 'N', 'U', 'Q', 'L', 'E', 'G', 'D', 'I']
+        
+        >>> list(dsd.attributes['COLLECTION'].local_repr.enum)
+        ['V', 'A', 'S', 'H', 'Y', 'M', 'B', 'U', 'L', 'E']        
+
+        >>> dsd.attributes['COLLECTION'].local_repr.enum['A'].name.en
+        'Average of observations through period'
+    
+        
+        >>> dict(series[0].key._asdict())
+        {'EXR_SUFFIX': 'A', 'CURRENCY_DENOM': 'EUR', 'CURRENCY': 'NOK', 'FREQ': 'M', 'EXR_TYPE': 'SP00'}        
+        >>> dsd.dimensions.keys()
+        dict_keys(['EXR_SUFFIX', 'EXR_TYPE', 'TIME_PERIOD', 'CURRENCY', 'FREQ', 'CURRENCY_DENOM'])
+        >>> dsd.dimensions['CURRENCY'].local_repr.enum['NOK'].name.en
+        'Norwegian krone'                
+                        
+        Dans dataset.dimension_list:
+            > code, [[]]
+            'CURRENCY': [
+                ['NOK', 'Norwegian krone']
+            ],
+            
+            key             : 'CURRENCY'
+            dim_short_id    : 'NOK'
+            dim_long_id     : 'Norwegian krone'
+                        
+        >>> series[0].attrib['TITLE']
+        'Norwegian krone/Euro'
+        >>> series[0].attrib['TITLE_COMPL']
+        'ECB reference exchange rate, Norwegian krone/Euro, 2:15 pm (C.E.T.)'                        
+        """
+        for key, dim_short_id in series.key._asdict().items():
+            dim_long_id = self.dsd.dimensions[key].local_repr.enum[dim_short_id].name.en
+            dimensions[key] = self.dimension_list.update_entry(key, dim_short_id, dim_long_id)        
+        
+        for key, dim_short_id in series.attrib._asdict().items():
+            if key in ['TITLE', 'TITLE_COMPL']:
+                continue
+            dim_long_id = self.dsd.attributes[key].local_repr.enum[dim_short_id].name.en
+            dimensions[key] = self.dimension_list.update_entry(key, dim_short_id, dim_long_id)        
+        
+        return dimensions
     
     def get_attributes(self, series):
-        attributes = {}
-        
-        #TODO: self.attribute_list         
+        attributes = OrderedDict()
         for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=False):
-            for key, value in obs.attrib._asdict().items():
+            for key, dim_short_id in obs.attrib._asdict().items():
+                dim_long_id = self.dsd.attributes[key].local_repr.enum[dim_short_id].name.en
+                self.attribute_list.update_entry(key, dim_short_id, dim_long_id)
+
                 if not key in attributes:
                     attributes[key] = []
-                attributes[key].append(value)
+                attributes[key].append(dim_short_id)
         return attributes
     
     def build_series(self, series):
@@ -474,19 +558,7 @@ class ECB_Data(object):
         
         bson['frequency'] = self.get_series_frequency(series)
         bson['attributes'] = self.get_attributes(series)
-            
-        dimensions = dict(series.key._asdict())
-        
-        '''Ajout à dimension des attributs qui concerne toute la series'''
-        for d, value in series.attrib._asdict().items():
-            if d in ['TITLE', 'TITLE_COMPL']:
-                continue
-            dim_short_id = value
-            #FIXME: concept_name
-            dim_long_id = self.concept_name(d)
-            dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-
-        bson['dimensions'] = dimensions
+        bson['dimensions'] = self.get_dimensions(series)
         
         _dates = [o.dim for o in series.obs(with_values=False, with_attributes=False, reverse_obs=False)]
         bson['start_date'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
