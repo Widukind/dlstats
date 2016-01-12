@@ -141,18 +141,6 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
 
-    #TODO: not used function ?    
-    def upsert_a_series(self, id):
-        """Upsert the series in MongoDB
-        
-        .. versionchanged:: 0.3.0
-           Remove function. (Not used in fetchers)
-        
-        :param id: :class:`str` - ID of :class:`Series`        
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
-    
     def upsert_dataset(self, dataset_code, datas=None):
         """Upsert a dataset in MongoDB
         

@@ -174,9 +174,6 @@ class FetcherTestCase(BaseTestCase):
             f.upsert_series()
 
         with self.assertRaises(NotImplementedError):
-            f.upsert_a_series(None)
-
-        with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
 
         with self.assertRaises(AttributeError):
