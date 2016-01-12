@@ -381,7 +381,8 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson["website"], "http://www.example.com")
 
     def test_add_data_tree(self):
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_add_data_tree
+        
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_add_data_tree
 
         f = Fetcher(provider_name="p1", is_indexes=False)
 
@@ -391,31 +392,45 @@ class DBProviderTestCase(BaseDBTestCase):
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
+        
+        self.assertEqual(len(p.data_tree), 1)
+        p.data_tree[0]["category_code"] = p.name
+        p.data_tree[0]["long_name"] = p.long_name
+        p.data_tree[0]["website"] = p.website
+        
         p.update_database()
         
-        data_tree = {'name': "p1_root",
-                     'category_code': "c0",
-                     'doc_href': 'http://www.example.com',
-                     'children': [
-                         {'name': "cat1", 
-                          'category_code': "c1",
-                          'last_update': datetime(2010,1,5),
-                          'exposed': False,
-                          'children': None}]
-                     }
-
+        minimal_category = { 'category_code': "c0", 'name': "p1"}
+        p.add_category(minimal_category)
+        
+        """
+        data_tree = [
+            {
+                'category_code': "c0",
+                'name': "p1",
+                'description': "xxx",
+                'doc_href': 'http://www.example.com',
+            },
+            {
+                'category_code': "c1",
+                'name': "cat1", 
+                'datasets': [("ds1", "my ds1"), ("ds2", "my ds2")],
+            }
+        ]
         res = p.add_data_tree(data_tree)
         
-        bson = res['data_tree']
+        bson = res['data_tree'][0]
         self.assertEqual(bson["category_code"], "c0")
         self.assertEqual(bson["name"], "p1_root")
         self.assertEqual(bson["doc_href"], "http://www.example.com")
+        self.assertFalse(bson["exposed"])
 
-        bson1 = res['data_tree']['children'][0]
+        bson1 = res['data_tree'][1]
         self.assertEqual(bson1["category_code"], "c1")
         self.assertEqual(bson1["name"], "cat1")
-        self.assertEqual(bson1["last_update"],datetime(2010,1,5))
-        self.assertFalse(bson1["exposed"])
+        self.assertTrue(bson1["exposed"])
+        """
+        
 
 class DBDatasetTestCase(BaseDBTestCase):
 

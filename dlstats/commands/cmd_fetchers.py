@@ -45,10 +45,7 @@ def cmd_dataset_list(fetcher, **kwargs):
 
     f = FETCHERS[fetcher](db=ctx.mongo_database())
 
-    if ctx.verbose:
-        func_name = 'datasets_long_list'
-    else:
-        func_name = 'datasets_list'
+    func_name = 'datasets_list'
 
     have_func = hasattr(f, func_name)
 
@@ -61,12 +58,8 @@ def cmd_dataset_list(fetcher, **kwargs):
         ctx.log_error("Not datasets for this fetcher")
         return
         
-    if ctx.verbose:
-        for key, name in datasets:
-            print(key, name)
-    else:
-        for key in datasets:
-            print(key)
+    for dataset in datasets:
+        print(dataset["dataset_code"], dataset["name"])
 
 @cli.command('update-categories', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
