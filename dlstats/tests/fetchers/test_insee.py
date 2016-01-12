@@ -14,17 +14,19 @@ import unittest
 from unittest import mock
 import httpretty
 
-from dlstats.tests.base import RESOURCES_DIR, BaseDBTestCase
+from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseDBTestCase
 
 """
 Load files with httpie tools:
-    http http://www.bdm.insee.fr/series/sdmx/dataflow references==all Accept:application/xml Content-Type:application/xml > insee-dataflow.xml
+    http http://www.bdm.insee.fr/series/sdmx/dataflow?references=all Accept:application/xml Content-Type:application/xml > insee-dataflow.xml
     http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21 references==all Accept:application/xml Content-Type:application/xml > insee-IPI-2010-A21-datastructure.xml
     http http://www.bdm.insee.fr/series/sdmx/data/CNA-2010-CONSO-SI-A17 Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > insee-IPI-2010-A21-data.xml
     
     http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17 references==all Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
     
 """
+RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "insee"))
+
 DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-dataflow.xml"))
 
 DATASETS = {
