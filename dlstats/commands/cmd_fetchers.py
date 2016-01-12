@@ -89,9 +89,11 @@ def cmd_update_categories(fetcher=None, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
+@click.option('--data-tree', is_flag=True,
+              help='Update data-tree before run.')
 @opt_fetcher
 @opt_dataset
-def cmd_run(fetcher=None, dataset=None, **kwargs):
+def cmd_run(fetcher=None, dataset=None, data_tree=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
     ctx = client.Context(**kwargs)
@@ -110,9 +112,9 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
             #TODO: click fail ?
             return
         
-        f.provider.update_database()
-        
-        f.upsert_categories()
+        if data_tree:
+            f.provider.update_database()
+            f.upsert_data_tree()
         
         if dataset:
             f.upsert_dataset(dataset)
