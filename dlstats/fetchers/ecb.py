@@ -16,6 +16,9 @@ from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 from dlstats import constants
 from collections import OrderedDict
 
+import lxml.html
+import re
+
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
@@ -95,6 +98,23 @@ class ECB(Fetcher):
         #TODO: from Categories
         self.load_structure(force=False)
         return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
+
+    def parse_agenda(self):
+        agenda = lxml.html.parse(
+            "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
+        regex_date = re.compile("Reference period: (.*)")
+        regex_dataset = re.compile(".*Dataset: (.*)\)")
+        entries = agenda.xpath('//div[@class="ecb-faytdd"]/*/dt | '
+                               '//div[@class="ecb-faytdd"]/*/dd')[2:]
+        entries = zip(entries[::2], entries[1::2])
+        for entry in entries:
+            item = {}
+            match_key = regex_dataset.match(entry[1][0].text_content())
+            item['dataflow_key'] = match_key.groups()[0]
+            match_date = regex_date.match(entry[1][1].text_content())
+            item['reference_period'] = match_date.groups()[0]
+            item['scheduled_date'] = entry[0].text_content().replace('\n','')
+            yield(item)
 
     def build_data_tree(self):
         pass
