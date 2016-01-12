@@ -360,12 +360,6 @@ class BIS(Fetcher):
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
-    def datasets_list(self):
-        return DATASETS.keys()
-
-    def datasets_long_list(self):
-        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
-
     def upsert_categories(self):
         data_tree = {'name': 'BIS',
                      'category_code': 'oecd_root',
@@ -377,7 +371,22 @@ class BIS(Fetcher):
                                           'exposed': True,
                                           'children': None})
 
-        self.provider.add_data_tree(data_tree)    
+        self.provider.add_data_tree(data_tree)
+        
+    def build_data_tree(self):
+        
+        if self.provider.count_data_tree() > 1:
+            return self.provider.data_tree
+
+        for category_code, dataset in DATASETS.items():
+            category_key = self.provider.add_category({"name": dataset["name"],
+                                                       "category_code": category_code,
+                                                       "doc_href": dataset["doc_href"]})
+            _dataset = {"name": dataset["name"], "dataset_code": category_code}
+            self.provider.add_dataset(_dataset, category_key)
+        
+        return self.provider.data_tree
+            
 
     def parse_agenda(self):
         agenda = etree.HTML(get_agenda())
