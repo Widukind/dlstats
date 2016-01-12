@@ -132,7 +132,7 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     
-    def upsert_dataset(self, dataset_code, datas=None):
+    def upsert_dataset(self, dataset_code):
         """Upsert a dataset in MongoDB
         
         :param str dataset_code: ID of :class:`Datasets`
