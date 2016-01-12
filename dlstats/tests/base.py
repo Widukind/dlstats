@@ -34,7 +34,6 @@ class BaseDBTestCase(BaseTestCase):
         create_or_update_indexes(self.db, force_mode=True)
 
     def _collections_is_empty(self):
-        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 0)
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
