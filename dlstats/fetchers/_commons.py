@@ -132,15 +132,6 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     
-    def upsert_series(self):
-        """Upsert all the series in MongoDB
-        
-        .. versionchanged:: 0.3.0
-           Remove function. (Not used in fetchers)                
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
-
     def upsert_dataset(self, dataset_code, datas=None):
         """Upsert a dataset in MongoDB
         

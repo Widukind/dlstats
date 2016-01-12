@@ -171,9 +171,6 @@ class FetcherTestCase(BaseTestCase):
             f.upsert_categories()
 
         with self.assertRaises(NotImplementedError):
-            f.upsert_series()
-
-        with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
 
 #TODO: CodeDictTestCase
