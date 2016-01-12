@@ -176,9 +176,6 @@ class FetcherTestCase(BaseTestCase):
         with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
 
-        with self.assertRaises(AttributeError):
-            f.insert_provider()
-
 #TODO: CodeDictTestCase
 class CodeDictTestCase(BaseTestCase):
     pass

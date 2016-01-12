@@ -149,12 +149,6 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     
-    #TODO: not used function ?    
-    def insert_provider(self):
-        """Insert the provider in MongoDB
-        """        
-        self.provider.update_database()
-        
     def update_metas(self, dataset_code):
         """Update Meta datas to ElasticSearch
         
