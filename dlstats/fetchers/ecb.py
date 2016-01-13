@@ -5,6 +5,7 @@
 
 import time
 from datetime import datetime
+import pytz
 import logging
 
 import requests
@@ -115,6 +116,19 @@ class ECB(Fetcher):
             item['reference_period'] = match_date.groups()[0]
             item['scheduled_date'] = entry[0].text_content().replace('\n','')
             yield(item)
+
+    def get_calendar(self):
+        for entry in self.parse_agenda():
+            yield({'action': 'update_node',
+                   'kwargs': {'provider_name': 'ECB',
+                              'dataset_code': entry['dataflow_key']},
+                   'period_type': 'date',
+                   'period_kwargs': {'run_date': datetime.strptime(
+                       entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
+                       'timezone': pytz.timezone('CET')
+                   }
+                  },
+                 )
 
     def build_data_tree(self):
         pass
