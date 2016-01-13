@@ -119,16 +119,17 @@ class ECB(Fetcher):
 
     def get_calendar(self):
         for entry in self.parse_agenda():
-            yield({'action': 'update_node',
-                   'kwargs': {'provider_name': 'ECB',
-                              'dataset_code': entry['dataflow_key']},
-                   'period_type': 'date',
-                   'period_kwargs': {'run_date': datetime.strptime(
-                       entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
-                       'timezone': pytz.timezone('CET')
-                   }
-                  },
-                 )
+            if entry['dataflow_key'] in self.datasets_list():
+                yield({'action': 'update_node',
+                       'kwargs': {'provider_name': 'ECB',
+                                  'dataset_code': entry['dataflow_key']},
+                       'period_type': 'date',
+                       'period_kwargs': {'run_date': datetime.strptime(
+                           entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
+                           'timezone': pytz.timezone('CET')
+                       }
+                      }
+                     )
 
     def build_data_tree(self):
         pass
