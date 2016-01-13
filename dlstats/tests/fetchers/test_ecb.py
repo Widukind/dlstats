@@ -20,6 +20,7 @@ from unittest import mock
 import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseDBTestCase
+from dlstats.tests.base import BaseTestCase
 
 """
 Load files with httpie tools:
@@ -31,6 +32,13 @@ Load files with httpie tools:
     
     http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" > ecb-ECB_EXR1-datastructure.xml
     
+    http http://sdw-wsrest.ecb.europa.eu/service/data/EXR/M.NOK.EUR.SP00.A Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > ECB-EXR-M.NOK.EUR.SP00.A.structurespecificdata.xml
+
+    http http://sdw-wsrest.ecb.europa.eu/service/codelist/ECB Accept-Encoding:gzip,deflate >ecb-codelist.xml
+    http http://sdw-wsrest.ecb.europa.eu/service/conceptscheme/ECB >ecb-conceptscheme.xml
+    
+    BP6: https://sdw-wsrest.ecb.europa.eu/service/dataflow/IMF/BP6?references=all
+    str id: BOP: https://sdw-wsrest.ecb.europa.eu/service/datastructure/IMF/BOP?references=all
 """
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "ecb"))
 
@@ -42,6 +50,9 @@ STATSCAL_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "statscal.htm"))
 
 # 88 sans /ECB: http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/?references=parentsandsiblings 
 DATAFLOW_COUNT = 58
+
+DATA_STRUCTURED = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-exr-M.NOK.EUR.SP00.A.structurespecificdata.xml"))
+DATA_GENERIC = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-M.NOK.EUR.SP00.A.xml"))
 
 DATASETS = {
     'EXR': {
@@ -100,6 +111,7 @@ def mock_upsert_dataset(self, dataset_code):
 
     return result
 """
+
 
 class FetcherTestCase(BaseDBTestCase):
     
@@ -173,7 +185,6 @@ class FetcherTestCase(BaseDBTestCase):
     def test_headers(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_headers
-
 
         self._register_urls_data_tree()        
 

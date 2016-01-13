@@ -2,6 +2,25 @@
 
 #TODO: ne pas oublier writer comment dans Response
 
+"""
+#https://sdw-wsrest.ecb.europa.eu/service/codelist/ECB/CL_FREQ
+frequencies_supported = [
+    "A", #Annual
+    "D", #Daily
+    "M", #Monthly
+    "Q", #Quarterly
+    "W"  #Weekly
+]
+frequencies_rejected = [
+    "E", #Event
+    "B", #Business
+    "H", #Half-yearly
+    "N", #Minutely
+    "S", #Half Yearly, semester 
+]
+
+"""
+
 import time
 from datetime import datetime
 import pytz
@@ -218,7 +237,6 @@ class ECB_Data(object):
         self.dataflow = dataflows_response.msg.dataflows[self.dataset_code]
         self.dataset.name = self.dataflow.name.en
         
-        self.conceptschemes = dataflows_response.msg.conceptschemes
 
         '''ECB Specific limited dimensions values'''
         """
@@ -249,6 +267,14 @@ class ECB_Data(object):
         
         self.dsd_id = self.dataflow.structure.id
         self.dsd = dataflows_response.msg.datastructures[self.dsd_id]
+        """
+        datastructures_response = self.sdmx.get(resource_type='datastructure', 
+                                                resource_id=self.dsd_id,
+                                                memcache='datastructure' + self.dsd_id)    
+        self.dsd = datastructures_response.msg.datastructures[self.dsd_id]
+        
+        self.conceptschemes = datastructures_response.msg.conceptschemes
+        """
         
         self.dimensions = OrderedDict([(dim.id, dim) for dim in self.dsd.dimensions.aslist() if dim.id not in ['TIME', 'TIME_PERIOD']])
         self.dim_keys = list(self.dimensions.keys())
@@ -294,6 +320,15 @@ class ECB_Data(object):
                 
         return _dimensions
     """
+    
+    def get_concept_name(self, key):
+        concept = self.conceptschemes.aslist()[0][key]
+        try:
+            return concept.name.en
+        except Exception as err:
+            logger.error(err)
+        else:
+            return key 
     
     def _select_dimension_split(self):
         """Renvoi le nom de la dimension qui contiens le plus de valeur
@@ -533,14 +568,25 @@ class ECB_Data(object):
     
     def get_attributes(self, series):
         attributes = OrderedDict()
+        """
+        FIXME:
         for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=False):
             for key, dim_short_id in obs.attrib._asdict().items():
-                dim_long_id = self.dsd.attributes[key].local_repr.enum[dim_short_id].name.en
+                print("key, dim_short_id :", key, dim_short_id)
+                #print("self.dsd.attributes.keys() : ", self.dsd.attributes.keys())
+                #print("self.dsd.attributes[key].local_repr.enum : ", self.dsd.attributes[key].local_repr.enum, type(self.dsd.attributes[key].local_repr.enum))
+                #dim_long_id = self.get_concept_name(dim_short_id)
+                if dim_short_id in self.dsd.attributes[key].local_repr.enum:
+                    dim_long_id = self.dsd.attributes[key].local_repr.enum[dim_short_id].name.en
+                else:
+                    dim_long_id = dim_short_id
+                    
                 self.attribute_list.update_entry(key, dim_short_id, dim_long_id)
 
                 if not key in attributes:
                     attributes[key] = []
                 attributes[key].append(dim_short_id)
+        """
         return attributes
     
     def build_series(self, series):
