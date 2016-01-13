@@ -18,6 +18,8 @@ import pandas
 from pprint import pprint
 from urllib.parse import urlparse
 from urllib.request import url2pathname, pathname2url
+import httpretty
+import re
 
 from dlstats.fetchers._commons import Datasets
 from dlstats.fetchers import esri
@@ -30,13 +32,15 @@ from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
 PROVIDER_NAME = 'Esri'
 
-dataset_names = ['esri_gaku-jk1522', 'esri_gaku-jfy1522', 'esri_gaku-jg1522', 'esri_gaku-mcy1522',
-                 'esri_gaku-mk1522', 'esri_gaku-mfy1522', 'esri_gaku-mg1522', 'esri_gaku-jcy1522',
-                 'esri_def-qg1522', 'esri_def-qk1522', 'esri_def-fy1522', 'esri_def-cy1522']
-
 dataset_codes = ['gaku-mg1522', 'gaku-mfy1522', 'def-qg1522', ]
+dataset_codes = os.listdir('./tests/resources/esri/sna')
+for i,d in enumerate(dataset_codes):
+    dataset_codes[i] = d.replace('.csv','')
 
 DATASETS = {d:{} for d in dataset_codes}
+
+for d in DATASETS:
+    DATASETS[d]['filename'] = d + '.csv'
 
 DATASETS["series_names"] = ['nan', 'GDP (Expenditure Approach)', 'Private Consumption' ,'Consumption of Households' ,'Excluding Imputed Rent' ,
                             'Private Residential Investment' ,'Private Non-Resi.Investment' ,'Change in Private Inventories',
@@ -45,23 +49,24 @@ DATASETS["series_names"] = ['nan', 'GDP (Expenditure Approach)', 'Private Consum
                             'Income from/to the Rest of the World, Net','Income from/to the Rest of the World, Receipt',
                             'Income from/to the Rest of the World, Payment','GNI', 'nan',
                             'Domestic Demand','Private Demand', 'Public Demand', 'nan','Gross Fixed Capital Formation', 'nan',
-                            'GDP, Excluding FISIM', 'Consumption of Households, Excluding FISIM', 'Export, Excluding FISIM' , 'Import, Excluding FISIM']
+                            'GDP, Excluding FISIM', 'Consumption of Households, Excluding FISIM', 'Export, Excluding FISIM' , 'Import, Excluding FISIM',
+                            'Trading Gains/Losses', 'GDI', 'Residual']
 
-DATASETS['gaku-mg1522']['name'] = 'Nominal Gross Domestic Product (original series)'
-DATASETS['gaku-mg1522']['dimension_count'] = 1
-DATASETS['gaku-mg1522']['series_count'] = len(DATASETS['series_names']) - 5
-DATASETS['gaku-mg1522']['last_update'] = datetime.datetime(2015,12,10)
-DATASETS['gaku-mg1522']['filename'] = 'gaku-mg1522.csv'
-DATASETS['gaku-mfy1522']['name'] = 'Annual Nominal GDP (Fiscal Year)' 
-DATASETS['gaku-mfy1522']['dimension_count'] = 1
-DATASETS['gaku-mfy1522']['series_count'] = 25
-DATASETS['gaku-mfy1522']['last_update'] = datetime.datetime(2015,12,10)
-DATASETS['gaku-mfy1522']['filename'] = 'gaku-mfy1522.csv'
-DATASETS['def-qg1522']['name'] = 'Deflators (original series)'
-DATASETS['def-qg1522']['dimension_count'] = 1
-DATASETS['def-qg1522']['series_count'] = 25
-DATASETS['def-qg1522']['last_update'] = datetime.datetime(2015,12,10)
-DATASETS['def-qg1522']['filename'] = 'def-qg1522.csv'
+DATASETS['gaku-mg1532']['name'] = 'Nominal Gross Domestic Product (original series)'
+DATASETS['gaku-mg1532']['dimension_count'] = 1
+DATASETS['gaku-mg1532']['series_count'] = len(DATASETS['series_names']) - 5
+DATASETS['gaku-mg1532']['last_update'] = datetime.datetime(2015,12,10)
+DATASETS['gaku-mg1532']['filename'] = 'gaku-mg1532.csv'
+DATASETS['gaku-mfy1532']['name'] = 'Annual Nominal GDP (Fiscal Year)' 
+DATASETS['gaku-mfy1532']['dimension_count'] = 1
+DATASETS['gaku-mfy1532']['series_count'] = 25
+DATASETS['gaku-mfy1532']['last_update'] = datetime.datetime(2015,12,10)
+DATASETS['gaku-mfy1532']['filename'] = 'gaku-mfy1532.csv'
+DATASETS['def-qg1532']['name'] = 'Deflators (original series)'
+DATASETS['def-qg1532']['dimension_count'] = 1
+DATASETS['def-qg1532']['series_count'] = 25
+DATASETS['def-qg1532']['last_update'] = datetime.datetime(2015,12,10)
+DATASETS['def-qg1532']['filename'] = 'def-qg1532.csv'
 
 def make_url(self):
     import tempfile
@@ -91,7 +96,7 @@ def get_filepath(dataset_code):
     """
     from shutil import copyfile
     filename = DATASETS[dataset_code]['filename']
-    test_resource_filepath = os.path.join('./tests/resources/esri',filename)
+    test_resource_filepath = os.path.join('./tests/resources/esri/sna',filename)
     dirpath = os.path.join(tempfile.gettempdir(), PROVIDER_NAME)
     filepath = os.path.abspath(os.path.join(dirpath, filename))
     
@@ -104,6 +109,9 @@ def get_filepath(dataset_code):
 
     return filepath
 
+def get_simple_file(filepath):
+    with open(filepath) as fh:
+        return fh.read()
 
 def fake_release_date(arg):
     return datetime.datetime(1900,1,1)
@@ -129,16 +137,18 @@ class EsriFixSeriesTestCase(BaseTestCase):
         # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriFixSeriesTestCase.test_fix_series_name
         
         for d in dataset_codes:
-            filepath = get_filepath(d)
-            self.assertTrue(os.path.exists(filepath))
-        
-            dataset = FakeDataset(d)
-            dataset.last_update = datetime.datetime(2015,12,25)
-            e = esri.EsriData(dataset,filename = d)
-
-            variable_names = e.fix_series_names()
-            self.maxDiff = None
-            self.assertEqual(list(variable_names),DATASETS['series_names'])
+            if re.match('gaku',d):
+                print(d)
+                filepath = get_filepath(d)
+                self.assertTrue(os.path.exists(filepath))
+                
+                dataset = FakeDataset(d)
+                dataset.last_update = datetime.datetime(2015,12,25)
+                e = esri.EsriData(dataset,filename = d)
+                
+                variable_names = e.fix_series_names()
+                for v in variable_names:
+                    self.assertIn(v,DATASETS['series_names'])
 
 class EsriParseDatesTestCase(BaseTestCase):
 
@@ -244,15 +254,15 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
         
         
-    def test_gaku_mg1522(self):
+    def test_gaku_mg1532(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1522
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1532
                 
-        self.dataset_code = 'gaku-mg1522'
+        self.dataset_code = 'gaku-mg1532'
         
         self._common_tests()        
 
-        attempt = DATASETS['gaku-mg1522']
+        attempt = DATASETS['gaku-mg1532']
         
         dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
@@ -281,9 +291,9 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["concept"], '0')
         self.assertEqual(series['frequency'], 'Q')
         self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '119,879.2')
-        self.assertEqual(series['values'][-1], '123,819.7')
+        self.assertEqual(series['values'][-1], '122,343.3')
 
         series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
                                                          "dataset_code": self.dataset_code,
@@ -294,19 +304,19 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["concept"], '24')
         self.assertEqual(series['frequency'], 'Q')
         self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '8,252.0')
-        self.assertEqual(series['values'][-1], '23,152.0')
+        self.assertEqual(series['values'][-1], '23,560.8')
 
-    def test_gaku_mfy1522(self):
+    def test_gaku_mfy1532(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1522
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1532
                 
-        self.dataset_code = 'gaku-mfy1522'
+        self.dataset_code = 'gaku-mfy1532'
         
         self._common_tests()        
 
-        attempt = DATASETS['gaku-mfy1522']
+        attempt = DATASETS['gaku-mfy1532']
         
         dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
@@ -337,7 +347,7 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
         self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
         self.assertEqual(series['values'][0], '495,612.2')
-        self.assertEqual(series['values'][-1], '490,786.8')
+        self.assertEqual(series['values'][-1], '489,623.4')
 
         series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
                                                          "dataset_code": self.dataset_code,
@@ -352,15 +362,15 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series['values'][0], '35,177.4')
         self.assertEqual(series['values'][-1], '99,695.5')
 
-    def test_def_qg1522(self):
+    def test_def_qg1532(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1522
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg1532
                 
-        self.dataset_code = 'def-qg1522'
+        self.dataset_code = 'def-qg1532'
         
         self._common_tests()        
 
-        attempt = DATASETS['def-qg1522']
+        attempt = DATASETS['def-qg1532']
         
         dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
                                                             "dataset_code": self.dataset_code})
@@ -389,9 +399,9 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["concept"], '0')
         self.assertEqual(series['frequency'], 'Q')
         self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '109.8')
-        self.assertEqual(series['values'][-1], '95.6')
+        self.assertEqual(series['values'][-1], '93.1')
 
         series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
                                                          "dataset_code": self.dataset_code,
@@ -402,9 +412,9 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(d["concept"], '24')
         self.assertEqual(series['frequency'], 'Q')
         self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
-        self.assertEqual(series['end_date'], pandas.Period('2015Q2',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
         self.assertEqual(series['values'][0], '86.7')
-        self.assertEqual(series['values'][-1], '118.9')
+        self.assertEqual(series['values'][-1], '116.6')
 
 @unittest.skipIf(True,'TODO')
 class LightEsriDatasetsDBTestCase(BaseDBTestCase):
@@ -587,7 +597,7 @@ class FullEsriDatasetsDBTestCase(BaseDBTestCase):
 
     def test_nama_10_gdp(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullEsriDatasetsDBTestCase.test_nama_10_gdp
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:FullEsriDatasetsDBTestCase.test_nama_10_gdp
 
         self.dataset_code = 'nama_10_gdp'        
 
@@ -597,4 +607,24 @@ class FullEsriDatasetsDBTestCase(BaseDBTestCase):
 
         #TODO: meta_datas tests  
 
+class EsriUrlsTestCase(BaseTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriUrlsTestCase
+
+    def setUp(self):
+        BaseTestCase.setUp(self)
+        self.fetcher = esri.Esri()
         
+    @httpretty.activate
+    def test_parse_QGDP(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriUrlsTestCase.test_parse_QGDP
+
+        httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + esri.DATABASES['QGDP']['filename'],
+                               body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - National Accounts.html'))
+        httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + '2015/toukei_2015.html',
+                               body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - 2015 - National Accounts.html'))
+        httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + '2015/qe153_2/gdemenuea.html',
+                               body = get_simple_file('./tests/resources/esri/Jul.-Sep. 2015 (The 2nd preliminary) - National Accounts.html'))
+        
+        self.fetcher.parse_quarterly_esimates_of_gdp_release_archive_page()

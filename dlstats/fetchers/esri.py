@@ -18,20 +18,17 @@ from re import match
 import time
 import requests
 import os
+from urllib.parse import urljoin
 import tempfile
 from lxml import etree
 import logging
+import re
 
 VERSION = 1
 
 logger = logging.getLogger(__name__)
 
-import re
-
-REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
-REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
-
-REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
+REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4)|(1-12))')
 REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
 
 PROVIDER_NAME = 'ESRI'
@@ -39,7 +36,7 @@ PROVIDER_NAME = 'ESRI'
 DATABASES = {
     'QGDP' : {
         'name': 'Quarterly Estimates of GDP',
-        'url': 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html',
+        'url_base': 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/',
         'filename': 'toukei_top.html',
         'store_filepath': '/tmp/esri'
     }
@@ -114,7 +111,38 @@ def parse_dates(column):
         end_date = pandas.Period('%sQ%s' % (end_year,end_quarter),freq='Q').ordinal
 
     return(freq,start_date,end_date)
-        
+
+def download_page(url):
+        try:
+            response = requests.get(url)
+
+            if not response.ok:
+                msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
+                                                                           response.status_code, 
+                                                                           response.reason)
+                logger.error(msg)
+                raise Exception(msg)
+            
+            return response.content
+                
+            #TODO: response.close() ?
+            
+        except requests.exceptions.ConnectionError as err:
+            raise Exception("Connection Error")
+        except requests.exceptions.ConnectTimeout as err:
+            raise Exception("Connect Timeout")
+        except requests.exceptions.ReadTimeout as err:
+            raise Exception("Read Timeout")
+        except Exception as err:
+            raise Exception("Not captured exception : %s" % str(err))            
+
+def url_rebase(*kwargs):
+    url = urljoin(*kwargs)
+    url_parts = urlsplit(url)
+    url_parts[2] = PurePath(url_parts[2]).parents
+    url_base = urlunsplit(url_parts)
+    return (url, url_base)
+
 class Downloader():
     
     headers = {
@@ -275,27 +303,29 @@ class Esri(Fetcher):
         self.parse_quarterly_esimates_of_gdp_release_archive_page()
 
     def parse_quarterly_esimates_of_gdp_release_archive_page(self):
-        # TODO: timeout, replace
-        download = Downloader(url=DATABASES['QGDP']['url']+DATABASES['QGDP']['filename'],
-                              filename=DATABASES['QGDP']['filename'],
-                              store_filepath=DATABASES['QGDP']['store_filepath'])
-        with open(download.get_filepath(force_replace=False),'r') as f:
-            page = f.read()
+        url = urljoin(DATABASES['QGDP']['url_base'],DATABASES['QGDP']['filename'])
+        page = download_page(url)
         # find latest data
         html = etree.HTML(page)
-        print(etree.tostring(html, pretty_print=True, method="html"))
-        ul = html.find('.//ul[@class="bulletList ml20"]')
-        li = ul.find('li')
-        a = li.find('a')
+        anchor = html.find('.//ul[@class="bulletList ml20"]/li/a')
         # Go to release archive
-        dowload =  Downloader(url=DATABASES['QGDP']['url'] + a.get('href'),
-                              filename=DATABASES['QGDP']['filename'],
-                              store_filepath=DATABASES['QGDP']['store_filepath'])
-        with open(download.get_filepath(force_replace=False),'r') as f:
-            page = f.read()
+        url = urljoin(url, anchor.get('href'))
+        page = download_page(url)
         # find latest data
         html = etree.HTML(page)
-        
+        anchor = html.find('.//table[@class="tableBase"]/tbody/tr/td[2]/a')
+        # Go to latest release
+        url = urljoin(url, anchor.get('href'))
+        page = download_page(url)
+        # find urls
+        html = etree.HTML(page)
+        anchors = html.findall('.//table[@class="tableBase"]/tbody/tr/td/a')
+        for a in anchors:
+            _url = urljoin(url,a.get('href'))
+            filename = _url.split('/')[-1]
+            dataset_code = filename.replace('.csv','')
+                      
+
 class EsriData():
     def __init__(self, dataset,  filename=None, store_filepath=None):
         self.provider_name = dataset.provider_name
