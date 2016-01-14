@@ -6,6 +6,8 @@
 import time
 from datetime import datetime
 import pytz
+import requests
+import tempfile
 import logging
 
 import requests
@@ -101,8 +103,12 @@ class ECB(Fetcher):
         return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
 
     def parse_agenda(self):
-        agenda = lxml.html.parse(
-            "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
+        page = requests.get("http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
+        with tempfile.TemporaryFile() as file:
+            for chunk in page.iter_content():
+                file.write(chunk)
+            file.seek(0)
+            agenda = lxml.html.parse(file)
         regex_date = re.compile("Reference period: (.*)")
         regex_dataset = re.compile(".*Dataset: (.*)\)")
         entries = agenda.xpath('//div[@class="ecb-faytdd"]/*/dt | '

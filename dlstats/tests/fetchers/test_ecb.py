@@ -244,7 +244,6 @@ class FetcherTestCase(BaseDBTestCase):
                                body=body,
                                #match_querystring=True,
                                status=200,
-                               streaming=True,
                                content_type='text/html')
         model = {'dataflow_key': 'BP6',
                  'reference_period': 'Q4 2016',
