@@ -32,6 +32,7 @@ class BEA(Fetcher):
         self.provider = Providers(name = self.provider_name ,
                                   long_name = 'Bureau of Economic Analysis',
                                   region = 'USA',
+                                  version = VERSION,
                                   website='www.bea.gov/',
                                   fetcher=self)
         #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
