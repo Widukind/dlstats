@@ -29,10 +29,10 @@ class BEA(Fetcher):
     def __init__(self, db=None):
         super().__init__(provider_name='BEA',  db=db) 
         self.provider_name = 'BEA'
-        self.provider = Providers(name = self.provider_name ,
-                                  long_name = 'Bureau of Economic Analysis',
-                                  region = 'USA',
-                                  version = VERSION,
+        self.provider = Providers(name=self.provider_name ,
+                                  long_name='Bureau of Economic Analysis',
+                                  region='USA',
+                                  version=VERSION,
                                   website='www.bea.gov/',
                                   fetcher=self)
         #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
@@ -43,7 +43,7 @@ class BEA(Fetcher):
         #            'International services': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
         #            'International investment position(IIP)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'}
         
-        self.urls= ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
+        self.urls = ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
                     'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11']
         #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
         #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
@@ -58,7 +58,7 @@ class BEA(Fetcher):
             for section in zipfile_.namelist():
                 if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
                     file_contents = zipfile_.read(section)
-                    excel_book = xlrd.open_workbook(file_contents = file_contents) 
+                    excel_book = xlrd.open_workbook(file_contents=file_contents) 
                     for sheet_name in excel_book.sheet_names(): 
                         sheet = excel_book.sheet_by_name(sheet_name)
                         if  sheet_name != 'Contents':
