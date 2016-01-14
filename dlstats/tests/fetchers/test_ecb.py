@@ -3,6 +3,7 @@
 from datetime import datetime
 import os
 from pprint import pprint
+import pytz
 
 import pandas
 
@@ -25,6 +26,7 @@ Load files with httpie tools:
     http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" > ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml
 """
 DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-dataflow.xml"))
+STATSCAL_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "statscal.htm"))
 
 DATAFLOW_COUNT = 56
 
@@ -232,6 +234,49 @@ class FetcherTestCase(BaseDBTestCase):
         self.assertEqual(end_date, '2015-12')
         
         self.assertEqual(series_sample['dimensions'], {'SOURCE_AGENCY': '4F0', 'UNIT': 'NOK', 'UNIT_MULT': '0', 'CURRENCY': 'NOK', 'EXR_SUFFIX': 'A', 'EXR_TYPE': 'SP00', 'CURRENCY_DENOM': 'EUR', 'COLLECTION': 'A', 'DECIMALS': '4', 'FREQ': 'M'})
+
+    @httpretty.activate
+    def test_parse_agenda(self):
+        with open(STATSCAL_FP) as fp:
+            body = fp.read()
+        httpretty.register_uri(httpretty.GET,
+                               "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
+                               body=body,
+                               #match_querystring=True,
+                               status=200,
+                               content_type='text/html')
+        model = {'dataflow_key': 'BP6',
+                 'reference_period': 'Q4 2016',
+                 'scheduled_date': '10/04/2017 10:00 CET'}
+        self.assertEqual(list(self.fetcher.parse_agenda())[-1], model)
+
+    @httpretty.activate
+    def test_get_calendar(self):
+        with open(STATSCAL_FP) as fp:
+            body_st = fp.read()
+        httpretty.register_uri(httpretty.GET,
+                               "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
+                               body=body_st,
+                               #match_querystring=True,
+                               status=200,
+                               content_type='text/html')
+        with open(DATAFLOW_FP) as fp:
+            body_df = fp.read()
+        url_dataflow = "http://sdw-wsrest.ecb.int/service/dataflow/ECB"
+        httpretty.register_uri(httpretty.GET,
+                               url_dataflow,
+                               body=body_df,
+                               #match_querystring=True,
+                               status=200,
+                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
+        model = {'action': 'update_node',
+                 'kwargs': {'dataset_code': 'IVF', 'provider_name': 'ECB'},
+                 'period_kwargs': {'run_date': datetime(2017, 2, 20, 10, 0),
+                                   'timezone': pytz.timezone('CET')},
+                 'period_type': 'date'}
+
+        self.assertEqual(model, [a for a in self.fetcher.get_calendar()][-1])
+ 
         
         
     @unittest.skipIf(True, "TODO")
@@ -259,4 +304,7 @@ class FetcherTestCase(BaseDBTestCase):
     @unittest.skipIf(True, "TODO")
     def test_is_updated(self):
         pass
+
+if __name__ == '__main__':
+    unittest.main()
 
