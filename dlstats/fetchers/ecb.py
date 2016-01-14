@@ -5,6 +5,9 @@
 
 import time
 from datetime import datetime
+import pytz
+import requests
+import tempfile
 import logging
 
 import requests
@@ -15,6 +18,9 @@ from pandasdmx.api import Request
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 from dlstats import constants
 from collections import OrderedDict
+
+import lxml.html
+import re
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
@@ -95,6 +101,41 @@ class ECB(Fetcher):
         #TODO: from Categories
         self.load_structure(force=False)
         return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
+
+    def parse_agenda(self):
+        page = requests.get("http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
+        with tempfile.TemporaryFile() as file:
+            for chunk in page.iter_content():
+                file.write(chunk)
+            file.seek(0)
+            agenda = lxml.html.parse(file)
+        regex_date = re.compile("Reference period: (.*)")
+        regex_dataset = re.compile(".*Dataset: (.*)\)")
+        entries = agenda.xpath('//div[@class="ecb-faytdd"]/*/dt | '
+                               '//div[@class="ecb-faytdd"]/*/dd')[2:]
+        entries = zip(entries[::2], entries[1::2])
+        for entry in entries:
+            item = {}
+            match_key = regex_dataset.match(entry[1][0].text_content())
+            item['dataflow_key'] = match_key.groups()[0]
+            match_date = regex_date.match(entry[1][1].text_content())
+            item['reference_period'] = match_date.groups()[0]
+            item['scheduled_date'] = entry[0].text_content().replace('\n','')
+            yield(item)
+
+    def get_calendar(self):
+        for entry in self.parse_agenda():
+            if entry['dataflow_key'] in self.datasets_list():
+                yield({'action': 'update_node',
+                       'kwargs': {'provider_name': 'ECB',
+                                  'dataset_code': entry['dataflow_key']},
+                       'period_type': 'date',
+                       'period_kwargs': {'run_date': datetime.strptime(
+                           entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
+                           'timezone': pytz.timezone('CET')
+                       }
+                      }
+                     )
 
     def build_data_tree(self):
         pass
