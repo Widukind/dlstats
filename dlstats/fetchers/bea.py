@@ -50,24 +50,35 @@ class BEA(Fetcher):
         #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
         #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
         #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip']
+        self._spreadsheets = {}
+
+    @property
+    def spreadsheets(self):
+        if self._spreadsheets == {}:
+            for self.url in self.urls:
+                response = urllib.request.urlopen(self.url)
+                zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
+                for section in zipfile_.namelist():
+                    if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
+                        file_contents = zipfile_.read(section)
+                        excel_book = xlrd.open_workbook(file_contents=file_contents)
+                        for sheet_name in excel_book.sheet_names():
+                            sheet = excel_book.sheet_by_name(sheet_name)
+                            if  sheet_name != 'Contents':
+                                dataset_code = sheet_name.replace(' ','_')
+                                self._spreadsheets[dataset_code] = sheet
+        return self._spreadsheets
+
+    def datasets_list(self):
+        return list(self.spreadsheets.keys())
+
+    def datasets_long_list(self):
+        return [(dataset_code, dataset_code) for dataset_code in self.spreadsheets.keys()]
                     
-    def upsert_nipa(self):  
-        for self.url in self.urls:
-            response = urllib.request.urlopen(self.url)
-            zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
-            for section in zipfile_.namelist():
-                if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
-                    file_contents = zipfile_.read(section)
-                    excel_book = xlrd.open_workbook(file_contents=file_contents) 
-                    for sheet_name in excel_book.sheet_names(): 
-                        sheet = excel_book.sheet_by_name(sheet_name)
-                        if  sheet_name != 'Contents':
-                            dataset_code = sheet_name.replace(' ','_')
-                            self.upsert_dataset(dataset_code, sheet)                    
-                # else :
-                #ToDO: lip_PrevT3a, lip_PrevT3b, lip_PrevT3c          
-                    
-                        
+    def upsert_nipa(self):
+        for dataset_code, sheet in self.spreadsheets.items():
+            self.upsert_dataset(dataset_code, sheet)
+
     def upsert_dataset(self, dataset_code, sheet):    
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
