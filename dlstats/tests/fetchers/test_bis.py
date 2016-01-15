@@ -378,8 +378,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
-        # upsert_categories
-        self.fetcher.upsert_categories()
+        # upsert_data_tree
+        self.fetcher.upsert_data_tree()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name}) 
         self.assertIsNotNone(provider['data_tree'])
         
@@ -574,7 +574,7 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
-        self.fetcher.upsert_categories()
+        self.fetcher.upsert_data_tree()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider['data_tree'])
 
@@ -804,7 +804,7 @@ class FullBISDatasetsDBTestCase(BaseDBTestCase):
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
-        self.fetcher.upsert_categories()
+        self.fetcher.upsert_data_tree()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider['data_tree'])
         

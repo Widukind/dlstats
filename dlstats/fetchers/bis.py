@@ -360,19 +360,6 @@ class BIS(Fetcher):
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
-    def upsert_categories(self):
-        data_tree = {'name': 'BIS',
-                     'category_code': 'oecd_root',
-                     'children': []}
-        
-        for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'name': DATASETS[dataset_code]['name'], 
-                                          'category_code': dataset_code,
-                                          'exposed': True,
-                                          'children': None})
-
-        self.provider.add_data_tree(data_tree)
-        
     def build_data_tree(self):
         
         if self.provider.count_data_tree() > 1:
