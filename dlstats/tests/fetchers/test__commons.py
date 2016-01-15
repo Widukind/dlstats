@@ -168,9 +168,6 @@ class FetcherTestCase(BaseTestCase):
         f = Fetcher(provider_name="test", is_indexes=False)
         
         with self.assertRaises(NotImplementedError):
-            f.upsert_categories()
-
-        with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
 
 #TODO: CodeDictTestCase

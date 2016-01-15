@@ -128,9 +128,10 @@ class Fetcher(object):
 
     def upsert_categories(self):
         """Upsert the categories in MongoDB
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
+        
+        TODO: remove function. replace with upsert_data_tree()
+        """
+        self.upsert_data_tree()
     
     def upsert_dataset(self, dataset_code):
         """Upsert a dataset in MongoDB
