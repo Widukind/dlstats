@@ -39,18 +39,18 @@ class Fetcher(object):
 
         self.provider_name = provider_name
         self.db = db or get_mongo_db()
-        self.provider = None
+        self.provider = self.load_provider_from_db()
         
         if is_indexes:
             create_or_update_indexes(self.db)
         
-    def upsert_data_tree(self, data_tree=None):
+    def upsert_data_tree(self, data_tree=None, force_update=False):
 
         if data_tree and not isinstance(data_tree, list):
             raise TypeError("data_tree is not instance of list")
 
         if not data_tree:
-            data_tree = self.build_data_tree()
+            data_tree = self.build_data_tree(force_update=force_update)
 
         self.provider.data_tree = data_tree
 
@@ -64,17 +64,15 @@ class Fetcher(object):
                                                                     query_update,
                                                                     return_document=pymongo.ReturnDocument.AFTER)
 
-    def load_provider_from_db(self, provider_obj=None):
+    def load_provider_from_db(self):
         """Load and set provider fields from DB
         """
         doc = self.db[constants.COL_PROVIDERS].find_one({"name": self.provider_name})
         if not doc:
-            return doc
-        if provider_obj:
-            return provider_obj.populate_obj(doc)
-        else:
-            doc.pop('_id')
-            return Providers.factory(fetcher=self, **doc)
+            return
+
+        doc.pop('_id')
+        return Providers.factory(fetcher=self, **doc)
 
     def filter_datasets(self, datasets):
         """Return one unique list of dataset
@@ -91,10 +89,6 @@ class Fetcher(object):
     def get_selected_dataset_codes(self):
         """Return array of tuple(dataset_code, name)
         """
-        #TODO: self.provider._is_loaded
-        if not self.provider:
-            self.provider = self.load_provider_from_db()
-
         if self.provider.count_data_tree() <= 1:
             self.upsert_data_tree()
 
@@ -123,7 +117,7 @@ class Fetcher(object):
     def load_datasets_update(self):
         raise NotImplementedError()
 
-    def build_data_tree(self):
+    def build_data_tree(self, force_update=False):
         raise NotImplementedError()
 
     def upsert_categories(self):
@@ -247,6 +241,7 @@ class Providers(DlstatsCollection):
         self.website = doc['website']
         if doc.get('data_tree'):
             self.data_tree = doc.get('data_tree')
+        return self
 
     @property
     def bson(self):
@@ -265,21 +260,27 @@ class Providers(DlstatsCollection):
                                                         doc_href=self.website, 
                                                         is_root=True) 
 
+    def _category_key(self, category_code, is_root=False, parent_code=None):
+
+        key = category_code
+        
+        if parent_code:
+            parent = self.__data_tree[str(parent_code)]
+            key = "%s.%s" % (parent.category_code, key)
+
+        if not is_root:
+            if not key.startswith(self.name + "."):
+                key = "%s.%s" % (self.name, key)
+        
+        return key
+
     def add_category(self, category, parent_code=None):
         self.set_root_category()
 
         if isinstance(category, dict):
             category = DataTreeEntry(**category)
 
-        key = category.category_code
-
-        if parent_code:
-            parent = self.__data_tree[str(parent_code)]
-            key = "%s.%s" % (parent.category_code, key)
-
-        if not category.is_root:
-            if not key.startswith(self.name + "."):
-                key = "%s.%s" % (self.name, key)
+        key = self._category_key(category.category_code, category.is_root, parent_code)
 
         if key in self.__data_tree:
             raise Exception("Duplicate category")
@@ -300,6 +301,9 @@ class Providers(DlstatsCollection):
 
     def count_data_tree(self):
         return len(self.__data_tree)
+
+    def has_key(self, key):
+        return key in self.__data_tree
 
     @property
     def data_tree(self):
@@ -752,12 +756,13 @@ class DataTreeEntry(object):
         self.is_root = is_root
         
     def add_dataset(self, dataset_code=None, name=None, 
-                    last_update=None, exposed=True):                
+                    last_update=None, exposed=True, metadata=None):
         dataset = OrderedDict()
         dataset["dataset_code"] = dataset_code
         dataset["name"] = name
         dataset["last_update"] = last_update
         dataset["exposed"] = exposed
+        dataset["metadata"] = metadata
         self.datasets.append(dataset)
         self.exposed = True
 
