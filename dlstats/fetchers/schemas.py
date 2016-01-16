@@ -40,6 +40,7 @@ data_tree_datasets_schema = Schema({
     'dataset_code': All(str, Length(min=1)),
     'last_update': Any(None, typecheck(datetime)),
     'exposed': typecheck(bool),
+    'metadata': Any(None, dict),
 }, required=True)
 
 data_tree_schema = Schema({
