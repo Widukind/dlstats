@@ -45,7 +45,6 @@ RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "ecb"))
 CATEGORYSCHEME_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-categoryscheme.xml"))
 DATA_TREE_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-tree.json"))
 
-DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-dataflow.xml"))
 STATSCAL_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "statscal.htm"))
 
 # 88 sans /ECB: http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/?references=parentsandsiblings 
@@ -122,7 +121,7 @@ class FetcherTestCase(BaseDBTestCase):
         self.fetcher = Fetcher(db=self.db)
 
     def _register_urls_data_tree(self):
-        
+
         #?references=parentsandsiblings
         url_categoryscheme = "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB"
         httpretty.register_uri(httpretty.GET, 
@@ -331,46 +330,61 @@ class FetcherTestCase(BaseDBTestCase):
 
     @httpretty.activate
     def test_parse_agenda(self):
-        with open(STATSCAL_FP) as fp:
-            body = fp.read()
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_parse_agenda
+        
         httpretty.register_uri(httpretty.GET,
                                "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
-                               body=body,
-                               #match_querystring=True,
+                               body=_body(STATSCAL_FP),
                                status=200,
+                               streaming=True,
                                content_type='text/html')
+
         model = {'dataflow_key': 'BP6',
                  'reference_period': 'Q4 2016',
                  'scheduled_date': '10/04/2017 10:00 CET'}
 
+        #TODO: test first and last
         self.assertEqual(list(self.fetcher.parse_agenda())[-1], model)
 
     @httpretty.activate
     def test_get_calendar(self):
-        with open(STATSCAL_FP) as fp:
-            body_st = fp.read()
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_get_calendar
+        
+        self._register_urls_data_tree()        
+        
         httpretty.register_uri(httpretty.GET,
                                "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
-                               body=body_st,
-                               #match_querystring=True,
+                               body=_body(STATSCAL_FP),
                                status=200,
+                               streaming=True,
                                content_type='text/html')
-        with open(DATAFLOW_FP) as fp:
-            body_df = fp.read()
-        url_dataflow = "http://sdw-wsrest.ecb.int/service/dataflow/ECB"
-        httpretty.register_uri(httpretty.GET,
-                               url_dataflow,
-                               body=body_df,
-                               #match_querystring=True,
-                               status=200,
-                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
-        model = {'action': 'update_node',
-                 'kwargs': {'dataset_code': 'IVF', 'provider_name': 'ECB'},
-                 'period_kwargs': {'run_date': datetime(2017, 2, 20, 10, 0),
-                                   'timezone': pytz.timezone('CET')},
-                 'period_type': 'date'}
 
-        self.assertEqual(model, [a for a in self.fetcher.get_calendar()][-1])
+        calendar_first = {
+            'action': 'update_node',
+            'kwargs': {'dataset_code': 'SEC', 'provider_name': 'ECB'},
+            'period_type': 'date',
+            'period_kwargs': {
+                'run_date': datetime(2016, 1, 13, 10, 0),
+                'timezone': pytz.timezone('CET')
+            },
+        }        
+
+        calendar_last = {
+            'action': 'update_node',
+            'period_type': 'date',
+            'kwargs': {'dataset_code': 'IVF', 'provider_name': 'ECB'},
+            'period_kwargs': {
+                'run_date': datetime(2017, 2, 20, 10, 0),
+                'timezone': pytz.timezone('CET')
+            },
+        }
+
+        calendars = [a for a in self.fetcher.get_calendar()]
+        self.assertEqual(len(calendars), 138)
+        self.assertEqual(calendar_first, calendars[0])
+        self.assertEqual(calendar_last, calendars[-1])
  
     @unittest.skipIf(True, "TODO")    
     def test_is_valid_frequency(self):

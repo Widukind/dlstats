@@ -160,10 +160,14 @@ class ECB(Fetcher):
             yield(item)
 
     def get_calendar(self):
+        datasets = [d["dataset_code"] for d in self.datasets_list()]
+
         for entry in self.parse_agenda():
-            if entry['dataflow_key'] in self.datasets_list():
+
+            if entry['dataflow_key'] in datasets:
+
                 yield({'action': 'update_node',
-                       'kwargs': {'provider_name': 'ECB',
+                       'kwargs': {'provider_name': self.provider_name,
                                   'dataset_code': entry['dataflow_key']},
                        'period_type': 'date',
                        'period_kwargs': {'run_date': datetime.strptime(
