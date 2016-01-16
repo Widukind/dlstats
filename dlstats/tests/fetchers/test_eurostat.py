@@ -15,7 +15,10 @@ from dlstats import constants
 import unittest
 from unittest import mock
 
-from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+
+RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "eurostat"))
+TOC_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "table_of_contents.xml"))
 
 # Nombre de série dans les exemples
 SERIES_COUNT = 1
@@ -613,168 +616,6 @@ DATASETS['dset2'] = deepcopy(DATASETS['nama_10_gdp'])
 DATASETS['dset2']["name"] = "dset2"
 DATASETS['dset2']["filename"] = "dset2"
 
-TABLE_OF_CONTENT = """<?xml version="1.0" encoding="UTF-8"?>
-<nt:tree xmlns:nt="urn:eu.europa.ec.eurostat.navtree" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:eu.europa.ec.eurostat.navtree http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/xsd/TableOfContent.xsd" creationDate="20151027T1102">
-  <nt:branch>
-    <nt:title language="en">Database by themes</nt:title>
-    <nt:code>data</nt:code>
-    <nt:children>
-      <nt:branch>
-        <nt:title language="en">Economy and finance</nt:title>
-        <nt:code>economy</nt:code>
-        <nt:children>
-          <nt:branch>
-            <nt:title language="en">National accounts (ESA 2010)</nt:title>
-            <nt:code>na10</nt:code>
-            <nt:children>
-              <nt:branch>
-                <nt:title language="en">Annual national accounts</nt:title>
-                <nt:code>nama_10</nt:code>
-                <nt:children>
-                  <nt:branch>
-                    <nt:title language="en">Main GDP aggregates</nt:title>
-                    <nt:code>nama_10_ma</nt:code>
-                    <nt:children>
-                      <nt:leaf type="dataset">
-                        <nt:title language="en">GDP and main components (output, expenditure and income)</nt:title>
-                        <nt:code>nama_10_gdp</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
-                        <nt:lastModified>11.08.2015</nt:lastModified>
-                        <nt:dataStart>1975</nt:dataStart>
-                        <nt:dataEnd>2014</nt:dataEnd>
-                        <nt:values>417804</nt:values>
-                        <nt:unit language="en" />
-                        <nt:shortDescription language="en" />
-                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
-                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
-                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
-                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.sdmx.zip</nt:downloadLink>
-                      </nt:leaf>
-                      <nt:leaf type="dataset">
-                        <nt:title language="en">Final consumption aggregates by durability</nt:title>
-                        <nt:code>nama_10_fcs</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
-                        <nt:lastModified>12.10.2015</nt:lastModified>
-                        <nt:dataStart>1975</nt:dataStart>
-                        <nt:dataEnd>2014</nt:dataEnd>
-                        <nt:values>69954</nt:values>
-                        <nt:unit language="en" />
-                        <nt:shortDescription language="en" />
-                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
-                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
-                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
-                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.sdmx.zip</nt:downloadLink>
-                      </nt:leaf>
-                    </nt:children>
-                  </nt:branch>
-                  <nt:branch>
-                    <nt:title language="en">Cat1</nt:title>
-                    <nt:code>cat1</nt:code>
-                    <nt:children>
-                      <nt:leaf type="dataset">
-                        <nt:title language="en">Dset1</nt:title>
-                        <nt:code>dset1</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
-                        <nt:lastModified>11.08.2015</nt:lastModified>
-                        <nt:dataStart>1975</nt:dataStart>
-                        <nt:dataEnd>2014</nt:dataEnd>
-                        <nt:values>417804</nt:values>
-                        <nt:unit language="en" />
-                        <nt:shortDescription language="en" />
-                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
-                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
-                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
-                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.sdmx.zip</nt:downloadLink>
-                      </nt:leaf>
-                      <nt:leaf type="dataset">
-                        <nt:title language="en">Dset2</nt:title>
-                        <nt:code>dset2</nt:code>
-                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
-                        <nt:lastModified>12.10.2015</nt:lastModified>
-                        <nt:dataStart>1975</nt:dataStart>
-                        <nt:dataEnd>2014</nt:dataEnd>
-                        <nt:values>69954</nt:values>
-                        <nt:unit language="en" />
-                        <nt:shortDescription language="en" />
-                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
-                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
-                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
-                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.sdmx.zip</nt:downloadLink>
-                      </nt:leaf>
-                    </nt:children>
-                  </nt:branch>
-                </nt:children>
-              </nt:branch>
-            </nt:children>
-          </nt:branch>
-          <nt:branch>
-            <nt:title language="en">Balance of payments - International transactions (BPM6)</nt:title>
-            <nt:title language="fr">Balance des paiements - transactions internationales (BPM6)</nt:title>
-            <nt:title language="de">Zahlungsbilanz - Internationale Transaktionen (BPM6)</nt:title>
-            <nt:code>bop_6</nt:code>
-            <nt:children>
-              <nt:branch>
-                <nt:title language="en">Balance of payments statistics and International investment positions (BPM6)</nt:title>
-                <nt:title language="fr">Statistiques de la balance des paiements et Position extérieure de l'investissement (BPM6)</nt:title>
-                <nt:title language="de">Zahlungsbilanzstatistiken und Auslandsvermögensstatus (BPM6)</nt:title>
-                <nt:code>bop_q6</nt:code>
-                <nt:children>
-                  <nt:leaf type="dataset">
-                    <nt:title language="en">Balance of payments by country - monthly data (BPM6)</nt:title>
-                    <nt:title language="fr">Balance des paiements par pays - données mensuelles (BPM6)</nt:title>
-                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - monatliche Daten (BPM6)</nt:title>
-                    <nt:code>bop_c6_m</nt:code>
-                    <nt:lastUpdate>20.10.2015</nt:lastUpdate>
-                    <nt:lastModified>20.10.2015</nt:lastModified>
-                    <nt:dataStart>1991M01</nt:dataStart>
-                    <nt:dataEnd>2015M08</nt:dataEnd>
-                    <nt:values>4355217</nt:values>
-                    <nt:unit language="en" />
-                    <nt:unit language="fr" />
-                    <nt:unit language="de" />
-                    <nt:shortDescription language="en" />
-                    <nt:shortDescription language="fr" />
-                    <nt:shortDescription language="de" />
-                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
-                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
-                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.tsv.gz</nt:downloadLink>
-                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.sdmx.zip</nt:downloadLink>
-                  </nt:leaf>
-                  <nt:leaf type="dataset">
-                    <nt:title language="en">Balance of payments by country - quarterly data (BPM6)</nt:title>
-                    <nt:title language="fr">Balance des paiements par pays - données trimestrielles (BPM6)</nt:title>
-                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - vierteljährliche Daten (BPM6)</nt:title>
-                    <nt:code>bop_c6_q</nt:code>
-                    <nt:lastUpdate>23.10.2015</nt:lastUpdate>
-                    <nt:lastModified>23.10.2015</nt:lastModified>
-                    <nt:dataStart>1982</nt:dataStart>
-                    <nt:dataEnd>2015Q2</nt:dataEnd>
-                    <nt:values>29844073</nt:values>
-                    <nt:unit language="en" />
-                    <nt:unit language="fr" />
-                    <nt:unit language="de" />
-                    <nt:shortDescription language="en" />
-                    <nt:shortDescription language="fr" />
-                    <nt:shortDescription language="de" />
-                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
-                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
-                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.tsv.gz</nt:downloadLink>
-                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.sdmx.zip</nt:downloadLink>
-                  </nt:leaf>
-                </nt:children>
-              </nt:branch>
-            </nt:children>
-          </nt:branch>
-        </nt:children>
-      </nt:branch>
-    </nt:children>
-  </nt:branch>
-</nt:tree>
-""".encode(encoding='UTF_8')
-
-
-
-
 def make_url(self):
     import tempfile
     filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
@@ -862,7 +703,7 @@ def load_fake_datas(select_dataset_code=None):
     return results
 
 def get_table_of_contents(self):
-    return TABLE_OF_CONTENT
+    return TOC_FP
 
 class EurostatDatasetsTestCase(BaseDBTestCase):
     """Fetchers Tests - No DB access
@@ -990,7 +831,72 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
         self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
-        
+
+    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
+    def test_data_tree(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_data_tree
+
+        self._collections_is_empty()
+
+        datasets_list = self.fetcher.datasets_list()
+
+        self.assertEqual(len(datasets_list), 6)
+
+        datasets = [
+             {'dataset_code': 'bop_c6_m',
+              'name': 'Balance of payments by country - monthly data (BPM6)',
+              'last_update': datetime.datetime(2015, 10, 20, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2015M08',
+                                        'data_start': '1991M01',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                                        'values': 4355217}}},
+             {'dataset_code': 'bop_c6_q',
+              'name': 'Balance of payments by country - quarterly data (BPM6)',
+              'last_update': datetime.datetime(2015, 10, 23, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2015Q2',
+                                        'data_start': '1982',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                                        'values': 29844073}}},
+             {'dataset_code': 'dset1',
+              'name': 'Dset1',
+              'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2014',
+                                        'data_start': '1975',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                        'values': 417804}}},
+             {'dataset_code': 'dset2',
+              'name': 'Dset2',
+              'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2014',
+                                        'data_start': '1975',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                        'values': 69954}}},
+             {'dataset_code': 'nama_10_fcs',
+              'name': 'Final consumption aggregates by durability',
+              'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2014',
+                                        'data_start': '1975',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                        'values': 69954}}},
+             {'dataset_code': 'nama_10_gdp',
+              'name': 'GDP and main components (output, expenditure and income)',
+              'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+              'exposed': True,
+              'metadata': {'metadata': {'data_end': '2014',
+                                        'data_start': '1975',
+                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                        'values': 417804}}}]
+
+        self.assertEqual(datasets_list, datasets)
+
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNotNone(provider)
         
     def test_nama_10_gdp(self):
         

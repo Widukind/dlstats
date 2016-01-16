@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nt:tree xmlns:nt="urn:eu.europa.ec.eurostat.navtree" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:eu.europa.ec.eurostat.navtree http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/xsd/TableOfContent.xsd" creationDate="20151027T1102">
+  <nt:branch>
+    <nt:title language="en">Database by themes</nt:title>
+    <nt:code>data</nt:code>
+    <nt:children>
+      <nt:branch>
+        <nt:title language="en">Economy and finance</nt:title>
+        <nt:code>economy</nt:code>
+        <nt:children>
+          <nt:branch>
+            <nt:title language="en">National accounts (ESA 2010)</nt:title>
+            <nt:code>na10</nt:code>
+            <nt:children>
+              <nt:branch>
+                <nt:title language="en">Annual national accounts</nt:title>
+                <nt:code>nama_10</nt:code>
+                <nt:children>
+                  <nt:branch>
+                    <nt:title language="en">Main GDP aggregates</nt:title>
+                    <nt:code>nama_10_ma</nt:code>
+                    <nt:children>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">GDP and main components (output, expenditure and income)</nt:title>
+                        <nt:code>nama_10_gdp</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>11.08.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>417804</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">Final consumption aggregates by durability</nt:title>
+                        <nt:code>nama_10_fcs</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>12.10.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>69954</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                    </nt:children>
+                  </nt:branch>
+                  <nt:branch>
+                    <nt:title language="en">Cat1</nt:title>
+                    <nt:code>cat1</nt:code>
+                    <nt:children>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">Dset1</nt:title>
+                        <nt:code>dset1</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>11.08.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>417804</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_gdp.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                      <nt:leaf type="dataset">
+                        <nt:title language="en">Dset2</nt:title>
+                        <nt:code>dset2</nt:code>
+                        <nt:lastUpdate>26.10.2015</nt:lastUpdate>
+                        <nt:lastModified>12.10.2015</nt:lastModified>
+                        <nt:dataStart>1975</nt:dataStart>
+                        <nt:dataEnd>2014</nt:dataEnd>
+                        <nt:values>69954</nt:values>
+                        <nt:unit language="en" />
+                        <nt:shortDescription language="en" />
+                        <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm</nt:metadata>
+                        <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/nama_10_esms.sdmx.zip</nt:metadata>
+                        <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.tsv.gz</nt:downloadLink>
+                        <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/nama_10_fcs.sdmx.zip</nt:downloadLink>
+                      </nt:leaf>
+                    </nt:children>
+                  </nt:branch>
+                </nt:children>
+              </nt:branch>
+            </nt:children>
+          </nt:branch>
+          <nt:branch>
+            <nt:title language="en">Balance of payments - International transactions (BPM6)</nt:title>
+            <nt:title language="fr">Balance des paiements - transactions internationales (BPM6)</nt:title>
+            <nt:title language="de">Zahlungsbilanz - Internationale Transaktionen (BPM6)</nt:title>
+            <nt:code>bop_6</nt:code>
+            <nt:children>
+              <nt:branch>
+                <nt:title language="en">Balance of payments statistics and International investment positions (BPM6)</nt:title>
+                <nt:title language="fr">Statistiques de la balance des paiements et Position extérieure de l'investissement (BPM6)</nt:title>
+                <nt:title language="de">Zahlungsbilanzstatistiken und Auslandsvermögensstatus (BPM6)</nt:title>
+                <nt:code>bop_q6</nt:code>
+                <nt:children>
+                  <nt:leaf type="dataset">
+                    <nt:title language="en">Balance of payments by country - monthly data (BPM6)</nt:title>
+                    <nt:title language="fr">Balance des paiements par pays - données mensuelles (BPM6)</nt:title>
+                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - monatliche Daten (BPM6)</nt:title>
+                    <nt:code>bop_c6_m</nt:code>
+                    <nt:lastUpdate>20.10.2015</nt:lastUpdate>
+                    <nt:lastModified>20.10.2015</nt:lastModified>
+                    <nt:dataStart>1991M01</nt:dataStart>
+                    <nt:dataEnd>2015M08</nt:dataEnd>
+                    <nt:values>4355217</nt:values>
+                    <nt:unit language="en" />
+                    <nt:unit language="fr" />
+                    <nt:unit language="de" />
+                    <nt:shortDescription language="en" />
+                    <nt:shortDescription language="fr" />
+                    <nt:shortDescription language="de" />
+                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
+                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
+                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.tsv.gz</nt:downloadLink>
+                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_m.sdmx.zip</nt:downloadLink>
+                  </nt:leaf>
+                  <nt:leaf type="dataset">
+                    <nt:title language="en">Balance of payments by country - quarterly data (BPM6)</nt:title>
+                    <nt:title language="fr">Balance des paiements par pays - données trimestrielles (BPM6)</nt:title>
+                    <nt:title language="de">Zahlungsbilanzstatistiken nach Land - vierteljährliche Daten (BPM6)</nt:title>
+                    <nt:code>bop_c6_q</nt:code>
+                    <nt:lastUpdate>23.10.2015</nt:lastUpdate>
+                    <nt:lastModified>23.10.2015</nt:lastModified>
+                    <nt:dataStart>1982</nt:dataStart>
+                    <nt:dataEnd>2015Q2</nt:dataEnd>
+                    <nt:values>29844073</nt:values>
+                    <nt:unit language="en" />
+                    <nt:unit language="fr" />
+                    <nt:unit language="de" />
+                    <nt:shortDescription language="en" />
+                    <nt:shortDescription language="fr" />
+                    <nt:shortDescription language="de" />
+                    <nt:metadata format="html">http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm</nt:metadata>
+                    <nt:metadata format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=metadata/bop_6_esms.sdmx.zip</nt:metadata>
+                    <nt:downloadLink format="tsv">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.tsv.gz</nt:downloadLink>
+                    <nt:downloadLink format="sdmx">http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?file=data/bop_c6_q.sdmx.zip</nt:downloadLink>
+                  </nt:leaf>
+                </nt:children>
+              </nt:branch>
+            </nt:children>
+          </nt:branch>
+        </nt:children>
+      </nt:branch>
+    </nt:children>
+  </nt:branch>
+</nt:tree>
