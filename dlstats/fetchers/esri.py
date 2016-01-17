@@ -10,7 +10,7 @@ import urllib
 import xlrd
 import csv
 import codecs
-from datetime import datetime
+from datetime import datetime, date
 import pandas
 import pprint
 from collections import OrderedDict
@@ -23,6 +23,7 @@ import tempfile
 from lxml import etree
 import logging
 import re
+import json
 
 VERSION = 1
 
@@ -32,6 +33,8 @@ REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4)|(1-12))')
 REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
 
 PROVIDER_NAME = 'ESRI'
+
+INDEX_URL = 'http://www.esri.cao.go.jp/index-e.html'
 
 DATABASES = {
     'QGDP' : {
@@ -136,12 +139,244 @@ def download_page(url):
         except Exception as err:
             raise Exception("Not captured exception : %s" % str(err))            
 
-def url_rebase(*kwargs):
-    url = urljoin(*kwargs)
-    url_parts = urlsplit(url)
-    url_parts[2] = PurePath(url_parts[2]).parents
-    url_base = urlunsplit(url_parts)
-    return (url, url_base)
+def make_dataset(anchor, url):
+    url = urljoin(url,anchor.get('href'))
+    dirs = url.split('/')
+    filename = dirs[-1]
+    release_date = date(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+    code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+    name = re.match('(.*)[ ]*\([^(]*$',anchor.text).group(1)
+    return {'name': name,
+            'dataset_code': code,
+            'filename': filename,
+            'url': url,
+            'release_date': release_date}
+    
+def parse_esri_site():
+    url = INDEX_URL
+    # general index
+    page = download_page(url)
+    html = etree.HTML(page)
+    uls = html.findall('.//ul[@class="bulletList"]')
+    sna = parse_sna(uls[0],url)
+#    bs = parse_business_statistics(uls[1])
+    site_tree = {'name': 'root',
+                 'doc_href': None,
+                 'children': [sna]}
+#                 'children': [sna, bs]}
+    return site_tree
+
+def parse_sna(ul,url):
+    anchors = ul.findall('.//li/a')
+    qgdp = parse_qgdp(urljoin(url,anchors[0].get('href')))
+#    parse_capital_stock(anchors[2].get('href'))
+    branch = {'name': 'National accounts of Japan',
+              'doc_href': '',
+              'children': [qgdp]}
+    return branch
+
+def parse_business_statistics(ul):
+    anchors = ul.findall('.//a')
+    bc = parse_business_conditions(anchors[0].get('href'),anchors[0].text)
+    mo = parse_machinery_orders(anchors[1].get('href'),anchors[1].text)
+    cc = parse_consumer_confidence(anchors[2].get('href'),anchors[2].text)
+    bo = parse_business_outlook(anchors[3].get('href'),anchors[3].text)
+    cb = parse_corporate_behavior(anchors[4].get('href'),anchors[4].text)
+    branch = {'name': 'Business statistics',
+              'doc_href': '',
+              'children': [bc, mo, cc, bo, cb]}
+    return branch
+
+def parse_qgdp(url):
+    # quarterly estimate of GDP
+    page = download_page(url)
+    # find latest data
+    html = etree.HTML(page)
+    # release archive
+    anchor = html.find('.//h2[2]/a')
+    url = urljoin(url,anchor.get('href'))
+    # Release archive (toukei_top.html)
+    page = download_page(url)
+    html = etree.HTML(page)
+    anchor = html.find('.//ul[@class="bulletList ml20"]/li/a')
+    # Go to release archive
+    url = urljoin(url, anchor.get('href'))
+    page = download_page(url)
+    # find latest data
+    html = etree.HTML(page)
+    anchor = html.find('.//table[@class="tableBase"]/tbody/tr/td[2]/a')
+    # Go to latest release
+    url = urljoin(url, anchor.get('href'))
+    page = download_page(url)
+    # find urls
+    html = etree.HTML(page)
+    titles = html.findall('.//h3')
+    tbodies = html.findall('.//table[@class="tableBase"]/tbody')
+    branch = {}
+    branch['name'] = titles[0].text
+    branch['children'] = []
+    branch['doc_href'] = ''
+    subbranch = {}
+    subbranch['name'] = titles[1].text
+    subbranch['doc_href'] = ''
+    amounts = parse_amounts(tbodies[0],url)
+    deflators = parse_deflators(tbodies[1],url)
+    subbranch['children'] = amounts + deflators
+    branch['children'].append(subbranch)
+    subbranch = {}
+    subbranch['name'] = titles[2].text
+    subbranch['doc_href'] = ''
+    table = html.find('.//table[@class="tableBase"][2]')
+    amounts = parse_amounts(tbodies[2],url)
+    deflators = parse_deflators(tbodies[3],url)
+    compensation = parse_compensation(tbodies[4],url)
+    subbranch['children'] = amounts + deflators + compensation
+    branch['children'].append(subbranch)
+
+    return branch
+
+def parse_amounts(tbody,url):
+    rows = tbody.findall('.//tr')
+    G = []
+    branch = {}
+    for r in rows:
+        header = r.find('.//th')
+        if header is not None:
+            if branch:
+                G.append(branch)
+                branch = {}
+            branch['datasets'] = []
+            branch['name'] = header.text
+            branch['doc_href'] = ''
+        anchors = r.findall('.//a')
+        for a in anchors:
+            dataset = make_dataset(a,url)
+            branch['datasets'].append(dataset)
+    G.append(branch)
+    return G
+
+def parse_deflators(tbody,url):
+    rows = tbody.findall('.//tr')
+    branch = {}
+    branch['name'] = 'Deflators'
+    branch['doc_href'] = ''
+    children = [{},{}]
+    children[0]['name'] = 'Amount'
+    children[0]['doc_href'] = ''
+    children[0]['datasets'] = []
+    children[1]['name'] = 'Change from the previous term'
+    children[1]['doc_href'] = ''
+    children[1]['datasets'] = []
+    for r in rows:
+        anchors = r.findall('.//a')
+        for index,a in enumerate(anchors):
+            dataset = make_dataset(a,url)
+            children[index]['datasets'].append(dataset)
+    branch['children'] = children
+    return [branch]
+
+def parse_compensation(tbody,url):
+    a = tbody.find('.//a')
+    url = urljoin(url,a.get('href'))
+    filename = url.split('/')[-1]
+    branch = {}
+    branch['name'] = 'Compensation of Employees'
+    branch['doc_href'] = ''
+    branch['datasets'] = [{'name': 'Compensation of Employees',
+                          'dataset_code': 'kshotoku',
+                          'filename': filename,
+                          'url': url}]
+    return [branch]
+
+def parse_business_conditions(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    tbody = html.find('.//table/tbody')
+    trs = tbody.findall('.//tr')
+    children = []
+    for tr in trs:
+        branch = {'name': tr.find('.//th').text,
+                  'doc_href': '',
+                  'children': []}
+        anchors = tr.findall('.//td/a')
+        for a in anchors:
+            name = re.match('(.*)\(.*\)',a.text).group(1)
+            url_ = urljoin(url,a.get('href'))
+            filename = url_.split('/')[-1]
+            code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+            dataset = {'name': name,
+                       'doc_href': '',
+                       'dataset_code': code,
+                       'filename': filename}
+            branch['children'].append(dataset)
+        children.append(branch)
+    return {'name': name,
+            'doc_href': '',
+            'children': children}
+
+def parse_machinery_orders(url,name): 
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        filename = url_.split('/')[-1]
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': '',
+                   'dataset_code': code,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': '',
+            'children': children}
+
+def parse_consumer_confidence(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        filename = url_.split('/')[-1]
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': '',
+                   'dataset_code': code,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': '',
+            'children': children}
+
+def parse_business_outlook(url,name):
+    pass
+
+def parse_corporate_behavior(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        filename = url_.split('/')[-1]
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': '',
+                   'dataset_code': code,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': '',
+            'children': children}
+
 
 class Downloader():
     
@@ -234,39 +469,45 @@ class Esri(Fetcher):
                                   region='Japan',
                                   website='http://www.esri.cao.go.jp/index-e.html',
                                   fetcher=self)
+        self.datasets_dict = {}
 
-        #parsing the Esri page
-        #        url = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2015/qe152_2/gdemenuea.html'
-        #        webpage = requests.get(url)
-        #        html = etree.HTML(webpage.text)     
-        #        tables = html.xpath("//table[@class = 'tableBase']")
-        #        hrefs = tables[0].xpath (".//a")
-        #        links = [href.values() for href in hrefs]
-        #        gdp_urls = ['http://www.esri.cao.go.jp' + links[i][0][20:]  for i in range(8)]
-        #        hrefs_ = tables[1].xpath(".//a")
-        #        links_ = [href_.values() for href_ in hrefs_]
-        #        deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
-        #        self.url_all = gdp_urls + deflator_urls
-        self.dataset_name_list = [ 'Nominal Gross Domestic Product (original series)',
-                                   'Annual Nominal GDP (fiscal year)',                
-                                   'Nominal Gross Domestic Product (seasonally adjusted series)',
-                                   'Annual Nominal GDP (calendar year)',
-                                   'Real Gross Domestic Product (original series)',
-                                   'Annual Real GDP (fiscal year)',
-                                   'Real Gross Domestic Product (seasonally adjusted series)',
-                                   'Annual Real GDP (calendar year)',
-                                   'Deflators (quarter:original series)',
-                                   'Deflators (quarter:seasonally adjusted series)' ,
-                                   'Deflators (fiscal year)',
-                                   'Deflators (calendar year)']
-        self.datasetCode_list = ['esri'+str(index+1) for index, s in enumerate(self.dataset_name_list)]
-        self.dataset_name = {'esri' +str(index+1): s for index, s in enumerate(self.dataset_name_list)}
+    def make_datasets_dict(self):
+        datas = parse_esri_site()
+        def make_node(data):
+            if 'children' in data:
+                for c in data['children']:
+                    make_node(c)
+            elif 'datasets' in data:
+                for d in data['datasets']:
+                    self.datasets_dict.update({d['dataset_code']:d})
+
+        make_node(datas)    
+#        self.provider.add_data_tree(data_tree)
         
     def upsert_categories(self):
-        data_tree = {'name': 'esri', 
-                     'category_code': 'esri',
-                     'children': None}
-        self.fetcher.provider.add_data_tree(data_tree)
+        data_tree = []
+        datas = parse_esri_site()
+        def make_node(data,parent):
+            node = {}
+            node['name'] = data['name']
+            node['doc_href'] = data['doc_href']
+            if parent is 0:
+                node['parent'] = None
+            else:
+                node['parent'] = parent
+            code = parent + 1
+            node['category_code'] = str(code)
+            if 'children' in data:
+                node['datasets'] = []
+                for c in data['children']:
+                    code = make_node(c,code)
+            elif 'datasets' in data:
+                node['datasets'] = [d['dataset_code'] for d in data['datasets']]
+            data_tree.append(node)
+            return code
+
+        make_node(datas, 0)    
+#        self.provider.add_data_tree(data_tree)
         
     def esri_issue(self):
         for self.url in self.url_all :
@@ -276,20 +517,19 @@ class Esri(Fetcher):
     def upsert_dataset(self, dataset_code):
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        self.upsert_sna(self.url,dataset_code)                  
-        self.update_metas(dataset_code)
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-
-    def upsert_sna(self, url, dataset_code):
+        if not self.datasets_dict:
+            self.make_datasets_dict()
+        cat = self.datasets_dict[datasets_dict]
         dataset = Datasets(self.provider_name,dataset_code,
                            fetcher=self)
-        sna_data = EsriData(dataset,url)
-        dataset.name = self.dataset_name[dataset_code]
-        dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
-        dataset.last_update = sna_data.release_date
-        dataset.series.data_iterator = sna_data
+        data_iterator = EsriData(dataset,cat['url'])
+        dataset.name = cat['name']
+        dataset.doc_href = cat['doc_href']
+        dataset.last_update = cat['release_date']
+        dataset.series.data_iterator = data_iterator
         dataset.update_database()
+        end = time.time() - start
+        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
     def upsert_all_datasets(self):
         self.upsert_categories()
@@ -301,30 +541,6 @@ class Esri(Fetcher):
 
     def upsert_latest_quarterly_estimates_of_gdp(self):
         self.parse_quarterly_esimates_of_gdp_release_archive_page()
-
-    def parse_quarterly_esimates_of_gdp_release_archive_page(self):
-        url = urljoin(DATABASES['QGDP']['url_base'],DATABASES['QGDP']['filename'])
-        page = download_page(url)
-        # find latest data
-        html = etree.HTML(page)
-        anchor = html.find('.//ul[@class="bulletList ml20"]/li/a')
-        # Go to release archive
-        url = urljoin(url, anchor.get('href'))
-        page = download_page(url)
-        # find latest data
-        html = etree.HTML(page)
-        anchor = html.find('.//table[@class="tableBase"]/tbody/tr/td[2]/a')
-        # Go to latest release
-        url = urljoin(url, anchor.get('href'))
-        page = download_page(url)
-        # find urls
-        html = etree.HTML(page)
-        anchors = html.findall('.//table[@class="tableBase"]/tbody/tr/td/a')
-        for a in anchors:
-            _url = urljoin(url,a.get('href'))
-            filename = _url.split('/')[-1]
-            dataset_code = filename.replace('.csv','')
-                      
 
 class EsriData():
     def __init__(self, dataset,  filename=None, store_filepath=None):
@@ -445,8 +661,8 @@ class EsriData():
         return self.dataset_code
 
 if __name__ == "__main__":
-    e = Esri()
-    e.parse_quarterly_esimates_of_gdp_release_archive_page()
+#    e = Esri()
+    parse_quarterly_esimates_of_gdp_release_archive_page()
 #    e.provider.update_database()
 #    e.upsert_all_datasets()
 #    e.upsert_categories()

@@ -16,7 +16,7 @@ import datetime
 import os
 import pandas
 from pprint import pprint
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 from urllib.request import url2pathname, pathname2url
 import httpretty
 import re
@@ -31,6 +31,7 @@ from unittest import mock
 from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
 
 PROVIDER_NAME = 'Esri'
+
 
 dataset_codes = ['gaku-mg1522', 'gaku-mfy1522', 'def-qg1522', ]
 dataset_codes = os.listdir('./tests/resources/esri/sna')
@@ -616,15 +617,34 @@ class EsriUrlsTestCase(BaseTestCase):
         self.fetcher = esri.Esri()
         
     @httpretty.activate
-    def test_parse_QGDP(self):
+    def test_esri_parse(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriUrlsTestCase.test_parse_QGDP
 
+        url = esri.INDEX_URL
+        httpretty.register_uri(httpretty.GET, url,
+                               body = get_simple_file('./tests/resources/esri/Statistics - Cabinet Office Home Page.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(url,"en/sna/sokuhou/sokuhou_top.html"),
+                               body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - National Accounts.html'))
         httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + esri.DATABASES['QGDP']['filename'],
                                body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - National Accounts.html'))
         httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + '2015/toukei_2015.html',
                                body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - 2015 - National Accounts.html'))
         httpretty.register_uri(httpretty.GET, esri.DATABASES['QGDP']['url_base'] + '2015/qe153_2/gdemenuea.html',
                                body = get_simple_file('./tests/resources/esri/Jul.-Sep. 2015 (The 2nd preliminary) - National Accounts.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/di/di-e.html"),
+                               body = get_simple_file('./tests/resources/esri/Indexes of Business Conditions:ESRI - Cabinet Office Home Page.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/juchu/juchu-e.html"),
+                               body = get_simple_file('./tests/resources/esri/Machinery Orders :ESRI - Cabinet Office Home Page.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/shouhi/shouhi-e.html"),
+                               body = get_simple_file('./tests/resources/esri/Consumer Confidence Survey:ESRI - Cabinet Office Home Page.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/hojin/hojin-e.html"),
+                               body = get_simple_file('./tests/resources/esri/Business Outlook Survey:ESRI - Cabinet Office Home Page.html'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/ank/ank-e.html"),
+                               body = get_simple_file('./tests/resources/esri/Annual Survey of Corporate Behavior:ESRI - Cabinet Office Home Page.html'))
         
-        self.fetcher.parse_quarterly_esimates_of_gdp_release_archive_page()
+        esri.parse_esri_site()
+
+        self.fetcher.upsert_categories()
+
+        self.fetcher.make_datasets_dict()
