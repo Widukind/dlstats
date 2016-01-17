@@ -24,7 +24,6 @@ frequencies_rejected = [
 import time
 from datetime import datetime
 import pytz
-import requests
 import tempfile
 import logging
 from collections import OrderedDict
@@ -35,6 +34,7 @@ import pandas
 from pandasdmx.api import Request
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+from dlstats.utils import Downloader
 
 import lxml.html
 import re
@@ -95,21 +95,13 @@ class ECB(Fetcher):
         self._categoryschemes = categoryschemes_response.msg.categoryschemes
         self._dataflows = categoryschemes_response.msg.dataflows
         
-    def build_data_tree(self):
+    def build_data_tree(self, force_update=False):
         """Build data_tree from structure datas
         """
-        if self.provider.count_data_tree() > 1:
+        if self.provider.count_data_tree() > 1 and not force_update:
             return self.provider.data_tree
         
         self._load_structure()
-
-        """        
-        data_tree_root = dict(name=self.provider_name, 
-                              category_code=self.provider_name, 
-                              doc_href=self.provider.website,
-                              is_root=True)        
-        self.provider.add_category(data_tree_root)
-        """
 
         for category in self._categoryschemes.aslist():
             
@@ -139,12 +131,12 @@ class ECB(Fetcher):
         return self.provider.data_tree
         
     def parse_agenda(self):
-        page = requests.get("http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html")
-        with tempfile.TemporaryFile() as file:
-            for chunk in page.iter_content():
-                file.write(chunk)
-            file.seek(0)
-            agenda = lxml.html.parse(file)
+        #TODO: use Downloader
+        download = Downloader(url="http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
+                              filename="statscall.html")
+        with open(download.get_filepath(), 'rb') as fp:
+            agenda = lxml.html.parse(fp)
+        
         regex_date = re.compile("Reference period: (.*)")
         regex_dataset = re.compile(".*Dataset: (.*)\)")
         entries = agenda.xpath('//div[@class="ecb-faytdd"]/*/dt | '
@@ -166,7 +158,7 @@ class ECB(Fetcher):
 
             if entry['dataflow_key'] in datasets:
 
-                yield({'action': 'update_node',
+                yield {'action': 'update_node',
                        'kwargs': {'provider_name': self.provider_name,
                                   'dataset_code': entry['dataflow_key']},
                        'period_type': 'date',
@@ -175,7 +167,6 @@ class ECB(Fetcher):
                            'timezone': pytz.timezone('CET')
                        }
                       }
-                     )
 
     def upsert_dataset(self, dataset_code):
         
