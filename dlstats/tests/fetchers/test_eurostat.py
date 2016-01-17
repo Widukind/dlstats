@@ -848,55 +848,170 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
               'name': 'Balance of payments by country - monthly data (BPM6)',
               'last_update': datetime.datetime(2015, 10, 20, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2015M08',
-                                        'data_start': '1991M01',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
-                                        'values': 4355217}}},
+              'metadata': {'data_end': '2015M08',
+                            'data_start': '1991M01',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                            'values': 4355217}},
              {'dataset_code': 'bop_c6_q',
               'name': 'Balance of payments by country - quarterly data (BPM6)',
               'last_update': datetime.datetime(2015, 10, 23, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2015Q2',
-                                        'data_start': '1982',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
-                                        'values': 29844073}}},
+              'metadata': {'data_end': '2015Q2',
+                            'data_start': '1982',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                            'values': 29844073}},
              {'dataset_code': 'dset1',
               'name': 'Dset1',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2014',
-                                        'data_start': '1975',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                        'values': 417804}}},
+              'metadata': {'data_end': '2014',
+                            'data_start': '1975',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                            'values': 417804}},
              {'dataset_code': 'dset2',
               'name': 'Dset2',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2014',
-                                        'data_start': '1975',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                        'values': 69954}}},
+              'metadata': {'data_end': '2014',
+                            'data_start': '1975',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                            'values': 69954}},
              {'dataset_code': 'nama_10_fcs',
               'name': 'Final consumption aggregates by durability',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2014',
-                                        'data_start': '1975',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                        'values': 69954}}},
+              'metadata': {'data_end': '2014',
+                            'data_start': '1975',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                            'values': 69954}},
              {'dataset_code': 'nama_10_gdp',
               'name': 'GDP and main components (output, expenditure and income)',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
               'exposed': True,
-              'metadata': {'metadata': {'data_end': '2014',
-                                        'data_start': '1975',
-                                        'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                        'values': 417804}}}]
+              'metadata': {'data_end': '2014',
+                            'data_start': '1975',
+                            'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                            'values': 417804}}
+        ]
 
         self.assertEqual(datasets_list, datasets)
 
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
+        
+        self.maxDiff = None
+        data_tree = [
+            {'category_code': 'Eurostat',
+              'datasets': [],
+              'description': None,
+              'doc_href': 'http://ec.europa.eu/eurostat',
+              'exposed': False,
+              'last_update': None,
+              'name': 'Eurostat'},
+             {'category_code': 'Eurostat.data',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'Database by themes'},
+             {'category_code': 'Eurostat.data.economy',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'Economy and finance'},
+             {'category_code': 'Eurostat.data.economy.bop_6',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'Balance of payments - International transactions (BPM6)'},
+             {'category_code': 'Eurostat.data.economy.bop_6.bop_q6',
+              'datasets': [{'dataset_code': 'bop_c6_m',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 20, 0, 0),
+                            'metadata': {'data_end': '2015M08',
+                                         'data_start': '1991M01',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                                         'values': 4355217},
+                            'name': 'Balance of payments by country - monthly data (BPM6)'},
+                           {'dataset_code': 'bop_c6_q',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 23, 0, 0),
+                            'metadata': {'data_end': '2015Q2',
+                                         'data_start': '1982',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
+                                         'values': 29844073},
+                            'name': 'Balance of payments by country - quarterly data (BPM6)'}],
+              'description': None,
+              'doc_href': None,
+              'exposed': True,
+              'last_update': None,
+              'name': 'Balance of payments statistics and International investment positions (BPM6)'},
+             {'category_code': 'Eurostat.data.economy.na10',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'National accounts (ESA 2010)'},
+             {'category_code': 'Eurostat.data.economy.na10.nama_10',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'Annual national accounts'},
+             {'category_code': 'Eurostat.data.economy.na10.nama_10.cat1',
+              'datasets': [{'dataset_code': 'dset1',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+                            'metadata': {'data_end': '2014',
+                                         'data_start': '1975',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                         'values': 417804},
+                            'name': 'Dset1'},
+                           {'dataset_code': 'dset2',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+                            'metadata': {'data_end': '2014',
+                                         'data_start': '1975',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                         'values': 69954},
+                            'name': 'Dset2'}],
+              'description': None,
+              'doc_href': None,
+              'exposed': True,
+              'last_update': None,
+              'name': 'Cat1'},
+             {'category_code': 'Eurostat.data.economy.na10.nama_10.nama_10_ma',
+              'datasets': [{'dataset_code': 'nama_10_fcs',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+                            'metadata': {'data_end': '2014',
+                                         'data_start': '1975',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                         'values': 69954},
+                            'name': 'Final consumption aggregates by durability'},
+                           {'dataset_code': 'nama_10_gdp',
+                            'exposed': True,
+                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
+                            'metadata': {'data_end': '2014',
+                                         'data_start': '1975',
+                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
+                                         'values': 417804},
+                            'name': 'GDP and main components (output, expenditure and income)'}],
+              'description': None,
+              'doc_href': None,
+              'exposed': True,
+              'last_update': None,
+              'name': 'Main GDP aggregates'}
+        ]        
+                
+        self.assertEqual(provider.get("data_tree"), data_tree)
         
     def test_nama_10_gdp(self):
         
@@ -1087,7 +1202,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
     @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
     def test_selected_datasets(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_data_tre
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_datasets
 
         self._collections_is_empty()
 
@@ -1095,11 +1210,13 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_categories()
 
-        self.fetcher.selected_codes = ['nama_10_gdp']
+        self.fetcher.selected_codes = ['nama_10_ma', 'bad_category']
 
         self.fetcher.get_selected_datasets()
-
-        self.assertEqual(len(self.fetcher.selected_datasets),1)
+        
+        self.assertEqual(len(self.fetcher.selected_datasets), 2)
+        
+        self.assertEqual(list(self.fetcher.selected_datasets.keys()), ['nama_10_fcs', 'nama_10_gdp'])
         
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
@@ -1114,12 +1231,14 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_categories()
         
-        self.fetcher.selected_codes = ['nama_10_gdp','cat1']
+        self.fetcher.selected_codes = ['nama_10', 'cat1']
 
         self.fetcher.get_selected_datasets()
 
-        for d in self.fetcher.selected_datasets:
-            # Write czv/zip file in local directory
+        for d in self.fetcher.selected_datasets.keys():
+            if not d in DATASETS:
+                continue
+            # Write czv/zip file in local directory            
             filepath = get_filepath(d)
             self.assertTrue(os.path.exists(filepath))
             # Replace dataset url by local filepath
@@ -1127,15 +1246,11 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
 
         self.fetcher.upsert_all_datasets()
 
-        self.assertEqual(len(self.fetcher.selected_datasets),3)
+        self.assertEqual(len(self.fetcher.selected_datasets), 4)
 
-
-        # faking update
-        global TABLE_OF_CONTENT
-        tc_orig = TABLE_OF_CONTENT
-        tc = TABLE_OF_CONTENT.decode(encoding='UTF_8')
-        tc = tc.replace('lastUpdate>26.10.2015','lastUpdate>01.11.2015')
-        TABLE_OF_CONTENT = tc.encode(encoding='UTF_8')
+        '''Change last_update for selected datasets'''
+        for d in self.fetcher.selected_datasets.values():
+            d["last_update"] = datetime.datetime(2015, 11, 1, 0, 0)
 
         self.fetcher.upsert_all_datasets()
         
@@ -1150,11 +1265,6 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
                                                                "dataset_code": 'dset2'})
         self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
-
-        # restoring TABLE_OF_CONTENT to original
-        TABLE_OF_CONTENT = tc_orig
-        
-        #TODO: meta_datas tests  
 
 @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
 class FullEurostatDatasetsDBTestCase(BaseDBTestCase):

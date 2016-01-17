@@ -262,8 +262,10 @@ class Eurostat(Fetcher):
         """Collects the dataset codes that are in table of contents
         below the ones indicated in "selected_codes" provided in configuration
         :returns: list of dict of dataset settings"""
-        if not self.selected_datasets:
-            self.selected_datasets = {d['dataset_code'] : d for d in self.datasets_list()}
+        category_filter = [".*%s.*" % d for d in self.selected_codes]
+        category_filter = "|".join(category_filter)
+        self.selected_datasets = {d['dataset_code']: d for d in self.datasets_list(category_filter=category_filter)}
+        return self.selected_datasets
 
     def upsert_dataset(self, dataset_code):
         """Updates data in Database for selected datasets
@@ -296,7 +298,7 @@ class Eurostat(Fetcher):
         start = time.time()
         logger.info("first load provider[%s] - START" % (self.provider_name))
 
-        for dataset_code in self.selected_datasets.keys()():
+        for dataset_code in self.selected_datasets.keys():
             try:
                 self.upsert_dataset(dataset_code)
             except Exception as err:
