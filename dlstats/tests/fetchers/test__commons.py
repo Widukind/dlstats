@@ -391,34 +391,24 @@ class DBProviderTestCase(BaseDBTestCase):
         minimal_category = { 'category_code': "c0", 'name': "p1"}
         p.add_category(minimal_category)
         
-        """
         data_tree = [
-            {
-                'category_code': "c0",
-                'name': "p1",
-                'description': "xxx",
-                'doc_href': 'http://www.example.com',
-            },
-            {
-                'category_code': "c1",
-                'name': "cat1", 
-                'datasets': [("ds1", "my ds1"), ("ds2", "my ds2")],
-            }
-        ]
-        res = p.add_data_tree(data_tree)
+             {'category_code': 'p1',
+              'datasets': [],
+              'description': None,
+              'doc_href': 'http://www.example.com',
+              'exposed': False,
+              'last_update': None,
+              'name': 'p1'},
+             {'category_code': 'p1.c0',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'p1'}
+        ]        
         
-        bson = res['data_tree'][0]
-        self.assertEqual(bson["category_code"], "c0")
-        self.assertEqual(bson["name"], "p1_root")
-        self.assertEqual(bson["doc_href"], "http://www.example.com")
-        self.assertFalse(bson["exposed"])
-
-        bson1 = res['data_tree'][1]
-        self.assertEqual(bson1["category_code"], "c1")
-        self.assertEqual(bson1["name"], "cat1")
-        self.assertTrue(bson1["exposed"])
-        """
-        
+        self.assertEqual(p.data_tree, data_tree)
 
 class DBDatasetTestCase(BaseDBTestCase):
 
