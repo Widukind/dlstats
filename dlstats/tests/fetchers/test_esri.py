@@ -55,7 +55,7 @@ DATASETS["series_names"] = ['nan', 'GDP (Expenditure Approach)', 'Private Consum
 
 DATASETS['gaku-mg1532']['name'] = 'Nominal Gross Domestic Product (original series)'
 DATASETS['gaku-mg1532']['dimension_count'] = 1
-DATASETS['gaku-mg1532']['series_count'] = len(DATASETS['series_names']) - 5
+DATASETS['gaku-mg1532']['series_count'] = 25
 DATASETS['gaku-mg1532']['last_update'] = datetime.datetime(2015,12,10)
 DATASETS['gaku-mg1532']['filename'] = 'gaku-mg1532.csv'
 DATASETS['gaku-mfy1532']['name'] = 'Annual Nominal GDP (Fiscal Year)' 
@@ -246,8 +246,11 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
                                                             "dataset_code": self.dataset_code})
         
         self.assertIsNotNone(self.dataset)
-        
-        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimension_count"])
+
+        dimensions = self.dataset["dimension_list"]
+        self.assertEqual(len(dimensions), DATASETS[self.dataset_code]["dimension_count"])
+        for c in dimensions['concept']:
+            self.assertIn(c[1],DATASETS['series_names'])
         
         series = self.db[constants.COL_SERIES].find({"provider_name": self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
@@ -271,14 +274,6 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(dataset['name'], attempt['name'])
         self.assertEqual(dataset['provider_name'], 'esri')
         self.assertEqual(dataset['last_update'], attempt['last_update'])
-        index = 0
-        dimensions = []
-        for name in DATASETS['series_names']:
-            if (name != 'nan') and (name != 'nan, nan'):
-                dimensions.append([str(index), name])
-                index += 1
-        self.maxDiff = None
-        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
         self.assertEqual(dataset['attribute_list'], {})
         self.assertEqual(dataset['doc_href'], None)
                     
@@ -325,14 +320,6 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(dataset['name'], attempt['name'])
         self.assertEqual(dataset['provider_name'], 'esri')
         self.assertEqual(dataset['last_update'], attempt['last_update'])
-        index = 0
-        dimensions = []
-        for name in DATASETS['series_names']:
-            if (name != 'nan') and (name != 'nan, nan'):
-                dimensions.append([str(index), name])
-                index += 1
-        self.maxDiff = None
-        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
         self.assertEqual(dataset['attribute_list'], {})
         self.assertEqual(dataset['doc_href'], None)
                     
@@ -379,14 +366,6 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(dataset['name'], attempt['name'])
         self.assertEqual(dataset['provider_name'], 'esri')
         self.assertEqual(dataset['last_update'], attempt['last_update'])
-        index = 0
-        dimensions = []
-        for name in DATASETS['series_names']:
-            if (name != 'nan') and (name != 'nan, nan'):
-                dimensions.append([str(index), name])
-                index += 1
-        self.maxDiff = None
-        self.assertEqual(dataset['dimension_list'], {'concept': dimensions})
         self.assertEqual(dataset['attribute_list'], {})
         self.assertEqual(dataset['doc_href'], None)
                     
