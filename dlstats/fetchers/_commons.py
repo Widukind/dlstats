@@ -86,7 +86,7 @@ class Fetcher(object):
                 keys.append(d["dataset_code"])
                 yield d
 
-    def get_selected_dataset_codes(self):
+    def get_selected_dataset_codes(self, category_filter=None):
         """Return array of tuple(dataset_code, name)
         """
         if self.provider.count_data_tree() <= 1:
@@ -94,16 +94,15 @@ class Fetcher(object):
 
         datasets = []
 
-        for cat in self.provider.data_tree:
-            if len(cat["datasets"]) > 0:
-                datasets.extend(cat['datasets'])
+        for dataset in self.provider.datasets(category_filter=category_filter):
+            datasets.append(dataset)
 
         return [d for d in self.filter_datasets(datasets)]
 
-    def datasets_list(self):
+    def datasets_list(self, category_filter=None):
         """Return a list of tuple (dataset code, name)
         """
-        return self.get_selected_dataset_codes()
+        return self.get_selected_dataset_codes(category_filter=category_filter)
 
     def upsert_all_datasets(self):
         if self.db[constants.COL_DATASETS].count({"provider_name": self.provider_name}) == 0:
@@ -318,20 +317,20 @@ class Providers(DlstatsCollection):
         for d in data_tree:
             self.__data_tree[d["category_code"]] = DataTreeEntry(**d)
 
-    def _find_datasets(self, _filter=None):
+    def _find_datasets(self, category_filter=None):
         filter_reg = None
-        if _filter:
-            filter_reg = re.compile(_filter)
+        if category_filter:
+            filter_reg = re.compile(category_filter)
         
         for category_code, d in self.__data_tree.items():
             if len(d.datasets) > 0:
                 if filter_reg and not filter_reg.match(category_code):
                     continue
                 for dataset in d.datasets:
-                    yield (dataset["dataset_code"], dataset)
+                    yield dataset["dataset_code"], dataset
         
-    def datasets(self, _filter=None, sorted_attr="dataset_code"):        
-        datasets = OrderedDict([d for d in self._find_datasets(_filter)])
+    def datasets(self, category_filter=None, sorted_attr="dataset_code"):
+        datasets = OrderedDict([(d[0], d[1]) for d in self._find_datasets(category_filter)])
         return sorted(datasets.values(), key=itemgetter(sorted_attr))
     
     def get_categories(self, base=None):
