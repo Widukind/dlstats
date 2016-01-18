@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""
-TODO: Voir code agence: FR1 au lieu de INSEE dans les requests
-"""
-
 import time
 import urllib
 from datetime import datetime
 import logging
+from collections import OrderedDict
 
 import requests
 import pandas
@@ -17,14 +14,20 @@ from pandasdmx.api import Request
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 from dlstats import constants
-from collections import OrderedDict
+from dlstats.utils import Downloader
+from dlstats.xml_utils import (XMLStructure_2_1, 
+                               XMLSpecificData_2_1_INSEE as XMLData)
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 1
+VERSION = 3
+
+SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
+SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
+
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +65,19 @@ class INSEE(Fetcher):
     
     def __init__(self, db=None, sdmx=None, **kwargs):        
         super().__init__(provider_name='INSEE', db=db, **kwargs)
+
+        if not self.provider:        
+            self.provider = Providers(name=self.provider_name,
+                                     long_name='National Institute of Statistics and Economic Studies',
+                                     version=VERSION,
+                                     region='France',
+                                     website='http://www.insee.fr',
+                                     fetcher=self)
+            self.provider.update_database()
         
-        self.provider = Providers(name=self.provider_name,
-                                 long_name='National Institute of Statistics and Economic Studies',
-                                 version=VERSION,
-                                 region='France',
-                                 website='http://www.insee.fr',
-                                 fetcher=self)
+        if self.provider.version != VERSION:
+            self.provider.update_database()
+            
         
         self.sdmx = sdmx or Request(agency='INSEE')
         
@@ -76,7 +85,7 @@ class INSEE(Fetcher):
         self._categoryschemes = None
         self._categorisations = None
     
-    def load_structure(self, force=False):
+    def _load_structure(self, force=False):
         
         if self._dataflows and not force:
             return
@@ -98,11 +107,9 @@ class INSEE(Fetcher):
         logger.debug(dataflows_response.url)
         self._dataflows = dataflows_response.msg.dataflows
 
-    def upsert_all_datasets(self):
+    def load_datasets_first(self):
         start = time.time()        
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
-        
-        self.load_structure(force=False)
+        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
         for dataset_code in self.datasets_list():
             try:
@@ -113,87 +120,68 @@ class INSEE(Fetcher):
         end = time.time() - start
         logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
-    def datasets_list(self):
-        #TODO: from Categories
-        self.load_structure(force=False)
-        return self._dataflows.keys()
-        
-    def datasets_long_list(self):
-        #TODO: from Categories
-        self.load_structure(force=False)
-        return [(key, dataset.name.en) for key, dataset in self._dataflows.items()]
+    def load_datasets_update(self):
+        #TODO: 
+        self.load_datasets_first()
 
-    def upsert_categories(self):
-        return
-        raise NotImplementedError()
+    def build_data_tree(self, force_update=False):
+        """Build data_tree from structure datas
+        """
+        if self.provider.count_data_tree() > 1 and not force_update:
+            return self.provider.data_tree
         
-        self.load_structure(force=False)
+        self._load_structure()
         
-        def walk_category(category, 
-                          categorisation, 
-                          dataflows, 
-                          name=None, 
-                          category_code=None):
-            
-            if name is None:
-                name = category['name']
-            
-            if category_code is None:
-                category_code = category['id']
-            
-            children_ids = []
-            
-            if 'subcategories' in category:
-                
-                for subcategory in category['subcategories']:
-                    
-                    children_ids.append(walk_category(subcategory, 
-                                                      categorisation, 
-                                                      dataflows))
-                
-                category = Categories(provider_name=self.provider_name,
-                                      name=name,
-                                      category_code=category_code,
-                                      children=children_ids,
-                                      doc_href=None,
-                                      last_update=datetime.now(),
-                                      exposed=False,
-                                      fetcher=self)
-                
-                return category.update_database()
-                
+        for dataset_code, dataset in self._dataflows.items():
+
+            name = dataset.name
+            if "en" in dataset.name:
+                name = dataset.name.en
             else:
-                for df_id in categorisation[category['id']]:
-                    
-                    category = Categories(provider_name=self.provider_name,
-                                          name=dataflows[df_id][2]['en'],
-                                          category_code=category['id'],
-                                          children=children_ids,
-                                          doc_href=None,
-                                          last_update=datetime.now(),
-                                          exposed=False,
-                                          fetcher=self)
-                    
-                    return category.update_database()
+                name = dataset.name.fr
+            
+            self.provider.add_dataset(dict(dataset_code=dataset_code, name=name), self.provider_name)
+            
+        return self.provider.data_tree
 
-        walk_category(self._categoryscheme, 
-                      self._categorisation, 
-                      self._dataflow,
-                      name='root',
-                      category_code='INSEE_root')
+        for category in self._categoryschemes.aslist():
+            
+            _category = dict(name=category.name.en,
+                             category_code=category.id)
+            category_key = self.provider.add_category(_category)
+             
+            for subcategory in category.values():
+                
+                if not subcategory.id in self._categorisations:
+                    continue
+                
+                _subcategory = dict(name=subcategory.name.en,
+                                    category_code=subcategory.id)
+                _subcategory_key = self.provider.add_category(_subcategory,
+                                           parent_code=category_key)
+                
+                try:
+                    _categorisation = self._categorisations[subcategory.id]
+                    for i in _categorisation:
+                        _d = self._dataflows[i.artefact.id]
+                        self.provider.add_dataset(dict(dataset_code=_d.id, name=_d.name.en), _subcategory_key)                        
+                except Exception as err:
+                    logger.error(err)   
+                    raise                             
 
+        return self.provider.data_tree
     
     def upsert_dataset(self, dataset_code):
 
-        self.load_structure(force=False)
+        #self.load_structure(force=False)
         
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
         
-        if not dataset_code in self._dataflows:
-            raise Exception("This dataset is unknown: %s" % dataset_code)
+        #if not dataset_code in self._dataflows:
+        #    raise Exception("This dataset is unknown: %s" % dataset_code)
         
-        dataflow = self._dataflows[dataset_code]
+        #dataflow = self._dataflows[dataset_code]
         
         #cat = self.db[constants.COL_CATEGORIES].find_one({'category_code': dataset_code})
         #dataset.name = cat['name']
@@ -202,7 +190,7 @@ class INSEE(Fetcher):
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
-                           name=dataflow.name.en,
+                           #name=dataflow.name.en,
                            doc_href=None,
                            last_update=datetime.now(), #TODO:
                            fetcher=self)
@@ -212,8 +200,9 @@ class INSEE(Fetcher):
         
         insee_data = INSEE_Data(dataset=dataset,
                                 dataset_doc=dataset_doc, 
-                                dataflow=dataflow, 
-                                sdmx=self.sdmx)
+                                #dataflow=dataflow, 
+                                #sdmx=self.sdmx
+                                )
         dataset.series.data_iterator = insee_data
         result = dataset.update_database()
         
@@ -230,284 +219,94 @@ class INSEE(Fetcher):
 
 class INSEE_Data(object):
     
-    def __init__(self, dataset=None, dataset_doc=None, dataflow=None, sdmx=None):
+    def __init__(self, dataset=None, dataset_doc=None):
         """
         :param Datasets dataset: Datasets instance
-        :param pandasdmx.model.DataflowDefinition dataflow: instance of DataflowDefinition
-        :param RequestINSEE sdmx: SDMX Client  
-        """        
-        self.cpt = 0
-        
+        """
         self.dataset = dataset
         self.dataset_doc = dataset_doc
-        self.last_update = None
-        if self.dataset_doc:
-            self.last_update = self.dataset_doc["last_update"]
-        #    self.dataset.last_update = self.last_update
-        
+        self.attribute_list = self.dataset.attribute_list
+        self.dimension_list = self.dataset.dimension_list
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
-        self.dataflow = dataflow
-        self.sdmx = sdmx
-        
-        self.dimension_list = self.dataset.dimension_list
-        self.attribute_list = self.dataset.attribute_list
-        
-        self.datastructure = self.sdmx.get(resource_type='datastructure', 
-                                           resource_id=self.dataset_code,
-                                           headers=None)
-        
-        #TODO: simplifier
-        self.dsd = self.datastructure.msg.datastructures[self.dataset_code]    
 
-        self.dimensions = {} # array of pandasdmx.model.Dimension
-        for dim in self.dsd.dimensions.aslist():
-            if dim.id not in ['TIME', 'TIME_PERIOD']:
-                self.dimensions[dim.id] = dim
+        if self.dataset_doc:
+            self.last_update = self.dataset_doc["last_update"]
+
+        self.xml_dsd = XMLStructure_2_1(provider_name=self.provider_name, 
+                                        dataset_code=self.dataset_code)        
+        
+        self.rows = None
+        self._load()
+        
+    def _load(self):
+
+        self.dsd_id = self.dataset_code
+
+        url = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s?references=children" % self.dsd_id
+        download = Downloader(url=url, 
+                              filename="dsd-%s.xml" % self.dataset_code,
+                              headers=SDMX_METADATA_HEADERS)
+        self.xml_dsd.process(download.get_filepath())
+        
+        self.dataset.name = self.xml_dsd.dataset_name
+        
+        dimensions = OrderedDict()
+        for key, item in self.xml_dsd.dimensions.items():
+            dimensions[key] = item["dimensions"]
+        self.dimension_list.set_dict(dimensions)
+        
+        attributes = OrderedDict()
+        for key, item in self.xml_dsd.attributes.items():
+            attributes[key] = item["values"]
+        self.attribute_list.set_dict(attributes)
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/data/%s" % self.dataset_code
+        download = Downloader(url=url, 
+                              filename="data-%s.xml" % self.dataset_code,
+                              headers=SDMX_DATA_HEADERS)
+
+        self.xml_data = XMLData(provider_name=self.provider_name,
+                                dataset_code=self.dataset_code,
+                                dimension_keys=self.xml_dsd.dimension_keys)
+        
+        #TODO: response and exception
+        try:
+            filepath, response = download.get_filepath_and_response()        
+        except requests.exceptions.HTTPError as err:
+            logger.critical("AUTRE ERREUR HTTP : %s" % err.response.status_code)
+            raise
             
-        self.dim_keys = list(self.dimensions.keys())
-        self.dimension_list.set_dict(self.dimensions_to_dict())
-        
-        '''Selection de la dimension avec le moins de variantes'''
-        self.dim_select = self.select_short_dimension()
-        
-        self.current_series = {}
-        
-        self.rows = self.get_series(self.dataset_code)
+        self.rows = self.xml_data.process(filepath)
 
-    def dimensions_to_dict(self):
-        _dimensions = {}
-        
-        for key in self.dim_keys:
-            dim = self.dsd.dimensions[key]
-            _dimensions[key] = OrderedDict()
-            
-            for dim_key, _dim in dim.local_repr.enum.items():
-                try:
-                    _dimensions[key][dim_key] = _dim.name.en
-                except Exception:
-                    _dimensions[key][dim_key] = _dim.name.fr
-                
-        return _dimensions
-    
-    def concept_name(self, concept_id):
-        #TODO: pas normal, l'information devrait être dans la self.dsd
-        return self.datastructure.msg.conceptschemes.aslist()[0][concept_id].name.en
-        
-    def select_short_dimension(self):
-        """Renvoi le nom de la dimension qui contiens le moins de valeur
-        pour servir ensuite de filtre dans le chargement des données (...)
-        """
-        _dimensions = {}        
-        
-        for dim_id, dim in self.dimensions.items():
-            _dimensions[dim_id] = len(dim.local_repr.enum.keys())
-        
-        _key = min(_dimensions, key=_dimensions.get)
-        return self.dimensions[_key]
 
-    def is_valid_frequency(self, series):
-        """
-        http://www.bdm.insee.fr/series/sdmx/codelist/FR1/CL_FREQ
-        S: Semestrielle
-        B: Bimestrielle
-        I: Irregular
-        """
-        frequency = None
-        valid = True
+    def __next__(self):
+        _series = next(self.rows)
         
-        if 'FREQ' in series.key._fields:
-            frequency = series.key.FREQ
-        elif 'FREQ' in series.attrib._fields:
-            frequency = series.attrib.FREQ
+        if not _series:
+            raise StopIteration()
         
-        if not frequency:
-            valid = False        
-        elif frequency in ["S", "B", "I"]:
-            valid = False
-        
-        if not valid:
-            logger.warning("Not valid frequency[%s] - dataset[%s] - idbank[%s]" % (frequency, self.dataset_code, series.attrib.IDBANK))
-        
-        return valid
-    
-    def is_updated(self, series):
+        return self.build_series(_series)
+
+    def is_updated(self, bson):
         """Verify if series changes
         """
         if not self.last_update:
             return True
         
-        series_updated = datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
+        series_updated = bson['last_update']
         _is_updated = series_updated > self.last_update
 
         if not _is_updated and logger.isEnabledFor(logging.INFO):
             logger.info("bypass updated dataset_code[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
                                                                                  self.last_update, 
-                                                                                 series.attrib.IDBANK,
+                                                                                 bson['key'],
                                                                                  series_updated))
         
         return _is_updated
 
-    def get_series(self, dataset_code):
-        """Load series for current dataset
-
-        #TODO: traduire:
-        
-        1er appel: sans filtrage sur les dimensions
-        
-        Appel suivant seulement si le 1er appel échoue avec un code HTTP_ERROR_LONG_RESPONSE
-        
-        Boucle sur les valeurs de le plus petite dimensions pour charger en plusieurs fois les series du dataset
-        
-        """
-        def _request(key=''):
-            return self.sdmx.get(resource_type='data', 
-                                 resource_id=dataset_code,
-                                 headers=None,
-                                 key=key)
-            
-        try:
-            ''' First call - all series '''
-            _data = _request()
-            for s in _data.msg.data.series:
-                if self.is_valid_frequency(s):# and self.is_updated(s):
-                    yield s
-                else:
-                    yield            
-        except requests.exceptions.HTTPError as err:
-
-            if err.response.status_code == HTTP_ERROR_LONG_RESPONSE:
-                ''' Next calls if first call fail '''                
-                codes = list(self.dim_select.local_repr.enum.keys())
-                dim_select_id = str(self.dim_select.id)
-                
-                for code in codes:
-                    key = {dim_select_id: code}
-                    try:
-                        _data = _request(key)
-                        for s in _data.msg.data.series:
-                            if self.is_valid_frequency(s):# and self.is_updated(s):
-                                yield s
-                            else:
-                                yield
-                    except requests.exceptions.HTTPError as err:
-                        if err.response.status_code == HTTP_ERROR_NO_RESULT:
-                            continue
-                        else:
-                            raise
-
-            elif err.response.status_code == HTTP_ERROR_NO_RESULT:
-                ''' Not error - this series are not datas '''
-                raise ContinueRequest("No result")
-            else:
-                raise
-                
-        except Exception as err:
-            logger.error(str(err))
-            raise
-        
-    def __next__(self):          
-        try:      
-            _series = next(self.rows)
-            if not _series:
-                raise StopIteration()
-        except ContinueRequest:
-            _series = next(self.rows)
-            
-        bson = self.build_series(_series)
-        return bson
-
-    def get_series_key(self, series):
-        return series.attrib.IDBANK
-
-    def get_series_name(self, series):
-        return series.attrib.TITLE #TODO: english
-
-    def get_series_frequency(self, series):
-        if 'FREQ' in series.key._fields:
-            return series.key.FREQ
-        elif 'FREQ' in series.attrib._fields:
-            return series.attrib.FREQ
-
-        raise Exception("Not FREQ field in series.key or series.attrib")
-    
-    def get_last_update(self, series):
-        return datetime.strptime(series.attrib.LAST_UPDATE, "%Y-%m-%d")
-    
-    def debug_series(self, series, bson):
-        if logger.isEnabledFor(logging.DEBUG):
-            import json
-            try:
-                _debug = {
-                    "dataset_code": self.dataset_code,
-                    "key": bson['key'],
-                    "last_update": str(self.last_update),
-                    "dimensions_keys": self.dim_keys,
-                    "attrib": series.attrib._asdict().items(),
-                    "series.key": series.key._asdict().items(),
-                }            
-                logger.debug(json.dumps(_debug))
-            except:
-                pass
-            
-    def fixe_frequency(self, bson):
-        #TODO: T equal Trimestrial for INSEE
-        if bson['frequency'] == "T":
-            logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, bson['key']))
-            bson['frequency'] = "Q"
-            
-    def get_attributes(self, series):
-        attributes = {}
-        for obs in series.obs(with_values=False, with_attributes=True, reverse_obs=False):
-            for key, value in obs.attrib._asdict().items():
-                if not key in attributes:
-                    attributes[key] = []
-                attributes[key].append(value)
-        return attributes
-    
-    def build_series(self, series):
-        """
-        :param series: Instance of pandasdmx.model.Series
-        """
-        bson = {}
-        bson['provider_name'] = self.provider_name
-        bson['dataset_code'] = self.dataset_code
-        bson['key'] = self.get_series_key(series)
-        bson['name'] = self.get_series_name(series)
-        bson['last_update'] = self.get_last_update(series)
-        
-        self.debug_series(series, bson)
-        
-        bson['frequency'] = self.get_series_frequency(series)
-        self.fixe_frequency(bson)
-        
-        bson['attributes'] = self.get_attributes(series)
-            
-        dimensions = dict(series.key._asdict())
-        
-        for d, value in series.attrib._asdict().items():
-            if d in ['IDBANK', 'LAST_UPDATE', 'TITLE']:
-                continue
-            dim_short_id = value
-            #TODO: le name doit se trouver ailleurs ou les extraires et les stocker dans le code
-            #http://www.bdm.insee.fr/series/sdmx/codelist/FR1/CL_FREQ
-            #http://www.bdm.insee.fr/series/sdmx/codelist/FR1/CL_UNIT_MULT
-            dim_long_id = self.concept_name(d)            
-            dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-
-        bson['dimensions'] = dimensions
-        
-        '''INSEE ordered dates (desc) - 2015 -> 2000'''
-        _dates = [o.dim for o in series.obs(with_values=False, with_attributes=False, reverse_obs=False)]
-        bson['start_date'] = pandas.Period(_dates[-1], freq=bson['frequency']).ordinal
-        bson['end_date'] = pandas.Period(_dates[0], freq=bson['frequency']).ordinal
-        
-        bson['values'] = []
-        for o in series.obs(with_values=True, with_attributes=False, reverse_obs=True):
-            if str(o.value).lower() == "nan":
-                bson['values'].append("NAN")
-            else:
-                bson['values'].append(str(o.value))
-        
+    def build_series(self, bson):
+        #TODO: last_update : update dataset ?
+        #bson["last_update"] = self.last_update
         return bson
 
