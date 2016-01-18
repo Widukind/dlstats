@@ -2,27 +2,25 @@
 
 import os
 import io
-from zipfile import ZipFile
 import zipfile
 import csv
 import datetime
 import tempfile
 import time
-import pytz
 import logging
-
-import pandas
-import requests
 import re
+
+import pytz
+import pandas
 from lxml import etree
-from io import StringIO
 
 from dlstats import constants
+from dlstats.utils import Downloader
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 
 __all__ = ['BIS']
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -98,11 +96,19 @@ def local_read_csv(filepath=None, fileobj=None,
 
 PROVIDER_NAME = "BIS"
 
+#TODO: not implemented calendar/datasets:
+"""
+- Derivatives statistics OTC: http://www.bis.org/statistics/derstats.htm
+- Derivatives statistics Exchange-traded: http://www.bis.org/statistics/extderiv.htm
+- Global liquidity indicators: http://www.bis.org/statistics/gli.htm
+- Property prices Detailed data: http://www.bis.org/statistics/pp_detailed.htm
+- BIS Statistical Bulletin: http://www.bis.org/statistics/bulletin.htm
+"""
+
 DATASETS = {
     'LBS-DISS': { 
         'name': 'Locational Banking Statistics - disseminated data',
-        'agenda1': 'Banking statistics',
-        'agenda2': 'Locational',
+        'agenda_titles': ['Banking statistics Locational'],
         'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
         'url': 'http://www.bis.org/statistics/full_bis_lbs_diss_csv.zip',
         'filename': 'full_bis_lbs_diss_csv.zip',
@@ -114,9 +120,8 @@ DATASETS = {
     },
     'CBS': { 
         'name': 'Consolidated banking statistics',
-        'agenda1': 'Banking statistics',
-        'agenda2': 'Consolidated',
-        'doc_href': 'http://www.bis.org/statistics/bankstats.htm',
+        'agenda_titles': ['Banking statistics Consolidated'],
+        'doc_href': 'http://www.bis.org/statistics/consstats.htm',
         'url': 'https://www.bis.org/statistics/full_bis_cbs_csv.zip',
         'filename': 'full_bis_cbs_csv.zip',
         'frequency': 'Q',
@@ -127,11 +132,9 @@ DATASETS = {
     },
     'DSS': {
         'name': 'Debt securities statistics',
-        'agenda1': 'Debt securities statistics',
         # same data set for 'Internationa' and 'Domestic and total'
-        'agenda2': 'International',
-        'agenda3': 'Domestic and total',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Debt securities statistics International', 'Debt securities statistics Domestic and total'],
+        'doc_href': 'http://www.bis.org/statistics/secstats.htm',
         'url': 'https://www.bis.org/statistics/full_bis_debt_sec2_csv.zip',
         'filename': 'full_bis_debt_sec2_csv.zip',
         'frequency': 'Q',
@@ -142,8 +145,8 @@ DATASETS = {
     },     
     'CNFS': {
         'name': 'Credit to the non-financial sector',
-        'agenda1': 'Credit to non-financial sector',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Credit to non-financial sector'],
+        'doc_href': 'http://www.bis.org/statistics/credtopriv.htm',
         'url': 'https://www.bis.org/statistics/full_bis_total_credit_csv.zip',
         'filename': 'full_bis_total_credit_csv.zip',
         'frequency': 'Q',
@@ -154,8 +157,8 @@ DATASETS = {
     },     
     'DSRP': {
         'name': 'Debt service ratios for the private non-financial sector',
-        'agenda1': 'Debt service ratio',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Debt service ratio'],
+        'doc_href': 'http://www.bis.org/statistics/dsr.htm',
         'url': 'https://www.bis.org/statistics/full_bis_dsr_csv.zip',
         'filename': 'full_bis_dsr_csv.zip',
         'frequency': 'Q',
@@ -163,12 +166,11 @@ DATASETS = {
             'release_date': 1,
             'headers': 7
         }
-    },     
+    },  
     'PP-SS': {
         'name': 'Property prices - selected series',
-        'agenda1': 'Property prices',
-        'agenda2': 'Selected and long',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Property prices Selected'],
+        'doc_href': 'http://www.bis.org/statistics/pp_detailed.htm',
         'url': 'https://www.bis.org/statistics/full_bis_selected_pp_csv.zip',
         'filename': 'full_bis_selected_pp_csv.zip',
         'frequency': 'Q',
@@ -179,9 +181,8 @@ DATASETS = {
     },     
     'PP-LS': {
         'name': 'Property prices - long series',
-        'agenda1': 'Property prices',
-        'agenda2': 'Selected and long',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Property prices long'],
+        'doc_href': 'http://www.bis.org/statistics/pp_long.htm',
         'url': 'https://www.bis.org/statistics/full_bis_long_pp_csv.zip',
         'filename': 'full_bis_long_pp_csv.zip',
         'frequency': 'Q',
@@ -192,8 +193,8 @@ DATASETS = {
     },     
     'EERI': {
         'name': 'Effective exchange rate indices',
-        'agenda1': 'Effective exchange rates',
-        'doc_href': 'TODO:',
+        'agenda_titles': ['Effective exchange rates'],
+        'doc_href': 'http://www.bis.org/statistics/eer/index.htm',
         'url': 'https://www.bis.org/statistics/full_bis_eer_csv.zip',
         'filename': 'full_bis_eer_csv.zip',
         'frequency': 'M',
@@ -206,114 +207,33 @@ DATASETS = {
 
 AGENDA = {'url': 'http://www.bis.org/statistics/relcal.htm?m=6|37|68',
           'filename': 'agenda.html',
-          'store_filepath': '/tmp/bis',
           'country': 'ch'
 }
 
-class Downloader():
-    
-    headers = {
-        'user-agent': 'dlstats - https://github.com/Widukind/dlstats'
-    }
-    
-    def __init__(self, url=None, filename=None, store_filepath=None, 
-                 timeout=None, max_retries=0, replace=True, force_replace=True):
-        self.url = url
-        self.filename = filename
-        self.store_filepath = store_filepath
-        self.timeout = timeout
-        self.max_retries = max_retries
-        self.force_replace = force_replace
-        
-        if not self.store_filepath:
-            self.store_filepath = tempfile.mkdtemp()
-        else:
-            if not os.path.exists(self.store_filepath):
-                os.makedirs(self.store_filepath, exist_ok=True)
-        
-        self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
-        
-        if os.path.exists(self.filepath) and not replace:
-            raise Exception("filepath is already exist : %s" % self.filepath)
-        
-    def _download(self):
-        
-        #TODO: timeout
-        #TODO: max_retries (self.max_retries)
-        #TODO: analyse rate limit dans headers
-        
-        start = time.time()
-        try:
-            #TODO: Session ?
-            response = requests.get(self.url, 
-                                    timeout=self.timeout, 
-                                    stream=True,
-                                    allow_redirects=True,
-                                    verify=False,
-                                    #headers=self.headers
-                                    )
-
-            if not response.ok:
-                msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url, 
-                                                                           response.status_code, 
-                                                                           response.reason)
-                logger.error(msg)
-                raise Exception(msg)
-            
-            with open(self.filepath,'wb') as f:
-                for chunk in response.iter_content():
-                    f.write(chunk)
-                    #TODO: flush ?            
-                
-        except requests.exceptions.ConnectionError as err:
-            raise Exception("Connection Error")
-        except requests.exceptions.ConnectTimeout as err:
-            raise Exception("Connect Timeout")
-        except requests.exceptions.ReadTimeout as err:
-            raise Exception("Read Timeout")
-        except Exception as err:
-            raise Exception("Not captured exception : %s" % str(err))            
-
-        end = time.time() - start
-        logger.info("download file[%s] - END - time[%.3f seconds]" % (self.url, end))
-    
-    def get_filepath(self):
-        
-        if os.path.exists(self.filepath) and self.force_replace:
-            os.remove(self.filepath)
-        
-        if not os.path.exists(self.filepath):
-            logger.info("not found file[%s] - download dataset url[%s]" % (self.filepath, self.url))
-            self._download()
-        else:
-            logger.info("use local dataset file [%s]" % self.filepath)
-        
-        return self.filepath
-
 def get_agenda():
     download = Downloader(url=AGENDA['url'],
-                          filename=AGENDA['filename'],
-                          store_filepath=AGENDA['store_filepath'])
-    with open(download.get_filepath(),'r') as f:
-        page = f.read()
-    return page
-    
+                          filename=AGENDA['filename'])
+    with open(download.get_filepath(), 'rb') as fp:
+        return fp.read()
 
 class BIS(Fetcher):
     
     def __init__(self, db=None):
+        super().__init__(provider_name='BIS', db=db)
         
-        super().__init__(provider_name='BIS', 
-                         db=db)
+        if not self.provider:
+            self.provider = Providers(name=self.provider_name,
+                                      long_name='Bank for International Settlements',
+                                      version=VERSION,
+                                      region='world',
+                                      website='http://www.bis.org', 
+                                      fetcher=self)
+            self.provider.update_database()
         
-        self.provider = Providers(name=self.provider_name,
-                                  long_name='Bank for International Settlements',
-                                  version=VERSION,
-                                  region='world',
-                                  website='http://www.bis.org', 
-                                  fetcher=self)
+        if self.provider.version != VERSION:
+            self.provider.update_database()
 
-    def upsert_dataset(self, dataset_code, datas=None):
+    def upsert_dataset(self, dataset_code):
         
         start = time.time()
         
@@ -322,7 +242,6 @@ class BIS(Fetcher):
         if not DATASETS.get(dataset_code):
             raise Exception("This dataset is unknown" + dataset_code)
         
-        #TODO: faire un DatasetBis pour inclure le Downloader à l'init comme callback ?
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code, 
                            name=DATASETS[dataset_code]['name'], 
@@ -350,36 +269,35 @@ class BIS(Fetcher):
         else:
             logger.info("upsert dataset[%s] bypass because is updated from release_date[%s]" % (dataset_code, fetcher_data.release_date))
 
-    def upsert_all_datasets(self):
+    def load_datasets_first(self):
         start = time.time()
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
+        logger.info("first load fetcher[%s] - START" % (self.provider_name))
         
         for dataset_code in DATASETS.keys():
             self.upsert_dataset(dataset_code) 
 
         end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def datasets_list(self):
-        return DATASETS.keys()
-
-    def datasets_long_list(self):
-        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
-
-    def upsert_categories(self):
-        data_tree = {'name': 'BIS',
-                     'category_code': 'oecd_root',
-                     'children': []}
+        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
         
-        for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'name': DATASETS[dataset_code]['name'], 
-                                          'category_code': dataset_code,
-                                          'exposed': True,
-                                          'children': None})
+    def load_datasets_update(self):
+        self.load_datasets_first()
 
-        self.provider.add_data_tree(data_tree)    
+    def build_data_tree(self, force_update=False):
+        
+        if self.provider.count_data_tree() > 1 and not force_update:
+            return self.provider.data_tree
 
+        for category_code, dataset in DATASETS.items():
+            category_key = self.provider.add_category({"name": dataset["name"],
+                                                       "category_code": category_code,
+                                                       "doc_href": dataset["doc_href"]})
+            _dataset = {"name": dataset["name"], "dataset_code": category_code}
+            self.provider.add_dataset(_dataset, category_key)
+        
+        return self.provider.data_tree
+            
     def parse_agenda(self):
+        
         agenda = etree.HTML(get_agenda())
         table = agenda.find('.//table')
         # only one table
@@ -387,7 +305,8 @@ class BIS(Fetcher):
         # skipping first row
         cells = rows[1].findall('td')
         agenda = []
-        months = [None,None]
+        months = [None, None]
+        
         for c in rows[1].iterfind('td'):
             content = c.find('strong')
             if content.text is None:
@@ -395,12 +314,31 @@ class BIS(Fetcher):
             months.append(datetime.datetime.strptime(content.text,'%B %Y'))
         agenda.append(months)
         ir = 2
+        
+        def get_links_text(cell):
+            txt = []
+            for link in cell.findall('a'):
+                if link.text:
+                    txt.append(link.text)
+            return txt
+
+        def _get_dates(cells):
+            item = []
+            for ic, c in enumerate(cells):
+                if c.text[0] != chr(160):
+                    item.append(re.match('\d\d|\d',c.text).group(0))
+                else:
+                    item.append(None)
+            return item
+        
         while ir < len(rows):
             cells = rows[ir].findall('td')
+            
             content = cells[0]
             if content.text is None:
                 content = content.find('a')
             item = [content.text]
+            
             if cells[0].get('rowspan') == '2':
                 two_rows = True
                 content = cells[1].find('a')
@@ -410,86 +348,67 @@ class BIS(Fetcher):
                 two_rows = False
                 item.append(None)
                 offset = 1
-            for ic,c in enumerate(cells[offset:]):
-                if c.text[0] != chr(160):
-                    item.append(re.match('\d\d|\d',c.text).group(0))
-                else:
-                    item.append(None)
+            
+            item.extend(_get_dates(cells[offset:]))
+            
             agenda.append(item)
             ir += 1
+            
             if two_rows:
-                item = [item[0]]
                 cells = rows[ir].findall('td')
-                content = cells[0].find('a')
-                item.append(content.text)
-                for ic,c in enumerate(cells[1:]):
-                    if c.text[0] != chr(160):
-                        item.append(re.match('\d\d|\d',c.text).group(0))
-                    else:
-                        item.append(None)
-                agenda.append(item)
+                links = get_links_text(cells[0])
+                for content in links:
+                    item = [item[0]]
+                    item.append(content)
+                    item.extend(_get_dates(cells[1:]))
+                    agenda.append(item)
                 ir += 1
         return agenda
 
     def get_calendar(self):
         agenda = self.parse_agenda()
-        schedule = []
-        for m in range(len(agenda[0])-2):
-            date_base = agenda[0][m+2]
-            for d in DATASETS.items():
-                trigger_day = None
-                if 'agenda2' in d:
-                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
-                                   and  (a[1] == d[1]['agenda2'])]
-                    if trigger_day and trigger_day[0][m+2]:
-                        schedule.append(
-                            {'action': "update_node",
-                             "kwargs": {"provider_name": "BIS",
-                                        "dataset_code": d[1]['dataset_code']},
-                             "period_type": "date",
-                             "period_kwargs": {"run_date": datetimedatetime(date_base.year,
-                                                                            date_base.month,
-                                                                            int(trigger_day[0][m+2]),
-                                                                            8, 0, 0),
-                                               "timezone": pytz.country_timezones(AGENDA['country'])}
-                             }
-                            )
-                    if 'agenda3' in d:
-                        trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])
-                                       and  (a[1] == d[1]['agenda3'])]
-                        if trigger_day and trigger_day[0][m+2]:
-                            schedule.append(
-                                {'action': "update_node",
-                                 "kwargs": {"provider_name": "BIS",
-                                            "dataset_code": d[1]['dataset_code']},
-                                 "period_type": "date",
-                                 "period_kwargs": {"run_date": datetime.datetime(date_base.year,
-                                                                                 date_base.month,
-                                                                                 int(trigger_day[0][m+2]),
-                                                                                 8, 0, 0),
-                                                   "timezone": pytz.country_timezones(AGENDA['country'])}
-                                 }
-                                )
-                else:
-                    trigger_day = [a for a in agenda if (a[0] == d[1]['agenda1'])]
-                    if trigger_day and trigger_day[0][m+2]:
-                        schedule.append(
-                            {'action': "update_node",
-                             "kwargs": {"provider_name": "BIS",
-                                        "dataset_code": d[0]},
-                             "period_type": "date",
-                             "period_kwargs": {"run_date": datetime.datetime(date_base.year,
-                                                                             date_base.month,
-                                                                             int(trigger_day[0][m+2]),
-                                                                             8, 0, 0),
-                                               "timezone": pytz.country_timezones(AGENDA['country'])}
-                             }
-                            )
 
-        for s in schedule:
-            yield s
-        
-        
+        dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
+
+        '''First line - exclude first 2 columns (title1, title2)'''
+        months = agenda[0][2:]
+
+        '''All line moins first list'''
+        periods = agenda[1:]
+
+        def _get_dataset_code(title):
+            for key, d in DATASETS.items():
+                if title in d.get("agenda_titles", []):
+                    return key
+            return None
+
+        for period in periods:
+            title = period[0]
+            if period[1]:
+                title = "%s %s" % (title, period[1])
+
+            dataset_code = _get_dataset_code(title)
+            if not dataset_code:
+                logger.info("exclude calendar action for not implemented dataset[%s]" % title)
+                continue
+            if not dataset_code in dataset_codes:
+                logger.info("exclude calendar action for dataset[%s]" % title)
+                continue
+
+            days = period[2:]
+            scheds = [d for d in zip(months, days) if not d[1] is None]
+
+            for date_base, day in scheds:
+                yield {'action': "update_node",
+                       "kwargs": {"provider_name": self.provider_name,
+                                "dataset_code": dataset_code},
+                       "period_type": "date",
+                       "period_kwargs": {"run_date": datetime.datetime(date_base.year,
+                                                                       date_base.month,
+                                                                       int(day), 8, 0, 0),
+                                         "timezone": pytz.country_timezones(AGENDA['country'])}
+                     }
+
 class BIS_Data():
     
     def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):

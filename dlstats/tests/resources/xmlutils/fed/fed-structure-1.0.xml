@@ -1,0 +1,2251 @@
+<?xml version="1.0"?>
+<message:Structure xmlns:message="http://www.SDMX.org/resources/SDMXML/schemas/v1_0/message" xmlns:structure="http://www.SDMX.org/resources/SDMXML/schemas/v1_0/structure" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v1_0/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v1_0/message SDMXMessage.xsd">
+  <message:Header>
+    <message:ID>G19</message:ID>
+    <message:Test>false</message:Test>
+    <message:Name>G.19 - Consumer Credit</message:Name>
+    <message:Prepared>2007-01-22T00:00:00Z</message:Prepared>
+    <message:Sender id="FRB">
+      <message:Contact>
+        <message:Name>Consumer Finance Section</message:Name>
+        <message:Telephone/>
+        <message:Email>G19Release@frb.gov</message:Email>
+      </message:Contact>
+    </message:Sender>
+  </message:Header>
+  <message:CodeLists>
+    <structure:CodeList id="CL_OBS_STATUS" agency="FRB">
+      <structure:Name>Observation Status</structure:Name>
+      <structure:Code value="A">
+        <structure:Description>Normal</structure:Description>
+      </structure:Code>
+      <structure:Code value="NA">
+        <structure:Description>Not available</structure:Description>
+      </structure:Code>
+      <structure:Code value="ND">
+        <structure:Description>No data</structure:Description>
+      </structure:Code>
+      <structure:Code value="NC">
+        <structure:Description>Not calculable</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_FREQ" agency="FRB">
+      <structure:Name>Frequency code list</structure:Name>
+      <structure:Code value="0">
+        <structure:Description>Undefined</structure:Description>
+      </structure:Code>
+      <structure:Code value="8">
+        <structure:Description>Daily</structure:Description>
+      </structure:Code>
+      <structure:Code value="9">
+        <structure:Description>Business day</structure:Description>
+      </structure:Code>
+      <structure:Code value="16">
+        <structure:Description>Weekly (Sunday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="17">
+        <structure:Description>Weekly (Monday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="18">
+        <structure:Description>Weekly (Tuesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="19">
+        <structure:Description>Weekly (Wednesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="20">
+        <structure:Description>Weekly (Thursday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="21">
+        <structure:Description>Weekly (Friday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="22">
+        <structure:Description>Weekly (Saturday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="32">
+        <structure:Description>Tenday</structure:Description>
+      </structure:Code>
+      <structure:Code value="64">
+        <structure:Description>Bi-Weekly (ASunday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="65">
+        <structure:Description>Bi-Weekly (AMonday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="66">
+        <structure:Description>Bi-Weekly (ATuesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="67">
+        <structure:Description>Bi-Weekly (AWednesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="68">
+        <structure:Description>Bi-Weekly (AThursday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="69">
+        <structure:Description>Bi-Weekly (AFriday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="70">
+        <structure:Description>Bi-Weekly (ASaturday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="71">
+        <structure:Description>Bi-Weekly (BSunday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="72">
+        <structure:Description>Bi-Weekly (BMonday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="73">
+        <structure:Description>Bi-Weekly (BTuesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="74">
+        <structure:Description>Bi-Weekly (BWednesday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="75">
+        <structure:Description>Bi-Weekly (BThursday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="76">
+        <structure:Description>Bi-Weekly (BFriday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="77">
+        <structure:Description>Bi-Weekly (BSaturday)</structure:Description>
+      </structure:Code>
+      <structure:Code value="128">
+        <structure:Description>Twice Monthly</structure:Description>
+      </structure:Code>
+      <structure:Code value="129">
+        <structure:Description>Monthly</structure:Description>
+      </structure:Code>
+      <structure:Code value="144">
+        <structure:Description>Bi-Monthly (Nov)</structure:Description>
+      </structure:Code>
+      <structure:Code value="145">
+        <structure:Description>Bi-Monthly</structure:Description>
+      </structure:Code>
+      <structure:Code value="160">
+        <structure:Description>Quarterly (Oct)</structure:Description>
+      </structure:Code>
+      <structure:Code value="161">
+        <structure:Description>Quarterly (Nov)</structure:Description>
+      </structure:Code>
+      <structure:Code value="162">
+        <structure:Description>Quarterly</structure:Description>
+      </structure:Code>
+      <structure:Code value="192">
+        <structure:Description>Annual (Jan)</structure:Description>
+      </structure:Code>
+      <structure:Code value="193">
+        <structure:Description>Annual (Feb)</structure:Description>
+      </structure:Code>
+      <structure:Code value="194">
+        <structure:Description>Annual (Mar)</structure:Description>
+      </structure:Code>
+      <structure:Code value="195">
+        <structure:Description>Annual (Apr)</structure:Description>
+      </structure:Code>
+      <structure:Code value="196">
+        <structure:Description>Annual (May)</structure:Description>
+      </structure:Code>
+      <structure:Code value="197">
+        <structure:Description>Annual (Jun)</structure:Description>
+      </structure:Code>
+      <structure:Code value="198">
+        <structure:Description>Annual (Jul)</structure:Description>
+      </structure:Code>
+      <structure:Code value="199">
+        <structure:Description>Annual (Aug)</structure:Description>
+      </structure:Code>
+      <structure:Code value="200">
+        <structure:Description>Annual (Sep)</structure:Description>
+      </structure:Code>
+      <structure:Code value="201">
+        <structure:Description>Annual (Oct)</structure:Description>
+      </structure:Code>
+      <structure:Code value="202">
+        <structure:Description>Annual (Nov)</structure:Description>
+      </structure:Code>
+      <structure:Code value="203">
+        <structure:Description>Annual</structure:Description>
+      </structure:Code>
+      <structure:Code value="204">
+        <structure:Description>Semi-Annual (Jul)</structure:Description>
+      </structure:Code>
+      <structure:Code value="205">
+        <structure:Description>Semi-Annual (Aug)</structure:Description>
+      </structure:Code>
+      <structure:Code value="206">
+        <structure:Description>Semi-Annual (Sep)</structure:Description>
+      </structure:Code>
+      <structure:Code value="207">
+        <structure:Description>Semi-Annual (Oct)</structure:Description>
+      </structure:Code>
+      <structure:Code value="208">
+        <structure:Description>Semi-Annual (Nov)</structure:Description>
+      </structure:Code>
+      <structure:Code value="209">
+        <structure:Description>Semi-Annual</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_UNIT_MULT" agency="FRB">
+      <structure:Name>Unit Multiplier</structure:Name>
+      <structure:Code value=".01">
+        <structure:Description>Hundredths</structure:Description>
+      </structure:Code>
+      <structure:Code value=".1">
+        <structure:Description>Tenths</structure:Description>
+      </structure:Code>
+      <structure:Code value="1">
+        <structure:Description>One</structure:Description>
+      </structure:Code>
+      <structure:Code value="1000">
+        <structure:Description>Thousands</structure:Description>
+      </structure:Code>
+      <structure:Code value="1000000">
+        <structure:Description>Millions</structure:Description>
+      </structure:Code>
+      <structure:Code value="100000000">
+        <structure:Description>Hundred millions</structure:Description>
+      </structure:Code>
+      <structure:Code value="1000000000">
+        <structure:Description>Billions</structure:Description>
+      </structure:Code>
+      <structure:Code value="1000000000000">
+        <structure:Description>Trillions</structure:Description>
+      </structure:Code>
+      <structure:Code value="1000000000000000">
+        <structure:Description>Quadrillions</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_UNIT" agency="FRB">
+      <structure:Name>Units</structure:Name>
+      <structure:Code value="Acres">
+        <structure:Description>Acres</structure:Description>
+      </structure:Code>
+      <structure:Code value="Bales">
+        <structure:Description>Bales</structure:Description>
+      </structure:Code>
+      <structure:Code value="Barrels">
+        <structure:Description>Barrels</structure:Description>
+      </structure:Code>
+      <structure:Code value="Barrels:_Per_Day">
+        <structure:Description>Barrels: Per Day</structure:Description>
+      </structure:Code>
+      <structure:Code value="Barrels:_Per_Month">
+        <structure:Description>Barrels: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="BTUs:_Per_Quarter">
+        <structure:Description>BTUs: Per Quarter</structure:Description>
+      </structure:Code>
+      <structure:Code value="BTUs:_Per_Barrel">
+        <structure:Description>BTUs: Per Barrel</structure:Description>
+      </structure:Code>
+      <structure:Code value="BTUs:_Per_Short_Ton">
+        <structure:Description>BTUs: Per Short Ton</structure:Description>
+      </structure:Code>
+      <structure:Code value="BTU">
+        <structure:Description>BTU</structure:Description>
+      </structure:Code>
+      <structure:Code value="Boolean">
+        <structure:Description>Boolean</structure:Description>
+      </structure:Code>
+      <structure:Code value="Bushels">
+        <structure:Description>Bushels</structure:Description>
+      </structure:Code>
+      <structure:Code value="Board_Feet">
+        <structure:Description>Board Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Cubic_Feet">
+        <structure:Description>Cubic Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Cubic_Feet:_Per_month">
+        <structure:Description>Cubic Feet:  Per month</structure:Description>
+      </structure:Code>
+      <structure:Code value="CWT">
+        <structure:Description>CWT</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency">
+        <structure:Description>Currency</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1968">
+        <structure:Description>Currency: Base = 1968</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1970">
+        <structure:Description>Currency: Base = 1970</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1975">
+        <structure:Description>Currency: Base = 1975</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1976">
+        <structure:Description>Currency: Base = 1976</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1977">
+        <structure:Description>Currency: Base = 1977</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1978">
+        <structure:Description>Currency: Base = 1978</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1980">
+        <structure:Description>Currency: Base = 1980</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1981">
+        <structure:Description>Currency: Base = 1981</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1982">
+        <structure:Description>Currency: Base = 1982</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1983">
+        <structure:Description>Currency: Base = 1983</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1984">
+        <structure:Description>Currency: Base = 1984</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1984-1985">
+        <structure:Description>Currency: Base = 1984-1985</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1985">
+        <structure:Description>Currency: Base = 1985</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1986">
+        <structure:Description>Currency: Base = 1986</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1987">
+        <structure:Description>Currency: Base = 1987</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1988">
+        <structure:Description>Currency: Base = 1988</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1989-1990">
+        <structure:Description>Currency: Base = 1989-1990</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1990">
+        <structure:Description>Currency: Base = 1990</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1991">
+        <structure:Description>Currency: Base = 1991</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1991-1992">
+        <structure:Description>Currency: Base = 1991-1992</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1992">
+        <structure:Description>Currency: Base = 1992</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1993">
+        <structure:Description>Currency: Base = 1993</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1993-1994">
+        <structure:Description>Currency: Base = 1993-1994</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1994">
+        <structure:Description>Currency: Base = 1994</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1995">
+        <structure:Description>Currency: Base = 1995</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1995-1996">
+        <structure:Description>Currency: Base = 1995-1996</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1996">
+        <structure:Description>Currency: Base = 1996</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1996-1997">
+        <structure:Description>Currency: Base = 1996-1997</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1997">
+        <structure:Description>Currency: Base = 1997</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1999">
+        <structure:Description>Currency: Base = 1999</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_1999-2000">
+        <structure:Description>Currency: Base = 1999-2000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2000">
+        <structure:Description>Currency: Base = 2000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2002_Apr_30">
+        <structure:Description>Currency: Base = 2002 Apr 30</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2002">
+        <structure:Description>Currency: Base = 2002</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2003">
+        <structure:Description>Currency: Base = 2003</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2005">
+        <structure:Description>Currency: Base = 2005</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2006">
+        <structure:Description>Currency: Base = 2006</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2008">
+        <structure:Description>Currency: Base = 2008</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2009">
+        <structure:Description>Currency: Base = 2009</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2010">
+        <structure:Description>Currency: Base = 2010</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2011">
+        <structure:Description>Currency: Base = 2011</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2012">
+        <structure:Description>Currency: Base = 2012</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2013">
+        <structure:Description>Currency: Base = 2013</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Base_2014">
+        <structure:Description>Currency: Base = 2014</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1982">
+        <structure:Description>Currency: Chain-weighted, Base = 1982</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1992">
+        <structure:Description>Currency: Chain-weighted, Base = 1992</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1995-1996">
+        <structure:Description>Currency: Chain-weighted, Base = 1995-1996</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1995">
+        <structure:Description>Currency: Chain-weighted, Base = 1995</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1996">
+        <structure:Description>Currency: Chain-weighted, Base = 1996</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_1997">
+        <structure:Description>Currency: Chain-weighted, Base = 1997</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2000">
+        <structure:Description>Currency: Chain-weighted, Base = 2000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2001">
+        <structure:Description>Currency: Chain-weighted, Base = 2001</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2002">
+        <structure:Description>Currency: Chain-weighted, Base = 2002</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2001-2002">
+        <structure:Description>Currency: Chain-weighted, Base = 2001-2002</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2002-2003">
+        <structure:Description>Currency: Chain-weighted, Base = 2002-2003</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2003">
+        <structure:Description>Currency: Chain-weighted, Base = 2003</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2003Q3-2004Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2003Q3-2004Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2005Q3-2006Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2005Q3-2006Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2006Q3-2007Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2006Q3-2007Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2007Q3-2008Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2007Q3-2008Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2009Q3-2010Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2009Q3-2010Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2004">
+        <structure:Description>Currency: Chain-weighted, Base = 2004</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2005">
+        <structure:Description>Currency: Chain-weighted, Base = 2005</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2006">
+        <structure:Description>Currency: Chain-weighted, Base = 2006</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2004Q3-2005Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2004Q3-2005Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2007">
+        <structure:Description>Currency: Chain-weighted, Base = 2007</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2008">
+        <structure:Description>Currency: Chain-weighted, Base = 2008</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2009">
+        <structure:Description>Currency: Chain-weighted, Base = 2009</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2011Q3-2012Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2011Q3-2012Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2010Q3-2011Q2">
+        <structure:Description>Currency: Chain-weighted, Base = 2010Q3-2011Q2</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2010">
+        <structure:Description>Currency: Chain-weighted, Base = 2010</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2011">
+        <structure:Description>Currency: Chain-weighted, Base = 2011</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2012">
+        <structure:Description>Currency: Chain-weighted, Base = 2012</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2013">
+        <structure:Description>Currency: Chain-weighted, Base = 2013</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Chain-weighted_Base_2014">
+        <structure:Description>Currency: Chain-weighted, Base = 2014</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_BEF">
+        <structure:Description>Currency: Per BEF</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_ECU">
+        <structure:Description>Currency: Per ECU</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_EUR">
+        <structure:Description>Currency: Per EUR</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_GBP">
+        <structure:Description>Currency: Per GBP</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_USD">
+        <structure:Description>Currency: Per USD</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_AUD">
+        <structure:Description>Currency: Per AUD</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_NZD">
+        <structure:Description>Currency: Per NZD</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_1_000_000_BTU">
+        <structure:Description>Currency: Per 1,000,000 BTU</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_1_000_Board_Feet">
+        <structure:Description>Currency: Per 1,000 Board Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_1_000_Square_Feet">
+        <structure:Description>Currency: Per 1,000 Square Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Acre">
+        <structure:Description>Currency: Per Acre</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Bale">
+        <structure:Description>Currency: Per Bale</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Barrel">
+        <structure:Description>Currency: Per Barrel</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Bushel">
+        <structure:Description>Currency: Per Bushel</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_BTU">
+        <structure:Description>Currency: Per BTU</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_CWT">
+        <structure:Description>Currency: Per CWT</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Dozen">
+        <structure:Description>Currency: Per Dozen</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Gallon">
+        <structure:Description>Currency: Per Gallon</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Hour">
+        <structure:Description>Currency: Per Hour</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Hour_Base_1982">
+        <structure:Description>Currency: Per Hour, Base = 1982</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Kilogram">
+        <structure:Description>Currency: Per Kilogram</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Megawatt_hour">
+        <structure:Description>Currency: Per Megawatt hour</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Month">
+        <structure:Description>Currency: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Piece">
+        <structure:Description>Currency: Per Piece</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Ounce_Troy">
+        <structure:Description>Currency: Per Ounce, Troy</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Pound">
+        <structure:Description>Currency: Per Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Square_Foot">
+        <structure:Description>Currency: Per Square Foot</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Square_Foot_Base_2002">
+        <structure:Description>Currency: Per Square Foot, Base = 2002</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Ton_Metric">
+        <structure:Description>Currency: Per Ton, Metric</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Week">
+        <structure:Description>Currency: Per Week</structure:Description>
+      </structure:Code>
+      <structure:Code value="Currency:_Per_Yard">
+        <structure:Description>Currency: Per Yard</structure:Description>
+      </structure:Code>
+      <structure:Code value="Dates">
+        <structure:Description>Dates</structure:Description>
+      </structure:Code>
+      <structure:Code value="Days">
+        <structure:Description>Days</structure:Description>
+      </structure:Code>
+      <structure:Code value="Degree_Days">
+        <structure:Description>Degree Days</structure:Description>
+      </structure:Code>
+      <structure:Code value="Dozens">
+        <structure:Description>Dozens</structure:Description>
+      </structure:Code>
+      <structure:Code value="Feet">
+        <structure:Description>Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Gallons">
+        <structure:Description>Gallons</structure:Description>
+      </structure:Code>
+      <structure:Code value="Gigawatts">
+        <structure:Description>Gigawatts</structure:Description>
+      </structure:Code>
+      <structure:Code value="Hours">
+        <structure:Description>Hours</structure:Description>
+      </structure:Code>
+      <structure:Code value="Hours:_Per_Month">
+        <structure:Description>Hours: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="Hours:_Per_Week">
+        <structure:Description>Hours: Per Week</structure:Description>
+      </structure:Code>
+      <structure:Code value="Indicator">
+        <structure:Description>Indicator</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_Base_1992">
+        <structure:Description>Index: Base = 1992</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_Base_1997">
+        <structure:Description>Index: Base = 1997</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1935_Jul_1_100">
+        <structure:Description>Index: 1935 Jul 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1924_100">
+        <structure:Description>Index: 1924 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1937_Feb_1_100">
+        <structure:Description>Index: 1937 Feb 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1941-1943_10">
+        <structure:Description>Index: 1941-1943 = 10</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1948_Jan_100">
+        <structure:Description>Index: 1948 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1949_May_16_176.21">
+        <structure:Description>Index: 1949 May 16 = 176.21</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1953_Dec_1_100">
+        <structure:Description>Index: 1953 Dec 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1956_Dec_31_100">
+        <structure:Description>Index: 1956 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1957_Jan_31_100">
+        <structure:Description>Index: 1957 Jan 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1958_Dec_31_100">
+        <structure:Description>Index: 1958 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1962_100">
+        <structure:Description>Index: 1962 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1963_100">
+        <structure:Description>Index: 1963 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1964_Jul_31_100">
+        <structure:Description>Index: 1964 Jul 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1966_100">
+        <structure:Description>Index: 1966 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1967_100">
+        <structure:Description>Index: 1967 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1968_Jan_4_100">
+        <structure:Description>Index: 1968 Jan 4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1970_100">
+        <structure:Description>Index: 1970 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1970_10">
+        <structure:Description>Index: 1970 = 10</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1970_Dec_1">
+        <structure:Description>Index: 1970 Dec = 1</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1970_Dec_31_830.27">
+        <structure:Description>Index: 1970 Dec 31 = 830.27</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1971_100">
+        <structure:Description>Index: 1971 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1972_100">
+        <structure:Description>Index: 1972 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1973_Mar_100">
+        <structure:Description>Index: 1973 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1975_Jan_2_100">
+        <structure:Description>Index: 1975 Jan 2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1975_Apr_30_100">
+        <structure:Description>Index: 1975 Apr 30 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1975_100">
+        <structure:Description>Index: 1975 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1975_1000">
+        <structure:Description>Index: 1975 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1977_100">
+        <structure:Description>Index: 1977 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1977_Dec_100">
+        <structure:Description>Index: 1977 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1977_Dec_31_100">
+        <structure:Description>Index: 1977 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1978_Sep_9_100">
+        <structure:Description>Index: 1978 Sep 9 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1978_Oct_30_0.78">
+        <structure:Description>Index: 1978 Oct 30 = 0.78</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1978_Q1_100">
+        <structure:Description>Index: 1978 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1978_Q1_1100">
+        <structure:Description>Index: 1978 Q1 = 1100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1978-1979_100">
+        <structure:Description>Index: 1978-1979 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1979_100">
+        <structure:Description>Index: 1979 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1979_500">
+        <structure:Description>Index: 1979 = 500</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1979_Dec_100">
+        <structure:Description>Index: 1979 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_100">
+        <structure:Description>Index: 1980 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Jan_100">
+        <structure:Description>Index: 1980 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Jan_1_100">
+        <structure:Description>Index: 1980 Jan 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Jan_4_100">
+        <structure:Description>Index: 1980 Jan 4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Mar_100">
+        <structure:Description>Index: 1980 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Jun_100">
+        <structure:Description>Index: 1980 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Jul_2_60">
+        <structure:Description>Index: 1980 Jul 2 = 60</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Dec_100">
+        <structure:Description>Index: 1980 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Dec_30_100">
+        <structure:Description>Index: 1980 Dec 30 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Dec_31_1404.6">
+        <structure:Description>Index: 1980 Dec 31 = 1404.6</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Q1_100">
+        <structure:Description>Index: 1980 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1980_Q4_100">
+        <structure:Description>Index: 1980 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1981_100">
+        <structure:Description>Index: 1981 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1981_Apr_100">
+        <structure:Description>Index: 1981 Apr = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1981_Jun_100">
+        <structure:Description>Index: 1981 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1981_Dec_100">
+        <structure:Description>Index: 1981 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_100">
+        <structure:Description>Index: 1982 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Jun_100">
+        <structure:Description>Index: 1982 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Aug_100">
+        <structure:Description>Index: 1982 Aug = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Aug_10_100">
+        <structure:Description>Index: 1982 Aug 10 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Oct_1_100">
+        <structure:Description>Index: 1982 Oct 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Dec_100">
+        <structure:Description>Index: 1982 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Dec_31_100">
+        <structure:Description>Index: 1982 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982_Q4_100">
+        <structure:Description>Index: 1982 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982-1983_100">
+        <structure:Description>Index: 1982-1983 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1982-1984_100">
+        <structure:Description>Index: 1982-1984 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_100">
+        <structure:Description>Index: 1983 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_Jan_3_100">
+        <structure:Description>Index: 1983 Jan 3 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_Feb_1_100">
+        <structure:Description>Index: 1983 Feb 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_Jun_100">
+        <structure:Description>Index: 1983 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_Dec_100">
+        <structure:Description>Index: 1983 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1983_Dec_31_100">
+        <structure:Description>Index: 1983 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984_Jan_3_1000">
+        <structure:Description>Index: 1984 Jan 3 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984_Jun_100">
+        <structure:Description>Index: 1984 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984_Aug_100">
+        <structure:Description>Index: 1984 Aug = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984_Dec_100">
+        <structure:Description>Index: 1984 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984_Dec_30_100">
+        <structure:Description>Index: 1984 Dec 30 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1984-1985_100">
+        <structure:Description>Index: 1984-1985 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_100">
+        <structure:Description>Index: 1985 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_0.1">
+        <structure:Description>Index: 1985 = 0.1</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Apr_1_100">
+        <structure:Description>Index: 1985 Apr 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Jan_100">
+        <structure:Description>Index: 1985 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Jun_100">
+        <structure:Description>Index: 1985 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Dec_31_100">
+        <structure:Description>Index: 1985 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Dec_31_682.94">
+        <structure:Description>Index: 1985 Dec 31 = 682.94</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Dec_100">
+        <structure:Description>Index: 1985 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1985_Q4_1000">
+        <structure:Description>Index: 1985 Q4 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_100">
+        <structure:Description>Index: 1986 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Jun_100">
+        <structure:Description>Index: 1986 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Jun_30_0.01_USD">
+        <structure:Description>Index: 1986 Jun 30 = 0.01 USD</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Jul_1_100">
+        <structure:Description>Index: 1986 Jul 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Jul_1_1000">
+        <structure:Description>Index: 1986 Jul 1 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Dec_100">
+        <structure:Description>Index: 1986 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1986_Dec_31_135">
+        <structure:Description>Index: 1986 Dec 31 = 135</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_100">
+        <structure:Description>Index: 1987 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Jan_1_2434.95">
+        <structure:Description>Index: 1987 Jan 1 = 2434.95</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Jan_100">
+        <structure:Description>Index: 1987 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Q1_100">
+        <structure:Description>Index: 1987 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Jun_100">
+        <structure:Description>Index: 1987 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Jun_1_1000">
+        <structure:Description>Index: 1987 Jun 1 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Dec_100">
+        <structure:Description>Index: 1987 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Dec_31_100">
+        <structure:Description>Index: 1987 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1987_Dec_31_1000">
+        <structure:Description>Index: 1987 Dec 31 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_100">
+        <structure:Description>Index: 1988 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Jan_4_1_000">
+        <structure:Description>Index: 1988 Jan 4 = 1,000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Jan_5_1_000">
+        <structure:Description>Index: 1988 Jan 5 = 1,000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Feb_1_210.75">
+        <structure:Description>Index: 1988 Feb 1 = 210.75</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Apr_-_1999_Mar_100">
+        <structure:Description>Index: 1988 Apr - 1999 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Apr_1_100">
+        <structure:Description>Index: 1988 Apr 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Jun_100">
+        <structure:Description>Index: 1988 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Dec_100">
+        <structure:Description>Index: 1988 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Q4_100">
+        <structure:Description>Index: 1988 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1988_Q4_1000">
+        <structure:Description>Index: 1988 Q4 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1989_100">
+        <structure:Description>Index: 1989 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1989_Jun_100">
+        <structure:Description>Index: 1989 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1989_Dec_100">
+        <structure:Description>Index: 1989 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1989-1990_100">
+        <structure:Description>Index: 1989-1990 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_100">
+        <structure:Description>Index: 1990 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Jan_100">
+        <structure:Description>Index: 1990 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Jan_1_1000">
+        <structure:Description>Index: 1990 Jan 1 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Mar_16_100">
+        <structure:Description>Index: 1990 Mar 16 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Q1_100">
+        <structure:Description>Index: 1990 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Jun_100">
+        <structure:Description>Index: 1990 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Jul_16_10000">
+        <structure:Description>Index: 1990 Jul 16 = 10000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Dec_100">
+        <structure:Description>Index: 1990 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Dec_19_100">
+        <structure:Description>Index: 1990 Dec 19 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Dec_28_1000">
+        <structure:Description>Index: 1990 Dec 28 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990_Jul_-_1991_Jun_100">
+        <structure:Description>Index: 1990 Jul - 1991 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1990-1992_100">
+        <structure:Description>Index: 1990-1992 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_100">
+        <structure:Description>Index: 1991 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Q1_100">
+        <structure:Description>Index: 1991 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_1000000000">
+        <structure:Description>Index: 1991 = 1000000000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Jan_1_1000">
+        <structure:Description>Index: 1991 Jan 1 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Apr_3_100">
+        <structure:Description>Index: 1991 Apr 3 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Jan_100">
+        <structure:Description>Index: 1991 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Jun_100">
+        <structure:Description>Index: 1991 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Dec_100">
+        <structure:Description>Index: 1991 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Dec_31_100">
+        <structure:Description>Index: 1991 Dec 31 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1991_Apr_-_1992_Mar_100">
+        <structure:Description>Index: 1991 Apr - 1992 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_100">
+        <structure:Description>Index: 1992 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Jan_100">
+        <structure:Description>Index: 1992 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Feb_21_100">
+        <structure:Description>Index: 1992 Feb 21 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Feb_28_100">
+        <structure:Description>Index: 1992 Feb 28 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Jun_100">
+        <structure:Description>Index: 1992 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Dec_100">
+        <structure:Description>Index: 1992 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Dec_30_100">
+        <structure:Description>Index: 1992 Dec 30 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Oct_-_1993_Sep_100">
+        <structure:Description>Index: 1992 Oct - 1993 Sep = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Q4_100">
+        <structure:Description>Index: 1992 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1992_Q4_1000">
+        <structure:Description>Index: 1992 Q4 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_100">
+        <structure:Description>Index: 1993 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_Apr_100">
+        <structure:Description>Index: 1993 Apr = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_May_100">
+        <structure:Description>Index: 1993 May = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_Jun_100">
+        <structure:Description>Index: 1993 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_Dec_100">
+        <structure:Description>Index: 1993 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_Dec_1000">
+        <structure:Description>Index: 1993 Dec = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993_Q4_1000">
+        <structure:Description>Index: 1993 Q4 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1993-1994_100">
+        <structure:Description>Index: 1993-1994 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_100">
+        <structure:Description>Index: 1994 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_Jul_100">
+        <structure:Description>Index: 1994 Jul = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_Sep_30_2922.21">
+        <structure:Description>Index: 1994 Sep 30 = 2922.21</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_Nov_18_100">
+        <structure:Description>Index: 1994 Nov 18 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_Dec_100">
+        <structure:Description>Index: 1994 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1994_Q4_100">
+        <structure:Description>Index: 1994 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_100">
+        <structure:Description>Index: 1995 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Jun_100">
+        <structure:Description>Index: 1995 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Nov_100">
+        <structure:Description>Index: 1995 Nov = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Dec_100">
+        <structure:Description>Index: 1995 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Sep_20_300">
+        <structure:Description>Index: 1995 Sep 20 = 300</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Dec_29_550">
+        <structure:Description>Index: 1995 Dec 29 = 550</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2011_Dec_100">
+        <structure:Description>Index: 2011 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Q1_100">
+        <structure:Description>Index: 1995 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995_Q3_-_1996_Q2_100">
+        <structure:Description>Index: 1995 Q3 - 1996 Q2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1995-1996_100">
+        <structure:Description>Index: 1995-1996 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996_100">
+        <structure:Description>Index: 1996 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996_Dec_100">
+        <structure:Description>Index: 1996 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996_Feb_100">
+        <structure:Description>Index: 1996 Feb = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996_Jun_100">
+        <structure:Description>Index: 1996 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996_Q1_100">
+        <structure:Description>Index: 1996 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1996-1997_100">
+        <structure:Description>Index: 1996-1997 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_100">
+        <structure:Description>Index: 1997 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Jan_100">
+        <structure:Description>Index: 1997 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_May_5_9993.57">
+        <structure:Description>Index: 1997 May 5 = 9993.57</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Jun_1_100">
+        <structure:Description>Index: 1997 Jun 1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Dec_100">
+        <structure:Description>Index: 1997 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Nov_-_1998_Oct_100">
+        <structure:Description>Index: 1997 Nov - 1998 Oct = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Q4_100">
+        <structure:Description>Index: 1997 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1997_Q4_1000">
+        <structure:Description>Index: 1997 Q4 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1998_100">
+        <structure:Description>Index: 1998 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1998_Aug_28_885.26">
+        <structure:Description>Index: 1998 Aug 28 = 885.26</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1998_Jun_100">
+        <structure:Description>Index: 1998 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1998_Dec_100">
+        <structure:Description>Index: 1998 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1998_Q4_100">
+        <structure:Description>Index: 1998 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_100">
+        <structure:Description>Index: 1999 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_Q2_1000">
+        <structure:Description>Index: 1999 Q2 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_Dec_100">
+        <structure:Description>Index: 1999 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_Jun_100">
+        <structure:Description>Index: 1999 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_Jul_100">
+        <structure:Description>Index: 1999 Jul = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999_Oct_-_2000_Sep_100">
+        <structure:Description>Index: 1999 Oct - 2000 Sep = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_1999-2000_100">
+        <structure:Description>Index: 1999-2000 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_100">
+        <structure:Description>Index: 2000 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_Jan_100">
+        <structure:Description>Index: 2000 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_Q1_100">
+        <structure:Description>Index: 2000 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_May_100">
+        <structure:Description>Index: 2000 May = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_Jun_100">
+        <structure:Description>Index: 2000 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2000_Dec_100">
+        <structure:Description>Index: 2000 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2001_100">
+        <structure:Description>Index: 2001 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2001_Q2_1000">
+        <structure:Description>Index: 2001 Q2 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2001_Jun_100">
+        <structure:Description>Index: 2001 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2001_Dec_100">
+        <structure:Description>Index: 2001 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2001-2002_100">
+        <structure:Description>Index: 2001-2002 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2002_100">
+        <structure:Description>Index: 2002 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2002_Jun_100">
+        <structure:Description>Index: 2002 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2002_Dec_100">
+        <structure:Description>Index: 2002 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2002_Dec_31_5000">
+        <structure:Description>Index: 2002 Dec 31 = 5000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2002-2003_100">
+        <structure:Description>Index: 2002-2003 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2003_100">
+        <structure:Description>Index: 2003 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2003_May_100">
+        <structure:Description>Index: 2003 May = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2003_Dec_100">
+        <structure:Description>Index: 2003 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2010_Dec_100">
+        <structure:Description>Index: 2010 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2010_Jan_100">
+        <structure:Description>Index: 2010 Jan = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_Nov_100">
+        <structure:Description>Index: 2009 Nov = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2003_Q1_100">
+        <structure:Description>Index: 2003 Q1 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2003_Q3_-_2004_Q2_100">
+        <structure:Description>Index: 2003 Q3 - 2004 Q2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2004_Q3_-_2005_Q2_100">
+        <structure:Description>Index: 2004 Q3 - 2005 Q2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2005_Q3_-_2006_Q2_100">
+        <structure:Description>Index: 2005 Q3 - 2006 Q2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2006_Q3_-_2007_Q2_100">
+        <structure:Description>Index: 2006 Q3 - 2007 Q2 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2004_100">
+        <structure:Description>Index: 2004 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2004_Dec_100">
+        <structure:Description>Index: 2004 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2005_Jun_100">
+        <structure:Description>Index: 2005 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2005_Dec_100">
+        <structure:Description>Index: 2005 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2010_Apr_100">
+        <structure:Description>Index: 2010 Apr = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2005_100">
+        <structure:Description>Index: 2005 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2006_100">
+        <structure:Description>Index: 2006 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2006_Jun_100">
+        <structure:Description>Index: 2006 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2006_Q2_1000">
+        <structure:Description>Index: 2006 Q2 = 1000</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2006_Dec_100">
+        <structure:Description>Index: 2006 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2007_Jun_100">
+        <structure:Description>Index: 2007 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2007_Dec_100">
+        <structure:Description>Index: 2007 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_Jun_100">
+        <structure:Description>Index: 2009 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2011_Jun_100">
+        <structure:Description>Index: 2011 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2012_Jun_100">
+        <structure:Description>Index: 2012 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_Dec_100">
+        <structure:Description>Index: 2009 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2007_100">
+        <structure:Description>Index: 2007 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2008_100">
+        <structure:Description>Index: 2008 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2008_Jun_100">
+        <structure:Description>Index: 2008 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2008_Dec_100">
+        <structure:Description>Index: 2008 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_100">
+        <structure:Description>Index: 2009 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_Apr_100">
+        <structure:Description>Index: 2009 Apr = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_Mar_100">
+        <structure:Description>Index: 2009 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2010_100">
+        <structure:Description>Index: 2010 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2011_100">
+        <structure:Description>Index: 2011 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2012_100">
+        <structure:Description>Index: 2012 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2012_Mar_100">
+        <structure:Description>Index: 2012 Mar = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2012_Dec_100">
+        <structure:Description>Index: 2012 Dec = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2013_Oct_100">
+        <structure:Description>Index: 2013 Oct = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2013_100">
+        <structure:Description>Index: 2013 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2014_Jun_100">
+        <structure:Description>Index: 2014 Jun = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2008_Q4_100">
+        <structure:Description>Index: 2008 Q4 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Index:_2009_-_2010_100">
+        <structure:Description>Index: 2009 - 2010 = 100</structure:Description>
+      </structure:Code>
+      <structure:Code value="Kilowatt_Hours">
+        <structure:Description>Kilowatt Hours</structure:Description>
+      </structure:Code>
+      <structure:Code value="Months">
+        <structure:Description>Months</structure:Description>
+      </structure:Code>
+      <structure:Code value="Number">
+        <structure:Description>Number</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ounces">
+        <structure:Description>Ounces</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ounces_Troy">
+        <structure:Description>Ounces, Troy</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percent">
+        <structure:Description>Percent</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percent:_Per_Month">
+        <structure:Description>Percent: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percent:_Per_Quarter">
+        <structure:Description>Percent: Per Quarter</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percent:_Per_Year">
+        <structure:Description>Percent: Per Year</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percentage">
+        <structure:Description>Percentage</structure:Description>
+      </structure:Code>
+      <structure:Code value="Percentage_of_Industrial_Production_in_2012">
+        <structure:Description>Percentage of Industrial Production in 2012</structure:Description>
+      </structure:Code>
+      <structure:Code value="Pounds">
+        <structure:Description>Pounds</structure:Description>
+      </structure:Code>
+      <structure:Code value="Square_Feet">
+        <structure:Description>Square Feet</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ton_Metric">
+        <structure:Description>Ton, Metric</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ton_Metric:_Per_Month">
+        <structure:Description>Ton, Metric: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ton-miles">
+        <structure:Description>Ton-miles</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ton_Short">
+        <structure:Description>Ton, Short</structure:Description>
+      </structure:Code>
+      <structure:Code value="Ton_Short:_Per_Month">
+        <structure:Description>Ton, Short: Per Month</structure:Description>
+      </structure:Code>
+      <structure:Code value="Weeks">
+        <structure:Description>Weeks</structure:Description>
+      </structure:Code>
+      <structure:Code value="Yards">
+        <structure:Description>Yards</structure:Description>
+      </structure:Code>
+      <structure:Code value="Years">
+        <structure:Description>Years</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_CURRENCY" agency="FRB">
+      <structure:Name>Currency</structure:Name>
+      <structure:Code value="NA">
+        <structure:Description>Not Applicable</structure:Description>
+      </structure:Code>
+      <structure:Code value="USD">
+        <structure:Description>United States / United States Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="USN">
+        <structure:Description>United States / United States Dollar (Next day)</structure:Description>
+      </structure:Code>
+      <structure:Code value="USS">
+        <structure:Description>United States / United States Dollar (Same day)</structure:Description>
+      </structure:Code>
+      <structure:Code value="AFA">
+        <structure:Description>Afghanistan / Afghani</structure:Description>
+      </structure:Code>
+      <structure:Code value="ALL">
+        <structure:Description>Albania / Lek</structure:Description>
+      </structure:Code>
+      <structure:Code value="DZD">
+        <structure:Description>Algeria / Algerian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="AOK">
+        <structure:Description>Angola / Kwanza</structure:Description>
+      </structure:Code>
+      <structure:Code value="AON">
+        <structure:Description>Angola / New Kwanza</structure:Description>
+      </structure:Code>
+      <structure:Code value="ARS">
+        <structure:Description>Argentina / Argentinian Nuevo Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="ARP">
+        <structure:Description>Argentina / Argentinian Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="ARA">
+        <structure:Description>Argentina / Austral</structure:Description>
+      </structure:Code>
+      <structure:Code value="AMD">
+        <structure:Description>Armenia / Dram</structure:Description>
+      </structure:Code>
+      <structure:Code value="AWG">
+        <structure:Description>Aruba / Aruban Guilder</structure:Description>
+      </structure:Code>
+      <structure:Code value="AUD">
+        <structure:Description>Australia / Australian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="ATS">
+        <structure:Description>Austria / Austrian Schilling</structure:Description>
+      </structure:Code>
+      <structure:Code value="AZM">
+        <structure:Description>Azerbaijan / Azerbaijani Manat</structure:Description>
+      </structure:Code>
+      <structure:Code value="BSD">
+        <structure:Description>Bahamas / Bahamian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BHD">
+        <structure:Description>Bahrain / Bahraini Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BDT">
+        <structure:Description>Bangladesh / Taka</structure:Description>
+      </structure:Code>
+      <structure:Code value="BBD">
+        <structure:Description>Barbados / Barbados Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BYR">
+        <structure:Description>Belarus / Belarussian Rouble</structure:Description>
+      </structure:Code>
+      <structure:Code value="BEF">
+        <structure:Description>Belgium / Belgian Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="BZD">
+        <structure:Description>Belize / Belize Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BMD">
+        <structure:Description>Bermuda / Bermudian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BTN">
+        <structure:Description>Bhutan / Ngultrum</structure:Description>
+      </structure:Code>
+      <structure:Code value="BOP">
+        <structure:Description>Bolivia / Bolivian Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="BOB">
+        <structure:Description>Bolivia / Boliviano</structure:Description>
+      </structure:Code>
+      <structure:Code value="BAD">
+        <structure:Description>Bosnia / Bosnian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BWP">
+        <structure:Description>Botswana / Pula</structure:Description>
+      </structure:Code>
+      <structure:Code value="BRC">
+        <structure:Description>Brazil / Cruzeiro</structure:Description>
+      </structure:Code>
+      <structure:Code value="BRR">
+        <structure:Description>Brazil / Cruzeiro Real</structure:Description>
+      </structure:Code>
+      <structure:Code value="BRL">
+        <structure:Description>Brazil / Real</structure:Description>
+      </structure:Code>
+      <structure:Code value="BND">
+        <structure:Description>Brunei / Brunei Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="BGL">
+        <structure:Description>Bulgaria / Lev</structure:Description>
+      </structure:Code>
+      <structure:Code value="BFF">
+        <structure:Description>Burkina Faso / Burkina Faso Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="BIF">
+        <structure:Description>Burundi / Burundi Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="KHR">
+        <structure:Description>Cambodia / Riel</structure:Description>
+      </structure:Code>
+      <structure:Code value="CAD">
+        <structure:Description>Canada / Canadian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="CVE">
+        <structure:Description>Cape Verde Islands / Escudo Caboverdiano</structure:Description>
+      </structure:Code>
+      <structure:Code value="KYD">
+        <structure:Description>Cayman Islands / Cayman Islands Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="CLP">
+        <structure:Description>Chile / Chilean Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="CLF">
+        <structure:Description>Chile / Unidades de Fomento</structure:Description>
+      </structure:Code>
+      <structure:Code value="CNY">
+        <structure:Description>China / Yuan Renminbi</structure:Description>
+      </structure:Code>
+      <structure:Code value="COP">
+        <structure:Description>Colombia / Colombian Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="KMF">
+        <structure:Description>Comoros / Comorian Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="CRC">
+        <structure:Description>Costa Rica / Costa Rican Colon</structure:Description>
+      </structure:Code>
+      <structure:Code value="HRD">
+        <structure:Description>Croatia / Croatian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="HRK">
+        <structure:Description>Croatia / Croatian Kuna</structure:Description>
+      </structure:Code>
+      <structure:Code value="CUP">
+        <structure:Description>Cuba / Cuban Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="CYP">
+        <structure:Description>Cyprus / Cypriot Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="CZK">
+        <structure:Description>Czech Republic / Czech Koruna</structure:Description>
+      </structure:Code>
+      <structure:Code value="DKK">
+        <structure:Description>Denmark / Danish Krone</structure:Description>
+      </structure:Code>
+      <structure:Code value="DJF">
+        <structure:Description>Djibouti / Djibouti Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="DOP">
+        <structure:Description>Dominican Republic / Dominican Republic Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="TPE">
+        <structure:Description>East Timor / Timorian Escudo</structure:Description>
+      </structure:Code>
+      <structure:Code value="EGP">
+        <structure:Description>Egypt / Egyptian Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="SVC">
+        <structure:Description>El Salvador / El Salvadorian Colon</structure:Description>
+      </structure:Code>
+      <structure:Code value="GQE">
+        <structure:Description>Equatorial Guinea / Ekwele</structure:Description>
+      </structure:Code>
+      <structure:Code value="ERN">
+        <structure:Description>Eritrea / Eritrean Nakfa</structure:Description>
+      </structure:Code>
+      <structure:Code value="EEK">
+        <structure:Description>Estonia / Kroon</structure:Description>
+      </structure:Code>
+      <structure:Code value="ETB">
+        <structure:Description>Ethiopia / Ethiopian Birr</structure:Description>
+      </structure:Code>
+      <structure:Code value="XEU">
+        <structure:Description>Euro Area / ECU</structure:Description>
+      </structure:Code>
+      <structure:Code value="EUR">
+        <structure:Description>Euro Area / Euro (replacement name for the ECU)</structure:Description>
+      </structure:Code>
+      <structure:Code value="FKP">
+        <structure:Description>Falkland Islands / Falkland Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="FJD">
+        <structure:Description>Fiji Islands / Fiji Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="FIM">
+        <structure:Description>Finland / Marka</structure:Description>
+      </structure:Code>
+      <structure:Code value="FRF">
+        <structure:Description>France / French Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="GMD">
+        <structure:Description>Gambia / Dalasi</structure:Description>
+      </structure:Code>
+      <structure:Code value="GEL">
+        <structure:Description>Georgia / Lari</structure:Description>
+      </structure:Code>
+      <structure:Code value="DEM">
+        <structure:Description>Germany / Mark</structure:Description>
+      </structure:Code>
+      <structure:Code value="GHC">
+        <structure:Description>Ghana / Cedi</structure:Description>
+      </structure:Code>
+      <structure:Code value="GIP">
+        <structure:Description>Gibraltar / Gibraltar Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="GRD">
+        <structure:Description>Greece / Drachma</structure:Description>
+      </structure:Code>
+      <structure:Code value="GTQ">
+        <structure:Description>Guatemala / Quetzal</structure:Description>
+      </structure:Code>
+      <structure:Code value="GNS">
+        <structure:Description>Guinea / Syli (also known as Guinea Franc)</structure:Description>
+      </structure:Code>
+      <structure:Code value="GWP">
+        <structure:Description>Guinea-Bissau / Guinea-Bissau Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="GYD">
+        <structure:Description>Guyana / Guyana Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="HTG">
+        <structure:Description>Haiti / Gourde</structure:Description>
+      </structure:Code>
+      <structure:Code value="HNL">
+        <structure:Description>Honduras / Lempira</structure:Description>
+      </structure:Code>
+      <structure:Code value="HKD">
+        <structure:Description>Hong Kong / Hong Kong Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="HUF">
+        <structure:Description>Hungary / Forint</structure:Description>
+      </structure:Code>
+      <structure:Code value="ISK">
+        <structure:Description>Iceland / Icelandic Krona</structure:Description>
+      </structure:Code>
+      <structure:Code value="INR">
+        <structure:Description>India / Indian Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="IDR">
+        <structure:Description>Indonesia / Rupiah</structure:Description>
+      </structure:Code>
+      <structure:Code value="IRR">
+        <structure:Description>Iran / Iranian Rial</structure:Description>
+      </structure:Code>
+      <structure:Code value="IQD">
+        <structure:Description>Iraq / Iraqi Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="IEP">
+        <structure:Description>Ireland / Punt</structure:Description>
+      </structure:Code>
+      <structure:Code value="ILS">
+        <structure:Description>Israel / Shekel</structure:Description>
+      </structure:Code>
+      <structure:Code value="ITL">
+        <structure:Description>Italy / Italian Lira</structure:Description>
+      </structure:Code>
+      <structure:Code value="JMD">
+        <structure:Description>Jamaica / Jamaican Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="JPY">
+        <structure:Description>Japan / Yen</structure:Description>
+      </structure:Code>
+      <structure:Code value="JOD">
+        <structure:Description>Jordan / Jordanian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="KZT">
+        <structure:Description>Kazakstan / Tenge</structure:Description>
+      </structure:Code>
+      <structure:Code value="KES">
+        <structure:Description>Kenya / Kenyan Shilling</structure:Description>
+      </structure:Code>
+      <structure:Code value="KGS">
+        <structure:Description>Krygyzstan / Kyrgyzstani Som</structure:Description>
+      </structure:Code>
+      <structure:Code value="KWD">
+        <structure:Description>Kuwait / Kuwaiti Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="LAK">
+        <structure:Description>Laos / Kip</structure:Description>
+      </structure:Code>
+      <structure:Code value="LVL">
+        <structure:Description>Latvia / Lat</structure:Description>
+      </structure:Code>
+      <structure:Code value="LBP">
+        <structure:Description>Lebanon / Lebanese Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="LSL">
+        <structure:Description>Lesotho / Loti</structure:Description>
+      </structure:Code>
+      <structure:Code value="LSM">
+        <structure:Description>Lesotho / Maloti</structure:Description>
+      </structure:Code>
+      <structure:Code value="LRD">
+        <structure:Description>Liberia / Liberian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="LYD">
+        <structure:Description>Libya / Libyan Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="LTL">
+        <structure:Description>Lithuania / Litas</structure:Description>
+      </structure:Code>
+      <structure:Code value="LUF">
+        <structure:Description>Luxembourg / Luxembourg Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="MOP">
+        <structure:Description>Macau / Pataca</structure:Description>
+      </structure:Code>
+      <structure:Code value="MKD">
+        <structure:Description>Macedonia / Macedonian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="MGF">
+        <structure:Description>Madagascar / Malagasy Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="MWK">
+        <structure:Description>Malawi / Malawian Kwacha</structure:Description>
+      </structure:Code>
+      <structure:Code value="MYR">
+        <structure:Description>Malaysia / Ringgit (also known as Malaysian Dollar)</structure:Description>
+      </structure:Code>
+      <structure:Code value="MVR">
+        <structure:Description>Maldives / Rufiyaa</structure:Description>
+      </structure:Code>
+      <structure:Code value="MLF">
+        <structure:Description>Mali / Malian Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="MTL">
+        <structure:Description>Malta / Maltese Lira</structure:Description>
+      </structure:Code>
+      <structure:Code value="MRO">
+        <structure:Description>Mauritania / Ouguiya</structure:Description>
+      </structure:Code>
+      <structure:Code value="MUR">
+        <structure:Description>Mauritius / Mauritius Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="MXN">
+        <structure:Description>Mexico / Mexican New Peso (replacement for Mexican Peso)</structure:Description>
+      </structure:Code>
+      <structure:Code value="MDL">
+        <structure:Description>Moldova / Moldavian Leu</structure:Description>
+      </structure:Code>
+      <structure:Code value="MNT">
+        <structure:Description>Mongolia / Tugrik</structure:Description>
+      </structure:Code>
+      <structure:Code value="MAD">
+        <structure:Description>Morocco / Moroccan Dirham</structure:Description>
+      </structure:Code>
+      <structure:Code value="MZM">
+        <structure:Description>Mozambique / Metical</structure:Description>
+      </structure:Code>
+      <structure:Code value="MMK">
+        <structure:Description>Myanmar / Kyat</structure:Description>
+      </structure:Code>
+      <structure:Code value="NAD">
+        <structure:Description>Namibia / Namibian Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="NPR">
+        <structure:Description>Nepal / Nepalese Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="NLG">
+        <structure:Description>Netherlands / Netherlands Guilder</structure:Description>
+      </structure:Code>
+      <structure:Code value="ANG">
+        <structure:Description>Netherlands / Netherlands Antilles Guilder</structure:Description>
+      </structure:Code>
+      <structure:Code value="NZD">
+        <structure:Description>New Zealand / New Zealand Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="NIC">
+        <structure:Description>Nicaragua / Cordoba</structure:Description>
+      </structure:Code>
+      <structure:Code value="NGN">
+        <structure:Description>Nigeria / Naira</structure:Description>
+      </structure:Code>
+      <structure:Code value="KPW">
+        <structure:Description>North Korea / Democratic People's Republic of Korean Won</structure:Description>
+      </structure:Code>
+      <structure:Code value="NOK">
+        <structure:Description>Norway / Norwegian Krone</structure:Description>
+      </structure:Code>
+      <structure:Code value="OMR">
+        <structure:Description>Oman / Omani Rial</structure:Description>
+      </structure:Code>
+      <structure:Code value="PKR">
+        <structure:Description>Pakistan / Pakistani Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="PAB">
+        <structure:Description>Panama / Balboa</structure:Description>
+      </structure:Code>
+      <structure:Code value="PGK">
+        <structure:Description>Papua New Guinea / Kina</structure:Description>
+      </structure:Code>
+      <structure:Code value="PYG">
+        <structure:Description>Paraguay / Guarani</structure:Description>
+      </structure:Code>
+      <structure:Code value="PEI">
+        <structure:Description>Peru / Inti</structure:Description>
+      </structure:Code>
+      <structure:Code value="PEN">
+        <structure:Description>Peru / New Sol</structure:Description>
+      </structure:Code>
+      <structure:Code value="PHP">
+        <structure:Description>Philippines / Philippines Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="PLN">
+        <structure:Description>Poland / New Zloty</structure:Description>
+      </structure:Code>
+      <structure:Code value="PTE">
+        <structure:Description>Portugal / Portuguese Escudo</structure:Description>
+      </structure:Code>
+      <structure:Code value="QAR">
+        <structure:Description>Qatar / Qatari Riyal</structure:Description>
+      </structure:Code>
+      <structure:Code value="ROL">
+        <structure:Description>Romania / Romanian Leu</structure:Description>
+      </structure:Code>
+      <structure:Code value="RUR">
+        <structure:Description>Russia / Russian Federation Rouble</structure:Description>
+      </structure:Code>
+      <structure:Code value="RWF">
+        <structure:Description>Rwanda / Rwandan Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="SHP">
+        <structure:Description>Saint Helena / St Helena Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="WST">
+        <structure:Description>Samoa / Tala</structure:Description>
+      </structure:Code>
+      <structure:Code value="STD">
+        <structure:Description>Sao Tome and Principe / Dobra</structure:Description>
+      </structure:Code>
+      <structure:Code value="SAR">
+        <structure:Description>Saudi Arabia / Saudi Riyal</structure:Description>
+      </structure:Code>
+      <structure:Code value="SCR">
+        <structure:Description>Seychelles / Seychelles Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="SLL">
+        <structure:Description>Sierra Leone / Leone</structure:Description>
+      </structure:Code>
+      <structure:Code value="SGD">
+        <structure:Description>Singapore / Singapore Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="SKK">
+        <structure:Description>Slovakia / Slovak Koruna</structure:Description>
+      </structure:Code>
+      <structure:Code value="SIT">
+        <structure:Description>Slovenia / Tolar</structure:Description>
+      </structure:Code>
+      <structure:Code value="SBD">
+        <structure:Description>Solomon Islands / Solomon Islands Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="SOS">
+        <structure:Description>Somalia / Somali Shilling</structure:Description>
+      </structure:Code>
+      <structure:Code value="ZAR">
+        <structure:Description>South Africa / Rand</structure:Description>
+      </structure:Code>
+      <structure:Code value="ZAL">
+        <structure:Description>South Africa / Rand (financial)</structure:Description>
+      </structure:Code>
+      <structure:Code value="KRW">
+        <structure:Description>South Korea / Republic of Korean Won</structure:Description>
+      </structure:Code>
+      <structure:Code value="SUR">
+        <structure:Description>Soviet Union / Union of Soviet Socialist Republics Rouble</structure:Description>
+      </structure:Code>
+      <structure:Code value="ESP">
+        <structure:Description>Spain / Peseta</structure:Description>
+      </structure:Code>
+      <structure:Code value="LKR">
+        <structure:Description>Sri Lanka / Sri Lankan Rupee</structure:Description>
+      </structure:Code>
+      <structure:Code value="SDD">
+        <structure:Description>Sudan / Sudanese Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="SDP">
+        <structure:Description>Sudan / Sudanese Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="SRG">
+        <structure:Description>Suriname / Surinam Guilder</structure:Description>
+      </structure:Code>
+      <structure:Code value="SZL">
+        <structure:Description>Swaziland / Lilangeni</structure:Description>
+      </structure:Code>
+      <structure:Code value="SEK">
+        <structure:Description>Sweden / Swedish Krona</structure:Description>
+      </structure:Code>
+      <structure:Code value="CHF">
+        <structure:Description>Switzerland / Swiss Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="SYP">
+        <structure:Description>Syria / Syrian Pound</structure:Description>
+      </structure:Code>
+      <structure:Code value="TWD">
+        <structure:Description>Taiwan / Taiwan Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="TJR">
+        <structure:Description>Tajikistan / Tajik Rouble</structure:Description>
+      </structure:Code>
+      <structure:Code value="TZS">
+        <structure:Description>Tanzania / Tanzanian Shilling</structure:Description>
+      </structure:Code>
+      <structure:Code value="THB">
+        <structure:Description>Thailand / Baht</structure:Description>
+      </structure:Code>
+      <structure:Code value="TOP">
+        <structure:Description>Tonga / Pa'anga</structure:Description>
+      </structure:Code>
+      <structure:Code value="TTD">
+        <structure:Description>Trinidad and Tobago / Trinidad and Tobago Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="TND">
+        <structure:Description>Tunisia / Tunisian Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="TRL">
+        <structure:Description>Turkey / Turkish Lira</structure:Description>
+      </structure:Code>
+      <structure:Code value="TMM">
+        <structure:Description>Turkmenistan / Turkmenistani Manat</structure:Description>
+      </structure:Code>
+      <structure:Code value="UGS">
+        <structure:Description>Uganda / Ugandan Shilling</structure:Description>
+      </structure:Code>
+      <structure:Code value="UAH">
+        <structure:Description>Ukraine / Hryvna</structure:Description>
+      </structure:Code>
+      <structure:Code value="UAK">
+        <structure:Description>Ukraine / Karbovanet</structure:Description>
+      </structure:Code>
+      <structure:Code value="AED">
+        <structure:Description>United Arab Emirates / United Arab Emirates Dirham</structure:Description>
+      </structure:Code>
+      <structure:Code value="GBP">
+        <structure:Description>United Kingdom / Pound Sterling (United Kingdom Pound)</structure:Description>
+      </structure:Code>
+      <structure:Code value="UYU">
+        <structure:Description>Uruguay / Uruguayan New Peso</structure:Description>
+      </structure:Code>
+      <structure:Code value="UZS">
+        <structure:Description>Uzbekistan / Uzbekistani Som</structure:Description>
+      </structure:Code>
+      <structure:Code value="VUV">
+        <structure:Description>Vanuatu / Vatu</structure:Description>
+      </structure:Code>
+      <structure:Code value="VEB">
+        <structure:Description>Venezuela / Bolivar</structure:Description>
+      </structure:Code>
+      <structure:Code value="VND">
+        <structure:Description>Vietnam / Viet Nam Dong</structure:Description>
+      </structure:Code>
+      <structure:Code value="XOF">
+        <structure:Description>West Africa / West African Franc</structure:Description>
+      </structure:Code>
+      <structure:Code value="YDD">
+        <structure:Description>Yemen / South Yemeni Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="YER">
+        <structure:Description>Yemen / Yemeni Riyal</structure:Description>
+      </structure:Code>
+      <structure:Code value="YUD">
+        <structure:Description>Yugoslavia / Yugoslavian New Dinar</structure:Description>
+      </structure:Code>
+      <structure:Code value="CDZ">
+        <structure:Description>Zaire / New Zaire</structure:Description>
+      </structure:Code>
+      <structure:Code value="ZMK">
+        <structure:Description>Zambia / Zambian Kwacha</structure:Description>
+      </structure:Code>
+      <structure:Code value="ZWD">
+        <structure:Description>Zimbabwe / Zimbabwe Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="XCD">
+        <structure:Description>East Caribbean Dollar</structure:Description>
+      </structure:Code>
+      <structure:Code value="XAF">
+        <structure:Description>Franc de la Communaute financiere africaine</structure:Description>
+      </structure:Code>
+      <structure:Code value="XPF">
+        <structure:Description>Franc des Comptoirs francais du Pacifique</structure:Description>
+      </structure:Code>
+      <structure:Code value="XAU">
+        <structure:Description>Gold</structure:Description>
+      </structure:Code>
+      <structure:Code value="XDR">
+        <structure:Description>International Monetary Fund Special Drawing Rights</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_CCOUT_CREDTYP" agency="FRB">
+	   <structure:Name>Credit Type</structure:Name>
+		<structure:Code value="TOTAL">
+		  <structure:Description>All credit types</structure:Description>
+      </structure:Code>
+		<structure:Code value="REV">
+		  <structure:Description>Revolving credit</structure:Description>
+      </structure:Code>
+		<structure:Code value="NONREV">
+		  <structure:Description>Nonrevolving credit</structure:Description>
+      </structure:Code>
+		<structure:Code value="STUDENT">
+		  <structure:Description>Student loans</structure:Description>
+      </structure:Code>
+		<structure:Code value="MOTOR">
+		  <structure:Description>Motor vehicle loans</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_CCOUT_HOLDER" agency="FRB">
+	   <structure:Name>Holder</structure:Name>
+		<structure:Code value="ALL">
+		  <structure:Description>All holders</structure:Description>
+      </structure:Code>
+		<structure:Code value="DEPOINST">
+		  <structure:Description>Depository institutions</structure:Description>
+      </structure:Code>
+		<structure:Code value="COMBANK">
+		  <structure:Description>Commercial banks</structure:Description>
+      </structure:Code>
+		<structure:Code value="FINCO">
+		  <structure:Description>Finance companies</structure:Description>
+      </structure:Code>
+		<structure:Code value="CRUNION">
+		  <structure:Description>Credit unions</structure:Description>
+      </structure:Code>
+		<structure:Code value="FEDGOVT">
+		  <structure:Description>Federal government and Sallie Mae</structure:Description>
+      </structure:Code>
+		<structure:Code value="NONPROF">
+		  <structure:Description>Nonprofit and educational institutions</structure:Description>
+      </structure:Code>
+		<structure:Code value="SAVING">
+		  <structure:Description>Savings institutions</structure:Description>
+      </structure:Code>
+		<structure:Code value="NONFIN">
+		  <structure:Description>Nonfinancial business</structure:Description>
+      </structure:Code>
+		<structure:Code value="POOLS">
+		  <structure:Description>Pools of securitized assets</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_CCOUT_DATAREP" agency="FRB">
+	   <structure:Name>Data Representation</structure:Name>
+		<structure:Code value="PCTCHG">
+		  <structure:Description>Percent Change</structure:Description>
+      </structure:Code>
+		<structure:Code value="MILLDOLL">
+		  <structure:Description>Millions of dollars</structure:Description>
+      </structure:Code>
+		<structure:Code value="BILLDOLL">
+		  <structure:Description>Billions of dollars</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_ISSUE" agency="FRB">
+	   <structure:Name>Issuer</structure:Name>
+		<structure:Code value="COMBANK">
+		  <structure:Description>Commercial Banks</structure:Description>
+      </structure:Code>
+		<structure:Code value="FINCO">
+		  <structure:Description>Finance Companies</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_TERMS" agency="FRB">
+	   <structure:Name>Terms of Credit</structure:Name>
+		<structure:Code value="NEWCAR">
+		  <structure:Description>48-mo. new car interest rate</structure:Description>
+      </structure:Code>
+		<structure:Code value="PERS">
+		  <structure:Description>24-mo. personal loan interest rate</structure:Description>
+      </structure:Code>
+		<structure:Code value="ALLCC">
+		  <structure:Description>All credit card plan interest rates</structure:Description>
+      </structure:Code>
+		<structure:Code value="ALLINTCC">
+		  <structure:Description>All credit card assessed interest</structure:Description>
+      </structure:Code>
+		<structure:Code value="INTRATE">
+		  <structure:Description>New car loans interest rates</structure:Description>
+      </structure:Code>
+		<structure:Code value="MAT">
+		  <structure:Description>Maturity (months)</structure:Description>
+      </structure:Code>
+		<structure:Code value="LTV">
+		  <structure:Description>Loan-to-value ratio</structure:Description>
+      </structure:Code>
+		<structure:Code value="AMTFIN">
+		  <structure:Description>Amount financed</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+    <structure:CodeList id="CL_SA" agency="FRB">
+	   <structure:Name>Seasonal Adjustment</structure:Name>
+		<structure:Code value="SA">
+		  <structure:Description>Seasonally adjusted</structure:Description>
+      </structure:Code>
+		<structure:Code value="NSA">
+		  <structure:Description>Not seasonally adjusted</structure:Description>
+      </structure:Code>
+    </structure:CodeList>
+  </message:CodeLists>
+  <message:Concepts>
+    <structure:Concept id="TIME_PERIOD" agency="FRB">
+      <structure:Name>Time</structure:Name>
+      <structure:Annotations>
+        <common:Annotation>
+          <common:AnnotationText>Time Period represents the date that the observation was recorded.</common:AnnotationText>
+        </common:Annotation>
+      </structure:Annotations>
+    </structure:Concept>
+    <structure:Concept id="FREQ" agency="FRB">
+      <structure:Name>Frequency</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="OBS_STATUS" agency="FRB">
+      <structure:Name>Observation status</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="OBS_VALUE" agency="FRB">
+      <structure:Name>Observation value</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="UNIT" agency="FRB">
+      <structure:Name>Units</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="UNIT_MULT" agency="FRB">
+      <structure:Name>Unit multiplier</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="CURRENCY" agency="FRB">
+      <structure:Name>Currency</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="SERIES_NAME" agency="FRB">
+      <structure:Name>Series Name</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="CREDTYP" agency="FRB">
+      <structure:Name>Credit Type</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="HOLDER" agency="FRB">
+      <structure:Name>Holder</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="DATAREP" agency="FRB">
+      <structure:Name>Data Representation</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="TERMS" agency="FRB">
+      <structure:Name>Terms of Credit</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="ISSUE" agency="FRB">
+      <structure:Name>Issuer</structure:Name>
+    </structure:Concept>
+    <structure:Concept id="SA" agency="FRB">
+      <structure:Name>Seasonal Adjustment</structure:Name>
+    </structure:Concept>
+  </message:Concepts>
+  <message:KeyFamilies>
+    <structure:KeyFamily id="CCOUT" agency="FRB">
+	   <structure:Name>Consumer Credit Outstanding</structure:Name>
+		<structure:Components>
+		  <structure:Dimension concept="CREDTYP" codelist="CL_CCOUT_CREDTYP"/>
+		  <structure:Dimension concept="HOLDER" codelist="CL_CCOUT_HOLDER"/>
+		  <structure:Dimension concept="DATAREP" codelist="CL_CCOUT_DATAREP"/>
+		  <structure:Dimension concept="SA" codelist="CL_SA"/>
+		  <structure:Dimension concept="FREQ" isFrequencyDimension="true" codelist="CL_FREQ"/>
+		  <structure:TimeDimension concept="TIME_PERIOD"/>
+		  <structure:PrimaryMeasure concept="OBS_VALUE"/>
+		  <structure:Attribute concept="UNIT" codelist="CL_UNIT" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+		  <structure:Attribute concept="UNIT_MULT" codelist="CL_UNIT_MULT" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+		  <structure:Attribute concept="CURRENCY" codelist="CL_CURRENCY" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+		  <structure:Attribute concept="SERIES_NAME" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+		</structure:Components>
+	 </structure:KeyFamily>
+    <structure:KeyFamily id="TERMS" agency="FRB">
+	   <structure:Name>Terms of Credit Outstanding</structure:Name>
+		<structure:Components>
+		  <structure:Dimension concept="ISSUE" codelist="CL_ISSUE"/>
+		  <structure:Dimension concept="TERMS" codelist="CL_TERMS"/>
+		  <structure:Dimension concept="FREQ" isFrequencyDimension="true" codelist="CL_FREQ"/>
+		  <structure:TimeDimension concept="TIME_PERIOD"/>
+		  <structure:PrimaryMeasure concept="OBS_VALUE"/>
+				<structure:Attribute concept="OBS_STATUS" codelist="CL_OBS_STATUS" attachmentLevel="Observation" assignmentStatus="Mandatory"/>
+				<structure:Attribute concept="CURRENCY" codelist="CL_CURRENCY" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+				<structure:Attribute concept="UNIT" codelist="CL_UNIT" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+				<structure:Attribute concept="UNIT_MULT" codelist="CL_UNIT_MULT" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+				<structure:Attribute concept="SERIES_NAME" attachmentLevel="Series" assignmentStatus="Mandatory"/>
+		</structure:Components>
+	 </structure:KeyFamily>
+  </message:KeyFamilies>
+</message:Structure>

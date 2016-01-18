@@ -168,19 +168,7 @@ class FetcherTestCase(BaseTestCase):
         f = Fetcher(provider_name="test", is_indexes=False)
         
         with self.assertRaises(NotImplementedError):
-            f.upsert_categories()
-
-        with self.assertRaises(NotImplementedError):
-            f.upsert_series()
-
-        with self.assertRaises(NotImplementedError):
-            f.upsert_a_series(None)
-
-        with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
-
-        with self.assertRaises(AttributeError):
-            f.insert_provider()
 
 #TODO: CodeDictTestCase
 class CodeDictTestCase(BaseTestCase):
@@ -381,7 +369,8 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson["website"], "http://www.example.com")
 
     def test_add_data_tree(self):
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_add_data_tree
+        
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_add_data_tree
 
         f = Fetcher(provider_name="p1", is_indexes=False)
 
@@ -391,31 +380,35 @@ class DBProviderTestCase(BaseDBTestCase):
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
+        
+        self.assertEqual(len(p.data_tree), 1)
+        p.data_tree[0]["category_code"] = p.name
+        p.data_tree[0]["long_name"] = p.long_name
+        p.data_tree[0]["website"] = p.website
+        
         p.update_database()
         
-        data_tree = {'name': "p1_root",
-                     'category_code': "c0",
-                     'doc_href': 'http://www.example.com',
-                     'children': [
-                         {'name': "cat1", 
-                          'category_code': "c1",
-                          'last_update': datetime(2010,1,5),
-                          'exposed': False,
-                          'children': None}]
-                     }
-
-        res = p.add_data_tree(data_tree)
+        minimal_category = { 'category_code': "c0", 'name': "p1"}
+        p.add_category(minimal_category)
         
-        bson = res['data_tree']
-        self.assertEqual(bson["category_code"], "c0")
-        self.assertEqual(bson["name"], "p1_root")
-        self.assertEqual(bson["doc_href"], "http://www.example.com")
-
-        bson1 = res['data_tree']['children'][0]
-        self.assertEqual(bson1["category_code"], "c1")
-        self.assertEqual(bson1["name"], "cat1")
-        self.assertEqual(bson1["last_update"],datetime(2010,1,5))
-        self.assertFalse(bson1["exposed"])
+        data_tree = [
+             {'category_code': 'p1',
+              'datasets': [],
+              'description': None,
+              'doc_href': 'http://www.example.com',
+              'exposed': False,
+              'last_update': None,
+              'name': 'p1'},
+             {'category_code': 'p1.c0',
+              'datasets': [],
+              'description': None,
+              'doc_href': None,
+              'exposed': False,
+              'last_update': None,
+              'name': 'p1'}
+        ]        
+        
+        self.assertEqual(p.data_tree, data_tree)
 
 class DBDatasetTestCase(BaseDBTestCase):
 

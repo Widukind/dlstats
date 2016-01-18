@@ -35,13 +35,22 @@ codedict_schema = Schema({Extra: dict})
 def _data_tree(value):
     return data_tree_schema(value)
 
+data_tree_datasets_schema = Schema({
+    'name': All(str, Length(min=1)),
+    'dataset_code': All(str, Length(min=1)),
+    'last_update': Any(None, typecheck(datetime)),
+    'exposed': typecheck(bool),
+    'metadata': Any(None, dict),
+}, required=True)
+
 data_tree_schema = Schema({
     'name': All(str, Length(min=1)),
-    'children': Any(None,[_data_tree]), 
-    Optional('doc_href'): Any(None,str),
-    Optional('last_update'): Any(None,typecheck(datetime)),
+    'doc_href': Any(None, str),
+    Optional('last_update'): Any(None, typecheck(datetime)),
     'category_code': All(str, Length(min=1)),
-    Optional('exposed'): typecheck(bool)
+    'datasets': Any([], [data_tree_datasets_schema]),
+    'exposed': typecheck(bool),
+    'description': Any(str, None)
     }, required=True)
 
 provider_schema = Schema({
@@ -51,7 +60,7 @@ provider_schema = Schema({
     'slug': All(str, Length(min=1)),
     'region': All(str, Length(min=1)),
     'website': All(str, Length(min=9)),
-    Optional('data_tree'): data_tree_schema
+    'data_tree': Any(None, [], _data_tree)
 },required=True)
 
 dataset_schema = Schema({

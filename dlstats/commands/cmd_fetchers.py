@@ -45,10 +45,7 @@ def cmd_dataset_list(fetcher, **kwargs):
 
     f = FETCHERS[fetcher](db=ctx.mongo_database())
 
-    if ctx.verbose:
-        func_name = 'datasets_long_list'
-    else:
-        func_name = 'datasets_list'
+    func_name = 'datasets_list'
 
     have_func = hasattr(f, func_name)
 
@@ -61,32 +58,29 @@ def cmd_dataset_list(fetcher, **kwargs):
         ctx.log_error("Not datasets for this fetcher")
         return
         
-    if ctx.verbose:
-        for key, name in datasets:
-            print(key, name)
-    else:
-        for key in datasets:
-            print(key)
+    for dataset in datasets:
+        print(dataset["dataset_code"], dataset["name"])
 
-@cli.command('update-categories', context_settings=client.DLSTATS_SETTINGS)
+@cli.command('update-datatree', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
+@click.option('--force', is_flag=True, help="Force update")
 @opt_fetcher
-def cmd_update_categories(fetcher=None, **kwargs):
-    """Create or Update fetcher Categories"""
+def cmd_update_data_tree(fetcher=None, force=False, **kwargs):
+    """Create or Update fetcher Data-Tree"""
 
     ctx = client.Context(**kwargs)
 
-    ctx.log_ok("Run Update Categories for %s fetcher:" % fetcher)
+    ctx.log_ok("Run Update Data-Tree for %s fetcher:" % fetcher)
 
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
 
         f = FETCHERS[fetcher](db=ctx.mongo_database())
-        f.upsert_categories()
+        f.upsert_data_tree(force_update=force)
         #TODO: lock commun avec tasks ?
 
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
@@ -96,9 +90,11 @@ def cmd_update_categories(fetcher=None, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
+@click.option('--data-tree', is_flag=True,
+              help='Update data-tree before run.')
 @opt_fetcher
 @opt_dataset
-def cmd_run(fetcher=None, dataset=None, **kwargs):
+def cmd_run(fetcher=None, dataset=None, data_tree=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
     ctx = client.Context(**kwargs)
@@ -117,9 +113,8 @@ def cmd_run(fetcher=None, dataset=None, **kwargs):
             #TODO: click fail ?
             return
         
-        f.provider.update_database()
-        
-        f.upsert_categories()
+        if data_tree:
+            f.upsert_data_tree(force_update=True)
         
         if dataset:
             f.upsert_dataset(dataset)

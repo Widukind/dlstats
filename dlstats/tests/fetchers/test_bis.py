@@ -15,7 +15,9 @@ import unittest
 from unittest import mock
 import httpretty
 
-from dlstats.tests.base import RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+
+RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "bis"))
 
 DATASETS = bis.DATASETS
 
@@ -123,7 +125,7 @@ Subject,"BIS effective exchange rates"
 """
 
 #---AGENDA
-AGENDA = {'filename': './tests/resources/bis/agenda.html'}
+AGENDA_FP = os.path.abspath(os.path.join(RESOURCES_DIR, 'agenda.html'))
 
 def mock_get_store_path(self):
     return os.path.abspath(os.path.join(tempfile.gettempdir(), 
@@ -165,18 +167,12 @@ def mock_get_filepath(self):
         self._download()
     return self.filepath
 
-def mock_streaming(filename, chunksize=8192):
-    """Patch for use requests with stream=True
-    """
-    
-    with open(filename, "rb") as f:
-        while True:
-            chunk = f.read(chunksize)
-            if chunk:
-                for b in chunk:
-                    yield b
-            else:
-                break
+def mock_streaming(filepath):
+    '''body for large file'''
+    with open(filepath, 'rb') as fp:
+        for line in fp:
+            yield line        
+            
     
 def load_fake_datas(select_dataset_code=None):
     """Load datas from DATASETS dict
@@ -213,7 +209,7 @@ def load_fake_datas(select_dataset_code=None):
     return results
 
 def get_agenda():
-    with open(AGENDA['filename']) as fh:
+    with open(AGENDA_FP) as fh:
         page = fh.read()
     return page
 
@@ -221,21 +217,6 @@ class BISUtilsTestCase(BaseTestCase):
     """BIS Utils
     """
 
-    @unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
-    def test_download_all_sources(self):
-        """Download all sources and verify exist in local directory
-        """
-        
-        #TODO: timeout du test
-
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:BISUtilsTestCase.test_download_all_sources        
-        
-        filepaths = bis.download_all_sources()
-        
-        for dataset_code, dataset in DATASETS.items():
-            self.assertTrue(dataset['filename'] in filepaths)
-            self.assertTrue(os.path.exists(filepaths[dataset['filename']]))
-            
     def test_load_read_csv(self):
         """Load special csv - direct from string
         """
@@ -256,88 +237,6 @@ class BISUtilsTestCase(BaseTestCase):
             line1 = bis.csv_dict(headers, next(rows))
             #TODO: test values ?
             #pprint(line1)
-        
-
-class BISDatasetsTestCase(BaseTestCase):
-    """Fetchers Tests - No DB access
-    """
-    
-    # nosetests -s -v dlstats.tests.fetchers.test_bis:BISDatasetsTestCase
-    
-    @unittest.skipIf(True, "TODO")    
-    def test_lbs_diss(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:BISDatasetsTestCase.test_lbs_diss        
-        datas = load_fake_datas('LBS-DISS')
-        print("")
-        pprint(datas)
-
-        attempt = {'LBS-DISS': {'series': [{'attributes': {},
-                                  'dataset_code': 'LBS-DISS',
-                                  'dimensions': {'Balance sheet position': 'C',
-                                                 'Counterparty country': '1C',
-                                                 'Counterparty sector': 'A',
-                                                 'Currency denomination': 'CHF',
-                                                 'Currency type of reporting country': 'A',
-                                                 'Frequency': 'Q',
-                                                 'Measure': 'F',
-                                                 'Parent country': '5J',
-                                                 'Position type': 'N',
-                                                 'Reporting country': '5A',
-                                                 'Type of instruments': 'A',
-                                                 'Type of reporting institutions': 'A'},
-                                  'end_date': 183,
-                                  'frequency': 'Q',
-                                  'key': 'Q:F:C:A:CHF:A:5J:A:5A:A:1C:N',
-                                  'name': 'Q:Quarterly-F:FX and break adjusted '
-                                          'change (BIS calculated)-C:Total '
-                                          'claims-A:All instruments-CHF:Swiss '
-                                          'Franc-A:All currencies (=D+F+U)-5J:All '
-                                          'countries-A:All reporting '
-                                          'banks/institutions (domestic, foreign, '
-                                          'consortium and unclassified)-5A:All '
-                                          'reporting countries-A:All '
-                                          'sectors-1C:International '
-                                          'organisations-N:Cross-border',
-                                  'provider_name': 'BIS',
-                                  'release_dates': [datetime.datetime(2015, 9, 16, 8, 13, 35),
-                                                   datetime.datetime(2015, 9, 16, 8, 13, 35),
-                                                   datetime.datetime(2015, 9, 16, 8, 13, 35)],
-                                  'start_date': -80,
-                                  'values': ['NaN', '-1.636', '39.632']}]}}        
-        
-        self.assertDictEqual(datas, attempt)
-
-    @unittest.skipIf(True, "TODO")    
-    def test_cnfs(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:BISDatasetsTestCase.test_cnfs        
-        datas = load_fake_datas('CNFS')
-        
-        attempt = {'CNFS': {'series': [{'attributes': {},
-                      'dataset_code': 'CNFS',
-                      'dimensions': {"Borrowers' country": 'AR',
-                                     'Borrowing sector': 'C',
-                                     'Frequency': 'Q',
-                                     'Lending sector': 'A',
-                                     'Type of adjustment': 'A',
-                                     'Unit type': '770',
-                                     'Valuation': 'M'},
-                      'end_date': 183,
-                      'frequency': 'Q',
-                      'key': 'Q:AR:C:A:M:770:A',
-                      'name': 'Q:Quarterly-AR:Argentina-C:Non financial '
-                              'sector-A:All sectors-M:Market '
-                              'value-770:Percentage of GDP-A:Adjusted for '
-                              'breaks',
-                      'provider_name': 'BIS',
-                      'release_dates': [datetime.datetime(2015, 9, 16, 9, 34, 20),
-                                       datetime.datetime(2015, 9, 16, 9, 34, 20),
-                                       datetime.datetime(2015, 9, 16, 9, 34, 20)],
-                      'start_date': -80,
-                      'values': ['', '10.1', '20.2']}]}}
-        
-        self.assertDictEqual(datas, attempt)        
         
 class BISDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
@@ -378,8 +277,8 @@ class BISDatasetsDBTestCase(BaseDBTestCase):
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
-        # upsert_categories
-        self.fetcher.upsert_categories()
+        # upsert_data_tree
+        self.fetcher.upsert_data_tree()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name}) 
         self.assertIsNotNone(provider['data_tree'])
         
@@ -574,7 +473,7 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
-        self.fetcher.upsert_categories()
+        self.fetcher.upsert_data_tree()
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider['data_tree'])
 
@@ -665,240 +564,259 @@ class LightBISDatasetsDBTestCase(BaseDBTestCase):
         self.dataset_code = 'EERI'        
 
         self._common_tests()
+        
+    def _common_test_agenda(self):
 
-    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+        httpretty.register_uri(httpretty.GET, 
+                               "http://www.bis.org/statistics/relcal.htm?m=6|37|68",
+                               body=mock_streaming(AGENDA_FP),
+                               match_querystring=True,
+                               status=200,
+                               content_type='application/octet-stream;charset=UTF-8',
+                               streaming=True)
+
+    @httpretty.activate
     def test_parse_agenda(self):
-
+        
         # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_parse_agenda
+        
+        self._common_test_agenda()
+        
+        #first line = column - months
 
-        attempt = ([[None, None, datetime.datetime(2015, 12, 1, 0, 0), datetime.datetime(2016, 1, 1, 0, 0),
-                     datetime.datetime(2016, 2, 1, 0, 0), datetime.datetime(2016, 3, 1, 0, 0),
-                     datetime.datetime(2016, 4, 1, 0, 0), datetime.datetime(2016, 5, 1, 0, 0)],
-                    ['Banking statistics', 'Locational', '6', '22', None, '6', '22', None],
-                    ['Banking statistics', 'Consolidated', '6', '22', None, '6', '22', None],
-                    ['Debt securities statistics', 'International', '6', None, None, '6', None, None],
-                    ['Debt securities statistics', 'Domestic and total', '6', None, None, '6', None, None],
-                    ['Derivatives statistics', 'OTC', '6', None, None, '6', None, '13'],
-                    ['Derivatives statistics', 'Exchange-traded', '6', None, None, '6', None, None],
-                    ['Global liquidity indicators', None, '6', None, None, '6', None, None],
-                    ['Credit to non-financial sector', None, '6', None, None, '6', None, None],
-                    ['Debt service ratio', None, '6', None, None, '6', None, None],
-                    ['Property prices', 'Detailed data', '18', '22', '19', '18', '22', '20'],
-                    ['Property prices', 'Selected', None, None, '19', None, None, '20'],
-                    ['Effective exchange rates', None, '16', '18', '16', '16', '18', '17'],
-                    ['BIS Statistical Bulletin', None, '6', None, None, '6', None, None]])
+        """Il doit y avoir 26 actions
+        
+        Not implemented:
+        - Derivatives statistics OTC
+        - Derivatives statistics Exchange-traded
+        - Global liquidity indicators
+        - Property prices Detailed data
+        - BIS Statistical Bulletin        
+        """
+        attempt = [
+            [None, None, 
+             datetime.datetime(2015, 12, 1, 0, 0), 
+             datetime.datetime(2016, 1, 1, 0, 0), 
+             datetime.datetime(2016, 2, 1, 0, 0), 
+             datetime.datetime(2016, 3, 1, 0, 0), 
+             datetime.datetime(2016, 4, 1, 0, 0), 
+             datetime.datetime(2016, 5, 1, 0, 0)],
+            [
+                 'Banking statistics',  # dataset CBS
+                 'Locational', 
+                 '6',   #December 2015 : 6 (Q2 2015+)
+                 '22',  #January 2016  : 22* (Q3 2015)
+                 None,  #February 2016 : None
+                 '6',   #March  2016   : 6 (Q3 2015+)
+                 '22',  #April 2016    : 22* (Q4 2015)
+                 None   #May 2016      : None
+            ],
+             ['Banking statistics', 'Consolidated', '6', '22', None, '6', '22', None],
+             ['Debt securities statistics', 'International', '6', None, None, '6', None, None],
+             ['Debt securities statistics', 'Domestic and total', '6', None, None, '6', None, None],
+             ['Derivatives statistics', 'OTC', '6', None, None, '6', None, '13'],
+             ['Derivatives statistics', 'Exchange-traded', '6', None, None, '6', None, None],
+             ['Global liquidity indicators', None, '6', None, None, '6', None, None],
+             ['Credit to non-financial sector', None, '6', None, None, '6', None, None],
+             ['Debt service ratio', None, '6', None, None, '6', None, None],
+             ['Property prices', 'Detailed data', '18', '22', '19', '18', '22', '20'],
+             ['Property prices', 'Selected', None, None, '19', None, None, '20'],
+             ['Property prices', 'long', None, None, '19', None, None, '20'],
+             ['Effective exchange rates', None, '16', '18', '16', '16', '18', '17'],
+             ['BIS Statistical Bulletin', None, '6', None, None, '6', None, None]
+        ]
+        """
+        Rapprochement agenda/actions:
+        [
+             'Banking statistics',  # dataset CBS
+             'Locational', 
+             '6',   #December 2015 : 6 (Q2 2015+)
+             '22',  #January 2016  : 22* (Q3 2015)
+             None,  #February 2016 : None
+             '6',   #March  2016   : 6 (Q3 2015+)
+             '22',  #April 2016    : 22* (Q4 2015)
+             None   #May 2016      : None
+        ],
+        
+        4 Actions:
+        
+        '6',   #December 2015 : 6 (Q2 2015+)
+         {'action': 'update_node', 'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+          'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0), 'timezone': ['Europe/Zurich']},
+          'period_type': 'date'}
+        
+        '22',  #January 2016  : 22* (Q3 2015)
+         {'action': 'update_node',
+          'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+          'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22, 8, 0),
+                            'timezone': ['Europe/Zurich']},
+          'period_type': 'date'},
+
+        '6',   #March  2016   : 6 (Q3 2015+)
+         {'action': 'update_node',
+          'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+          'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                            'timezone': ['Europe/Zurich']},
+          'period_type': 'date'},
+
+        '22',  #April 2016    : 22* (Q4 2015)
+         {'action': 'update_node',
+          'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+          'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22, 8, 0),
+                            'timezone': ['Europe/Zurich']},
+          'period_type': 'date'},
+        
+        """
         
         agenda = self.fetcher.parse_agenda()
-
-        self.assertEqual(agenda,attempt)
+        #print()
+        #pprint(agenda, width=120)
+        self.assertEqual(agenda, attempt)
                     
-    @mock.patch("dlstats.fetchers.bis.get_agenda",get_agenda)
+    @httpretty.activate
     def test_get_calendar(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_get_calendar
 
-        attempt = [{'kwargs': {'dataset_code': 'CNFS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'DSRP'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'LBS-DISS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'DSS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 16 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'CBS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'LBS-DISS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'CBS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 2, 16 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'CNFS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'DSRP'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'LBS-DISS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'DSS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 16 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'CBS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'LBS-DISS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 18 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'CBS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-SS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'PP-LS'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20 , 8, 0, 0)} },
-                   {'kwargs': {'dataset_code': 'EERI'},
-                    'period_kwargs': {'run_date': datetime.datetime(2016, 5, 17 , 8, 0, 0)} }]
-
-        for a in attempt:
-            a['period_kwargs'].update({'timezone': ['Europe/Zurich']})
-            a['kwargs'].update({'provider_name': 'BIS'})
-            a.update({"action": "update_node", "period_type": "date"})
+        self._common_test_agenda()
         
-        # test generator
-        res = []
-        for s in self.fetcher.get_calendar():
-            self.assertIn(s,attempt)
-            res.append(s)
-        for a in attempt:
-            self.assertIn(a,res)
-        
-        #TODO: meta_datas tests  
-        
+        self.maxDiff = None
 
-@unittest.skipUnless('FULL_REMOTE_TEST' in os.environ, "Skip - not full remote test")
-class FullBISDatasetsDBTestCase(BaseDBTestCase):
-    """Fetchers Tests - with DB and real download sources
-    
-    1. Télécharge ou utilise des fichiers existants
-    
-    2. Execute le fetcher normalement et en totalité
-    """
-    
-    # FULL_REMOTE_TEST=1 nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase
-    
-    def setUp(self):
-        BaseDBTestCase.setUp(self)
-        self.fetcher = bis.BIS(db=self.db)
-        self.dataset_code = None
-        self.dataset = None        
-        self.filepath = None
-        
-    def _common_tests(self):
+        calendar = list(self.fetcher.get_calendar())
 
-        self._collections_is_empty()
+        self.assertEqual(len(calendar), 26)
 
-        self.fetcher.provider.update_database()
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider)
-        
-        self.fetcher.upsert_categories()
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider['data_tree'])
-        
-        self.fetcher.upsert_dataset(self.dataset_code)
-        
-        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                            "dataset_code": self.dataset_code})
-        self.assertIsNotNone(self.dataset)
+        attempt = [
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'LBS-DISS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'LBS-DISS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'LBS-DISS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'LBS-DISS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 1, 22, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CBS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 4, 22, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CNFS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'CNFS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSRP', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'DSRP', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 6, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'PP-SS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'PP-SS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'PP-LS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 2, 19, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'PP-LS', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 5, 20, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2015, 12, 16, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 1, 18, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 2, 16, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 3, 16, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 4, 18, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'},
+             {'action': 'update_node',
+              'kwargs': {'dataset_code': 'EERI', 'provider_name': 'BIS'},
+              'period_kwargs': {'run_date': datetime.datetime(2016, 5, 17, 8, 0),
+                                'timezone': ['Europe/Zurich']},
+              'period_type': 'date'}]
 
-        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
-                                                     "dataset_code": self.dataset_code})
-
-        series_count = series.count()
-        self.assertTrue(series_count > 1)
-        print(self.dataset_code, series_count)
-
-    def test_lbs_diss(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_lbs_diss
-
-        self.dataset_code = 'LBS-DISS'        
-
-        self._common_tests()
-        
-        #self.fail("test")
-
-        #TODO: meta_datas tests  
-
-    def test_cbs(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_cbs
-
-        self.dataset_code = 'CBS'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
-    
-    def test_dss(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_dss
-        self.dataset_code = 'DSS'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
-    
-    def test_cnfs(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_cnfs
-
-        self.dataset_code = 'CNFS'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
-
-    def test_dsrp(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_dsrp
-
-        self.dataset_code = 'DSRP'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
-    
-    def test_pp_ss(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_pp_ss
-
-        self.dataset_code = 'PP-SS'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests
-          
-    def test_pp_ls(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_pp_ls
-
-        self.dataset_code = 'PP-LS'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
-
-    def test_eeri(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FullBISDatasetsDBTestCase.test_eeri
-
-        self.dataset_code = 'EERI'        
-
-        self._common_tests()
-
-        #TODO: meta_datas tests  
+        self.assertEqual(calendar, attempt)
 

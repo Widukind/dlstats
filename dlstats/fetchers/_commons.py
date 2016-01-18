@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from operator import itemgetter
+import re
 import os
 import pymongo
 from pymongo import ReturnDocument
@@ -15,6 +17,7 @@ from widukind_common.utils import get_mongo_db, create_or_update_indexes
 
 from dlstats import constants
 from dlstats.fetchers import schemas
+from dlstats import errors
 
 logger = logging.getLogger(__name__)
 
@@ -37,39 +40,94 @@ class Fetcher(object):
 
         self.provider_name = provider_name
         self.db = db or get_mongo_db()
-        self.provider = None
+        self.provider = self.load_provider_from_db()
         
         if is_indexes:
             create_or_update_indexes(self.db)
         
+    def upsert_data_tree(self, data_tree=None, force_update=False):
+
+        if data_tree and not isinstance(data_tree, list):
+            raise TypeError("data_tree is not instance of list")
+
+        if not data_tree:
+            data_tree = self.build_data_tree(force_update=force_update)
+
+        self.provider.data_tree = data_tree
+
+        for d in data_tree:
+            schemas.data_tree_schema(d)
+
+        query_filter = {'name': self.provider_name}
+        query_update = {'$set': {'data_tree': data_tree}}
+
+        return self.db[constants.COL_PROVIDERS].find_one_and_update(query_filter,
+                                                                    query_update,
+                                                                    return_document=pymongo.ReturnDocument.AFTER)
+
+    def load_provider_from_db(self):
+        """Load and set provider fields from DB
+        """
+        doc = self.db[constants.COL_PROVIDERS].find_one({"name": self.provider_name})
+        if not doc:
+            return
+
+        doc.pop('_id')
+        return Providers.factory(fetcher=self, **doc)
+
+    def filter_datasets(self, datasets):
+        """Return one unique list of dataset
+
+        TODO: translation EN
+        Surchargez cette méthode pour effectuer un autre filtrage.
+        """
+        keys = []
+        for d in sorted(datasets, key=itemgetter("dataset_code")):
+            if not d["dataset_code"] in keys:
+                keys.append(d["dataset_code"])
+                yield d
+
+    def get_selected_dataset_codes(self, category_filter=None):
+        """Return array of tuple(dataset_code, name)
+        """
+        if self.provider.count_data_tree() <= 1:
+            self.upsert_data_tree()
+
+        datasets = []
+
+        for dataset in self.provider.datasets(category_filter=category_filter):
+            datasets.append(dataset)
+
+        return [d for d in self.filter_datasets(datasets)]
+
+    def datasets_list(self, category_filter=None):
+        """Return a list of tuple (dataset code, name)
+        """
+        return self.get_selected_dataset_codes(category_filter=category_filter)
+
+    def upsert_all_datasets(self):
+        if self.db[constants.COL_DATASETS].count({"provider_name": self.provider_name}) == 0:
+            return self.load_datasets_first()
+        else:
+            return self.load_datasets_update()
+
+    def load_datasets_first(self):
+        raise NotImplementedError()
+
+    def load_datasets_update(self):
+        raise NotImplementedError()
+
+    def build_data_tree(self, force_update=False):
+        raise NotImplementedError()
+
     def upsert_categories(self):
         """Upsert the categories in MongoDB
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
+        
+        TODO: remove function. replace with upsert_data_tree()
+        """
+        self.upsert_data_tree()
     
-    def upsert_series(self):
-        """Upsert all the series in MongoDB
-        
-        .. versionchanged:: 0.3.0
-           Remove function. (Not used in fetchers)                
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
-
-    #TODO: not used function ?    
-    def upsert_a_series(self, id):
-        """Upsert the series in MongoDB
-        
-        .. versionchanged:: 0.3.0
-           Remove function. (Not used in fetchers)
-        
-        :param id: :class:`str` - ID of :class:`Series`        
-        """        
-        raise NotImplementedError("This method from the Fetcher class must"
-                                  "be implemented.")
-    
-    def upsert_dataset(self, dataset_code, datas=None):
+    def upsert_dataset(self, dataset_code):
         """Upsert a dataset in MongoDB
         
         :param str dataset_code: ID of :class:`Datasets`
@@ -77,12 +135,6 @@ class Fetcher(object):
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
     
-    #TODO: not used function ?    
-    def insert_provider(self):
-        """Insert the provider in MongoDB
-        """        
-        self.provider.update_database()
-        
     def update_metas(self, dataset_code):
         """Update Meta datas to ElasticSearch
         
@@ -145,7 +197,8 @@ class Providers(DlstatsCollection):
                  version=0,
                  region=None,
                  website=None,
-                 fetcher=None):
+                 fetcher=None,
+                 **kwargs):
         """        
         :param str name: Provider Short Name
         :param str long_name: Provider Long Name
@@ -160,15 +213,35 @@ class Providers(DlstatsCollection):
         self.region = region
         self.website = website
 
+        self.__data_tree = OrderedDict()
         self.validate = schemas.provider_schema(self.bson)
+        self.set_root_category()
 
     def __repr__(self):
-        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys())])
+        return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys()) if not key in ["data_tree", "slug"]])
 
     def slug(self):
         if not self.name:
             return 
         return slugify(self.name, word_boundary=False, save_order=True)
+
+    @classmethod
+    def factory(cls, data_tree=None, **kwargs):
+        provider = cls(**kwargs)
+        if data_tree:
+            provider.data_tree = data_tree
+        return provider
+
+    def populate_obj(self, doc):
+        self.name = doc['name']
+        self.long_name = doc['long_name']
+        self.version = doc['version']
+        self.slug = doc['slug']
+        self.region = doc['region']
+        self.website = doc['website']
+        if doc.get('data_tree'):
+            self.data_tree = doc.get('data_tree')
+        return self
 
     @property
     def bson(self):
@@ -177,23 +250,127 @@ class Providers(DlstatsCollection):
                 'version': self.version,
                 'slug': self.slug(),
                 'region': self.region,
-                'website': self.website}
+                'website': self.website,
+                'data_tree': self.data_tree}
 
+    def set_root_category(self):
+        if not self.name in self.__data_tree:
+            self.__data_tree[self.name] = DataTreeEntry(name=self.name, 
+                                                        category_code=self.name, 
+                                                        doc_href=self.website, 
+                                                        is_root=True) 
+
+    def _category_key(self, category_code, is_root=False, parent_code=None):
+
+        key = category_code
+        
+        if parent_code:
+            parent = self.__data_tree[str(parent_code)]
+            key = "%s.%s" % (parent.category_code, key)
+
+        if not is_root:
+            if not key.startswith(self.name + "."):
+                key = "%s.%s" % (self.name, key)
+        
+        return key
+
+    def add_category(self, category, parent_code=None):
+        self.set_root_category()
+
+        if isinstance(category, dict):
+            category = DataTreeEntry(**category)
+
+        key = self._category_key(category.category_code, category.is_root, parent_code)
+
+        if key in self.__data_tree:
+            raise Exception("Duplicate category")
+
+        category.category_code = key
+        self.__data_tree[key] = category
+
+        return key
+    
+    def add_dataset(self, dataset, category_code):
+        category_code = str(category_code)
+
+        if not category_code in self.__data_tree:
+            raise Exception("category not found[%s]" % category_code)
+
+        category = self.__data_tree[category_code]
+        category.add_dataset(**dataset)
+
+    def count_data_tree(self):
+        return len(self.__data_tree)
+
+    def has_key(self, key):
+        return key in self.__data_tree
+
+    @property
+    def data_tree(self):
+        return sorted([d.bson for d in self.__data_tree.values()], key=itemgetter("category_code"))
+
+    @data_tree.setter
+    def data_tree(self, data_tree):
+        if not isinstance(data_tree, list):
+            raise TypeError("data_tree is not instance of list")
+        
+        self.__data_tree = OrderedDict()
+        for d in data_tree:
+            self.__data_tree[d["category_code"]] = DataTreeEntry(**d)
+
+    def _find_datasets(self, category_filter=None):
+        filter_reg = None
+        if category_filter:
+            filter_reg = re.compile(category_filter)
+        
+        for category_code, d in self.__data_tree.items():
+            if len(d.datasets) > 0:
+                if filter_reg and not filter_reg.match(category_code):
+                    continue
+                for dataset in d.datasets:
+                    yield dataset["dataset_code"], dataset
+        
+    def datasets(self, category_filter=None, sorted_attr="dataset_code"):
+        datasets = OrderedDict([(d[0], d[1]) for d in self._find_datasets(category_filter)])
+        return sorted(datasets.values(), key=itemgetter(sorted_attr))
+    
+    def get_categories(self, base=None):
+        """Return hierarchy of categories
+        
+        ECB
+            ECB.MOBILE_NAVI
+                ECB.MOBILE_NAVI.07
+                
+        ECB -> MOBILE_NAVI -> 07
+        
+        Si base = base de départ:
+            ex: ECB.MOBILE_NAVI
+                
+        """
+        raise NotImplementedError()
+                
+        if base:
+            first_category = base
+        else:
+            first_category = self.name
+        
+        data_tree = self.data_tree.copy()
+        
+        categories = data_tree[first_category]
+        categories["children"] = []
+        
+        for key in data_tree.keys():
+            if key == first_category: 
+                continue
+            if key.startswith(first_category + "."):
+                categories["children"].append(data_tree[key])
+    
     def update_database(self):
         schemas.provider_schema(self.bson)
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
                                             ['name'], 
                                             self.bson)
 
-    def add_data_tree(self,data_tree):
-        schemas.data_tree_schema(data_tree)
-        result = self.fetcher.db[constants.COL_PROVIDERS].find_one_and_update({'name': self.name},
-                                                                              {'$set': {'data_tree': data_tree}},
-                                                                              return_document=pymongo.ReturnDocument.AFTER)
-        if result is None:
-            raise Exception('add_data_tree: Provider update failed')
-        return result
-    
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
@@ -351,13 +528,23 @@ class Series(DlstatsCollection):
                 # one iteration by serie
                 data = next(self.data_iterator)
                 self.series_list.append(data)
+            except errors.RejectFrequency as err:
+                msg ="Reject frequency for dataset[%s] - frequency[%s]" % (self.dataset_code, 
+                                                                           err.frequency)
+                logger.warning(msg)
+                continue
+            except errors.RejectEmptySeries as err:
+                logger.warning("Reject empty series for dataset[%s]" % self.dataset_code)
+                continue
             except StopIteration:
                 break
+            
             count += 1
             if count > self.bulk_size:
                 self.update_series_list()
                 count = 0
-        if count > 0:
+
+        if len(self.series_list) > 0:
             self.update_series_list()
 
     def slug(self, key):
@@ -563,3 +750,41 @@ class CodeDict():
     def set_from_list(self,dimension_list):
         self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     
+
+class DataTreeEntry(object):
+
+    def __init__(self, name=None, category_code=None, doc_href=None,
+                 last_update=None, datasets=None, description=None,
+                 exposed=False, is_root=False):
+        self.name = name
+        self.category_code = category_code
+        self.doc_href = doc_href
+        self.last_update = last_update ##TODO: voir si utile pour dire qu'au moins 1 dataset dans la branche est recent ?
+        self.datasets = datasets or []
+        self.description = description
+        self.exposed = exposed
+        self.is_root = is_root
+        
+    def add_dataset(self, dataset_code=None, name=None, 
+                    last_update=None, exposed=True, metadata=None):
+        dataset = OrderedDict()
+        dataset["dataset_code"] = dataset_code
+        dataset["name"] = name
+        dataset["last_update"] = last_update
+        dataset["exposed"] = exposed
+        dataset["metadata"] = metadata
+        self.datasets.append(dataset)
+        self.exposed = True
+
+    @property        
+    def bson(self):
+        return {
+            "name": self.name,
+            "category_code": self.category_code,
+            "doc_href": self.doc_href,
+            "last_update": self.last_update,
+            "datasets": sorted([d for d in self.datasets], key=itemgetter("dataset_code")),
+            "description": self.description,
+            "exposed": self.exposed
+        }
+
