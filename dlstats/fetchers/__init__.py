@@ -75,3 +75,11 @@ try:
     __all__.append('INSEE')
 except ImportError:
     pass
+
+try:
+    from dlstats.fetchers.destatis import DESTATIS
+    FETCHERS['DESTATIS'] = DESTATIS
+    __all__.append('DESTATIS')
+except ImportError:
+    pass
+
