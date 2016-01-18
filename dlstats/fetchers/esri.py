@@ -160,7 +160,8 @@ def parse_esri_site():
     uls = html.findall('.//ul[@class="bulletList"]')
     sna = parse_sna(uls[0],url)
 #    bs = parse_business_statistics(uls[1])
-    site_tree = {'name': 'root',
+    site_tree = {'name': 'ESRI',
+                 'category_tree': 'root',
                  'doc_href': None,
                  'children': [sna]}
 #                 'children': [sna, bs]}
@@ -171,7 +172,8 @@ def parse_sna(ul,url):
     qgdp = parse_qgdp(urljoin(url,anchors[0].get('href')))
 #    parse_capital_stock(anchors[2].get('href'))
     branch = {'name': 'National accounts of Japan',
-              'doc_href': '',
+              'category_tree': 'SNA',
+              'doc_href': None,
               'children': [qgdp]}
     return branch
 
@@ -183,7 +185,8 @@ def parse_business_statistics(ul):
     bo = parse_business_outlook(anchors[3].get('href'),anchors[3].text)
     cb = parse_corporate_behavior(anchors[4].get('href'),anchors[4].text)
     branch = {'name': 'Business statistics',
-              'doc_href': '',
+              'category_code': 'BusinessStatistics',
+              'doc_href': None,
               'children': [bc, mo, cc, bo, cb]}
     return branch
 
@@ -214,28 +217,31 @@ def parse_qgdp(url):
     tbodies = html.findall('.//table[@class="tableBase"]/tbody')
     branch = {}
     branch['name'] = titles[0].text
+    branch['category_code'] = 'QuaterlyGDP'
     branch['children'] = []
-    branch['doc_href'] = ''
+    branch['doc_href'] = None
     subbranch = {}
     subbranch['name'] = titles[1].text
-    subbranch['doc_href'] = ''
-    amounts = parse_amounts(tbodies[0],url)
-    deflators = parse_deflators(tbodies[1],url)
+    subbranch['category_code'] = 'GDP'
+    subbranch['doc_href'] = None
+    amounts = parse_amounts(tbodies[0],url,subbranch['category_code'])
+    deflators = parse_deflators(tbodies[1],url,subbranch['category_code'])
     subbranch['children'] = amounts + deflators
     branch['children'].append(subbranch)
     subbranch = {}
     subbranch['name'] = titles[2].text
-    subbranch['doc_href'] = ''
+    subbranch['category_code'] = 'FD'
+    subbranch['doc_href'] = None
     table = html.find('.//table[@class="tableBase"][2]')
-    amounts = parse_amounts(tbodies[2],url)
-    deflators = parse_deflators(tbodies[3],url)
+    amounts = parse_amounts(tbodies[2],url,subbranch['category_code'])
+    deflators = parse_deflators(tbodies[3],url,subbranch['category_code'])
     compensation = parse_compensation(tbodies[4],url)
     subbranch['children'] = amounts + deflators + compensation
     branch['children'].append(subbranch)
 
     return branch
 
-def parse_amounts(tbody,url):
+def parse_amounts(tbody,url,parent_code):
     rows = tbody.findall('.//tr')
     G = []
     branch = {}
@@ -247,7 +253,9 @@ def parse_amounts(tbody,url):
                 branch = {}
             branch['datasets'] = []
             branch['name'] = header.text
-            branch['doc_href'] = ''
+            # Use first word as category_code
+            branch['category_code'] = parent_code + (header.text.split(' ')[0])
+            branch['doc_href'] = None
         anchors = r.findall('.//a')
         for a in anchors:
             dataset = make_dataset(a,url)
@@ -255,17 +263,20 @@ def parse_amounts(tbody,url):
     G.append(branch)
     return G
 
-def parse_deflators(tbody,url):
+def parse_deflators(tbody,url,parent_code):
     rows = tbody.findall('.//tr')
     branch = {}
     branch['name'] = 'Deflators'
-    branch['doc_href'] = ''
+    branch['category_code'] = parent_code + 'Deflators'
+    branch['doc_href'] = None
     children = [{},{}]
     children[0]['name'] = 'Amount'
-    children[0]['doc_href'] = ''
+    children[0]['category_code'] = parent_code+'DeflatorsAmount'
+    children[0]['doc_href'] = None
     children[0]['datasets'] = []
     children[1]['name'] = 'Change from the previous term'
-    children[1]['doc_href'] = ''
+    children[0]['category_code'] = parent_code+'DeflatorsChange'
+    children[1]['doc_href'] = None
     children[1]['datasets'] = []
     for r in rows:
         anchors = r.findall('.//a')
@@ -281,7 +292,8 @@ def parse_compensation(tbody,url):
     filename = url.split('/')[-1]
     branch = {}
     branch['name'] = 'Compensation of Employees'
-    branch['doc_href'] = ''
+    branch['category_code'] = 'Compensation'
+    branch['doc_href'] = None
     branch['datasets'] = [{'name': 'Compensation of Employees',
                           'dataset_code': 'kshotoku',
                           'filename': filename,
@@ -296,7 +308,7 @@ def parse_business_conditions(url,name):
     children = []
     for tr in trs:
         branch = {'name': tr.find('.//th').text,
-                  'doc_href': '',
+                  'doc_href': None,
                   'children': []}
         anchors = tr.findall('.//td/a')
         for a in anchors:
@@ -305,13 +317,13 @@ def parse_business_conditions(url,name):
             filename = url_.split('/')[-1]
             code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
             dataset = {'name': name,
-                       'doc_href': '',
+                       'doc_href': None,
                        'dataset_code': code,
                        'filename': filename}
             branch['children'].append(dataset)
         children.append(branch)
     return {'name': name,
-            'doc_href': '',
+            'doc_href': None,
             'children': children}
 
 def parse_machinery_orders(url,name): 
@@ -326,12 +338,12 @@ def parse_machinery_orders(url,name):
         filename = url_.split('/')[-1]
         code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
         dataset = {'name': name,
-                   'doc_href': '',
+                   'doc_href': None,
                    'dataset_code': code,
                    'filename': filename}
         children.append(dataset)
     return {'name': name,
-            'doc_href': '',
+            'doc_href': None,
             'children': children}
 
 def parse_consumer_confidence(url,name):
@@ -346,12 +358,12 @@ def parse_consumer_confidence(url,name):
         filename = url_.split('/')[-1]
         code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
         dataset = {'name': name,
-                   'doc_href': '',
+                   'doc_href': None,
                    'dataset_code': code,
                    'filename': filename}
         children.append(dataset)
     return {'name': name,
-            'doc_href': '',
+            'doc_href': None,
             'children': children}
 
 def parse_business_outlook(url,name):
@@ -369,12 +381,12 @@ def parse_corporate_behavior(url,name):
         filename = url_.split('/')[-1]
         code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
         dataset = {'name': name,
-                   'doc_href': '',
+                   'doc_href': None,
                    'dataset_code': code,
                    'filename': filename}
         children.append(dataset)
     return {'name': name,
-            'doc_href': '',
+            'doc_href': None,
             'children': children}
 
 
