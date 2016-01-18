@@ -83,3 +83,9 @@ try:
 except ImportError:
     pass
 
+try:
+    from dlstats.fetchers.fed import FED
+    FETCHERS['FED'] = FED
+    __all__.append('FED')
+except ImportError:
+    pass
