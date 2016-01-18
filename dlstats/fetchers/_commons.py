@@ -17,6 +17,7 @@ from widukind_common.utils import get_mongo_db, create_or_update_indexes
 
 from dlstats import constants
 from dlstats.fetchers import schemas
+from dlstats import errors
 
 logger = logging.getLogger(__name__)
 
@@ -527,13 +528,23 @@ class Series(DlstatsCollection):
                 # one iteration by serie
                 data = next(self.data_iterator)
                 self.series_list.append(data)
+            except errors.RejectFrequency as err:
+                msg ="Reject frequency for dataset[%s] - frequency[%s]" % (self.dataset_code, 
+                                                                           err.frequency)
+                logger.warning(msg)
+                continue
+            except errors.RejectEmptySeries as err:
+                logger.warning("Reject empty series for dataset[%s]" % self.dataset_code)
+                continue
             except StopIteration:
                 break
+            
             count += 1
             if count > self.bulk_size:
                 self.update_series_list()
                 count = 0
-        if count > 0:
+
+        if len(self.series_list) > 0:
             self.update_series_list()
 
     def slug(self, key):
