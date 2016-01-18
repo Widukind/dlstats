@@ -1,0 +1,46 @@
+
+#ECB:
+http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" >ecb-datastructure-2.1.xml
+http "https://sdw-wsrest.ecb.europa.eu/service/dataflow/ECB/EXR" >ecb-dataflow-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > ecb-data-generic-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >ecb-data-specific-2.1.xml
+
+http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >ecb-data-specific-X.ARS+AUD.EUR.SP00.A-2.1.xml
+
+http "http://sdw-wsrest.ecb.int/service/dataflow/ECB" > ecb-dataflow.xml
+http "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/?references=parentsandsiblings" > ecb-categoryscheme.xml
+http "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR?references=all" > ecb-EXR-dataflow.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > ecb-data-M.NOK.EUR.SP00.A.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" > ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml
+http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" > ecb-ECB_EXR1-datastructure.xml
+http http://sdw-wsrest.ecb.europa.eu/service/data/EXR/M.NOK.EUR.SP00.A Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > ECB-EXR-M.NOK.EUR.SP00.A.structurespecificdata.xml
+http http://sdw-wsrest.ecb.europa.eu/service/codelist/ECB Accept-Encoding:gzip,deflate >ecb-codelist.xml
+http http://sdw-wsrest.ecb.europa.eu/service/conceptscheme/ECB >ecb-conceptscheme.xml
+#BP6: https://sdw-wsrest.ecb.europa.eu/service/dataflow/IMF/BP6?references=all
+#str id: BOP: https://sdw-wsrest.ecb.europa.eu/service/datastructure/IMF/BOP?references=all
+
+http http://sdw-wsrest.ecb.europa.eu/service/data/AME >ecb-bulk-data-AME.xml
+
+#INSEE:
+http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21?references=all" >insee-datastructure-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21/M.B.BRUT" Accept:application/vnd.sdmx.genericdata+xml;version=2.1 >insee-data-generic-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21/M.B.BRUT" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >insee-data-specific-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17?references=all" Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
+
+http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >insee-IPI-2010-A21-specificdata.xml
+
+http http://www.bdm.insee.fr/series/sdmx/dataflow?references=all Accept:application/xml Content-Type:application/xml > insee-dataflow.xml
+http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21 references==all Accept:application/xml Content-Type:application/xml > insee-IPI-2010-A21-datastructure.xml
+http http://www.bdm.insee.fr/series/sdmx/data/CNA-2010-CONSO-SI-A17 Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > insee-IPI-2010-A21-data.xml
+http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17 references==all Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
+    
+
+#DESTATIS
+http https://www.destatis.de/sddsplus/DCS.xml > destatis-data-compact-2.0.xml
+
+
+#EUROSTAT
+http "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/namq_10_lp_ulc.sdmx.zip" > namq_10_lp_ulc.sdmx.zip
+#unzip -d namq_10_lp_ulc.sdmx.zip
+#namq_10_lp_ulc.dsd.xml > eurostat-datastructure-2.0.xml 
+#namq_10_lp_ulc.sdmx.xml > eurostat-data-compact-2.0.xml
