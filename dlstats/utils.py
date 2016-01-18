@@ -66,7 +66,9 @@ class Downloader:
             with open(self.filepath, 'wb') as f:
                 for chunk in response.iter_content():
                     f.write(chunk)
-                
+
+            return response
+        
         except requests.exceptions.ConnectionError as err:
             raise Exception("Connection Error")
         except requests.exceptions.ConnectTimeout as err:
@@ -92,3 +94,17 @@ class Downloader:
         
         return self.filepath
 
+    def get_filepath_and_response(self):
+        
+        response = None
+        
+        if os.path.exists(self.filepath) and self.force_replace:
+            os.remove(self.filepath)
+        
+        if not os.path.exists(self.filepath):
+            logger.info("not found file[%s] - download dataset url[%s]" % (self.filepath, self.url))
+            response = self._download()
+        else:
+            logger.info("use local dataset file [%s]" % self.filepath)
+        
+        return self.filepath, response
