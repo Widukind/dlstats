@@ -58,7 +58,6 @@ import re
 
 import lxml.etree
 import pandas
-import arrow
 
 from dlstats import remote
 from dlstats import errors
@@ -72,9 +71,6 @@ path_ref = lxml.etree.XPath("./*[local-name()='Ref']")
 REGEX_DATE_P3M = re.compile(r"(.*)-Q(.*)")
 #REGEX_DATE_P3M = re.compile(r"(\d+)-Q(\d)")
 REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
-
-def utcnow():
-    return arrow.utcnow().datetime
 
 def xml_get_name(element):
     names = path_name_lang(element, lang="en")
