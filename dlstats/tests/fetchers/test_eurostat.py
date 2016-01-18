@@ -1216,7 +1216,7 @@ class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
         
         self.assertEqual(len(self.fetcher.selected_datasets), 2)
         
-        self.assertEqual(list(self.fetcher.selected_datasets.keys()), ['nama_10_fcs', 'nama_10_gdp'])
+        self.assertEqual(sorted(list(self.fetcher.selected_datasets.keys())), ['nama_10_fcs', 'nama_10_gdp'])
         
     @mock.patch('requests.get', local_get)
     @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
