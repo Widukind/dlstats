@@ -470,25 +470,15 @@ class Esri(Fetcher):
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
-    def upsert_all_datasets(self):
-        self.upsert_categories()
-        self.esri_issue()
-        
-    def upsert_all_datasets(self):
-        self.upsert_categories()
-        self.esri_issue()
-
-    def upsert_latest_quarterly_estimates_of_gdp(self):
-        self.parse_quarterly_esimates_of_gdp_release_archive_page()
-
-    def parse_agenda(self):
+    # TO BE FINISHED    
+    def parse_sna_agenda(self):
         #TODO: use Downloader
-        download = Downloader(url="http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
-                              filename="statscall.html")
+        download = Downloader(url="http://www.esri.cao.go.jp/en/sna/kouhyou/kouhyou_top.html",
+                              filename="agenda_sna.html")
         with open(download.get_filepath(), 'rb') as fp:
             agenda = lxml.html.parse(fp)
         
-
+    # TO BE FINISHED
     def get_calendar(self):
         datasets = [d["dataset_code"] for d in self.datasets_list()]
 
@@ -502,15 +492,34 @@ class Esri(Fetcher):
                        'period_type': 'date',
                        'period_kwargs': {'run_date': datetime.strptime(
                            entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
-                           'timezone': pytz.timezone('CET')
+                           'timezone': pytz.timezone('Asia/Tokyo')
                        }
                       }
 
+    # TODO: load earlier versions to get revisions
     def load_datasets_first(self):
         start = time.time()        
         logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
-        self._load_structure()
+        
+        self.provider.update_database()
+        self.build_data_tree()
+        self.upsert_data_tree()
+
+        datasets_list = [d for d in self.get_selected_datasets().keys()]
+        for dataset_code in datasets_list:
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+
+        end = time.time() - start
+        logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+
+    def load_datasets_update(self):
+        start = time.time()        
+        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
+        
         self.provider.update_database()
         self.upsert_data_tree()
 
@@ -633,10 +642,4 @@ class EsriData():
         series['attributes'] = {}
         return(series)
 
-if __name__ == "__main__":
-#    e = Esri()
-    parse_quarterly_esimates_of_gdp_release_archive_page()
-#    e.provider.update_database()
-#    e.upsert_all_datasets()
-#    e.upsert_categories()
     
