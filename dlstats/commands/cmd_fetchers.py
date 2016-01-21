@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from operator import itemgetter
 import sys
 from pprint import pprint
 import click
@@ -82,6 +83,68 @@ def cmd_update_data_tree(fetcher=None, force=False, **kwargs):
         f = FETCHERS[fetcher](db=ctx.mongo_database())
         f.upsert_data_tree(force_update=force)
         #TODO: lock commun avec tasks ?
+
+@cli.command('calendar', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@opt_fetcher
+def cmd_calendar(fetcher=None, **kwargs):
+    """Display calendar for this provider"""
+    
+    """
+    Ouput examples:
+    
+    $ dlstats fetchers calendar -F BIS
+    ---------------------------------------------------------------------------------------------------------------------------
+    Provider   | Dataset      | Action          | Type   | Date (yyyy-mm-dd hh:mn)
+    ---------------------------------------------------------------------------------------------------------------------------
+    BIS        | EERI         | update_node     | date   | 2016-01-18 - 08:00
+    BIS        | LBS-DISS     | update_node     | date   | 2016-01-22 - 08:00
+    BIS        | CBS          | update_node     | date   | 2016-01-22 - 08:00    
+    ---------------------------------------------------------------------------------------------------------------------------
+
+    $ dlstats fetchers calendar -F ECB
+    ---------------------------------------------------------------------------------------------------------------------------
+    Provider   | Dataset      | Action          | Type   | Date (yyyy-mm-dd hh:mn)
+    ---------------------------------------------------------------------------------------------------------------------------
+    ECB        | BLS          | update_node     | date   | 2016-01-19 - 10:00
+    ECB        | ICP          | update_node     | date   | 2016-01-19 - 11:00
+    ECB        | IVF          | update_node     | date   | 2016-01-21 - 10:00
+    ECB        | BSI          | update_node     | date   | 2016-01-29 - 10:00    
+    ---------------------------------------------------------------------------------------------------------------------------
+    """
+
+    ctx = client.Context(**kwargs)
+
+    f = FETCHERS[fetcher](db=ctx.mongo_database())
+    if not hasattr(f, 'get_calendar'):
+        ctx.log_error("Not implemented get_calendar() method")
+        ctx.log_error("Operation cancelled !")
+        return False
+    
+    calendars = [(i, c) for i, c in enumerate(f.get_calendar())]
+    dates = [(i, c['period_kwargs']['run_date']) for i, c in enumerate(f.get_calendar())]
+
+    fmt = "{0:10} | {1:12} | {2:15} | {3:6} | {4:10}"
+    print("---------------------------------------------------------------------------------------------------------------------------")
+    print(fmt.format("Provider", "Dataset", "Action", "Type", "Date (yyyy-mm-dd hh:mn)"))
+    print("---------------------------------------------------------------------------------------------------------------------------")
+    for entry in sorted(dates, key=itemgetter(1)):
+        c = calendars[entry[0]][1]
+        action = c['action']
+        period_type = c['period_type']
+        k = c['kwargs']
+        provider_name = fetcher
+        dataset_code = k.get('dataset_code', 'ALL')
+        if period_type == "date":
+            _date = c['period_kwargs']['run_date'].strftime("%Y-%m-%d - %H:%M")
+        else:
+            _date = c['period_kwargs']['run_date']
+        print(fmt.format(provider_name, dataset_code, action, period_type, _date)) 
+    print("---------------------------------------------------------------------------------------------------------------------------")
 
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
