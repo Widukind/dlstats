@@ -5,12 +5,14 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Series, Datasets, Providers, CodeDict
+from dlstats import constants
+from dlstats.utils import Downloader
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers
 import urllib
 import xlrd
 import csv
 import codecs
-from datetime import datetime
+from datetime import datetime, date
 import pandas
 import pprint
 from collections import OrderedDict
@@ -18,32 +20,22 @@ from re import match
 import time
 import requests
 import os
+from urllib.parse import urljoin
 import tempfile
 from lxml import etree
 import logging
+import re
+import json
 
 VERSION = 1
 
 logger = logging.getLogger(__name__)
 
-import re
-
-REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
+REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4)|(1-12))')
 REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
 
-REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4))')
-REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
+INDEX_URL = 'http://www.esri.cao.go.jp/index-e.html'
 
-PROVIDER_NAME = 'ESRI'
-
-DATABASES = {
-    'QGDP' : {
-        'name': 'Quarterly Estimates of GDP',
-        'url': 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html',
-        'filename': 'toukei_top.html',
-        'store_filepath': '/tmp/esri'
-    }
-}
 
 def parse_quarter(quarter_str):
     if quarter_str == '1- 3':
@@ -114,60 +106,19 @@ def parse_dates(column):
         end_date = pandas.Period('%sQ%s' % (end_year,end_quarter),freq='Q').ordinal
 
     return(freq,start_date,end_date)
-        
-class Downloader():
-    
-    headers = {
-        'user-agent': 'dlstats - https://github.com/Widukind/dlstats'
-    }
-    
-    def __init__(self, url=None, filename=None, store_filepath=None, 
-                 timeout=None, max_retries=0, replace=True):
-        self.url = url
-        self.filename = filename
-        self.store_filepath = store_filepath
-        self.timeout = timeout
-        self.max_retries = max_retries
-        
-        if not self.store_filepath:
-            self.store_filepath = tempfile.mkdtemp()
-        else:
-            if not os.path.exists(self.store_filepath):
-                os.makedirs(self.store_filepath, exist_ok=True)
-        self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
-        
-        #TODO: force_replace ?
-        
-        if os.path.exists(self.filepath) and not replace:
-            raise Exception("filepath is already exist : %s" % self.filepath)
-        
-    def _download(self):
-        
-        #TODO: timeout
-        #TODO: max_retries (self.max_retries)
-        #TODO: analyse rate limit dans headers
-        
-        start = time.time()
+
+def download_page(url):
         try:
-            #TODO: Session ?
-            response = requests.get(self.url, 
-                                    timeout=self.timeout, 
-                                    stream=True, 
-                                    allow_redirects=True,
-                                    verify=False, #ssl
-                                    headers=self.headers)
+            response = requests.get(url)
 
             if not response.ok:
-                msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url, 
+                msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
                                                                            response.status_code, 
                                                                            response.reason)
                 logger.error(msg)
                 raise Exception(msg)
             
-            with open(self.filepath,'wb') as f:
-                for chunk in response.iter_content():
-                    f.write(chunk)
-                    #TODO: flush ?            
+            return response.content
                 
             #TODO: response.close() ?
             
@@ -180,131 +131,417 @@ class Downloader():
         except Exception as err:
             raise Exception("Not captured exception : %s" % str(err))            
 
-        end = time.time() - start
-        logger.info("download file[%s] - END - time[%.3f seconds]" % (self.url, end))
+def make_dataset(anchor, url):
+    url = urljoin(url,anchor.get('href'))
+    dirs = url.split('/')
+    filename = dirs[-1]
+    release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+    code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+    name = re.match('(.*)\([^(]*$',anchor.text).group(1).rstrip()
+    return {'name': name,
+            'dataset_code': code,
+            'filename': filename,
+            'url': url,
+            'doc_href': None,
+            'release_date': release_date}
     
-    def get_filepath(self, force_replace=False):
-        
-        if os.path.exists(self.filepath) and force_replace:
-            os.remove(self.filepath)
-        
-        if not os.path.exists(self.filepath):
-            logger.info("not found file[%s] - download dataset url[%s]" % (self.filepath, self.url))
-            self._download()
-        else:
-            logger.info("use local dataset file [%s]" % self.filepath)
-        
-        return self.filepath
+def parse_esri_site():
+    url = INDEX_URL
+    # general index
+    page = download_page(url)
+    html = etree.HTML(page)
+    uls = html.findall('.//ul[@class="bulletList"]')
+    sna = parse_sna(uls[0],url)
+#    bs = parse_business_statistics(uls[1])
+    site_tree = [sna]
+#   site_tree = [sna, bs]
+    return site_tree
+
+def parse_sna(ul,url):
+    anchors = ul.findall('.//li/a')
+    qgdp = parse_qgdp(urljoin(url,anchors[0].get('href')))
+#    parse_capital_stock(anchors[2].get('href'))
+    branch = {'name': 'National accounts of Japan',
+              'category_code': 'SNA',
+              'doc_href': None,
+              'children': [qgdp]}
+    return branch
+
+def parse_business_statistics(ul):
+    anchors = ul.findall('.//a')
+    bc = parse_business_conditions(anchors[0].get('href'),anchors[0].text)
+    mo = parse_machinery_orders(anchors[1].get('href'),anchors[1].text)
+    cc = parse_consumer_confidence(anchors[2].get('href'),anchors[2].text)
+    bo = parse_business_outlook(anchors[3].get('href'),anchors[3].text)
+    cb = parse_corporate_behavior(anchors[4].get('href'),anchors[4].text)
+    branch = {'name': 'Business statistics',
+              'category_code': 'BusinessStatistics',
+              'doc_href': None,
+              'children': [bc, mo, cc, bo, cb]}
+    return branch
+
+def parse_qgdp(url):
+    # quarterly estimate of GDP
+    page = download_page(url)
+    # find latest data
+    html = etree.HTML(page)
+    # release archive
+    anchor = html.find('.//h2[2]/a')
+    url = urljoin(url,anchor.get('href'))
+    # Release archive (toukei_top.html)
+    page = download_page(url)
+    html = etree.HTML(page)
+    anchor = html.find('.//ul[@class="bulletList ml20"]/li/a')
+    # Go to release archive
+    url = urljoin(url, anchor.get('href'))
+    page = download_page(url)
+    # find latest data
+    html = etree.HTML(page)
+    anchor = html.find('.//table[@class="tableBase"]/tbody/tr/td[2]/a')
+    # Go to latest release
+    url = urljoin(url, anchor.get('href'))
+    page = download_page(url)
+    # find urls
+    html = etree.HTML(page)
+    titles = html.findall('.//h3')
+    tbodies = html.findall('.//table[@class="tableBase"]/tbody')
+    branch = {}
+    branch['name'] = titles[0].text
+    branch['category_code'] = 'QuarterlyGDP'
+    branch['children'] = []
+    branch['doc_href'] = None
+    subbranch = {}
+    subbranch['name'] = titles[1].text
+    subbranch['category_code'] = 'GDP'
+    subbranch['doc_href'] = None
+    amounts = parse_amounts(tbodies[0],url)
+    deflators = parse_deflators(tbodies[1],url)
+    subbranch['children'] = amounts + deflators
+    branch['children'].append(subbranch)
+    subbranch = {}
+    subbranch['name'] = titles[2].text
+    subbranch['category_code'] = 'FD'
+    subbranch['doc_href'] = None
+    table = html.find('.//table[@class="tableBase"][2]')
+    amounts = parse_amounts(tbodies[2],url)
+    deflators = parse_deflators(tbodies[3],url)
+    compensation = parse_compensation(tbodies[4],url)
+    subbranch['children'] = amounts + deflators + compensation
+    branch['children'].append(subbranch)
+
+    return branch
+
+def parse_amounts(tbody,url):
+    rows = tbody.findall('.//tr')
+    G = []
+    branch = {}
+    for r in rows:
+        header = r.find('.//th')
+        if header is not None:
+            if branch:
+                G.append(branch)
+                branch = {}
+            branch['datasets'] = []
+            branch['name'] = header.text
+            # Use first word as category_code
+            branch['category_code'] = header.text.split(' ')[0]
+            branch['doc_href'] = None
+        anchors = r.findall('.//a')
+        for a in anchors:
+            dataset = make_dataset(a,url)
+            branch['datasets'].append(dataset)
+    G.append(branch)
+    return G
+
+def parse_deflators(tbody,url):
+    rows = tbody.findall('.//tr')
+    branch = {}
+    branch['name'] = 'Deflators'
+    branch['category_code'] = 'Deflators'
+    branch['doc_href'] = None
+    children = [{},{}]
+    children[0]['name'] = 'Amount'
+    children[0]['category_code'] = 'Amount'
+    children[0]['doc_href'] = None
+    children[0]['datasets'] = []
+    children[1]['name'] = 'Change from the previous term'
+    children[1]['category_code'] ='Change'
+    children[1]['doc_href'] = None
+    children[1]['datasets'] = []
+    for r in rows:
+        anchors = r.findall('.//a')
+        for index,a in enumerate(anchors):
+            dataset = make_dataset(a,url)
+            children[index]['datasets'].append(dataset)
+    branch['children'] = children
+    return [branch]
+
+def parse_compensation(tbody,url):
+    a = tbody.find('.//a')
+    url = urljoin(url,a.get('href'))
+    dirs = url.split('/')
+    filename = dirs[-1]
+    release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+    branch = {}
+    branch['name'] = 'Compensation of Employees'
+    branch['category_code'] = 'Compensation'
+    branch['doc_href'] = None
+    branch['datasets'] = [{'name': 'Compensation of Employees',
+                           'dataset_code': 'kshotoku',
+                           'filename': filename,
+                           'release_date': release_date,
+                           'doc_href': None,
+                           'url': url}]
+    return [branch]
+
+def parse_business_conditions(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    tbody = html.find('.//table/tbody')
+    trs = tbody.findall('.//tr')
+    children = []
+    for tr in trs:
+        branch = {'name': tr.find('.//th').text,
+                  'doc_href': None,
+                  'children': []}
+        anchors = tr.findall('.//td/a')
+        for a in anchors:
+            name = re.match('(.*)\(.*\)',a.text).group(1)
+            url_ = urljoin(url,a.get('href'))
+            dirs = url.split('/')
+            filename = dirs[-1]
+            release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+            code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+            dataset = {'name': name,
+                       'doc_href': None,
+                       'dataset_code': code,
+                       'release_date': release_date,
+                       'filename': filename}
+            branch['children'].append(dataset)
+        children.append(branch)
+    return {'name': name,
+            'doc_href': None,
+            'children': children}
+
+def parse_machinery_orders(url,name): 
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        dirs = url.split('/')
+        filename = dirs[-1]
+        release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': None,
+                   'dataset_code': code,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': None,
+            'children': children}
+
+def parse_consumer_confidence(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        dirs = url.split('/')
+        filename = dirs[-1]
+        release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': None,
+                   'dataset_code': code,
+                   'release_date': release_date,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': None,
+            'children': children}
+
+def parse_business_outlook(url,name):
+    pass
+
+def parse_corporate_behavior(url,name):
+    page = download_page(url)
+    html = etree.HTML(page)
+    children = []
+    ul = html.find('.//ul[@class="bulletList"]')
+    anchors = tr.findall('.//td/a')
+    for a in anchors:
+        name = re.match('(.*)\(.*\)',a.text).group(1)
+        url_ = urljoin(url,a.get('href'))
+        dirs = url.split('/')
+        filename = dirs[-1]
+        release_date = datetime(int(dirs[-4]),int(dirs[-3]),int(dirs[-2]))
+        code = re.match('(.*)\d\d\d\d.csv',filename).group(1)
+        dataset = {'name': name,
+                   'doc_href': None,
+                   'dataset_code': code,
+                   'release_date': release_date,
+                   'filename': filename}
+        children.append(dataset)
+    return {'name': name,
+            'doc_href': None,
+            'children': children}
 
 class Esri(Fetcher):
     def __init__(self, db=None):
-        super().__init__(provider_name='esri', db=db)         
-        self.provider_name = 'esri'
+        super().__init__(provider_name='ESRI', db=db)         
         self.provider = Providers(name=self.provider_name,
                                   long_name='Economic and Social Research Institute, Cabinet Office',
                                   version=VERSION,
                                   region='Japan',
                                   website='http://www.esri.cao.go.jp/index-e.html',
                                   fetcher=self)
+        self.datasets_dict = {}
+        self.selected_codes = ['GDP.Amount']
+        
+    def build_data_tree(self, force_update=False):
+        """Build data_tree from ESRI site parsing
+        """
+        if self.provider.count_data_tree() > 1 and not force_update:
+            return self.provider.data_tree
 
-        #parsing the Esri page
-        #        url = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/2015/qe152_2/gdemenuea.html'
-        #        webpage = requests.get(url)
-        #        html = etree.HTML(webpage.text)     
-        #        tables = html.xpath("//table[@class = 'tableBase']")
-        #        hrefs = tables[0].xpath (".//a")
-        #        links = [href.values() for href in hrefs]
-        #        gdp_urls = ['http://www.esri.cao.go.jp' + links[i][0][20:]  for i in range(8)]
-        #        hrefs_ = tables[1].xpath(".//a")
-        #        links_ = [href_.values() for href_ in hrefs_]
-        #        deflator_urls = ['http://www.esri.cao.go.jp' + links_[2*i][0][20:]  for i in range(4)]
-        #        self.url_all = gdp_urls + deflator_urls
-        self.dataset_name_list = [ 'Nominal Gross Domestic Product (original series)',
-                                   'Annual Nominal GDP (fiscal year)',                
-                                   'Nominal Gross Domestic Product (seasonally adjusted series)',
-                                   'Annual Nominal GDP (calendar year)',
-                                   'Real Gross Domestic Product (original series)',
-                                   'Annual Real GDP (fiscal year)',
-                                   'Real Gross Domestic Product (seasonally adjusted series)',
-                                   'Annual Real GDP (calendar year)',
-                                   'Deflators (quarter:original series)',
-                                   'Deflators (quarter:seasonally adjusted series)' ,
-                                   'Deflators (fiscal year)',
-                                   'Deflators (calendar year)']
-        self.datasetCode_list = ['esri'+str(index+1) for index, s in enumerate(self.dataset_name_list)]
-        self.dataset_name = {'esri' +str(index+1): s for index, s in enumerate(self.dataset_name_list)}
-        
-    def upsert_categories(self):
-        data_tree = {'name': 'esri', 
-                     'category_code': 'esri',
-                     'children': None}
-        self.fetcher.provider.add_data_tree(data_tree)
-        
-    def esri_issue(self):
-        for self.url in self.url_all :
-            dataset_code = self.dataset_code_list[self.url_all.index(self.url)]
-            self.upsert_dataset(dataset_code)
+        def make_node(data,parent_key):
+            _category = dict(name=data['name'],
+                             category_code=data['category_code'])
+            _category_key = self.provider.add_category(_category,
+                                                       parent_code=parent_key)
+            if 'children' in data:
+                for c in data['children']:
+                    make_node(c,_category_key)
+            if 'datasets' in data:
+                for d in data['datasets']:
+                    self.provider.add_dataset(dict(dataset_code = d['dataset_code'],
+                                                   name = d['name'],
+                                                   last_update = d['release_date'],
+                                                   metadata={'url': d['url'],
+                                                             'doc_href': d['doc_href']}),
+                                              _category_key)                        
+        try:
+            for data in parse_esri_site():
+                make_node(data, self.provider_name)
+        except Exception as err:
+            logger.error(err)   
+            raise                             
+
+    def get_selected_datasets(self):
+        """Collects the dataset codes that are in data_tree
+        below the ones indicated in "selected_codes" provided in configuration
+        :returns: list of dict of dataset settings"""
+        category_filter = [".*%s.*" % d for d in self.selected_codes]
+        category_filter = "|".join(category_filter)
+        self.selected_datasets = {d['dataset_code']: d for d in self.datasets_list(category_filter=category_filter)}
+        return self.selected_datasets
+
+    # necessary for test mock
+    def make_url(self):
+        return self.dataset_settings['metadata']['url']
 
     def upsert_dataset(self, dataset_code):
+        """Updates data in Database for selected datasets
+        :dset: dataset_code
+        :returns: None"""
+        self.get_selected_datasets()
+        
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
-        self.upsert_sna(self.url,dataset_code)                  
-        self.update_metas(dataset_code)
+
+        self.dataset_settings = self.selected_datasets[dataset_code]
+        url = self.make_url()
+        dataset = Datasets(self.provider_name,dataset_code,
+                           fetcher=self)
+        dataset.name = self.dataset_settings['name']
+        dataset.doc_href = self.dataset_settings['metadata']['doc_href']
+        dataset.last_update = self.dataset_settings['last_update']
+        data_iterator = EsriData(dataset,url,filename=dataset_code)
+        dataset.series.data_iterator = data_iterator
+        dataset.update_database()
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
 
-    def upsert_sna(self, url, dataset_code):
-        dataset = Datasets(self.provider_name,dataset_code,
-                           fetcher=self)
-        sna_data = EsriData(dataset,url)
-        dataset.name = self.dataset_name[dataset_code]
-        dataset.doc_href = 'http://www.esri.cao.go.jp/index-e.html'
-        dataset.last_update = sna_data.release_date
-        dataset.series.data_iterator = sna_data
-        dataset.update_database()
-
-    def upsert_all_datasets(self):
-        self.upsert_categories()
-        self.esri_issue()
+    # TO BE FINISHED    
+    def parse_sna_agenda(self):
+        #TODO: use Downloader
+        download = Downloader(url="http://www.esri.cao.go.jp/en/sna/kouhyou/kouhyou_top.html",
+                              filename="agenda_sna.html")
+        with open(download.get_filepath(), 'rb') as fp:
+            agenda = lxml.html.parse(fp)
         
-    def upsert_all_datasets(self):
-        self.upsert_categories()
-        self.esri_issue()
+    # TO BE FINISHED
+    def get_calendar(self):
+        datasets = [d["dataset_code"] for d in self.datasets_list()]
 
-    def upsert_latest_quarterly_estimates_of_gdp(self):
-        self.parse_quarterly_esimates_of_gdp_release_archive_page()
+        for entry in self.parse_agenda():
 
-    def parse_quarterly_esimates_of_gdp_release_archive_page(self):
-        # TODO: timeout, replace
-        download = Downloader(url=DATABASES['QGDP']['url']+DATABASES['QGDP']['filename'],
-                              filename=DATABASES['QGDP']['filename'],
-                              store_filepath=DATABASES['QGDP']['store_filepath'])
-        with open(download.get_filepath(force_replace=False),'r') as f:
-            page = f.read()
-        # find latest data
-        html = etree.HTML(page)
-        print(etree.tostring(html, pretty_print=True, method="html"))
-        ul = html.find('.//ul[@class="bulletList ml20"]')
-        li = ul.find('li')
-        a = li.find('a')
-        # Go to release archive
-        dowload =  Downloader(url=DATABASES['QGDP']['url'] + a.get('href'),
-                              filename=DATABASES['QGDP']['filename'],
-                              store_filepath=DATABASES['QGDP']['store_filepath'])
-        with open(download.get_filepath(force_replace=False),'r') as f:
-            page = f.read()
-        # find latest data
-        html = etree.HTML(page)
+            if entry['dataflow_key'] in datasets:
+
+                yield {'action': 'update_node',
+                       'kwargs': {'provider_name': self.provider_name,
+                                  'dataset_code': entry['dataflow_key']},
+                       'period_type': 'date',
+                       'period_kwargs': {'run_date': datetime.strptime(
+                           entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
+                           'timezone': pytz.timezone('Asia/Tokyo')
+                       }
+                      }
+
+    # TODO: load earlier versions to get revisions
+    def load_datasets_first(self):
+        start = time.time()        
+        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
+        
+        self.provider.update_database()
+        self.build_data_tree()
+        self.upsert_data_tree()
+
+        datasets_list = [d for d in self.get_selected_datasets().keys()]
+        for dataset_code in datasets_list:
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+
+        end = time.time() - start
+        logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+
+    def load_datasets_update(self):
+        start = time.time()        
+        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
+        
+        self.provider.update_database()
+        self.upsert_data_tree()
+
+        datasets_list = [d["dataset_code"] for d in self.datasets_list()]
+        for dataset_code in datasets_list:
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+
+        end = time.time() - start
+        logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+
 class EsriData():
-    def __init__(self, dataset,  filename=None, store_filepath=None):
+    def __init__(self, dataset,  url, filename=None, store_filepath=None):
         self.provider_name = dataset.provider_name
         self.dataset_code = dataset.dataset_code
         self.dimension_list = dataset.dimension_list
         self.attribute_list = dataset.attribute_list
         self.filename = filename
         self.store_filepath = store_filepath
-        self.dataset_url = self.make_url()
+        self.dataset_url = url
         self.panda_csv = self.get_csv_data()
 #        self.release_date = self.get_release_date()
         self.release_date = dataset.last_update
@@ -325,16 +562,11 @@ class EsriData():
         # TODO: timeout, replace
         download = Downloader(url=self.dataset_url, filename=self.filename, store_filepath=store_filepath)
             
-        return(download.get_filepath(force_replace=False))
-
+        return(download.get_filepath())
+    
     def get_csv_data(self):
         return pandas.read_csv(self._load_datas(),encoding='cp932')
     
-    def get_release_date(self):
-        response = urllib.request.urlopen(self.url)
-        releaseDate = response.info()['Last-Modified'] 
-        return datetime.strptime(releaseDate,"%a, %d %b %Y %H:%M:%S GMT")                                                  
-        
     def fix_series_names(self):
         #generating name of the series             
         columns = self.panda_csv.columns
@@ -410,14 +642,4 @@ class EsriData():
         series['attributes'] = {}
         return(series)
 
-    def make_url(self):
-        # TODO: add url's root
-        return self.dataset_code
-
-if __name__ == "__main__":
-    e = Esri()
-    e.parse_quarterly_esimates_of_gdp_release_archive_page()
-#    e.provider.update_database()
-#    e.upsert_all_datasets()
-#    e.upsert_categories()
     
