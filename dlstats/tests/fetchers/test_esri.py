@@ -34,10 +34,10 @@ PROVIDER_NAME = 'ESRI'
 
 
 dataset_codes = ['gaku-mg', 'gaku-mfy', 'def-qg', ]
-dataset_codes = os.listdir('./tests/resources/esri/sna')
+dataset_codes = [d for d in os.listdir('./tests/resources/esri/') if re.match('(.*)1532.csv',d)]
 for i,d in enumerate(dataset_codes):
     dataset_codes[i] = d.replace('1532.csv','')
-
+        
 DATASETS = {d:{} for d in dataset_codes}
 
 for d in DATASETS:
@@ -71,7 +71,7 @@ DATASETS['def-qg']['filename'] = 'def-qg1532.csv'
 
 def make_url(self):
     import tempfile
-    filepath = os.path.abspath(os.path.join('./tests/resources/esri/sna',
+    filepath = os.path.abspath(os.path.join('./tests/resources/esri',
                                             "%s1532.csv" % self.dataset_code))
     return "file:%s" % pathname2url(filepath)
 
@@ -96,7 +96,7 @@ def get_filepath(dataset_code):
     """
     from shutil import copyfile
     filename = DATASETS[dataset_code]['filename']
-    test_resource_filepath = os.path.join('./tests/resources/esri/sna',filename)
+    test_resource_filepath = os.path.join('./tests/resources/esri',filename)
     dirpath = os.path.join(tempfile.gettempdir(), PROVIDER_NAME)
     filepath = os.path.abspath(os.path.join(dirpath, filename))
     
@@ -123,33 +123,33 @@ def fake_release_date(arg):
 def httpretty_setup():
     url = esri.INDEX_URL
     httpretty.register_uri(httpretty.GET, url,
-                           body = get_simple_file('./tests/resources/esri/Statistics - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/index-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(url,"en/sna/sokuhou/sokuhou_top.html"),
-                           body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - National Accounts.html'))
+                           body = get_simple_file('./tests/resources/esri/sokuhou_top.html'))
     url_base = 'http://www.esri.cao.go.jp/en/sna/data/sokuhou/files/'
     httpretty.register_uri(httpretty.GET, url_base + 'toukei_top.html',
-                           body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - National Accounts.html'))
+                           body = get_simple_file('./tests/resources/esri/toukei_top.html'))
     httpretty.register_uri(httpretty.GET, url_base + '2015/toukei_2015.html',
-                           body = get_simple_file('./tests/resources/esri/Quarterly Estimates of GDP - Release Archive - 2015 - National Accounts.html'))
+                           body = get_simple_file('./tests/resources/esri/toukei_2015.html'))
     httpretty.register_uri(httpretty.GET, url_base + '2015/qe153_2/gdemenuea.html',
-                           body = get_simple_file('./tests/resources/esri/Jul.-Sep. 2015 (The 2nd preliminary) - National Accounts.html'))
+                           body = get_simple_file('./tests/resources/esri/gdemenuea.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/di/di-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Indexes of Business Conditions_ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/di-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/juchu/juchu-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Machinery Orders_ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/juchu-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/shouhi/shouhi-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Consumer Confidence Survey_ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/shouhi-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/hojin/hojin-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Business Outlook Survey_ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/hojin-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/ank/ank-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Annual Survey of Corporate Behavior_ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/ank-e.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/gaku-mg1532.csv"),
-                           body = get_simple_japanese_file('./tests/resources/esri/sna/gaku-mg1532.csv'))
+                           body = get_simple_japanese_file('./tests/resources/esri/gaku-mg1532.csv'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/gaku-mfy1532.csv"),
-                           body = get_simple_japanese_file('./tests/resources/esri/sna/gaku-mfy1532.csv'))
+                           body = get_simple_japanese_file('./tests/resources/esri/gaku-mfy1532.csv'))
     for d in dataset_codes:
         httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/"+d+"1532.csv"),
-                               body = get_simple_japanese_file('./tests/resources/esri/sna/'+d+'1532.csv'))
+                               body = get_simple_japanese_file('./tests/resources/esri/'+d+'1532.csv'))
 
 class FakeDataset():
     def __init__(self,code):
