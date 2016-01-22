@@ -134,15 +134,15 @@ def httpretty_setup():
     httpretty.register_uri(httpretty.GET, url_base + '2015/qe153_2/gdemenuea.html',
                            body = get_simple_file('./tests/resources/esri/Jul.-Sep. 2015 (The 2nd preliminary) - National Accounts.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/di/di-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Indexes of Business Conditions:ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/Indexes of Business Conditions_ESRI - Cabinet Office Home Page.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/juchu/juchu-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Machinery Orders :ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/Machinery Orders_ESRI - Cabinet Office Home Page.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/shouhi/shouhi-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Consumer Confidence Survey:ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/Consumer Confidence Survey_ESRI - Cabinet Office Home Page.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/hojin/hojin-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Business Outlook Survey:ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/Business Outlook Survey_ESRI - Cabinet Office Home Page.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"en/stat/ank/ank-e.html"),
-                           body = get_simple_file('./tests/resources/esri/Annual Survey of Corporate Behavior:ESRI - Cabinet Office Home Page.html'))
+                           body = get_simple_file('./tests/resources/esri/Annual Survey of Corporate Behavior_ESRI - Cabinet Office Home Page.html'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/gaku-mg1532.csv"),
                            body = get_simple_japanese_file('./tests/resources/esri/sna/gaku-mg1532.csv'))
     httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/gaku-mfy1532.csv"),
