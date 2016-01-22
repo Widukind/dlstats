@@ -180,7 +180,7 @@ class WeoData():
         data_filepath = download(url)
 
         #TODO: encoding ? 
-        self.fp = open(data_filepath)
+        self.fp = open(data_filepath, encoding='latin-1')
         self.sheet = csv.DictReader(self.fp, dialect=csv.excel_tab)             
 
         self.years = self.sheet.fieldnames[9:-1]
