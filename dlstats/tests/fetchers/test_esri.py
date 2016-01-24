@@ -34,7 +34,7 @@ PROVIDER_NAME = 'ESRI'
 
 
 dataset_codes = ['gaku-mg', 'gaku-mfy', 'def-qg', ]
-dataset_codes = [d for d in os.listdir('./tests/resources/esri/') if re.match('(.*)1532.csv',d)]
+dataset_codes = [d for d in os.listdir('./tests/resources/esri/') if re.match('(.*)1532.csv$',d)]
 for i,d in enumerate(dataset_codes):
     dataset_codes[i] = d.replace('1532.csv','')
         
@@ -51,23 +51,71 @@ DATASETS["series_names"] = ['nan', 'GDP (Expenditure Approach)', 'Private Consum
                             'Income from/to the Rest of the World, Payment','GNI', 'nan',
                             'Domestic Demand','Private Demand', 'Public Demand', 'nan','Gross Fixed Capital Formation', 'nan',
                             'GDP, Excluding FISIM', 'Consumption of Households, Excluding FISIM', 'Export, Excluding FISIM' , 'Import, Excluding FISIM',
-                            'Trading Gains/Losses', 'GDI', 'Residual']
+                            'Trading Gains/Losses', 'GDI', 'Residual', 'GDP', 'Direct Purchases Abroad by Resident Households',
+                            'Direct Purchases in the Domestic Market by Non-Resident Households',
+                            'Domestic Final Consumption Expenditure of Households', 'Durable Goods', 'Semi-Durable Goods', 'Non-Durable Goods',	'Services',
+                            'Gross Fixed Capital Formation by Type, Residential Investment',
+                            'Gross Fixed Capital Formation by Type, Other Buildings and Structures',
+                            'Gross Fixed Capital Formation by Type, Transport Equipment',
+	                    'Gross Fixed Capital Formation by Type, Other Machinery and Equipment etc.',
+	                    'Gross Fixed Capital Formation by Type, Computer Software',
+                            'Gross Capital Formation','Gross Capital Formation, Change in Inventories',
+                            'Goods & Services, Exports, Goods',
+                            'Goods & Services, Imports, Goods',
+                            'Goods & Services, Exports, Services（Including Direct Purchases in the Domestic Market by Non-Resident Households)',
+                            'Goods & Services, Imports, Services（Including Direct Purchases Abroad by Resident Households)']
 
-DATASETS['gaku-mg']['name'] = 'Nominal Gross Domestic Product (original series)'
-DATASETS['gaku-mg']['dimension_count'] = 1
-DATASETS['gaku-mg']['series_count'] = 25
-DATASETS['gaku-mg']['last_update'] = datetime.datetime(2015,12,4)
-DATASETS['gaku-mg']['filename'] = 'gaku-mg1532.csv'
-DATASETS['gaku-mfy']['name'] = 'Annual Nominal GDP (fiscal year)' 
-DATASETS['gaku-mfy']['dimension_count'] = 1
-DATASETS['gaku-mfy']['series_count'] = 25
-DATASETS['gaku-mfy']['last_update'] = datetime.datetime(2015,12,4)
-DATASETS['gaku-mfy']['filename'] = 'gaku-mfy1532.csv'
-DATASETS['def-qg']['name'] = 'Deflators (original series)'
-DATASETS['def-qg']['dimension_count'] = 1
-DATASETS['def-qg']['series_count'] = 25
-DATASETS['def-qg']['last_update'] = datetime.datetime(2015,12,4)
-DATASETS['def-qg']['filename'] = 'def-qg1532.csv'
+DATASETS['gaku-mg'] = {'name': 'Nominal Gross Domestic Product (original series)',
+                       'dimension_count': 1,
+                       'series_count': 25,
+                       'last_update': datetime.datetime(2015,12,4),
+                       'filename': 'gaku-mg1532.csv'}
+DATASETS['gaku-mfy'] = {'name': 'Annual Nominal GDP (fiscal year)',
+                        'dimension_count': 1,
+                        'series_count': 25,
+                        'last_update': datetime.datetime(2015,12,4),
+                        'filename': 'gaku-mfy1532.csv'}
+DATASETS['ritu-mg'] = {'name': 'Changes from the previous year (at current prices: original series)',
+                       'dimension_count': 1,
+                       'series_count': 25,
+                       'last_update': datetime.datetime(2015,12,4),
+                       'filename': 'ritu-mg1532.csv'}
+DATASETS['ritu-jcy'] = {'name': 'Changes from the previous year (at chained (2005) prices: calendar year)',
+                       'dimension_count': 1,
+                       'series_count': 27,
+                       'last_update': datetime.datetime(2015,12,4),
+                       'filename': 'ritu-jcy1532.csv'}
+DATASETS['kiyo-mg'] = {'name': 'Contributions to Changes in Nominal GDP (original series)',
+                       'dimension_count': 1,
+                       'series_count': 25,
+                       'last_update': datetime.datetime(2015,12,4),
+                       'filename': 'kiyo-mg1532.csv'}
+DATASETS['kiyo-jcy'] = {'name': 'Contributions to Changes in Annual Real GDP (calendar Year)',
+                       'dimension_count': 1,
+                       'series_count': 27,
+                       'last_update': datetime.datetime(2015,12,4),
+                       'filename': 'kiyo-jcy1532.csv'}
+DATASETS['def-qg'] = {'name': 'Deflators (quarter:original series)',
+                      'dimension_count': 1,
+                      'series_count': 25,
+                      'last_update': datetime.datetime(2015,12,4),
+                      'filename': 'def-qg1532.csv'}
+DATASETS['rdef-cy'] = {'name': 'Deflators (calendar year: changes from the previous year)',
+                      'dimension_count': 1,
+                      'series_count': 25,
+                      'last_update': datetime.datetime(2015,12,4),
+                      'filename': 'rdef-cy1532.csv'}
+DATASETS['kgaku-mg'] = {'name': 'Nominal (original series)',
+                      'dimension_count': 1,
+                      'series_count': 22,
+                      'last_update': datetime.datetime(2015,12,4),
+                      'filename': 'kgaku-mg1532.csv'}
+DATASETS['krdef-cy'] = {'name': 'Deflators (calendar year: changes from the previous year)',
+                      'dimension_count': 1,
+                      'series_count': 22,
+                      'last_update': datetime.datetime(2015,12,4),
+                      'filename': 'krdef-cy1532.csv'}
+
 
 def make_url(self):
     import tempfile
@@ -150,6 +198,8 @@ def httpretty_setup():
     for d in dataset_codes:
         httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/"+d+"1532.csv"),
                                body = get_simple_japanese_file('./tests/resources/esri/'+d+'1532.csv'))
+        httpretty.register_uri(httpretty.GET,urljoin(esri.INDEX_URL,"jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/07/"+d+"1532.csv"),
+                               body = get_simple_japanese_file('./tests/resources/esri/'+d+'1532.csv'))
 
 class FakeDataset():
     def __init__(self,code):
@@ -171,7 +221,7 @@ class EsriFixSeriesTestCase(BaseTestCase):
         # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriFixSeriesTestCase.test_fix_series_name
         
         for d in dataset_codes:
-            if re.match('gaku',d):
+            if re.match('.*',d):
                 filepath = get_filepath(d)
                 self.assertTrue(os.path.exists(filepath))
                 
@@ -194,7 +244,13 @@ class EsriParseDatesTestCase(BaseTestCase):
         self.assertEqual(esri.parse_dates(dates),
                          ('A',
                           pandas.Period('1994',freq='A').ordinal,
-                          pandas.Period('1996',freq='A').ordinal))
+                          pandas.Period('1996',freq='A').ordinal,0,2))
+
+        dates = ['1994/1-12.', '1995/1-12.', '1996/1-12.']
+        self.assertEqual(esri.parse_dates(dates),
+                         ('A',
+                          pandas.Period('1994',freq='A').ordinal,
+                          pandas.Period('1996',freq='A').ordinal,0,2))
 
         dates = ['1994/ 1- 3.', '4- 6.', '7- 9.', '10-12.',
                  '1995/ 1- 3.', '4- 6.', '7- 9.', '10-12.',
@@ -202,7 +258,7 @@ class EsriParseDatesTestCase(BaseTestCase):
         self.assertEqual(esri.parse_dates(dates),
                          ('Q',
                           pandas.Period('1994Q1',freq='Q').ordinal,
-                          pandas.Period('1996Q4',freq='Q').ordinal))
+                          pandas.Period('1996Q4',freq='Q').ordinal,0,11))
 
         dates = ['1994/ 4- 6.', '7- 9.', '10-12.',
                  '1995/ 1- 3.', '4- 6.', '7- 9.', '10-12.',
@@ -210,7 +266,7 @@ class EsriParseDatesTestCase(BaseTestCase):
         self.assertEqual(esri.parse_dates(dates),
                          ('Q',
                           pandas.Period('1994Q2',freq='Q').ordinal,
-                          pandas.Period('1996Q3',freq='Q').ordinal))
+                          pandas.Period('1996Q3',freq='Q').ordinal,0,9))
 
         dates = ['1994/ 7- 9.', '10-12.',
                  '1995/ 1- 3.', '4- 6.', '7- 9.', '10-12.',
@@ -218,7 +274,7 @@ class EsriParseDatesTestCase(BaseTestCase):
         self.assertEqual(esri.parse_dates(dates),
                          ('Q',
                           pandas.Period('1994Q3',freq='Q').ordinal,
-                          pandas.Period('1996Q2',freq='Q').ordinal))
+                          pandas.Period('1996Q2',freq='Q').ordinal,0,7))
 
         dates = ['1994/ 10-12.',
                  '1995/ 1- 3.', '4- 6.', '7- 9.', '10-12.',
@@ -226,7 +282,7 @@ class EsriParseDatesTestCase(BaseTestCase):
         self.assertEqual(esri.parse_dates(dates),
                          ('Q',
                           pandas.Period('1994Q4',freq='Q').ordinal,
-                          pandas.Period('1996Q1',freq='Q').ordinal))
+                          pandas.Period('1996Q1',freq='Q').ordinal,0,5))
 
 class EsriDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB
@@ -527,7 +583,7 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
 
     def test_gaku_mfy(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mg
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_gaku_mfy
                 
         self.dataset_code = 'gaku-mfy'
         
@@ -570,6 +626,190 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
         self.assertEqual(series['values'][0], '35,177.4')
         self.assertEqual(series['values'][-1], '99,695.5')
+
+    def test_ritu_mg(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_ritu_mg
+                
+        self.dataset_code = 'ritu-mg'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['ritu-mg']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '3.5')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '24'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '24')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '-5.9')
+
+    def test_ritu_jcy(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_ritu_jcy
+                
+        self.dataset_code = 'ritu-jcy'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['ritu-jcy']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '-0.0')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '26'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '26')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '7.2')
+
+    def test_kiyo_mg(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_kiyo_mg
+                
+        self.dataset_code = 'kiyo-mg'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['kiyo-mg']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '3.5')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '24'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '24')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '1.2')
+
+    def test_kiyo_jcy(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_kiyo_jcy
+                
+        self.dataset_code = 'kiyo-jcy'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['kiyo-jcy']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '-0.0')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '26'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '26')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '-1.4')
 
     def test_def_qg(self):
         
@@ -617,6 +857,145 @@ class EsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series['values'][0], '86.7')
         self.assertEqual(series['values'][-1], '116.6')
 
+    def test_rdef_cy(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_rdef_cy
+                
+        self.dataset_code = 'rdef-cy'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['rdef-cy']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '1.7')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '24'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '24')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '3.9')
+
+    def test_kgaku_mg(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_kgaku_mg
+                
+        self.dataset_code = 'kgaku-mg'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['kgaku-mg']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], '65,711.1')
+        self.assertEqual(series['values'][-1], '71,465.1')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '21'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '21')
+        self.assertEqual(series['frequency'], 'Q')
+        self.assertEqual(series['start_date'], pandas.Period('1994Q1',freq='Q').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2015Q3',freq='Q').ordinal)
+        self.assertEqual(series['values'][0], '2,517.6')
+        self.assertEqual(series['values'][-1], '4,211.3')
+
+    def test_krdef_cy(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:EsriDatasetsDBTestCase.test_krdef_cy
+                
+        self.dataset_code = 'krdef-cy'
+        
+        self._common_tests()        
+
+        attempt = DATASETS['krdef-cy']
+        
+        dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
+                                                            "dataset_code": self.dataset_code})
+
+        self.assertEqual(dataset['name'], attempt['name'])
+        self.assertEqual(dataset['provider_name'], 'ESRI')
+        self.assertEqual(dataset['last_update'], attempt['last_update'])
+        self.assertEqual(dataset['attribute_list'], {})
+        self.assertEqual(dataset['doc_href'], None)
+                    
+        
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '0'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '0')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '2.0')
+
+        series = self.db[constants.COL_SERIES].find_one({"provider_name": self.fetcher.provider_name, 
+                                                         "dataset_code": self.dataset_code,
+                                                         "key": '21'})
+        self.assertIsNotNone(series)
+        
+        d = series['dimensions']
+        self.assertEqual(d["concept"], '21')
+        self.assertEqual(series['frequency'], 'A')
+        self.assertEqual(series['start_date'], pandas.Period('1994',freq='A').ordinal)
+        self.assertEqual(series['end_date'], pandas.Period('2014',freq='A').ordinal)
+        self.assertEqual(series['values'][0], 'nan')
+        self.assertEqual(series['values'][-1], '4.6')
+
+        
 class LightEsriDatasetsDBTestCase(BaseDBTestCase):
     """Fetchers Tests - with DB and lights sources
     
@@ -637,7 +1016,7 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
     @httpretty.activate
     def _common_tests(self):
 
-        self._collections_is_empty()
+#        self._collections_is_empty()
 
         
         httpretty_setup()
@@ -646,7 +1025,7 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertIsNotNone(provider)
 
         self.fetcher.build_data_tree()
-        
+
         self.fetcher.upsert_dataset(self.dataset_code)
 
         self.dataset = self.db[constants.COL_DATASETS].find_one({"provider_name": self.fetcher.provider_name, 
@@ -656,8 +1035,17 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
         series = self.db[constants.COL_SERIES].find({"provider_name": self.fetcher.provider_name, 
                                                      "dataset_code": self.dataset_code})
 
-        self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
+        if 'series_count' in DATASETS[self.dataset_code]:
+            self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
 
+    def test_all_datasets(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_esri:LightEsriDatasetsDBTestCase.test_all_datasets
+                
+        for d in dataset_codes:
+            self.dataset_code = d
+            self._common_tests()
+        
     def test_gaku_mg(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_esri:LightEsriDatasetsDBTestCase.test_gaku_mg
@@ -750,7 +1138,6 @@ class LightEsriDatasetsDBTestCase(BaseDBTestCase):
         self.assertEqual(series['values'][0], '35,177.4')
         self.assertEqual(series['values'][-1], '99,695.5')
 
-    @unittest.skipIf(True,'TODO')
     def test_def_qg(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_esri:LightEsriDatasetsDBTestCase.test_gaku_mg

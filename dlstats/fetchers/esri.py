@@ -51,11 +51,38 @@ def parse_quarter(quarter_str):
     return quarter
 
 def parse_dates(column):
-    if re.match(REGEX_ANNUAL,column[0]):
-        freq = 'A'
-        start_year = int(re.match(REGEX_ANNUAL,column[0]).group(1))
-        end_year = start_year
-        for c in column[1:]:
+    for row_nbr,c in enumerate(column):
+        if type(c) is not str:
+            continue
+        matches = re.match(REGEX_ANNUAL,c)
+        if matches:
+            freq = 'A'
+            start_year = int(matches.group(1))
+            end_year = start_year
+            first_row = row_nbr
+            last_row = first_row
+            break
+        matches = re.match(REGEX_QUARTER,c)
+        if matches:
+            freq = 'Q'
+            start_year = int(matches.group(1))
+            start_quarter = parse_quarter(matches.group(2))
+            # checking next year beginning
+            matches = re.match(REGEX_QUARTER,column[row_nbr + 5 - start_quarter])
+            if (not matches) or int(matches.group(1)) != start_year + 1:
+                raise Exception('start_date not recognized')
+            end_year = start_year
+            end_quarter = start_quarter
+            first_row = row_nbr
+            last_row = first_row
+            break
+        if (row_nbr + 1) == len(column):
+            raise Exception('start_date not recognized')
+
+    if freq == 'A':
+        for c in column[first_row+1:]:
+            if type(c) is not str:
+                break
             matches = re.match(REGEX_ANNUAL,c)
             if not matches:
                 break
@@ -64,21 +91,9 @@ def parse_dates(column):
             if next_year != end_year + 1:
                 raise Exception('error in year sequence')
             end_year = next_year
+            last_row = last_row + 1
     else:
-        freq = 'Q'
-        matches = re.match(REGEX_QUARTER,column[0])
-        if not matches:
-            raise Exception('start_date not recognized')
-        start_year = int(matches.group(1))
-        start_quarter = parse_quarter(matches.group(2))
-        # checking next year beginning
-        matches = re.match(REGEX_QUARTER,column[5-start_quarter])
-        if (not matches) or int(matches.group(1)) != start_year + 1:
-            raise Exception('start_date not recognized')
-
-        end_year = start_year
-        end_quarter = start_quarter
-        for c in column[1:]:
+        for c in column[first_row+1:]:
             if type(c) is not str:
                 break
             matches = re.match(REGEX_QUARTER,c)
@@ -97,6 +112,7 @@ def parse_dates(column):
                 if next_quarter != end_quarter + 1:
                     raise Exception('error in quarter sequence')
             end_quarter = next_quarter
+            last_row = last_row + 1
 
     if freq == 'A':
         start_date = pandas.Period(start_year,freq='A').ordinal
@@ -105,7 +121,7 @@ def parse_dates(column):
         start_date = pandas.Period('%sQ%s' % (start_year,start_quarter),freq='Q').ordinal
         end_date = pandas.Period('%sQ%s' % (end_year,end_quarter),freq='Q').ordinal
 
-    return(freq,start_date,end_date)
+    return(freq,start_date,end_date,first_row,last_row)
 
 def download_page(url):
         try:
@@ -225,8 +241,10 @@ def parse_qgdp(url):
     table = html.find('.//table[@class="tableBase"][2]')
     amounts = parse_amounts(tbodies[2],url)
     deflators = parse_deflators(tbodies[3],url)
-    compensation = parse_compensation(tbodies[4],url)
-    subbranch['children'] = amounts + deflators + compensation
+    subbranch['children'] = amounts + deflators
+    # TODO
+    #    compensation = parse_compensation(tbodies[4],url)
+    #    subbranch['children'] = amounts + deflators + compensation
     branch['children'].append(subbranch)
 
     return branch
@@ -404,7 +422,7 @@ class Esri(Fetcher):
                                   website='http://www.esri.cao.go.jp/index-e.html',
                                   fetcher=self)
         self.datasets_dict = {}
-        self.selected_codes = ['GDP.Amount']
+        self.selected_codes = ['SNA']
         
     def build_data_tree(self, force_update=False):
         """Build data_tree from ESRI site parsing
@@ -547,7 +565,13 @@ class EsriData():
         self.release_date = dataset.last_update
         [self.nrow,self.ncol] = self.panda_csv.shape
         self.column_nbr = 0
-        (self.frequency,self.start_date,self.end_date) = parse_dates(list(self.panda_csv.iloc[6:,0]))
+
+        (self.frequency,
+         self.start_date,
+         self.end_date,
+         self.first_row,
+         self.last_row) = parse_dates(list(self.panda_csv.iloc[:,0]))
+
         self.series_names = self.fix_series_names()
         self.key = 0
 
@@ -565,7 +589,7 @@ class EsriData():
         return(download.get_filepath())
     
     def get_csv_data(self):
-        return pandas.read_csv(self._load_datas(),encoding='cp932')
+        return pandas.read_csv(self._load_datas(),header=None,encoding='cp932')
     
     def fix_series_names(self):
         #generating name of the series             
@@ -573,39 +597,53 @@ class EsriData():
         series_names = ['nan']*columns.size
         for column_ind in range(1,columns.size):
             if str(self.panda_csv.iloc[5,column_ind]) != "nan":
-                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind]))+', '+str(self.panda_csv.iloc[5,column_ind])
-            else:    
-                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind]))
-            if str(self.panda_csv.iloc[4,column_ind]) == "nan" :
-                if (str(self.panda_csv.iloc[5,column_ind]) != "nan") and (str(self.panda_csv.iloc[4,column_ind-1])) != "nan":         
-                    series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind-1]))+', '+str(self.panda_csv.iloc[5,column_ind])
-                else:
-                    if str(self.panda_csv.iloc[4,column_ind-1]) == "nan":
-                        series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind-2]))+', '+str(self.panda_csv.iloc[5,column_ind])  
+                name_first_part = str(self.panda_csv.iloc[5,column_ind])
+            if self.first_row == 8 and str(self.panda_csv.iloc[6,column_ind]) != "nan":
+                name_second_part = str(self.panda_csv.iloc[6,column_ind])
+            if self.first_row == 8 and str(self.panda_csv.iloc[7,column_ind]) != "nan":
+                series_names[column_ind] = (self.edit_seriesname(name_first_part + ', ' +
+                                                                 name_second_part) + ', ' +
+                                            self.edit_seriesname(str(self.panda_csv.iloc[7,column_ind])))
+            elif str(self.panda_csv.iloc[6,column_ind]) != "nan":
+                series_names[column_ind] = self.edit_seriesname(name_first_part + ', ' + str(self.panda_csv.iloc[6,column_ind]))
+            elif str(self.panda_csv.iloc[5,column_ind]) != "nan":    
+                series_names[column_ind] = self.edit_seriesname(name_first_part)
             #Take into the account FISIM 
-            if str(self.panda_csv.iloc[5,column_ind-1]) == "Excluding FISIM":
-                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind]))+', '+str(self.panda_csv.iloc[5,column_ind-1])               
-            if str(self.panda_csv.iloc[5,column_ind-2]) == "Excluding FISIM":
-                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind]))+', '+str(self.panda_csv.iloc[5,column_ind-2])
-            if str(self.panda_csv.iloc[5,column_ind-3]) == "Excluding FISIM":
-                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[4,column_ind]))+', '+str(self.panda_csv.iloc[5,column_ind-3])
-                
+            if str(self.panda_csv.iloc[6,column_ind-1]) == "Excluding FISIM":
+                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[5,column_ind])+', '+str(self.panda_csv.iloc[6,column_ind-1]))               
+            if str(self.panda_csv.iloc[6,column_ind-2]) == "Excluding FISIM":
+                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[5,column_ind])+', '+str(self.panda_csv.iloc[6,column_ind-2]))
+            if str(self.panda_csv.iloc[6,column_ind-3]) == "Excluding FISIM":
+                series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[5,column_ind])+', '+str(self.panda_csv.iloc[6,column_ind-3]))
+            if series_names[column_ind] == 'Of Which Change in Inventories':
+                series_names[column_ind] = 'Gross Capital Formation, Change in Inventories'
         lent = len(self.panda_csv.iloc[0,:])
-        if str(self.panda_csv.iloc[0,:][lent-1]) == "(%)":
-            self.currency = str(self.panda_csv.iloc[0,lent-2])
+        if str(self.panda_csv.iloc[0,:][columns.size-1]) == "(%)":
+            self.currency = str(self.panda_csv.iloc[0,columns.size-2])
         else:
-            self.currency = str(self.panda_csv.iloc[0,lent-1])
+            self.currency = str(self.panda_csv.iloc[0,columns.size-1])
         return series_names
-        
-    def edit_seriesname(self,seriesname):   
-         seriesname = seriesname.replace(' ','')  
-         seriesname = re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', seriesname)
-         seriesname = re.sub(r"((of)|(in) |(from/to))", r" \1 ", seriesname)  
-         seriesname = re.sub(r"(&)", r" \1 ", seriesname)
-         seriesname = re.sub(r"(\()", r" \1", seriesname) 
-         seriesname = seriesname.replace('  ',' ')
-         return(seriesname)  
-        
+
+    def edit_seriesname(self,seriesname):
+        seriesname = seriesname.replace(' ','')  
+        seriesname = re.sub(r'([a-z](?=[A-Z])|[A-Z](?=[A-Z][a-z]))', r'\1 ', seriesname)
+        seriesname = re.sub(r"((of)|(in) |(from/to)|(by)|(and) |(etc.))", r" \1 ", seriesname)  
+        seriesname = re.sub(r"(&)", r" \1 ", seriesname)
+        seriesname = re.sub(r",([A-z])",r", \1",seriesname)
+#        seriesname = re.sub(r"(\()", r" \1", seriesname) 
+        seriesname = seriesname.replace('Purchasesinthe','Purchases in the')
+        seriesname = seriesname.replace('ResidentialInvestment','Residential Investment')        
+        seriesname = seriesname.replace('S of tware','Software')        
+        seriesname = seriesname.replace('  ',' ')
+        m = re.match('(.+)\(.*\)',seriesname)
+        if m:
+            seriesname = m.group(1)
+        m = re.match('\(.*\)(.+)',seriesname)
+        if m:
+            seriesname = m.group(1)
+        seriesname = seriesname.strip()
+        return(seriesname)  
+
     def __next__(self):
         if self.column_nbr == self.ncol:
             raise StopIteration()
@@ -626,9 +664,8 @@ class EsriData():
         series = {}
         series_value = []
         dimensions['concept'] = self.dimension_list.update_entry('concept','',name)
-        for r in range(6, len(column)):
-            if type(column[r]) is str:
-                series_value.append(str(column[r]).replace(' ',''))    
+        for r in range(self.first_row,self.last_row+1):
+            series_value.append(str(column[r]).strip())    
         series['values'] = series_value                
         series['provider_name'] = self.provider_name       
         series['dataset_code'] = self.dataset_code
