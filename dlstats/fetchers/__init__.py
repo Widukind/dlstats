@@ -61,13 +61,13 @@ try:
 except ImportError:
     pass
 
-#try:
-#    from dlstats.fetchers.esri import Esri
-#    FETCHERS['esri'] = Esri
-#    #TODO: FETCHERS_DATASETS['ESRI'] = None
-#    __all__.append('Esri')
-#except ImportError:
-#    pass
+try:
+    from dlstats.fetchers.esri import Esri
+    FETCHERS['ESRI'] = Esri
+    #TODO: FETCHERS_DATASETS['ESRI'] = None
+    __all__.append('Esri')
+except ImportError:
+    pass
 
 try:
     from dlstats.fetchers.insee import INSEE

@@ -453,6 +453,8 @@ class Esri(Fetcher):
             logger.error(err)   
             raise                             
 
+        return self.provider.data_tree
+
     def get_selected_datasets(self):
         """Collects the dataset codes that are in data_tree
         below the ones indicated in "selected_codes" provided in configuration
