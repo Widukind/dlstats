@@ -31,7 +31,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.world_bank import WorldBank
-    FETCHERS['WorldBank'] = WorldBank
+    FETCHERS['WORLDBANK'] = WorldBank
     #TODO: FETCHERS_DATASETS['WB'] = None
     __all__.append('WorldBank')
 except ImportError:
