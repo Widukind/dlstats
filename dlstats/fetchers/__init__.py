@@ -76,12 +76,12 @@ try:
 except ImportError:
     pass
 
-try:
-    from dlstats.fetchers.destatis import DESTATIS
-    FETCHERS['DESTATIS'] = DESTATIS
-    __all__.append('DESTATIS')
-except ImportError:
-    pass
+#try:
+#    from dlstats.fetchers.destatis import DESTATIS
+#    FETCHERS['DESTATIS'] = DESTATIS
+#    __all__.append('DESTATIS')
+#except ImportError:
+#    pass
 
 try:
     from dlstats.fetchers.fed import FED
