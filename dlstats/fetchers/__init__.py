@@ -23,7 +23,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.eurostat import Eurostat
-    FETCHERS['Eurostat'] = Eurostat
+    FETCHERS['EUROSTAT'] = Eurostat
     #TODO: FETCHERS_DATASETS['EUROSTAT'] = None
     __all__.append('Eurostat')
 except ImportError:
