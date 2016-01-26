@@ -63,7 +63,7 @@ except ImportError:
 
 try:
     from dlstats.fetchers.esri import Esri
-    FETCHERS['esri'] = Esri
+    FETCHERS['ESRI'] = Esri
     #TODO: FETCHERS_DATASETS['ESRI'] = None
     __all__.append('Esri')
 except ImportError:
