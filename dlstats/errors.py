@@ -14,5 +14,18 @@ class RejectFrequency(DlstatsException):
         
 class RejectEmptySeries(DlstatsException):
     pass
-        
 
+class RejectUpdatedDataset(DlstatsException):
+    """Reject if dataset is updated
+    """
+
+class RejectUpdatedSeries(DlstatsException):
+    """Reject if series is updated
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.key = kwargs.pop("key", None)
+        super().__init__(*args, **kwargs)
+
+class MaxErrors(DlstatsException):
+    pass
