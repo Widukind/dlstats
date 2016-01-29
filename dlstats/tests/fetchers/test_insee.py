@@ -1,223 +1,161 @@
 # -*- coding: utf-8 -*-
 
+from copy import deepcopy
 from datetime import datetime
 import os
 from pprint import pprint
 
-import pandas
-
-from dlstats.fetchers._commons import Datasets
-from dlstats.fetchers.insee import INSEE as Fetcher, INSEE_Data, ContinueRequest
+from dlstats.fetchers.insee import INSEE as Fetcher
 from dlstats import constants
 
 import unittest
-from unittest import mock
 import httpretty
 
-from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseDBTestCase
 from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
+from dlstats.tests.resources import xml_samples
 
-RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "insee"))
-DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-dataflow.xml"))
-#http ""http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_UNIT" > insee-codelist-cl_unit.xml
-CL_UNIT_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-codelist-cl_unit.xml"))
-CL_AREA_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-codelist-cl_area.xml"))
-CL_TIME_COLLECT_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-codelist-cl_time_collect.xml"))
-CL_OBS_STATUS_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-codelist-cl_obs_status.xml"))
-
-DATASETS = {
-    'IPI-2010-A21': {
-        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-specificdata.xml")),
-        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-datastructure.xml")),
-        'series_count': 20,
-    },
-    'CNA-2010-CONSO-SI-A17': {
-        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-bug-data-namedtuple.xml")),
-        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-bug-data-namedtuple-datastructure.xml")),
-        'series_count': 1,
-    },
+LOCAL_DATASETS_UPDATE = {
+    "IPI-2010-A21": {
+        "concept_keys": ['CARBURANT', 'COMPTE', 'INDICATEUR', 'LOCAL', 'METIER', 
+                         'MONNAIE', 'TYPE-MENAGE', 'NATURE', 'DEVISE', 'IDBANK', 
+                         'ETAT-CONSTRUCTION', 'DEPARTEMENT', 'TIME_PER_COLLECT', 
+                         'QUOTITE-TRAV', 'STATUT', 'GEOGRAPHIE', 'TYPE-RESEAU', 
+                         'TIME_PERIOD', 'TYPE-EMP', 'CHEPTEL', 'TYPE-ETAB', 
+                         'INSTRUMENT', 'TYPE-SURF-ALIM', 'TYPE-VEHICULE', 'INDEX', 
+                         'FORMATION', 'LOGEMENT', 'FACTEUR-INV', 'REVENU', 
+                         'CAT-DE', 'DEST-INV', 'PRATIQUE', 'TYPE-CESS-ENT', 
+                         'FREQUENCE', 'PERIODE', 'CAT-FP', 'UNITE-URBAINE', 
+                         'LAST_UPDATE', 'ANCIENNETE', 'AGE', 'HALO', 
+                         'TAILLE-MENAGE', 'EFFOPE', 'UNIT_MEASURE', 'REGIONS', 
+                         'SPECIALITE-SANTE', 'OPERATION', 'TOURISME-INDIC', 
+                         'TYPE-SAL', 'DIPLOME', 'EXPAGRI', 'UNITE', 'FINANCEMENT', 
+                         'REGION', 'PROD-VEG', 'FORME-EMP', 'FORME-VENTE', 
+                         'IPC-CALC01', 'BASIND', 'BRANCHE', 'ACTIVITE', 
+                         'LOCALISATION', 'CARAC-LOG', 'TYPE-PRIX', 'TYPE-FAMILLE', 
+                         'CLIENTELE', 'OCC-SOL', 'DECIMALS', 'DATE-DEF-ENT', 
+                         'TYPE-CREAT-ENT', 'TITLE', 'PRIX', 'FONCTION', 'TYPE-EVO', 
+                         'TAILLE-ENT', 'CAUSE-DECES', 'MARCHANDISE', 'FREQ', 
+                         'ACCUEIL-PERS-AGEES', 'TYPE-TX-CHANGE', 'CHAMP-GEO', 
+                         'RESIDENCE', 'DEMOGRAPHIE', 'MIN-FPE', 'POPULATION', 
+                         'TYPE-COTIS', 'CORRECTION', 'UNIT_MULT', 'PRODUIT', 
+                         'DEPARTEMENTS', 'REPARTITION', 'SECT-INST', 'ETAB-SCOL', 
+                         'NATURE-FLUX', 'QUESTION', 'OBS_STATUS', 'ZONE-GEO', 
+                         'TYPE-ENT', 'OBS_VALUE', 'REF_AREA', 'COTISATION', 
+                         'TYPE-OE', 'SEXE', 'EMBARGO_TIME', 'TYPE-FLUX', 
+                         'FEDERATION', 'BASE_PER'],
+        "codelist_keys": ['TITLE', 'DECIMALS', 'NATURE', 'PRODUIT', 'LAST_UPDATE', 'FREQ', 
+                          'TIME_PER_COLLECT', 'IDBANK', 'EMBARGO_TIME', 'OBS_STATUS', 'UNIT_MULT', 
+                          'REF_AREA', 'UNIT_MEASURE', 'BASE_PER'],
+        "codelist_count": {
+            "TITLE": 0,
+            "DECIMALS": 0,
+            "NATURE": 25,
+            "PRODUIT": 30,
+            "LAST_UPDATE": 0,
+            "FREQ": 7,
+            "TIME_PER_COLLECT": 7,
+            "IDBANK": 0,
+            "EMBARGO_TIME": 0,
+            "OBS_STATUS": 10,
+            "UNIT_MULT": 0,
+            "REF_AREA": 11,
+            "UNIT_MEASURE": 123,
+            "BASE_PER": 0,                     
+        },
+    }
 }
 
-ALL_DATASETS = {
-    'IPI-2010-A21': { #http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21/
-        'dataflow-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-dataflow.xml")),
-        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-specificdata.xml")),
-        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "insee-IPI-2010-A21-datastructure.xml")),
-        'series_count': 20,
-        'first_series': {
-            "key": "001654489",
-            "name": "Indice brut de la production industrielle (base 100 en 2010) - Industries extractives (NAF rév. 2, niveau section, poste B)",
-            "frequency": "M",
-            "first_value": "139.22",
-            "first_date": "1990-01",
-            "last_value": "96.98",
-            "last_date": "2015-11",
-        },
-        'last_series': {
-            "key": "001655704",
-            "name": "Pondération IPI (indice 2010) - Construction (NAF rév. 2, niveau section, poste F)",
-            "frequency": "A",
-            "first_value": "106368",
-            "first_date": "2010",
-            "last_value": "106368",
-            "last_date": "2010",
-        },
-    },
-}
-
-
-class MockINSEE_Data(INSEE_Data):
+class FetcherTestCase(BaseFetcherTestCase):
     
-    def __init__(self, **kwargs):
-        self._series = []
-        super().__init__(**kwargs)
-
-    def __next__(self):          
-        try:      
-            _series = next(self.rows)
-            if not _series:
-                raise StopIteration()
-        except ContinueRequest:
-            _series = next(self.rows)
-            
-        bson = self.build_series(_series)
-        self._series.append(bson)
-        return bson
-    
-def mock_upsert_dataset(self, dataset_code):
-
-    self.load_structure(force=False)
-    
-    if not dataset_code in self._dataflows:
-        raise Exception("This dataset is unknown" + dataset_code)
-    
-    dataflow = self._dataflows[dataset_code]
-    
-    dataset = Datasets(provider_name=self.provider_name, 
-                       dataset_code=dataset_code,
-                       name=dataflow.name.en,
-                       doc_href=None,
-                       last_update=datetime(2015, 12, 24),
-                       fetcher=self)
-    
-    query = {'provider_name': self.provider_name, "dataset_code": dataset_code}
-    dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
-    
-    self.insee_data = MockINSEE_Data(dataset=dataset,
-                                     dataset_doc=dataset_doc, 
-                                     dataflow=dataflow, 
-                                     sdmx=self.sdmx)
-    dataset.series.data_iterator = self.insee_data
-    result = dataset.update_database()
-
-    return result
-
-
-class InseeTestCase(BaseFetcherTestCase):
-    
-    # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase
+    # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase
 
     FETCHER_KLASS = Fetcher
-    DATASETS = ALL_DATASETS
+    DATASETS = {
+        'IPI-2010-A21': deepcopy(xml_samples.DATA_INSEE_SPECIFIC)
+    }
+    DATASET_FIRST = "ACT-TRIM-ANC"
+    DATASET_LAST = "TXEMP-AN-FR"
+    DEBUG_MODE = False
     
-    def _load_dataset(self, dataset_code):
-
-        url_dataflow = "http://www.bdm.insee.fr/series/sdmx/dataflow/INSEE"
-        httpretty.register_uri(httpretty.GET, 
-                               url_dataflow,
-                               body=body_generator(DATAFLOW_FP),
-                               match_querystring=True,
-                               status=200,
-                               streaming=True,
-                               content_type="application/xml")
+    def _load_files(self, dataset_code):
         
-        url_cl = "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_UNIT"
-        httpretty.register_uri(httpretty.GET, 
-                               url_cl,
-                               body=body_generator(CL_UNIT_FP),
-                               status=200,
-                               streaming=True,
-                               content_type="application/xml")
-        
-        url_cl = "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_AREA"
-        httpretty.register_uri(httpretty.GET, 
-                               url_cl,
-                               body=body_generator(CL_AREA_FP),
-                               status=200,
-                               streaming=True,
-                               content_type="application/xml")
-        
-        url_cl = "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_TIME_COLLECT"
-        httpretty.register_uri(httpretty.GET, 
-                               url_cl,
-                               body=body_generator(CL_TIME_COLLECT_FP),
-                               status=200,
-                               streaming=True,
-                               content_type="application/xml")
-                        
-        url_cl = "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_OBS_STATUS"
-        httpretty.register_uri(httpretty.GET, 
-                               url_cl,
-                               body=body_generator(CL_OBS_STATUS_FP),
-                               status=200,
-                               streaming=True,
-                               content_type="application/xml")
+        filepaths = self.DATASETS[dataset_code]["DSD"]["filepaths"]
+        dsd_content_type = 'application/vnd.sdmx.structure+xml;version=2.1'
 
-        url_datastructure = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s?reference=children" % dataset_code
-        httpretty.register_uri(httpretty.GET, 
-                               url_datastructure,
-                               body=body_generator(DATASETS[dataset_code]['datastructure-fp']),
-                               match_querystring=True,
-                               streaming=True,
-                               status=200,
-                               content_type="application/xml")
+        url = "http://www.bdm.insee.fr/series/sdmx/dataflow/INSEE"
+        self.register_url(url, 
+                          filepaths["dataflow"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
 
-        url_data = "http://www.bdm.insee.fr/series/sdmx/data/%s" % dataset_code
-        httpretty.register_uri(httpretty.GET, 
-                               url_data,
-                               body=body_generator(DATASETS[dataset_code]['data-fp']),
-                               streaming=True,
-                               status=200,
-                               content_type="application/xml")
+        url = "http://www.bdm.insee.fr/series/sdmx/categoryscheme/INSEE"
+        self.register_url(url, 
+                          filepaths["categoryscheme"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+
+        url = "http://www.bdm.insee.fr/series/sdmx/categorisation/INSEE"
+        self.register_url(url, 
+                          filepaths["categorisation"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+
+        url = "http://www.bdm.insee.fr/series/sdmx/conceptscheme/INSEE"
+        self.register_url(url, 
+                          filepaths["conceptscheme"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+        
+        for cl in ["CL_UNIT", "CL_AREA", "CL_TIME_COLLECT", "CL_OBS_STATUS"]:
+            url = "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/%s" % cl
+            self.register_url(url, 
+                              filepaths[cl],
+                              content_type=dsd_content_type,
+                              match_querystring=True)
+        
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s?reference=children" % dataset_code
+        self.register_url(url, 
+                          filepaths["datastructure"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/data/%s" % dataset_code
+        self.register_url(url, 
+                          self.DATASETS[dataset_code]['filepath'],
+                          content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1',
+                          match_querystring=True)
         
     @httpretty.activate     
     def test_upsert_dataset_ipi_2010_a21(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_upsert_dataset_ipi_2010_a21
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_upsert_dataset_ipi_2010_a21
 
+        self._collections_is_empty()
+        
         dataset_code = 'IPI-2010-A21'
 
-        self._load_dataset(dataset_code)
+        self.DATASETS[dataset_code]["DSD"]["concept_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["concept_keys"]
+        self.DATASETS[dataset_code]["DSD"]["codelist_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_keys"]
+        self.DATASETS[dataset_code]["DSD"]["codelist_count"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_count"]
+
+        self._load_files(dataset_code)
         
-        #TODO: analyse result
-        result = self.fetcher.upsert_dataset(dataset_code)
-        self.assertIsNotNone(result)
-        
-        self.assertDatasetOK(dataset_code)        
-        self.assertSeriesOK(dataset_code)
-   
-    @unittest.skipIf(True, "TODO")
-    def test_dimensions_to_dict(self):
-        pass
-    
+        self.assertProvider()
+        self.assertDataTree(dataset_code)
+        self.assertDataset(dataset_code)
+        self.assertSeries(dataset_code)
+
     @httpretty.activate     
-    @mock.patch('dlstats.fetchers.insee.INSEE.upsert_dataset', mock_upsert_dataset)    
     @unittest.skipIf(True, "TODO")
     def test_is_updated(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_insee:InseeTestCase.test_is_updated
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_is_updated
 
         dataset_code = 'IPI-2010-A21'
         
-        self._load_dataset(dataset_code)
+        self._load_files(dataset_code)
         self.insee.upsert_dataset(dataset_code)
-        _series = self.insee.insee_data._series
-        self.assertEqual(len(_series), DATASETS[dataset_code]['series_count'])
-        
-        self._load_dataset(dataset_code)
-        self.insee.upsert_dataset(dataset_code)
-        _series = self.insee.insee_data._series
-        self.assertEqual(len(_series), 0)
 
         '''series avec un LAST_UPDATE > au dataset'''
         query = {
@@ -227,7 +165,7 @@ class InseeTestCase(BaseFetcherTestCase):
         new_datetime = datetime(2015, 12, 9)
         result = self.db[constants.COL_DATASETS].update_one(query, {"$set": {'last_update': new_datetime}})
         pprint(result.raw_result)
-        self._load_dataset(dataset_code)
+        self._load_files(dataset_code)
         self.insee.upsert_dataset(dataset_code)
         _series = self.insee.insee_data._series
         #pprint(_series)
