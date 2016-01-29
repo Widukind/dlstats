@@ -7,9 +7,69 @@ from random import choice, randint
 from widukind_common import tags as utils
 
 from dlstats import constants
-from dlstats.fetchers._commons import (Fetcher, Datasets)
+from dlstats.fetchers._commons import (Fetcher, 
+                                       Datasets, 
+                                       SeriesIterator)
 
 from dlstats.tests.base import BaseTestCase, BaseDBTestCase
+
+import unittest
+
+SERIES1 = {
+    'provider_name': 'Eurostat',
+    'dataset_code': 'name_a',
+    'name': 'series1',
+    'key': 'key1',
+    'values': [
+        {
+            'release_date': datetime(2015, 1, 1, 0, 0, 0),
+            'ordinal': 25,
+            'period_o': '1995',
+            'period': '1995',
+            'value': '1.0',
+            'attributes': {
+                'OBS_STATUS': 'a'
+            },
+        },
+        {
+            'release_date': datetime(2015, 1, 1, 0, 0, 0),
+            'ordinal': 44,
+            'period_o': '2014',
+            'period': '2014',
+            'value': '1.5',
+            'attributes': None
+        }
+    ],
+    'attributes': None,
+    'dimensions': {
+        'Country': 'AUS',
+        'Scale': 'Billions',
+    },
+    'last_update': None,
+    'start_date': 25, #1995
+    'end_date': 44, #2014
+    'frequency': 'A'           
+}
+
+SERIES2 = SERIES1.copy()
+SERIES2["dimensions"]["Country"] = "FRA"
+
+class FakeSeriesIterator(SeriesIterator):
+    
+    def __init__(self, dataset, series_list):
+        super().__init__()
+        self.dataset = dataset
+        self.series_list = series_list
+        self.rows = self._process()
+        
+    def _process(self):
+        for row in self.series_list:
+            yield row, None
+        
+    def build_series(self, bson):
+        #for key, dim in bson["dimensions"].items():
+        #    self.dataset.dimension_list.update_entry(key, dim, key)
+        return bson
 
 class FakeDatas():
     """Fake data for series
@@ -111,8 +171,6 @@ class DBTagsTestCase(BaseDBTestCase):
         
         # nosetests -s -v dlstats.tests.test_search:DBTagsTestCase.test_create_tag
         
-        max_record = 10
-        
         d = Datasets(provider_name="Eurostat", 
                     dataset_code="name_a",
                     name="Eurostat name_a",
@@ -120,17 +178,15 @@ class DBTagsTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=self.fetcher, 
                     is_load_previous_version=False)
-        
         d.dimension_list.update_entry("Country", "FRA", "France")
         d.dimension_list.update_entry("Country", "AUS", "Australie")
         d.dimension_list.update_entry("Scale", "Billions", "Billions Dollars")
         
-        datas = FakeDatas(provider_name=d.provider_name, 
-                          dataset_code=d.dataset_code,
-                          max_record=max_record)
+        series_list = [SERIES1.copy()]
+        datas = FakeSeriesIterator(d, series_list)
         d.series.data_iterator = datas
-        
         _id = d.update_database()
+        self.assertIsNotNone(_id)
         
         doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})        
         self.assertIsNotNone(doc)
@@ -140,40 +196,35 @@ class DBTagsTestCase(BaseDBTestCase):
         
         query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
-        self.assertEqual(series.count(), max_record)
+        self.assertEqual(series.count(), len(series_list))
         
-        self.assertListEqual(tags, sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france', 'australie']))
+        self.assertEqual(sorted(tags), sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france', 'australie']))
         
         doc = series[0]
-         
-        tags = utils.generate_tags(self.db, doc, 
-                                   doc_type=constants.COL_SERIES)
 
-        self.assertTrue(len(tags) > 0)
+        tags = utils.generate_tags(self.db, doc, doc_type=constants.COL_SERIES)
+        self.assertEqual(sorted(tags), sorted(['billions', 'dollars', 'eurostat', 'france', 'key1', 'name_a', 'series1']))
         
 
     def test_update_tag(self):
         
         # nosetests -s -v dlstats.tests.test_search:DBTagsTestCase.test_update_tag
         
-        max_record = 10
-        
-        d = Datasets(provider_name="eurostat", 
+        d = Datasets(provider_name="Eurostat", 
                     dataset_code="name_a",
                     name="Eurostat name_a",
                     last_update=datetime.now(),
                     doc_href="http://www.example.com",
                     fetcher=self.fetcher, 
                     is_load_previous_version=False)
-        
         d.dimension_list.update_entry("Country", "FRA", "France")
         d.dimension_list.update_entry("Scale", "Billions", "Billions Dollars")
         
-        datas = FakeDatas(provider_name=d.provider_name, 
-                          dataset_code=d.dataset_code,
-                          max_record=max_record)
+        series_list = [SERIES1.copy()]
+        datas = FakeSeriesIterator(d, series_list)
         d.series.data_iterator = datas
         _id = d.update_database()
+        self.assertIsNotNone(_id)
 
         utils.update_tags(self.db, 
                     provider_name=d.provider_name, 
@@ -188,17 +239,19 @@ class DBTagsTestCase(BaseDBTestCase):
                     max_bulk=20)
 
         doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
-        self.assertListEqual(doc['tags'], sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france']))
+        self.assertListEqual(sorted(doc['tags']), 
+                             sorted(['eurostat', 'name_a', 'billions', 'dollars', 'france']))
 
-        query = {'provider_name': d.provider_name, "dataset_code": d.dataset_code}
+        query = {'provider_name': d.provider_name, 
+                 "dataset_code": d.dataset_code}
         series = self.db[constants.COL_SERIES].find(query)
-        self.assertEqual(series.count(), max_record)
-        
-        for s in series:
-            self.assertTrue(len(s['tags']) > 0)
+        self.assertEqual(series.count(), len(series_list))
 
-            
+        doc = series[0]
+        self.assertEqual(sorted(doc["tags"]), sorted(['billions', 'dollars', 'eurostat', 'france', 'key1', 'name_a', 'series1']))
                     
+                    
+@unittest.skipIf(True, "TODO")    
 class DBTagsSearchTestCase(BaseDBTestCase):
     
     #TODO: refaire sans utiliser les fetchers - creation direct de docs dans Series et Datasets collections
