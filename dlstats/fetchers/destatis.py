@@ -8,19 +8,18 @@ import logging
 
 import requests
 
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.utils import Downloader
-from dlstats.xml_utils import XMLCompactData_2_0_DESTATIS as XMLData
+from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
+                               XMLCompactData_2_0_DESTATIS as XMLData)
 
-VERSION = 1
+
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
-#SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.genericdata+xml;version=2.1'}
-#SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
-
 """
-https://www.destatis.de/EN/FactsFigures/Indicators/ShortTermIndicators/IMF/IMF_IWF.html
+#https://www.destatis.de/EN/FactsFigures/Indicators/ShortTermIndicators/IMF/IMF_IWF.html
 """
 DATASETS = {
     'DCS': {
@@ -51,15 +50,21 @@ class DESTATIS(Fetcher):
     def __init__(self, db=None, **kwargs):        
         super().__init__(provider_name='DESTATIS', db=db, **kwargs)
         
-        self.provider = Providers(name=self.provider_name,
-                                  long_name='Statistisches Bundesamt',
-                                  version=VERSION,
-                                  region='Germany',
-                                  website='https://www.destatis.de',
-                                  fetcher=self)
+        if not self.provider:
+            self.provider = Providers(name=self.provider_name,
+                                      long_name='Statistisches Bundesamt',
+                                      version=VERSION,
+                                      region='Germany',
+                                      website='https://www.destatis.de',
+                                      fetcher=self)
+
+        if self.provider.version != VERSION:
+            self.provider.update_database()
 
     def build_data_tree(self, force_update=False):
         
+        return []
+        """
         if self.provider.count_data_tree() > 1 and not force_update:
             return self.provider.data_tree
 
@@ -71,6 +76,7 @@ class DESTATIS(Fetcher):
             self.provider.add_dataset(_dataset, category_key)
         
         return self.provider.data_tree
+        """
 
     def upsert_dataset(self, dataset_code):
         
@@ -86,7 +92,8 @@ class DESTATIS(Fetcher):
                            last_update=datetime.now(),
                            fetcher=self)
         
-        _data = DESTATIS_Data(dataset=dataset, ns_tag_data=DATASETS[dataset_code]["ns_tag_data"])
+        _data = DESTATIS_Data(dataset=dataset, 
+                              ns_tag_data=DATASETS[dataset_code]["ns_tag_data"])
         dataset.series.data_iterator = _data
         result = dataset.update_database()
         
@@ -118,35 +125,40 @@ class DESTATIS(Fetcher):
         #TODO: 
         self.load_datasets_first()
 
-class DESTATIS_Data(object):
+class DESTATIS_Data(SeriesIterator):
     
     def __init__(self, dataset=None, ns_tag_data=None):
         """
         :param Datasets dataset: Datasets instance
-        """        
+        """
+        super().__init__()        
         self.dataset = dataset
         self.ns_tag_data = ns_tag_data
         self.attribute_list = self.dataset.attribute_list
         self.dimension_list = self.dataset.dimension_list
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
-
-        #self.xml_dsd = XMLStructure_2_1(provider_name=self.provider_name, 
-        #                                dataset_code=self.dataset_code)        
+        
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
         
         self.rows = None
-        #self.dsd_id = None
-        
+
         self._load()
         
         
     def _load(self):
+        
+        #TODO: DSD
+        """
+        url = "xxx/%s" % self.dataset_code
+        download = Downloader(url=url, 
+                              filename="dataflow-%s.xml" % self.dataset_code)
+        self.xml_dsd.process(download.get_filepath())
+        """
 
         url = "https://www.destatis.de/sddsplus/%s.xml" % self.dataset_code
         download = Downloader(url=url, 
-                              filename="data-%s.xml" % self.dataset_code,
-                              #headers=SDMX_DATA_HEADERS
-                              )
+                              filename="data-%s.xml" % self.dataset_code)
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
@@ -163,31 +175,17 @@ class DESTATIS_Data(object):
             
         self.rows = self.xml_data.process(filepath)
 
-    def __next__(self):
-        _series = next(self.rows)
-        if not _series:
-            raise StopIteration()
-        
-        return self.build_series(_series)
-
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update
         
         for key, item in bson['dimensions'].items():
-            self.dimension_list.update_entry(key, key, item)
-
-        """
-        FIXME: 
-        attributes = OrderedDict()
-        if 'attributes' in bson and bson['attributes']:
-            for key, item in bson['attributes'].items():
-                attributes[key] = {key: item}
-        pprint(attributes)
-        self.attribute_list.set_dict(attributes)
+            self.dimension_list.update_entry(key, item, item)
         
-        pprint(self.dataset.bson)
-        pprint(bson)
-        """
+        for key, values in bson['attributes'].items():
+            values = list(set(values))
+            for value in values:
+                self.attribute_list.update_entry(key, value, value)
+            
         return bson
         
 
