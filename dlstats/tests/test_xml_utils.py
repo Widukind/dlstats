@@ -1,562 +1,628 @@
 # -*- coding: utf-8 -*-
 
+import logging
+import traceback
 from pprint import pprint
 import time
 import os
 
-import unittest
-
 from dlstats import errors
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase
+from dlstats.tests.resources import xml_samples
 
-from dlstats.xml_utils import (XMLSDMX_2_1,
-                               XMLData_1_0,
-                               XMLData_1_0_FED,
-                               XMLStructure_2_0,
-                               XMLCompactData_2_0,
-                               XMLCompactData_2_0_EUROSTAT,
-                               XMLCompactData_2_0_DESTATIS, 
-                               XMLStructure_2_1,
-                               XMLGenericData_2_1, 
-                               XMLGenericData_2_1_ECB,
-                               XMLGenericData_2_1_INSEE,
-                               XMLSpecificData_2_1, 
-                               XMLSpecificData_2_1_ECB,
-                               XMLSpecificData_2_1_INSEE)
+from dlstats import xml_utils
+
+logger = logging.getLogger(__name__)
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "xmlutils"))
 
+SAMPLES_DSD_1_0 = {
+    'FED': xml_samples.DSD_FED,
+}
 
 SAMPLES_DSD_2_0 = {
-    "EUROSTAT": {
-        "provider": "EUROSTAT",
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "eurostat", "eurostat-datastructure-2.0.xml")),
-        "dataset_code": "namq_10_lp_ulc",
-        "dsd_id": "namq_10_lp_ulc",
-        "dimension_keys": ["FREQ", "s_adj", "unit", "na_item", "geo", "TIME_FORMAT"],
-        "dimension_count": None,
-        "attribute_keys": [],
-        "attribute_count": None,
-        "codelist_keys": [],
-        "codelist_count": None
-    },
-    "DESTATIS": {
-        "provider": "DESTATIS",
-        "filepath": None,
-        "dataset_code": "DCS",
-        "dsd_id": "DCS",
-        "dimension_keys": [],#"FREQ", "DATA_DOMAIN", "REF_AREA", "INDICATOR", "COUNTERPART_AREA"],
-        "dimension_count": None,
-        "attribute_keys": [],
-        "attribute_count": None,
-        "codelist_keys": [],
-        "codelist_count": None
-    }                   
+    "EUROSTAT": xml_samples.DSD_EUROSTAT, 
+    #"DESTATIS": xml_samples.DSD_DESTATIS, 
 }
 
 SAMPLES_DSD_2_1 = {
-    "ECB": {
-        "provider": "ECB",
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "ecb", "ecb-datastructure-2.1.xml")),
-        "dataset_code": "EXR",
-        "dsd_id": "ECB_EXR1",
-        "dimension_keys": ['FREQ', 'CURRENCY', 'CURRENCY_DENOM', 'EXR_TYPE', 'EXR_SUFFIX'],
-        "dimension_count": {
-            'CURRENCY': 349,
-            'CURRENCY_DENOM': 349,
-            'EXR_SUFFIX': 6,
-            'EXR_TYPE': 36,
-            'FREQ': 10
-        },
-        "attribute_keys": ['TIME_FORMAT', 'OBS_STATUS', 'OBS_CONF', 'OBS_PRE_BREAK', 'OBS_COM', 'BREAKS', 'COLLECTION', 'DOM_SER_IDS', 'PUBL_ECB', 'PUBL_MU', 'PUBL_PUBLIC', 'UNIT_INDEX_BASE', 'COMPILATION', 'COVERAGE', 'DECIMALS', 'NAT_TITLE', 'SOURCE_AGENCY', 'SOURCE_PUB', 'TITLE', 'TITLE_COMPL', 'UNIT', 'UNIT_MULT'],
-        "attribute_count": {
-            "TIME_FORMAT": 0,
-            "OBS_STATUS": 17,
-            "OBS_CONF": 4,
-            "OBS_PRE_BREAK": 0,
-            "OBS_COM": 0,
-            "BREAKS": 0,
-            "COLLECTION": 10,
-            "DOM_SER_IDS": 0,
-            "PUBL_ECB": 0,
-            "PUBL_MU": 0,
-            "PUBL_PUBLIC": 0,
-            "UNIT_INDEX_BASE": 0,
-            "COMPILATION": 0,
-            "COVERAGE": 0,
-            "DECIMALS": 16,
-            "NAT_TITLE": 0,
-            "SOURCE_AGENCY": 893,
-            "SOURCE_PUB": 0,
-            "TITLE": 0,
-            "TITLE_COMPL": 0,
-            "UNIT": 330,
-            "UNIT_MULT": 11
-        }, 
-        "codelist_keys": ['CL_COLLECTION', 'CL_CURRENCY', 'CL_DECIMALS', 'CL_EXR_SUFFIX', 'CL_EXR_TYPE', 'CL_FREQ', 'CL_OBS_CONF', 'CL_OBS_STATUS', 'CL_ORGANISATION', 'CL_UNIT', 'CL_UNIT_MULT'],
-        "codelist_count": {
-            'CL_COLLECTION': 10,
-            'CL_CURRENCY': 349,
-            'CL_DECIMALS': 16,
-            'CL_EXR_SUFFIX': 6,
-            'CL_EXR_TYPE': 36,
-            'CL_FREQ': 10,
-            'CL_OBS_CONF': 4,
-            'CL_OBS_STATUS': 17,
-            'CL_ORGANISATION': 893,
-            'CL_UNIT': 330,
-            'CL_UNIT_MULT': 11
-        }      
-    },
-    "INSEE": {
-        "provider": "INSEE",
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "insee", "insee-datastructure-2.1.xml")),
-        "dataset_code": "IPI-2010-A21",
-        "dsd_id": "IPI-2010-A21",
-        "dimension_keys": ['FREQ', 'PRODUIT', 'NATURE'],
-        "dimension_count": {
-            'FREQ': 7, 
-            'NATURE': 25,
-            'PRODUIT': 30
-        },
-        "attribute_keys": ['IDBANK', 'TITLE', 'LAST_UPDATE', 'UNIT_MEASURE', 'UNIT_MULT', 'REF_AREA', 'DECIMALS', 'BASE_PER', 'TIME_PER_COLLECT', 'OBS_STATUS', 'EMBARGO_TIME'],      
-        "attribute_count": {
-            'IDBANK': 0, 
-            'TITLE': 0, 
-            'LAST_UPDATE': 0,
-            'UNIT_MEASURE': 123, 
-            'UNIT_MULT': 0, 
-            'REF_AREA': 11, 
-            'DECIMALS': 0,
-            'BASE_PER': 0, 
-            'TIME_PER_COLLECT': 7, 
-            'OBS_STATUS': 10, 
-            'EMBARGO_TIME': 0, 
-        },
-        "codelist_keys": ['CL_FREQ', 'CL_NAF2_A21', 'CL_NATURE', 'CL_UNIT', 'CL_AREA', 'CL_TIME_COLLECT', 'CL_OBS_STATUS'],
-        "codelist_count": {
-            'CL_FREQ': 7, 
-            'CL_NAF2_A21': 30, 
-            'CL_NATURE': 25,
-            'CL_UNIT': 123,
-            'CL_AREA': 11,
-            'CL_TIME_COLLECT': 7,
-            'CL_OBS_STATUS': 10,
-        },
-    },
+    "ECB": xml_samples.DSD_ECB, 
+    "INSEE": xml_samples.DSD_INSEE, 
 }
 
 SAMPLES_DATA_1_0 = {
-    
-    "FED": {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "fed", "fed-data-1.0.xml")),
-        "klass": XMLData_1_0_FED,
-        "kwargs": {
-            "provider_name": "FED",
-            "dataset_code": "G19",
-            "field_frequency": "FREQ",
-            "dimension_keys": None, #SAMPLES_DSD_1_0["FED"]["dimension_keys"],
-            "frequencies_supported": ["M", "A", "D", "Q"]
-        },
-        "series_sample": {
-            'provider_name': 'FED',
-            'dataset_code': 'G19',
-            'key': 'RIFLPBCIANM48_N.M',
-            'name': 'RIFLPBCIANM48_N.M',
-            'frequency': '129',
-            'start_date': 104,
-            'end_date': 182,
-            'last_update': None,
-            'values_first': '89.4',
-            'values_last': '106.1',
-            'dimensions': {
-                'FREQ': 'Q',
-                's_adj': 'NSA',
-                'unit': 'I10',
-                'na_item': 'NULC_HW',
-                'geo': 'AT',
-                'TIME_FORMAT': 'P3M'
-            },
-            'attributes': None
-        }
-    }
+    "FED": xml_samples.DATA_FED, 
 }
 
-
 SAMPLES_DATA_COMPACT_2_0 = {
-    
-    "EUROSTAT": {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "eurostat", "eurostat-data-compact-2.0.xml")),
-        "klass": XMLCompactData_2_0_EUROSTAT,
-        "kwargs": {
-            "provider_name": "EUROSTAT",
-            "dataset_code": "namq_10_lp_ulc",
-            "field_frequency": "FREQ",
-            "dimension_keys": SAMPLES_DSD_2_0["EUROSTAT"]["dimension_keys"],
-            "frequencies_supported": [] #TODO: specific: P1Y (A), P3M (Q), P1M (M), P1D (D)
-        },
-        "series_sample": {
-            'provider_name': 'EUROSTAT',
-            'dataset_code': 'namq_10_lp_ulc',
-            'key': 'Q.NSA.I10.NULC_HW.AT.P3M',
-            'name': 'Q-NSA-I10-NULC_HW-AT-P3M',
-            'frequency': 'Q',
-            'start_date': 104,
-            'end_date': 182,
-            'last_update': None,
-            'values_first': '89.4',
-            'values_last': '106.1',
-            'dimensions': {
-                'FREQ': 'Q',
-                's_adj': 'NSA',
-                'unit': 'I10',
-                'na_item': 'NULC_HW',
-                'geo': 'AT',
-                'TIME_FORMAT': 'P3M'
-            },
-            'attributes': None
-        }
-    },
-    "DESTATIS": {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "destatis", "destatis-data-compact-2.0.xml")),
-        "klass": XMLCompactData_2_0_DESTATIS,
-        "kwargs": {
-            "provider_name": "DESTATIS",
-            "dataset_code": "DCS",
-            "field_frequency": "FREQ",
-            "dimension_keys": SAMPLES_DSD_2_0["DESTATIS"]["dimension_keys"],
-            "frequencies_supported": ["A", "D", "M", "Q", "W"]
-        },
-        "series_sample": {
-            'provider_name': 'DESTATIS',
-            'dataset_code': 'DCS',
-            'frequency': 'M',
-            'key': 'M.DCS.DE.FM1_EUR.U2',
-            'name': 'M-DCS-DE-FM1_EUR-U2',
-            'start_date': 380,
-            'end_date': 550,
-            'values_first': '593935',
-            'values_last': '1789542',
-            'dimensions': {
-                'FREQ': 'M',
-                'DATA_DOMAIN': 'DCS',
-                'REF_AREA': 'DE',
-                'INDICATOR': 'FM1_EUR',
-                'COUNTERPART_AREA': 'U2'
-            },
-            'sample_attributes': {
-                'OBS_STATUS': 'A',
-            },
-        }
-    }
+    "EUROSTAT": xml_samples.DATA_EUROSTAT, 
+    #"DESTATIS": xml_samples.DATA_DESTATIS, 
 }
 
 SAMPLES_DATA_GENERIC_2_1 = {
-    "ECB": {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "ecb", "ecb-data-generic-2.1.xml")),
-        "klass": XMLGenericData_2_1_ECB,
-        "kwargs": {
-            #"provider_name": "ECB",
-            "dataset_code": "EXR",
-            "field_frequency": "FREQ",
-            "dimension_keys": SAMPLES_DSD_2_1["ECB"]["dimension_keys"],
-            "frequencies_supported": ["A", "D", "M", "Q", "W"]
-        },
-        "series_sample": {
-            'key': 'M.NOK.EUR.SP00.A',
-            'name': 'ECB reference exchange rate, Norwegian krone/Euro, 2:15 pm (C.E.T.)',
-            'frequency': 'M',
-            'start_date': 348,
-            'end_date': 551,
-            'values_first': '8.651225',
-            'values_last': '9.464159090909094',
-            'dimensions': {
-                'COLLECTION': 'A',
-                'CURRENCY': 'NOK',
-                'CURRENCY_DENOM': 'EUR',
-                'DECIMALS': '4',
-                'EXR_SUFFIX': 'A',
-                'EXR_TYPE': 'SP00',
-                'FREQ': 'M',
-                'SOURCE_AGENCY': '4F0',
-                'TITLE': 'Norwegian krone/Euro',
-                'TITLE_COMPL': 'ECB reference exchange rate, Norwegian krone/Euro, 2:15 pm (C.E.T.)',
-                'UNIT': 'NOK',
-                'UNIT_MULT': '0'
-            },
-            'attributes': None
-        }      
-    },
-    "INSEE" : {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "insee", "insee-data-generic-2.1.xml")),
-        "klass": XMLGenericData_2_1_INSEE,
-        "kwargs": {
-            "provider_name": "INSEE",
-            "dataset_code": "IPI-2010-A21",
-            "field_frequency": "FREQ",
-            "dimension_keys": SAMPLES_DSD_2_1["INSEE"]["dimension_keys"],
-            "frequencies_rejected": ["S", "B", "I"]
-        },
-        "series_sample": {
-            "provider_name": "INSEE",
-            'key': '001654489',
-            'name': 'Indice brut de la production industrielle (base 100 en 2010) - Industries extractives (NAF rév. 2, niveau section, poste B)',
-            'start_date': 240,
-            'end_date': 550,
-            'frequency': 'M',
-            'values_first': '139.22',
-            'values_last': '96.98',
-            'dimensions': {
-               'BASE_PER': '2010',
-               'DECIMALS': '2',
-               'FREQ': 'M',
-               'IDBANK': '001654489',
-               'LAST_UPDATE': '2016-01-08',
-               'NATURE': 'BRUT',
-               'PRODUIT': 'B',
-               'REF_AREA': 'FM',
-               'TIME_PER_COLLECT': 'PERIODE',
-               'TITLE': 'Indice brut de la production industrielle (base 100 en 2010) - Industries extractives (NAF rév. 2, niveau section, poste B)',
-               'UNIT_MEASURE': 'SO',
-               'UNIT_MULT': '0'
-            },
-            'attributes': None
-        }
-    }
+    "ECB": xml_samples.DATA_ECB_GENERIC, 
+    "INSEE": xml_samples.DATA_INSEE_GENERIC, 
 }
 
 SAMPLES_DATA_SPECIFIC_2_1 = {
-    "ECB": {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "ecb", "ecb-data-specific-2.1.xml")),
-        "klass": XMLSpecificData_2_1_ECB,
-        "kwargs": SAMPLES_DATA_GENERIC_2_1["ECB"]["kwargs"],
-        "series_sample": SAMPLES_DATA_GENERIC_2_1["ECB"]["series_sample"],
-    },
-    "INSEE" : {
-        "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "insee", "insee-data-specific-2.1.xml")),
-        "klass": XMLSpecificData_2_1_INSEE,
-        "kwargs": SAMPLES_DATA_GENERIC_2_1["INSEE"]["kwargs"],
-        "series_sample": SAMPLES_DATA_GENERIC_2_1["INSEE"]["series_sample"],
-    }
+    "ECB": xml_samples.DATA_ECB_SPECIFIC,
+    "INSEE" : xml_samples.DATA_INSEE_GENERIC
 }
 
-class XMLUtilsTestCase(BaseTestCase):
+class UtilsTestCase(BaseTestCase):
     
-    # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase
+    # nosetests -s -v dlstats.tests.test_xml_utils:UtilsTestCase
     
+    def test_parse_special_date(self):
+        
+        # annual
+        (string_date,freq) = xml_utils.parse_special_date("2015", "P1Y")
+        self.assertEqual(string_date, '2015')
+        self.assertEqual(freq, 'A')
+
+        # quarterly
+        (string_date,freq) = xml_utils.parse_special_date("1988-Q3", "P3M")
+        self.assertEqual(string_date, '1988Q3')
+        self.assertEqual(freq, 'Q')
+
+        # monthly
+        (string_date,freq) = xml_utils.parse_special_date("2004-10", "P1M")
+        self.assertEqual(string_date, '2004-10')
+        self.assertEqual(freq, 'M')
+
+        # daily
+        (string_date,freq) = xml_utils.parse_special_date("20040906", "P1D")
+        self.assertEqual(string_date, '2004-09-06')
+        self.assertEqual(freq, 'D')
+
+        
+
+class BaseXMLStructureTestCase(BaseTestCase):
+    
+    XMLStructureKlass = None
+    SAMPLES = None
+    DEBUG_MODE = False
+
     def setUp(self):
         super().setUp()
+        self.samples = self.SAMPLES
+        self.xml_klass = self.XMLStructureKlass
+        self.is_debug = self.DEBUG_MODE
+        #self.maxDiff = None
+
+    def _debug_agency(self, xml, provider, provider_name):
+        self.fail("NotImplemented")
+        """
+        self.agencies[_id] = {
+            'id': _id,
+            'name': xml_get_name(element),
+            'attrs': dict(element.attrib)
+        }        
+        """
+
+    def _debug_categoryscheme(self, xml, provider, provider_name):
+        print()
+        print("-------------- CATEGORIES -----------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.categories.keys()))
+        for cat in xml.categories.values():
+            print(cat["id"], cat["name"], xml.iter_parent_category_id(cat))
+
+        if provider["categories_key"]:
+            print("-------------------------------------------------")
+            print("CATEGORIES FOR THIS DATASET[%s]" % provider["dataset_code"])
+            cat = xml.categories.get(provider["categories_key"])
+            print(cat["id"], cat["name"], xml.iter_parent_category_id(cat))
+            
+        print("-------------------------------------------------")
         
+    def _debug_categorisation(self, xml, provider, provider_name):
+        print()
+        print("-------------- CATEGORISATION -------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.categorisations.keys()))
+        for categorisation in xml.categorisations.values():
+            dataflow_id = categorisation['dataflow']['id']
+            category_id = categorisation['category']['id']
+            print(categorisation["name"], dataflow_id, category_id)
+        print("-------------------------------------------------")
+
+    def _debug_dataflow(self, xml, provider, provider_name):
+        print()
+        print("-------------- DATAFLOW -------------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.dataflows.keys()))
+        for dataflow in xml.dataflows.values():
+            print(dataflow['id'], dataflow['name'], dataflow['dsd_id'])
+        print("-------------------------------------------------")
+        
+    def _debug_conceptscheme(self, xml, provider, provider_name):
+        print()
+        print("-------------- CONCEPT --------------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.concepts.keys()))
+        print("-------------------------------------------------")
+
+    def _debug_codelist(self, xml, provider, provider_name):
+        print()
+        print("-------------- CODELIST -------------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.codelists.keys()))
+        for key in xml.codelists.keys():
+            print('"%s": %s,' % (key, len(xml.codelists[key]["enum"])))
+        print("-------------------------------------------------")
+
+    def _debug_dimension(self, xml, provider, provider_name):
+        print()
+        print("-------------- DIMENSION ------------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.dimension_keys))
+        for key in xml.dimension_keys:
+            print('"%s": %s,' % (key, len(xml.dimensions[key]["enum"])))
+        print("-------------------------------------------------")
+
+    def _debug_attribute(self, xml, provider, provider_name):
+        print()
+        print("-------------- ATTRIBUTE ------------------------")
+        print("PROVIDER: ", provider_name)
+        print(list(xml.attribute_keys))
+        for key in xml.attribute_keys:
+            print('"%s": %s,' % (key, len(xml.attributes[key]["enum"])))
+        print("-------------------------------------------------")
+        
+    def _debug_dataset(self, xml, provider, provider_name):
+        print()
+        print("------------------------ DATASET V1------------------------------")
+        bson = xml_utils.dataset_converter_v1(xml, provider["dataset_code"])
+        pprint(bson, width=120)
+        print("------------------------ DATASET V2 -----------------------------")
+        bson = xml_utils.dataset_converter_v2(xml, provider["dataset_code"])
+        pprint(bson, width=120)
+        print("-----------------------------------------------------------------")
+
+    def assert_agency(self, xml, provider, provider_name):
+        self.fail("NotImplemented")
+
+    def assert_categoryscheme(self, xml, provider, provider_name):
+        if not provider.get("categories_key"):
+            return
+        
+        key = provider.get("categories_key")
+        if key:
+            cat = xml.categories.get(key)
+            self.assertIsNotNone(cat)
+            '''Parent de cette category'''
+            if provider["categories_parents"]:
+                self.assertEqual(xml.iter_parent_category_id(cat),
+                                 provider["categories_parents"])
+                 
+
+    def assert_categorisation(self, xml, provider, provider_name):
+
+        if not provider.get("categorisations_key"):
+            return
+            
+        key = provider["categorisations_key"]
+        if key:
+            categorisation = xml.categorisations.get(key)
+            self.assertIsNotNone(categorisation) 
+            
+            dataflow_id = categorisation['dataflow']['id']
+            category_id = categorisation['category']['id']
+            
+            #self.assertTrue(category_id in provider["categories_keys"])
+            
+            if xml.categories:
+                self.assertTrue(category_id in xml.categories)
+            
+            if xml.dataflows:
+                self.assertTrue(dataflow_id in xml.dataflows)
+
+    def assert_dataflow(self, xml, provider, provider_name):
+        
+        self.assertTrue(provider["dataflow_key"] in list(xml.dataflows.keys()))
+        self.assertEqual(xml.get_dsd_id(provider["dataset_code"]), provider["dsd_id"])
+        self.assertEqual(xml.get_dataset_name(provider["dataset_code"]), provider["dataset_name"])        
+
+    def assert_conceptscheme(self, xml, provider, provider_name):
+
+        # uniq verify in samples datas
+        self.assertEqual(len(provider["concept_keys"]), len(set(provider["concept_keys"])))
+
+        self.assertEqual(list(xml.concepts.keys()), provider["concept_keys"])
+
+    def assert_codelist(self, xml, provider, provider_name):
+        
+        # uniq verify in samples datas
+        self.assertEqual(len(provider["codelist_keys"]), len(set(provider["codelist_keys"])))        
+        self.assertEqual(list(xml.codelists.keys()), provider["codelist_keys"])
+
+        for key in provider["codelist_keys"]:
+            self.assertEqual(len(xml.codelists[key]["enum"].keys()), 
+                             provider["codelist_count"][key])
+
+    def assert_dimension(self, xml, provider, provider_name):
+
+        self.assertEqual(xml.dimension_keys, provider["dimension_keys"])
+        self.assertEqual(len(provider["dimension_keys"]), len(set(provider["dimension_keys"])))
+        self.assertEqual(len(xml.dimension_keys), len(set(xml.dimension_keys)))
+        self.assertEqual(len(provider["dimension_count"].keys()), len(provider["dimension_keys"]))
+
+        for key in provider["dimension_keys"]:
+            self.assertEqual(len(xml.dimensions[key]["enum"].keys()), 
+                             provider["dimension_count"][key])
+        
+    def assert_attribute(self, xml, provider, provider_name):
+
+        self.assertEqual(xml.attribute_keys, provider["attribute_keys"])
+        self.assertEqual(len(provider["attribute_keys"]), len(set(provider["attribute_keys"])))
+        self.assertEqual(len(xml.attribute_keys), len(set(xml.attribute_keys)))
+        self.assertEqual(len(provider["attribute_count"].keys()), len(provider["attribute_keys"]))
+
+        for key in provider["attribute_keys"]:
+            self.assertEqual(len(xml.attributes[key]["enum"].keys()), 
+                             provider["attribute_count"][key])
+        
+    def _commons_tests(self, test_name=None):
+        
+        assert_method = "assert_%s" % test_name
+        debug_method = "_debug_%s" % test_name
+        
+        for provider_name, provider in self.samples.items():
+            
+            logger.debug("PROVIDER : %s" % provider_name)
+            
+            xml = self.xml_klass(provider_name=provider_name)
+
+            if test_name in provider["filepaths"]:
+                filepath = provider["filepaths"][test_name]
+            else:
+                filepath = provider["filepaths"]["datastructure"]
+            
+            logger.debug("filepath : %s" % filepath)
+            
+            xml.process(filepath)
+            
+            if self.is_debug:
+                getattr(self, debug_method)(xml, provider, provider_name)
+            getattr(self, assert_method)(xml, provider, provider_name)
+            
+            if self.is_debug:
+                self._debug_dataset(xml, provider, provider_name)
+
+    def _test_agency(self):
+        self._commons_tests("agency")
+
+    def _test_categoryscheme(self):
+        self._commons_tests("categoryscheme")
+
+    def _test_categorisation(self):
+        self._commons_tests("categorisation")
+
+    def _test_dataflow(self):
+        self._commons_tests("dataflow")
+
+    def _test_conceptscheme(self):
+        self._commons_tests("conceptscheme")
+            
+    def _test_codelist(self):
+        self._commons_tests("codelist")
+
+    def _test_dimension(self):
+        self._commons_tests("dimension")
+
+    def _test_attribute(self):
+        self._commons_tests("attribute")
+
+class XMLStructure_1_0_TestCase(BaseXMLStructureTestCase):
+    
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase
+
+    XMLStructureKlass = xml_utils.XMLStructure_1_0
+    SAMPLES = SAMPLES_DSD_1_0
+    DEBUG_MODE = False
+
+    def test_conceptscheme(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_conceptscheme
+        self._test_conceptscheme()
+            
+    def test_codelist(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_codelist
+        self._test_codelist()
+        
+    def test_dimension(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_dimension
+        self._test_dimension()
+
+    def test_attribute(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_attribute
+        self._test_attribute()
+
+class XMLStructure_2_0_TestCase(BaseXMLStructureTestCase):
+    
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase
+
+    XMLStructureKlass = xml_utils.XMLStructure_2_0
+    SAMPLES = SAMPLES_DSD_2_0
+    DEBUG_MODE = False
+
+    def test_conceptscheme(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_conceptscheme
+        self._test_conceptscheme()
+            
+    def test_codelist(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_codelist
+        self._test_codelist()
+        
+    def test_dimension(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_dimension
+        self._test_dimension()
+
+    def test_attribute(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_attribute
+        self._test_attribute()
+
+class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
+    
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase
+
+    XMLStructureKlass = xml_utils.XMLStructure_2_1
+    SAMPLES = SAMPLES_DSD_2_1
+    DEBUG_MODE = False
+
+    """
+    TODO:    
+    def test_agency(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_agency
+        self._test_agency()
+    """
+
+    def test_categoryscheme(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_categoryscheme
+        self._test_categoryscheme()
+
+    def test_categorisation(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_categorisation
+        self._test_categorisation()
+
+    def test_dataflow(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_dataflow
+        self._test_dataflow()
+    
+    def test_conceptscheme(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_conceptscheme
+        self._test_conceptscheme()
+            
+    def test_codelist(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_codelist
+        self._test_codelist()
+        
+    def test_dimension(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_dimension
+        self._test_dimension()
+
+    def test_attribute(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_attribute
+        self._test_attribute()
+
+"""
+TODO:
+class XMLStructure_2_1_Dataflow_TestCase(BaseXMLStructureTestCase):
+    
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_Dataflow_TestCase
+
+    XMLStructureKlass = xml_utils.XMLStructure_2_1
+    SAMPLES = SAMPLES_DSD_2_1
+    DEBUG_MODE = False
+
+    def test_dataflow(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_Dataflow_TestCase.test_dataflow
+        self._test_dataflow()
+"""
+
+class BaseXMLDataTestCase(BaseTestCase):
+    
+    SAMPLES = None
+    DEBUG_MODE = False
+
+    def setUp(self):
+        super().setUp()
+        self.samples = self.SAMPLES
+        self.is_debug = self.DEBUG_MODE
+        self.series_list = []
+        self.count_values = 0
+        self.errors = []
+        self.reject_frequency = 0
+        self.reject_empty = 0
+        self.rows = None
+
     def _run(self, xml, filepath):
-        count = 0
-        count_reject_frequencies = 0
-        count_values = 0
         start = time.time()
-        
-        rows = xml.process(filepath)
+        self.series_list = []
+        self.count_values = 0
+        self.errors = []
+        self.reject_frequency = 0
+        self.reject_empty = 0
+        self.rows = xml.process(filepath)
         
         while True:        
             try:
-                series = next(rows)
-                count += 1
-                count_values += len(series["values"])
-                #TODO: retrouver pour chaque dimension, la valeur dans la structure
-                print(count, series["key"], len(series["values"]), list(series["dimensions"].keys()))
-            except errors.RejectFrequency as err:
-                print("reject freq : ", err.frequency)
-                count_reject_frequencies += 1
-                print(str(err))
+                series, err = next(self.rows)
+                if not err:
+                    self.count_values += len(series["values"])
+                    self.series_list.append(series)
+                else:
+                    if isinstance(err, errors.RejectFrequency):
+                        self.reject_frequency += 1
+                    elif isinstance(err, errors.RejectEmptySeries):
+                        self.reject_empty += 1
+                    
+                    #TODO: RejectUpdatedSeries
+                        
+                    self.errors.append(str(err))
             except StopIteration:
-                print("StopIteration!!!")
                 break
+            except Exception as err:
+                traceback.print_exc()
+                self.fail("Not captured exception : %s" % str(err))
         
         end = time.time() - start
-        print("SERIES[%s] - REJECT[%s] - DUREE[%.3f] - VALUES[%s]" % (count, count_reject_frequencies, end, count_values))
+        if logger.isEnabledFor(logging.DEBUG):
+            tmpl = "PROVIDER[%s] - SERIES[%s] - REJECT-FREQ[%s] - REJECT-EMPTY[%s] - DUREE[%.3f] - VALUES[%s]"
+            logger.debug(tmpl % (xml.provider_name,
+                          len(self.series_list), 
+                          self.reject_frequency, 
+                          self.reject_empty, 
+                          end, 
+                          self.count_values))
 
-    def _debug_datastructure_2_1(self, provider, xml):
-        
+    def _debug_series(self, xml, provider, provider_name):
         print()
-        print("provider : ", provider["provider"])
-        
-        print(xml.dimension_keys)
-        dimensions = {}
-        for key, dim in xml.dimensions.items():
-            dimensions[key] = len(dim["dimensions"].keys())
-        pprint(dimensions)
-        codes = {}
-        print(list(xml.codelists.keys()))
-        for key, code in xml.codelists.items():
-            codes[key] = len(code["codes"].keys())
-        pprint(codes)
-        
-        print("--------------------------")
+        print("PROVIDER: ", provider_name)
+        print("------------------------------------------------")
+        if self.series_list:        
+            pprint(self.series_list[0])
+        else:
+            print("NOT SERIES !!!")
+        print("------------------------------------------------")        
 
-    def _assertDatastructure_2_1(self, xml, provider):
-        
-        self.assertEqual(xml.dsd_id, provider["dsd_id"])
-        
-        #pprint(xml.dimensions)
-        #print("!!!!! : ", list(xml.dimensions.items())[0])
+    def _assert_series_v1(self, xml, provider, provider_name, series):
+        """Pour la vérification d'une series avec la structure actuelle
         """
-        !!!!! :  ('FREQ', {'dimensions': OrderedDict([('A', 'Annual'), ('T', 'Quarterly'), ('M', 'Monthly'), ('B', 'Two-monthly'), ('S', 'Semi-annual'), ('Q', 'Quarterly'), ('I', 'Irregular')]), 'id': 'FREQ', 'name': 'Frequency'})
+        series_sample = provider["series_sample"]
+        first_sample = series_sample["first_value"]
+        last_sample = series_sample["last_value"]
+        first_value = series["values"][0]
+        last_value = series["values"][-1]
+
+        dsd = provider["DSD"]
         
-        dimension_list: {
-            'freq': [
-                 ['A', 'Annual'],
-                 ['S', 'Half-yearly, semester'],
-                 ['Q', 'Quarterly'],
-                 ['M', 'Monthly'],
-                 ['W', 'Weekly'],
-                 ['B', 'Business week'],
-                 ['D', 'Daily'],
-                 ['H', 'Hourly'],
-                 ['N', 'Minutely']
-            ],
-        }
+        self.assertEqual(first_value, first_sample["value"])
+        self.assertEqual(last_value, last_sample["value"])
+        
+        if dsd["is_completed"]:
+            for key in series["series_attributes"].keys():
+                self.assertTrue(key in dsd["attribute_keys"])
+        
+            for key in series["attributes"].keys():
+                self.assertTrue(key in dsd["attribute_keys"])
+                
+        #TODO: self.assertEqual(len(series["values"]), len(series["attributes"]))
+
+    def _assert_series_v2(self, xml, provider, provider_name, series):
+        """Pour la vérification d'une series avec la future structure
         """
+        series_sample = provider["series_sample"]
+        first_sample = series_sample["first_value"]
+        last_sample = series_sample["last_value"]
+        first_value = series["values"][0]
+        last_value = series["values"][-1]
         
-        #print("attributes keys : ", list(xml.attributes.keys()))
-        self.assertEqual(list(xml.attributes.keys()), provider["attribute_keys"])
-        for key in provider["attribute_keys"]:
-            #print(key, len(xml.attributes[key]["values"].keys()))
-            self.assertEqual(len(xml.attributes[key]["values"].keys()), provider["attribute_count"][key])
-        
-        self.assertEqual(xml.dimension_keys, provider["dimension_keys"])
-        for key in xml.dimension_keys:
-            self.assertEqual(len(xml.dimensions[key]["dimensions"].keys()), provider["dimension_count"][key])
+        for source, target in [(first_value, first_sample), (last_value, last_sample)]:
+            self.assertEqual(source["value"], target["value"])
+            self.assertEqual(source["ordinal"], target["ordinal"])
+            self.assertEqual(source["period"], target["period"])
+            self.assertEqual(source["period_o"], target["period_o"])
+            self.assertEqual(source["attributes"], target["attributes"])
 
-        #print(list(xml.codelists.keys()))
-        self.assertEqual(list(xml.codelists.keys()), provider["codelist_keys"])
-        for key in provider["codelist_keys"]:
-            #print(key, len(xml.codelists[key]["codes"].keys()))
-            self.assertEqual(len(xml.codelists[key]["codes"].keys()), provider["codelist_count"][key])
+    def assert_series(self, xml, provider, provider_name):
         
-
-    def test_datastructure_2_1(self):
-
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_datastructure_2_1
+        self.assertEqual(provider["series_accept"], len(self.series_list))
+        self.assertEqual(provider["series_reject_frequency"], self.reject_frequency)
+        self.assertEqual(provider["series_reject_empty"], self.reject_empty)
         
-        for provider_name, provider in SAMPLES_DSD_2_1.items():
-            #if provider_name != "ECB": continue
-            print("provider: ", provider_name)
-            xml = XMLStructure_2_1(provider_name=provider_name)            
-            xml.process(provider["filepath"])
-            self._assertDatastructure_2_1(xml, provider)
-            #self._debug_datastructure_2_1(provider, xml)
+        self.assertEqual(provider["series_all_values"], self.count_values)
+        self.assertEqual(self.series_list[0]["key"], provider["series_key_first"])
+        self.assertEqual(self.series_list[-1]["key"], provider["series_key_last"])
+
+        series = self.series_list[0]
+        series_sample = provider["series_sample"]
+
+        dsd = provider["DSD"]
+
+        if dsd["is_completed"]:        
+            for key in series["dimensions"].keys():
+                msg = "%s not in %s" % (key, dsd["dimension_keys"])
+                self.assertTrue(key in dsd["dimension_keys"], msg)
+
+        self.assertEqual(series["key"], series_sample["key"])
+        self.assertEqual(series["name"], series_sample["name"])
+        self.assertEqual(series["frequency"], series_sample["frequency"])
+        
+        self.assertEqual(series["start_date"], series_sample["first_value"]["ordinal"])
+        self.assertEqual(series["end_date"], series_sample["last_value"]["ordinal"])
+        self.assertTrue(series["end_date"] >= series["start_date"])
+        
+        self.assertEqual(series["dimensions"], series_sample["dimensions"])
             
-    def test_datastructure_2_1_codelist(self):
+        if isinstance(series["values"][0], dict):
+            self._assert_series_v2(xml, provider, provider_name, series)
+        else:
+            self._assert_series_v1(xml, provider, provider_name, series)        
 
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_datastructure_2_1_codelist
+    def _commons_tests(self, test_name=None):
+        
+        assert_method = "assert_%s" % test_name
+        debug_method = "_debug_%s" % test_name
+        
+        for provider_name, provider in self.samples.items():
+            if not provider.get("filepath"):
+                self.fail("not filepath for provider[%s]" % provider_name)
 
-        for provider_name, provider in SAMPLES_DSD_2_1.items():
-            #if provider_name != "ECB": continue
-            print("provider: ", provider_name)
-            xml = XMLStructure_2_1(provider_name=provider_name)
-            xml.process(provider["filepath"])
-            #obs_status = xml.get_codelist("CL_OBS_STATUS")
-            #pprint(obs_status)
+            klass = xml_utils.XLM_KLASS[provider["klass"]] 
+            xml = klass(**provider["kwargs"])
             
-    def test_dataflow_2_1(self):
-
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_dataflow_2_1
-                    
-        filepath = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb", "ecb-dataflow-2.1.xml"))
-        xml = XMLStructure_2_1(provider_name="ECB", dataset_code="EXR")#, dsd_id="ECB_EXR1")
-        xml.process(filepath)
-        self.assertEqual(xml.dataflows, {'EXR': 'ECB_EXR1'})
-        self.assertEqual(xml.dsd_id, "ECB_EXR1")
-
-    def _assertGenericSeries(self, series, series_samples, provider_name):
-        
-        self.assertEqual(series["key"], series_samples["key"])
-        self.assertEqual(series["name"], series_samples["name"])
-        
-        self.assertEqual(series["frequency"], series_samples["frequency"])
-        self.assertEqual(series["start_date"], series_samples["start_date"])
-        self.assertEqual(series["end_date"], series_samples["end_date"])
-        
-        self.assertEqual(series["values"][0], series_samples["values_first"])
-        self.assertEqual(series["values"][-1], series_samples["values_last"])
-        
-        self.assertEqual(series["dimensions"], series_samples["dimensions"])
-
-        self.assertTrue(series["end_date"] > series["start_date"])
-        
-        if series["attributes"]:
-            for attribute, values in series["attributes"].items():
-                #TODO: test first et last value: series_samples["attributes"]
-                msg = "bad length for attribute[%s] for provider[%s] - values[%s]" % (attribute, provider_name, values)
-                self.assertEqual(len(series["values"]), len(values), msg)
-        
-    def test_generic_data_2_1(self):
-        
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_generic_data_2_1
-        
-        for provider_name, provider in SAMPLES_DATA_GENERIC_2_1.items():
-            #if provider_name != "ECB": continue
-            print("provider: ", provider_name)
-            klass = provider["klass"]
-            kwargs = provider["kwargs"]
-            xml = klass(**kwargs)
-            self.assertIsNotNone(xml.ns_tag_data)
-            series_samples = provider.get("series_sample")
-            series = next(xml.process(provider["filepath"]))
-            #pprint(series)
-            self._assertGenericSeries(series, series_samples, provider_name)
-
-    def test_data_1_0(self):
-        
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_data_1_0
-        
-        for provider_name, provider in SAMPLES_DATA_1_0.items():
-            #if provider_name != "EUROSTAT": continue
-            print("provider: ", provider_name)
-            klass = provider["klass"]
-            kwargs = provider["kwargs"]
-            xml = klass(**kwargs)
-            self.assertIsNotNone(xml.ns_tag_data)
-            #pprint(xml.nsmap)
-            print("self.frequencies_supported : ", xml.frequencies_supported)
+            self._run(xml, provider["filepath"])
+            if self.is_debug:
+                print()
+                getattr(self, debug_method)(xml, provider, provider_name)
             
-            #self._run(xml, provider["filepath"])
-            #pprint(series)
-            series_samples = provider.get("series_sample")
-            #FIXME: self._assertGenericSeries(series, series_samples, provider_name)
+            getattr(self, assert_method)(xml, provider, provider_name)
+
+    def _test_series(self):
+        self._commons_tests("series")
+
+
+class XMLData_1_0_TestCase(BaseXMLDataTestCase):
+    """
+    TODO: voir classe unique pour toutes les implémentations !
+    """
+
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_1_0_TestCase
     
-    def test_compact_data_2_0(self):
-        
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_compact_data_2_0
-        
-        for provider_name, provider in SAMPLES_DATA_COMPACT_2_0.items():
-            #if provider_name != "EUROSTAT": continue
-            print("provider: ", provider_name)
-            klass = provider["klass"]
-            kwargs = provider["kwargs"]
-            xml = klass(**kwargs)
-            self.assertIsNotNone(xml.ns_tag_data)
-            series_samples = provider.get("series_sample")
-            series = next(xml.process(provider["filepath"]))
-            #pprint(series)
-            self._assertGenericSeries(series, series_samples, provider_name)
+    SAMPLES = SAMPLES_DATA_1_0
+    DEBUG_MODE = False
     
-    def test_specific_data_2_1(self):
-        
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLUtilsTestCase.test_specific_data_2_1
-        """
-        http https://sdw-wsrest.ecb.europa.eu/service/data/EXR Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > ecb-data-exr.structurespecificdata.xml
-        SERIES[10635] - REJECT[44] - DUREE[220.546] - VALUES[2994740]
-        """
-        for provider_name, provider in SAMPLES_DATA_SPECIFIC_2_1.items():
-            #if provider_name != "ECB": continue
-            print("provider: ", provider_name)
-            klass = provider["klass"]
-            kwargs = provider["kwargs"]
-            xml = klass(**kwargs)
-            series_samples = provider.get("series_sample")
-            series = next(xml.process(provider["filepath"]))
-            #pprint(series)
-            self._assertGenericSeries(series, series_samples, provider_name)
-        
-        #self._run(xml)
+    def test_series(self):
+        self._test_series()
 
+class XMLData_2_0_TestCase(BaseXMLDataTestCase):
+
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_0_TestCase
+    
+    SAMPLES = SAMPLES_DATA_COMPACT_2_0
+    DEBUG_MODE = False
+    
+    def test_series(self):
+        self._test_series()
+
+class XMLData_2_1_GENERIC_TestCase(BaseXMLDataTestCase):
+
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_1_GENERIC_TestCase
+    
+    SAMPLES = SAMPLES_DATA_GENERIC_2_1
+    DEBUG_MODE = False
+    
+    def test_series(self):
+        self._test_series()
+
+class XMLData_2_1_SPECIFIC_TestCase(BaseXMLDataTestCase):
+
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_1_SPECIFIC_TestCase
+    
+    SAMPLES = SAMPLES_DATA_SPECIFIC_2_1
+    DEBUG_MODE = False
+    
+    def test_series(self):
+        self._test_series()
 
