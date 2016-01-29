@@ -5,29 +5,22 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
-from dlstats import constants
-from dlstats.utils import Downloader
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
-import urllib
-import xlrd
-import csv
-import codecs
-from datetime import datetime, date
-import pandas
-import pprint
-from collections import OrderedDict
-from re import match
+from datetime import datetime
+from pprint import pprint
 import time
-import requests
-import os
 from urllib.parse import urljoin
-import tempfile
-from lxml import etree
 import logging
 import re
-import json
 
-VERSION = 1
+import pytz
+import pandas
+from lxml import etree
+import requests
+
+from dlstats.utils import Downloader
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, Categories
+
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +28,6 @@ REGEX_ANNUAL = re.compile('(\d\d\d\d)/((4-3)|(1-4)|(1-12))')
 REGEX_QUARTER = re.compile('(?:(\d\d\d\d)/ )?((\d\d-\d\d)|(\d- \d))')
 
 INDEX_URL = 'http://www.esri.cao.go.jp/index-e.html'
-
 
 def parse_quarter(quarter_str):
     if quarter_str == '1- 3':
@@ -51,10 +43,12 @@ def parse_quarter(quarter_str):
     return quarter
 
 def parse_dates(column):
-    for row_nbr,c in enumerate(column):
+    for row_nbr, c in enumerate(column):
+        
         if type(c) is not str:
             continue
-        matches = re.match(REGEX_ANNUAL,c)
+        
+        matches = re.match(REGEX_ANNUAL, c)
         if matches:
             freq = 'A'
             start_year = int(matches.group(1))
@@ -62,13 +56,14 @@ def parse_dates(column):
             first_row = row_nbr
             last_row = first_row
             break
-        matches = re.match(REGEX_QUARTER,c)
+        
+        matches = re.match(REGEX_QUARTER, c)
         if matches:
             freq = 'Q'
             start_year = int(matches.group(1))
             start_quarter = parse_quarter(matches.group(2))
             # checking next year beginning
-            matches = re.match(REGEX_QUARTER,column[row_nbr + 5 - start_quarter])
+            matches = re.match(REGEX_QUARTER, column[row_nbr + 5 - start_quarter])
             if (not matches) or int(matches.group(1)) != start_year + 1:
                 raise Exception('start_date not recognized')
             end_year = start_year
@@ -76,6 +71,7 @@ def parse_dates(column):
             first_row = row_nbr
             last_row = first_row
             break
+        
         if (row_nbr + 1) == len(column):
             raise Exception('start_date not recognized')
 
@@ -115,13 +111,13 @@ def parse_dates(column):
             last_row = last_row + 1
 
     if freq == 'A':
-        start_date = pandas.Period(start_year,freq='A').ordinal
-        end_date = pandas.Period(end_year,freq='A').ordinal
+        start_date = pandas.Period(start_year, freq='A').ordinal
+        end_date = pandas.Period(end_year, freq='A').ordinal
     elif freq == 'Q':
-        start_date = pandas.Period('%sQ%s' % (start_year,start_quarter),freq='Q').ordinal
-        end_date = pandas.Period('%sQ%s' % (end_year,end_quarter),freq='Q').ordinal
+        start_date = pandas.Period('%sQ%s' % (start_year, start_quarter), freq='Q').ordinal
+        end_date = pandas.Period('%sQ%s' % (end_year, end_quarter), freq='Q').ordinal
 
-    return(freq,start_date,end_date,first_row,last_row)
+    return (freq, start_date, end_date, first_row, last_row)
 
 def download_page(url):
         try:
@@ -167,7 +163,7 @@ def parse_esri_site():
     page = download_page(url)
     html = etree.HTML(page)
     uls = html.findall('.//ul[@class="bulletList"]')
-    sna = parse_sna(uls[0],url)
+    sna = parse_sna(uls[0], url)
 #    bs = parse_business_statistics(uls[1])
     site_tree = [sna]
 #   site_tree = [sna, bs]
@@ -413,54 +409,96 @@ def parse_corporate_behavior(url,name):
             'children': children}
 
 class Esri(Fetcher):
-    def __init__(self, db=None):
-        super().__init__(provider_name='ESRI', db=db)         
-        self.provider = Providers(name=self.provider_name,
-                                  long_name='Economic and Social Research Institute, Cabinet Office',
-                                  version=VERSION,
-                                  region='Japan',
-                                  website='http://www.esri.cao.go.jp/index-e.html',
-                                  fetcher=self)
-        self.datasets_dict = {}
+    
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='ESRI', **kwargs)
+        
+        
+        if not self.provider:
+            self.provider = Providers(name=self.provider_name,
+                                      long_name='Economic and Social Research Institute, Cabinet Office',
+                                      version=VERSION,
+                                      region='Japan',
+                                      website='http://www.esri.cao.go.jp/index-e.html',
+                                      fetcher=self)
+        
+        if self.provider.version != VERSION:
+            self.provider.update_database()
+            
+        self.selected_datasets = {}
         self.selected_codes = ['SNA']
         
     def build_data_tree(self, force_update=False):
         """Build data_tree from ESRI site parsing
         """
-        if self.provider.count_data_tree() > 1 and not force_update:
-            return self.provider.data_tree
 
-        def make_node(data,parent_key):
+        categories = []
+        
+        def make_node(data, parent_key=None):
             _category = dict(name=data['name'],
-                             category_code=data['category_code'])
-            _category_key = self.provider.add_category(_category,
-                                                       parent_code=parent_key)
+                             category_code=data['category_code'],
+                             parent=parent_key,
+                             all_parents=[],
+                             datasets=[])
+            
+            _category_key = data['category_code']
+            
             if 'children' in data:
                 for c in data['children']:
-                    make_node(c,_category_key)
+                    make_node(c, _category_key)
+            
             if 'datasets' in data:
                 for d in data['datasets']:
-                    self.provider.add_dataset(dict(dataset_code = d['dataset_code'],
-                                                   name = d['name'],
-                                                   last_update = d['release_date'],
-                                                   metadata={'url': d['url'],
-                                                             'doc_href': d['doc_href']}),
-                                              _category_key)                        
+                    _dataset = {
+                        "dataset_code": d['dataset_code'],
+                        "name": d['name'],
+                        "last_update": d['release_date'],
+                        "metadata": {
+                            'url': d['url'], 
+                            'doc_href': d['doc_href']
+                        }
+                    }                    
+                    _category["datasets"].append(_dataset)
+                    
+            categories.append(_category)
+        
         try:
             for data in parse_esri_site():
-                make_node(data, self.provider_name)
+                make_node(data)
         except Exception as err:
             logger.error(err)   
-            raise                             
-        return self.provider.data_tree
+            raise
         
-    def get_selected_datasets(self):
-        """Collects the dataset codes that are in data_tree
+        _categories = dict([(doc["category_code"], doc) for doc in categories])
+        
+        for c in categories:
+            parents = Categories.iter_parent(c, _categories)
+            c["all_parents"] = parents[:-1]
+        
+        return categories
+        
+    def get_selected_datasets(self, force=False):
+        """Collects the dataset codes that are in table of contents
         below the ones indicated in "selected_codes" provided in configuration
         :returns: list of dict of dataset settings"""
-        category_filter = [".*%s.*" % d for d in self.selected_codes]
-        category_filter = "|".join(category_filter)
-        self.selected_datasets = {d['dataset_code']: d for d in self.datasets_list(category_filter=category_filter)}
+        
+        if self.selected_datasets and not force:
+            return self.selected_datasets  
+        
+        query = {
+            "$or": [
+                 {"category_code": {"$in": self.selected_codes}},
+                 {"all_parents": {"$in": self.selected_codes}},
+            ],
+            "datasets.0": {"$exists": True}
+        }
+        
+        categories = Categories.categories(self.provider_name, 
+                                           db=self.db, **query)
+        for category in categories.values():
+            for d in category["datasets"]:
+                self.selected_datasets[d['dataset_code']] = d
+        
         return self.selected_datasets
 
     # necessary for test mock
@@ -477,28 +515,35 @@ class Esri(Fetcher):
         logger.info("upsert dataset[%s] - START" % (dataset_code))
 
         self.dataset_settings = self.selected_datasets[dataset_code]
-        url = self.make_url()
         dataset = Datasets(self.provider_name,dataset_code,
                            fetcher=self)
         dataset.name = self.dataset_settings['name']
         dataset.doc_href = self.dataset_settings['metadata']['doc_href']
         dataset.last_update = self.dataset_settings['last_update']
-        data_iterator = EsriData(dataset,url,filename=dataset_code)
+
+        url = self.make_url()
+        data_iterator = EsriData(dataset, url, 
+                                 filename=dataset_code, fetcher=self)
         dataset.series.data_iterator = data_iterator
-        dataset.update_database()
+        result = dataset.update_database()
+        
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
+        return result
 
     # TO BE FINISHED    
     def parse_sna_agenda(self):
         #TODO: use Downloader
-        download = Downloader(url="http://www.esri.cao.go.jp/en/sna/kouhyou/kouhyou_top.html",
-                              filename="agenda_sna.html")
-        with open(download.get_filepath(), 'rb') as fp:
-            agenda = lxml.html.parse(fp)
+        raise NotImplementedError()
+        #download = Downloader(url="http://www.esri.cao.go.jp/en/sna/kouhyou/kouhyou_top.html",
+        #                      filename="agenda_sna.html")
+        #with open(download.get_filepath(), 'rb') as fp:
+        #    agenda = lxml.html.parse(fp)
         
     # TO BE FINISHED
     def get_calendar(self):
+        raise NotImplementedError()
+        
         datasets = [d["dataset_code"] for d in self.datasets_list()]
 
         for entry in self.parse_agenda():
@@ -520,9 +565,6 @@ class Esri(Fetcher):
         start = time.time()        
         logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
-        
-        self.provider.update_database()
-        self.build_data_tree()
         self.upsert_data_tree()
 
         datasets_list = [d for d in self.get_selected_datasets().keys()]
@@ -539,7 +581,6 @@ class Esri(Fetcher):
         start = time.time()        
         logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
-        self.provider.update_database()
         self.upsert_data_tree()
 
         datasets_list = [d["dataset_code"] for d in self.datasets_list()]
@@ -553,17 +594,27 @@ class Esri(Fetcher):
         logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
 class EsriData():
-    def __init__(self, dataset,  url, filename=None, store_filepath=None):
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
-        self.filename = filename
-        self.store_filepath = store_filepath
+    
+    def __init__(self, dataset,  url, filename=None, fetcher=None):
+        self.dataset = dataset
         self.dataset_url = url
+        self.filename = filename
+        self.fetcher = fetcher
+        
+        self.provider_name = self.dataset.provider_name
+        self.dataset_code = self.dataset.dataset_code
+        self.dimension_list = self.dataset.dimension_list
+        self.attribute_list = self.dataset.attribute_list
+        
+        if not 'concept' in self.dataset.dimension_keys:
+            self.dataset.dimension_keys.append('concept')
+            
+        self.dataset.concepts['concept'] = 'Concept'
+        self.dataset.codelists['concept'] = {}
+        
         self.panda_csv = self.get_csv_data()
 #        self.release_date = self.get_release_date()
-        self.release_date = dataset.last_update
+        self.release_date = self.dataset.last_update
         [self.nrow,self.ncol] = self.panda_csv.shape
         self.column_nbr = 0
 
@@ -576,21 +627,13 @@ class EsriData():
         self.series_names = self.fix_series_names()
         self.key = 0
 
-    def get_store_path(self):
-        return self.store_filepath or os.path.abspath(os.path.join(
-            tempfile.gettempdir(), 
-            self.provider_name))
-    
     def _load_datas(self):
-        
-        store_filepath = self.get_store_path()
         # TODO: timeout, replace
-        download = Downloader(url=self.dataset_url, filename=self.filename, store_filepath=store_filepath)
-            
-        return(download.get_filepath())
+        download = Downloader(url=self.dataset_url, filename=self.filename)
+        return download.get_filepath()
     
     def get_csv_data(self):
-        return pandas.read_csv(self._load_datas(),header=None,encoding='cp932')
+        return pandas.read_csv(self._load_datas(), header=None, encoding='cp932')
     
     def fix_series_names(self):
         #generating name of the series             
@@ -618,11 +661,14 @@ class EsriData():
                 series_names[column_ind] = self.edit_seriesname(str(self.panda_csv.iloc[5,column_ind])+', '+str(self.panda_csv.iloc[6,column_ind-3]))
             if series_names[column_ind] == 'Of Which Change in Inventories':
                 series_names[column_ind] = 'Gross Capital Formation, Change in Inventories'
+        
         lent = len(self.panda_csv.iloc[0,:])
+        
         if str(self.panda_csv.iloc[0,:][columns.size-1]) == "(%)":
             self.currency = str(self.panda_csv.iloc[0,columns.size-2])
         else:
             self.currency = str(self.panda_csv.iloc[0,columns.size-1])
+        
         return series_names
 
     def edit_seriesname(self,seriesname):
@@ -646,38 +692,72 @@ class EsriData():
         return(seriesname)  
 
     def __next__(self):
+        
         if self.column_nbr == self.ncol:
             raise StopIteration()
+        
         column = self.panda_csv.iloc[:,self.column_nbr]
+        
         if ((self.series_names[self.column_nbr] == "nan, nan")
-            or ( self.series_names[self.column_nbr] == "nan" )) :
+            or ( self.series_names[self.column_nbr] == "nan" )):
             self.column_nbr += 1
+            
             if self.column_nbr == self.ncol:
                 raise StopIteration()
+            
             column = self.panda_csv.iloc[:,self.column_nbr]
-        series = self.build_series(column,str(self.key),self.series_names[self.column_nbr])
+        
+        series = self.build_series(column, 
+                                   str(self.key), 
+                                   self.series_names[self.column_nbr])
+        
         self.key += 1
         self.column_nbr += 1
-        return(series) 
-                                           
-    def build_series(self,column,key,name):
-        dimensions = {}
-        series = {}
-        series_value = []
-        dimensions['concept'] = self.dimension_list.update_entry('concept','',name)
-        for r in range(self.first_row,self.last_row+1):
-            series_value.append(str(column[r]).strip())    
-        series['values'] = series_value                
-        series['provider_name'] = self.provider_name       
-        series['dataset_code'] = self.dataset_code
-        series['name'] = name
-        series['key'] = key
-        series['start_date'] = self.start_date
-        series['end_date'] = self.end_date  
-        series['last_update'] = self.release_date
-        series['dimensions'] = dimensions
-        series['frequency'] = self.frequency
-        series['attributes'] = {}
-        return(series)
+        
+        return series 
 
-    
+    def build_series(self, column, key, name):
+        dimensions = {}
+        bson = {}
+        series_value = []
+        
+        dimensions['concept'] = self.dimension_list.update_entry('concept', '', name)
+
+        if not dimensions['concept'] in self.dataset.codelists['concept']:
+            self.dataset.codelists['concept'][dimensions['concept']] = name
+        
+        for r in range(self.first_row, self.last_row+1):
+            #series_value.append(str(column[r]).strip())
+            #widukind-projects/issues/423
+            series_value.append(str(column[r]).strip().replace(',',''))
+
+        values = []
+        
+        period = pandas.Period(ordinal=self.start_date, freq=self.frequency)
+        
+        for v in series_value:            
+            value = {
+                'attributes': None,
+                'release_date': self.release_date,
+                'ordinal': period.ordinal,
+                'period_o': str(period),
+                'period': str(period),
+                'value': v
+            }
+            period += 1
+            values.append(value)
+        
+        bson['values'] = values                
+        bson['provider_name'] = self.provider_name       
+        bson['dataset_code'] = self.dataset_code
+        bson['name'] = name
+        bson['key'] = key
+        bson['start_date'] = self.start_date
+        bson['end_date'] = self.end_date  
+        bson['last_update'] = self.release_date
+        bson['dimensions'] = dimensions
+        bson['frequency'] = self.frequency
+        bson['attributes'] = {}
+        
+        return bson
+
