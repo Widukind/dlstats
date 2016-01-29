@@ -19,6 +19,10 @@ opt_dataset = click.option('--dataset', '-d',
               required=False, 
               help='Run selected dataset only')
 
+opt_fetcher_not_required = click.option('--fetcher', '-f', 
+               type=click.Choice(FETCHERS.keys()), 
+               help='Fetcher choice')
+
 @click.group()
 def cli():
     """Fetchers commands."""
@@ -46,23 +50,15 @@ def cmd_dataset_list(fetcher, **kwargs):
 
     f = FETCHERS[fetcher](db=ctx.mongo_database())
 
-    func_name = 'datasets_list'
-
-    have_func = hasattr(f, func_name)
-
-    if not have_func:
-        ctx.log_error("not implemented %s() method in fetcher" % func_name)
-        return
-
-    datasets = getattr(f, func_name)()
+    datasets = f.datasets_list()
     if not datasets:
         ctx.log_error("Not datasets for this fetcher")
         return
-        
+
     for dataset in datasets:
         print(dataset["dataset_code"], dataset["name"])
 
-@cli.command('update-datatree', context_settings=client.DLSTATS_SETTINGS)
+@cli.command('datatree', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
@@ -152,6 +148,7 @@ def cmd_calendar(fetcher=None, **kwargs):
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
+@client.opt_logger_file
 @client.opt_mongo_url
 @click.option('--data-tree', is_flag=True,
               help='Update data-tree before run.')
@@ -192,7 +189,8 @@ def cmd_run(fetcher=None, dataset=None, data_tree=False, **kwargs):
 #TODO: option pretty pour sortie json
 @cli.command('report', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_mongo_url
-def cmd_report(**kwargs):
+@opt_fetcher_not_required
+def cmd_report(fetcher=None, **kwargs):
     """Fetchers report"""
         
     """
@@ -208,61 +206,38 @@ def cmd_report(**kwargs):
     """
     ctx = client.Context(**kwargs)
     db = ctx.mongo_database()
-    fmt = "{0:20} | {1:9} | {2:30} | {3:10} | {4:20} | {5:20}"
+    fmt = "{0:10} | {1:4} | {2:30} | {3:10} | {4:15} | {5:20} | {6:20}"
     print("---------------------------------------------------------------------------------------------------------------------------")
     print("MongoDB: %s :" % ctx.mongo_url)
     print("---------------------------------------------------------------------------------------------------------------------------")
-    print(fmt.format("Provider", "Version", "Dataset", "Series", "First Download", "last Download"))
+    print(fmt.format("Provider", "Ver.", "Dataset", "Series", "Last Update", "First Download", "last Download"))
     print("---------------------------------------------------------------------------------------------------------------------------")
-    for provider in db[constants.COL_PROVIDERS].find({}):
-        for dataset in db[constants.COL_DATASETS].find({'provider_name': provider['name']}):
-            series_count = db[constants.COL_SERIES].count({'provider_name': provider['name'], "dataset_code": dataset['dataset_code']})
-            print(fmt.format(provider['name'], provider['version'], 
+    query = {}
+    if fetcher:
+        query["name"] = fetcher
+        
+    for provider in db[constants.COL_PROVIDERS].find(query):
+        
+        for dataset in db[constants.COL_DATASETS].find({'provider_name': provider['name']}).sort("dataset_code"):
+            
+            series_count = db[constants.COL_SERIES].count({'provider_name': provider['name'], 
+                                                           "dataset_code": dataset['dataset_code']})
+            
+            if not provider['enable']:
+                _provider = "%s *" % provider['name']
+            else: 
+                _provider = provider['name']
+            
+            print(fmt.format(_provider, 
+                             provider['version'], 
                              dataset['dataset_code'], 
-                             series_count, 
+                             series_count,
+                             str(dataset['last_update'].strftime("%Y-%m-%d")), 
                              str(dataset['download_first'].strftime("%Y-%m-%d - %H:%M")), 
                              str(dataset['download_last'].strftime("%Y-%m-%d - %H:%M"))))
     print("---------------------------------------------------------------------------------------------------------------------------")
-        
-@cli.command('update-metas', context_settings=client.DLSTATS_SETTINGS)
-@client.opt_verbose
-@client.opt_silent
-@client.opt_debug
-@client.opt_logger
-@client.opt_logger_conf
-@client.opt_mongo_url
-@opt_fetcher
-@opt_dataset
-def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
-    """Update Metadatas for one or more Datasets
-    
-    
-    dlstats fetchers update-metas -f BIS -d CNFS -l INFO -S
 
-    dlstats fetchers update-metas -f BIS -l INFO -S    
-    """
-
-    ctx = client.Context(**kwargs)
-
-    ctx.log_ok("Run update Metadatas for %s fetcher:" % fetcher)
-
-    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
-        
-        db = ctx.mongo_database()
-        
-        f = FETCHERS[fetcher](db=db)
-
-        if dataset:
-            ctx.log("Update Metas for dataset[%s]" % dataset)
-            f.update_metas(dataset)            
-        else:
-            datasets = db[constants.COL_DATASETS].find({'provider_name': fetcher},
-                                                       projection={"dataset_code": True})
-            for dataset in datasets:
-                ctx.log("Update Metas for dataset[%s]" % dataset['dataset_code'])
-                f.update_metas(dataset['dataset_code'])
-
-@cli.command('update-tags', context_settings=client.DLSTATS_SETTINGS)
+@cli.command('tags', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
 @client.opt_debug
@@ -278,7 +253,7 @@ def cmd_update_metadatas(fetcher=None, dataset=None, **kwargs):
               help='Max Bulk')
 @click.option('--collection', '-c', 
               required=True,
-              default=constants.COL_DATASETS,
+              default='ALL',
               show_default=True,
               type=click.Choice([constants.COL_DATASETS, constants.COL_SERIES, 'ALL']),
               help='Collection')
