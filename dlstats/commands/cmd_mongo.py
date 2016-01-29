@@ -160,18 +160,18 @@ def cmd_check_schemas(max_errors=None, **kwargs):
             #find(limit=0)
             #projection={‘_id’: False}
             for doc in db[col].with_options(read_preference=ReadPreference.SECONDARY_PREFERRED).find():
-                id = None
+                _id = None
                 if max_errors and report[col]['error'] >= max_errors:
                     ctx.log_warn("Max error attempt. Skip test !")
                     break
                 try:
                     report[col]['verified'] += 1
-                    id = str(doc.pop('_id'))
+                    _id = str(doc.pop('_id'))
                     _schema(doc)
                 except Exception as err:
                     report[col]['error'] += 1
                     if ctx.verbose:
-                        ctx.log_error("%s - %s - %s" % (col, id, str(err)))
+                        ctx.log_error("%s - %s - %s" % (col, _id, str(err)))
                     
             report[col]['time'] = "%.3f" % (time.time() - s)
         
