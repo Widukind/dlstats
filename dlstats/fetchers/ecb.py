@@ -1,47 +1,37 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
+import os
+import tempfile
 import time
 from datetime import datetime
-import pytz
 import logging
 from collections import OrderedDict
-
-import requests
-
-from pandasdmx.api import Request
-
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
-from dlstats.utils import Downloader
-from dlstats.xml_utils import (XMLStructure_2_1, 
-                               XMLSpecificData_2_1_ECB as XMLData)
+import re
 
 import lxml.html
-import re
+import pytz
+
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats.utils import Downloader
+from dlstats import errors
+from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
+                               XMLStructure_2_1 as XMLStructure, 
+                               XMLSpecificData_2_1_ECB as XMLData,
+                               dataset_converter_v2 as dataset_converter)
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 3
+VERSION = 4
 
 logger = logging.getLogger(__name__)
-
-class ContinueRequest(Exception):
-    pass
 
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
-class ECBRequest(Request):
-    Request._agencies['ECB']['resources'] = {
-        'data': {
-            'headers': SDMX_DATA_HEADERS,
-        },
-    }
-    for r in Request._resources:
-        Request._agencies['ECB']['resources'][r] = {'headers': SDMX_METADATA_HEADERS}
+CACHE_EXPIRE = 60 * 60 * 4 #4H
 
 class ECB(Fetcher):
     
@@ -55,65 +45,129 @@ class ECB(Fetcher):
                                       region='Europe',
                                       website='http://www.ecb.europa.eu',
                                       fetcher=self)
-            self.provider.update_database()
         
         if self.provider.version != VERSION:
             self.provider.update_database()
-            
-        self.sdmx = sdmx or ECBRequest(agency=self.provider_name)
-        self.sdmx.timeout = 90
+
+        self.cache_settings = self._get_cache_settings()
+
+        self.xml_sdmx = None
+        self.xml_dsd = None
         
         self._dataflows = None
         self._categoryschemes = None
         self._categorisations = None
+        self._concepts = None
+
+    def _get_cache_settings(self):
+
+        tmp_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
+                                                    self.provider_name))
+        
+        return {
+            "cache_name": tmp_filepath, 
+            "backend": 'sqlite', 
+            "expire_after": CACHE_EXPIRE
+        }
 
     def _load_structure(self, force=False):
         """Load structure and build data_tree
         """
         
-        if (self._dataflows and self._categoryschemes and self._categorisations) and not force:
+        if self._dataflows and not force:
             return
         
-        '''Force URL for select only ECB agency'''
-        categoryschemes_response = self.sdmx.get(resource_type='categoryscheme', url='http://sdw-wsrest.ecb.int/service/categoryscheme/%s?references=parentsandsiblings' % self.provider_name)
-        self._categorisations = categoryschemes_response.msg.categorisations
-        self._categoryschemes = categoryschemes_response.msg.categoryschemes
-        self._dataflows = categoryschemes_response.msg.dataflows
+        self.xml_sdmx = XMLSDMX(agencyID=self.provider_name,
+                                cache=self.cache_settings)
         
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name,
+                                    sdmx_client=self.xml_sdmx)       
+        
+        url = "http://sdw-wsrest.ecb.int/service/dataflow/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="dataflow.xml",
+                              headers=SDMX_METADATA_HEADERS,
+                              cache=self.cache_settings)
+        self.xml_dsd.process(download.get_filepath())
+        self._dataflows = self.xml_dsd.dataflows
+
+        url = "http://sdw-wsrest.ecb.int/service/categoryscheme/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="categoryscheme.xml",
+                              headers=SDMX_METADATA_HEADERS,
+                              cache=self.cache_settings)
+        self.xml_dsd.process(download.get_filepath())
+        self._categoryschemes = self.xml_dsd.categories
+
+        url = "http://sdw-wsrest.ecb.int/service/categorisation/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="categorisation.xml",
+                              headers=SDMX_METADATA_HEADERS,
+                              cache=self.cache_settings)
+        self.xml_dsd.process(download.get_filepath())
+        self._categorisations = self.xml_dsd.categorisations
+        
+        url = "http://sdw-wsrest.ecb.int/service/conceptscheme/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="conceptscheme.xml",
+                              headers=SDMX_METADATA_HEADERS,
+                              cache=self.cache_settings)
+        self.xml_dsd.process(download.get_filepath())
+        self._concepts = self.xml_dsd.concepts
+
     def build_data_tree(self, force_update=False):
-        """Build data_tree from structure datas
-        """
-        if self.provider.count_data_tree() > 1 and not force_update:
-            return self.provider.data_tree
-        
+
         self._load_structure()
+        
+        categories = []
+        
+        position = 0
+        for category_code, category in self.xml_dsd.categories.items():
+            parent_ids = self.xml_dsd.iter_parent_category_id(category)
 
-        for category in self._categoryschemes.aslist():
+            parent = None
+            all_parents = None
+            if parent_ids:
+                all_parents = parent_ids.copy()
+                parent = parent_ids.pop()
+            else:
+                position += 1
+                
+            cat = {
+                "provider_name": self.provider_name,
+                "category_code": category_code,
+                "name": category["name"],
+                "position": position,
+                "parent": parent,
+                "all_parents": all_parents, 
+                "datasets": [],
+                "doc_href": None,
+                "metadata": {}
+            }
+            if category_code in self.xml_dsd.categorisations_categories:
+                categorisation_ids = self.xml_dsd.categorisations_categories[category_code]
+                
+                for categorisation_id in categorisation_ids:
+                    categorisation = self.xml_dsd.categorisations[categorisation_id]
+                    dataflow_id = categorisation["dataflow"]["id"]
+                    if not dataflow_id in self.xml_dsd.dataflows:
+                        logger.warning("dataflow[%s] is not in xml_dsd.dataflows" % (dataflow_id))
+                        continue
+                        
+                    dataset = self.xml_dsd.dataflows[dataflow_id]
+                    
+                    cat["datasets"].append({
+                        "dataset_code": dataset['id'], 
+                        "name":dataset["name"],
+                        "last_update": None,
+                        "metadata": {
+                            "dsd_id": dataset["dsd_id"]
+                        }
+                    })
+                
+            categories.append(cat)
             
-            _category = dict(name=category.name.en,
-                             category_code=category.id)
-            category_key = self.provider.add_category(_category)
-             
-            for subcategory in category.values():
-                
-                if not subcategory.id in self._categorisations:
-                    continue
-                
-                _subcategory = dict(name=subcategory.name.en,
-                                    category_code=subcategory.id)
-                _subcategory_key = self.provider.add_category(_subcategory,
-                                           parent_code=category_key)
-                
-                try:
-                    _categorisation = self._categorisations[subcategory.id]
-                    for i in _categorisation:
-                        _d = self._dataflows[i.artefact.id]
-                        self.provider.add_dataset(dict(dataset_code=_d.id, name=_d.name.en), _subcategory_key)                        
-                except Exception as err:
-                    logger.error(err)   
-                    raise                             
-
-        return self.provider.data_tree
+        return categories
         
     def parse_agenda(self):
         #TODO: use Downloader
@@ -155,11 +209,11 @@ class ECB(Fetcher):
 
     def upsert_dataset(self, dataset_code):
         
+        self._load_structure()
+        
         start = time.time()
         logger.info("upsert dataset[%s] - START" % (dataset_code))
         
-        #TODO: control si existe ou update !!!
-
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
                            name=None,
@@ -167,15 +221,10 @@ class ECB(Fetcher):
                            last_update=datetime.now(),
                            fetcher=self)
         
-        _data = ECB_Data(dataset=dataset)
+        _data = ECB_Data(dataset=dataset, fetcher=self)
         dataset.series.data_iterator = _data
-        try:
-            result = dataset.update_database()
-        except:
-            raise
+        result = dataset.update_database()
         
-        _data = None
-
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
         
@@ -186,14 +235,14 @@ class ECB(Fetcher):
         logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
         
         self._load_structure()
-        self.provider.update_database()
-        self.upsert_data_tree()
 
-        datasets_list = [d["dataset_code"] for d in self.datasets_list()]
-        for dataset_code in datasets_list:
+        for dataset in self.datasets_list():
+            dataset_code = dataset["dataset_code"]
             try:
                 self.upsert_dataset(dataset_code)
             except Exception as err:
+                if isinstance(err, errors.MaxErrors):
+                    raise
                 logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
 
         end = time.time() - start
@@ -203,87 +252,71 @@ class ECB(Fetcher):
         #TODO: 
         self.load_datasets_first()
 
-class ECB_Data(object):
+class ECB_Data(SeriesIterator):
     
-    def __init__(self, dataset=None):
+    def __init__(self, dataset=None, fetcher=None):
         """
         :param Datasets dataset: Datasets instance
-        """        
+        """
+        super().__init__()
         self.dataset = dataset
+        self.fetcher = fetcher
+        
         self.attribute_list = self.dataset.attribute_list
         self.dimension_list = self.dataset.dimension_list
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
 
-        self.xml_dsd = XMLStructure_2_1(provider_name=self.provider_name, 
-                                        dataset_code=self.dataset_code)        
+        self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
+        self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
+
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
+        self.xml_dsd.concepts = self.fetcher._concepts
         
         self.rows = None
-        self.dsd_id = None
-        
         self._load()
         
         
     def _load(self):
 
-        url = "http://sdw-wsrest.ecb.int/service/dataflow/ECB/%s" % self.dataset_code
-        download = Downloader(url=url, 
-                              filename="dataflow-%s.xml" % self.dataset_code,
-                              headers=SDMX_METADATA_HEADERS)
-        
-        self.xml_dsd.process(download.get_filepath())
-        self.dsd_id = self.xml_dsd.dsd_id
-        
-        if not self.dsd_id:
-            msg = "DSD ID not found for provider[%s] - dataset[%s]" % (self.provider_name, 
-                                                                       self.dataset_code)
-            raise Exception(msg)
-        
         url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/%s?references=children" % self.dsd_id
         download = Downloader(url=url, 
                               filename="dsd-%s.xml" % self.dataset_code,
-                              headers=SDMX_METADATA_HEADERS)
+                              headers=SDMX_METADATA_HEADERS,
+                              cache=self.fetcher.cache_settings)
         self.xml_dsd.process(download.get_filepath())
-        
-        self.dataset.name = self.xml_dsd.dataset_name
-        
-        dimensions = OrderedDict()
-        for key, item in self.xml_dsd.dimensions.items():
-            dimensions[key] = item["dimensions"]
-        self.dimension_list.set_dict(dimensions)
-        
-        attributes = OrderedDict()
-        for key, item in self.xml_dsd.attributes.items():
-            attributes[key] = item["values"]
-        self.attribute_list.set_dict(attributes)
+        self._set_dataset()
         
         url = "http://sdw-wsrest.ecb.int/service/data/%s" % self.dataset_code
         download = Downloader(url=url, 
                               filename="data-%s.xml" % self.dataset_code,
-                              headers=SDMX_DATA_HEADERS)
+                              headers=SDMX_DATA_HEADERS,
+                              cache=self.fetcher.cache_settings)
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                dimension_keys=self.xml_dsd.dimension_keys)
+                                dimension_keys=self.xml_dsd.dimension_keys,
+                                dimensions=self.xml_dsd.dimensions)
         
-        
-        #TODO: response and exception
-        try:
-            filepath, response = download.get_filepath_and_response()        
-        except requests.exceptions.HTTPError as err:
-            logger.critical("AUTRE ERREUR HTTP : %s" % err.response.status_code)
-            raise
-            
-        self.rows = self.xml_data.process(filepath)
+        self.rows = self.xml_data.process(download.get_filepath())
 
+    def _set_dataset(self):
 
-    def __next__(self):
-        _series = next(self.rows)
+        dimensions = OrderedDict()
+        for key, item in self.xml_dsd.dimensions.items():
+            dimensions[key] = item["enum"]
+        self.dimension_list.set_dict(dimensions)
         
-        if not _series:
-            raise StopIteration()
+        attributes = OrderedDict()
+        for key, item in self.xml_dsd.attributes.items():
+            attributes[key] = item["enum"]
+        self.attribute_list.set_dict(attributes)
         
-        return self.build_series(_series)
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+        self.dataset.attribute_keys = dataset["attribute_keys"] 
+        self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.concepts = dataset["concepts"] 
+        self.dataset.codelists = dataset["codelists"] 
 
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update

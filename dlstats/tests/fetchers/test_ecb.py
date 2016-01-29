@@ -1,62 +1,59 @@
 # -*- coding: utf-8 -*-
 
-from collections import OrderedDict
+from copy import deepcopy
 from datetime import datetime
 import os
-from pprint import pprint
-import json
 
 import pytz
-import pandas
 
-from dlstats.fetchers._commons import Providers
 from dlstats.fetchers.ecb import ECB as Fetcher
-from dlstats.fetchers import schemas
-from dlstats import constants
 
 import unittest
-from unittest import mock
 import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
+from dlstats.tests.resources import xml_samples
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "ecb"))
 
-CATEGORYSCHEME_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-categoryscheme.xml"))
-DATA_TREE_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-tree.json"))
-
 STATSCAL_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "statscal.htm"))
 
-# 88 sans /ECB: http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/?references=parentsandsiblings 
-DATAFLOW_COUNT = 58
+ALL_DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-all-dataflow.xml"))
 
-ALL_DATASETS = {
-    'EXR': { #http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A
-        'dataflow-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-EXR-dataflow.xml")),
-        'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-specific-X.ARS+AUD.EUR.SP00.A-2.1.xml")),
-        #'data-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml")),
-        'datastructure-fp': os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-ECB_EXR1-datastructure.xml")),
-        'series_count': 8, #exclus les frequency H
-        'first_series': {
-            "key": "A.ARS.EUR.SP00.A",
-            "name": "A-ARS-EUR-SP00-A",
-            "frequency": "A",
-            "first_value": "0.895263095238095",
-            "first_date": "2001",
-            "last_value": "10.252814453125001",
-            "last_date": "2015",
+LOCAL_DATASETS_UPDATE = {
+    "EXR": {
+        "codelist_keys": ['OBS_COM', 'DOM_SER_IDS', 'EXR_TYPE', 'COVERAGE', 'UNIT_INDEX_BASE', 'COLLECTION', 'FREQ', 'BREAKS', 'EXR_SUFFIX', 'DECIMALS', 'TITLE', 'OBS_STATUS', 'COMPILATION', 'PUBL_MU', 'SOURCE_PUB', 'TITLE_COMPL', 'NAT_TITLE', 'PUBL_PUBLIC', 'CURRENCY', 'OBS_PRE_BREAK', 'CURRENCY_DENOM', 'OBS_CONF', 'PUBL_ECB', 'UNIT', 'TIME_FORMAT', 'SOURCE_AGENCY', 'UNIT_MULT'],
+        "codelist_count": {
+            "OBS_COM": 0,
+            "DOM_SER_IDS": 0,
+            "EXR_TYPE": 36,
+            "COVERAGE": 0,
+            "UNIT_INDEX_BASE": 0,
+            "COLLECTION": 10,
+            "FREQ": 10,
+            "BREAKS": 0,
+            "EXR_SUFFIX": 6,
+            "DECIMALS": 16,
+            "TITLE": 0,
+            "OBS_STATUS": 17,
+            "COMPILATION": 0,
+            "PUBL_MU": 0,
+            "SOURCE_PUB": 0,
+            "TITLE_COMPL": 0,
+            "NAT_TITLE": 0,
+            "PUBL_PUBLIC": 0,
+            "CURRENCY": 349,
+            "OBS_PRE_BREAK": 0,
+            "CURRENCY_DENOM": 349,
+            "OBS_CONF": 4,
+            "PUBL_ECB": 0,
+            "UNIT": 330,
+            "TIME_FORMAT": 0,
+            "SOURCE_AGENCY": 893,
+            "UNIT_MULT": 11,                       
         },
-        'last_series': {
-            "key": "Q.AUD.EUR.SP00.A",
-            "name": "Q-AUD-EUR-SP00-A",
-            "frequency": "Q",
-            "first_value": "1.769871428571429",
-            "first_date": "1999-Q1",
-            "last_value": "1.520512307692308",
-            "last_date": "2015-Q4",
-        },
-    },
+    }
 }
 
 class FetcherTestCase(BaseFetcherTestCase):
@@ -64,113 +61,72 @@ class FetcherTestCase(BaseFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase
     
     FETCHER_KLASS = Fetcher
-    DATASETS = ALL_DATASETS
+    DATASETS = {
+        'EXR': deepcopy(xml_samples.DATA_ECB_SPECIFIC)
+    }
+    DATASET_FIRST = "AME"
+    DATASET_LAST = "YC"
+    DEBUG_MODE = False
     
-    def _register_urls_data_tree(self):
+    def _load_files(self, dataset_code):
 
-        #?references=parentsandsiblings
-        url_categoryscheme = "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB"
-        self.register_url(url_categoryscheme, 
-                          CATEGORYSCHEME_FP,
-                          content_type='application/vnd.sdmx.structure+xml;version=2.1',
+        filepaths = self.DATASETS[dataset_code]["DSD"]["filepaths"]
+        dsd_content_type = 'application/vnd.sdmx.structure+xml;version=2.1'
+
+        url = "http://sdw-wsrest.ecb.int/service/dataflow/ECB"
+        self.register_url(url, 
+                          ALL_DATAFLOW_FP, #filepaths["dataflow"]
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+
+        url = "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB"
+        self.register_url(url, 
+                          filepaths["categoryscheme"],
+                          content_type=dsd_content_type,
                           match_querystring=True)
         
-    def _register_urls_data(self, dataset_code):
+        url = "http://sdw-wsrest.ecb.int/service/categorisation/ECB"
+        self.register_url(url, 
+                          filepaths["categorisation"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
 
-        #?references=all
-        url_dataflow_for_dataset = "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR"
-        httpretty.register_uri(httpretty.GET, 
-                               url_dataflow_for_dataset,
-                               body=body_generator(ALL_DATASETS[dataset_code]['dataflow-fp']),
-                               match_querystring=True,
-                               status=200,
-                               streaming=True,
-                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
-
-        # Appelé par pandaSDMX quand key dans data request        
-        url_datastructure = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=children"# % dataset_code
-        httpretty.register_uri(httpretty.GET, 
-                               url_datastructure,
-                               body=body_generator(ALL_DATASETS[dataset_code]['datastructure-fp']),
-                               match_querystring=True,
-                               status=200,
-                               streaming=True,
-                               content_type='application/vnd.sdmx.structure+xml;version=2.1')
-
-        url_data = "http://sdw-wsrest.ecb.int/service/data/EXR"
-        httpretty.register_uri(httpretty.GET, 
-                               url_data,
-                               body=body_generator(ALL_DATASETS[dataset_code]['data-fp']), 
-                               match_querystring=True,
-                               status=200,
-                               streaming=True,
-                               content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1'
-                               )
-
+        url = "http://sdw-wsrest.ecb.int/service/conceptscheme/ECB"
+        self.register_url(url, 
+                          filepaths["conceptscheme"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+        
+        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=children"
+        self.register_url(url, 
+                          filepaths["datastructure"],
+                          content_type=dsd_content_type,
+                          match_querystring=True)
+        
+        url = "http://sdw-wsrest.ecb.int/service/data/EXR"
+        self.register_url(url, 
+                          self.DATASETS[dataset_code]['filepath'],
+                          content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1')
+        
     @httpretty.activate     
-    def test_build_data_tree(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_build_data_tree
-        
-        self._register_urls_data_tree()
-        
-        self.fetcher.build_data_tree()
-        
-        #self.maxDiff = None
-
-        provider = self.fetcher.provider
-        self.assertEqual(provider.count_data_tree(), 12)               
-        
-        """
-        pprint(provider.data_tree)
-        with open(DATA_TREE_FP, "w") as fp:
-            json.dump(provider.data_tree, fp, sort_keys=False)
-        """        
-        
-        new_provider = Providers(fetcher=self.fetcher, **provider.bson)
-
-        with open(DATA_TREE_FP) as fp:
-            local_data_tree = json.load(fp, object_pairs_hook=OrderedDict)
-            new_provider.data_tree = local_data_tree
-            #self.assertEqual(provider.data_tree, new_provider.data_tree)
-        
-        filter_datasets = provider.datasets(category_filter="ECB.MOBILE_NAVI.06")
-        self.assertEqual(len(filter_datasets), 6)
-        self.assertEqual(filter_datasets[0]["dataset_code"], "BOP")
-        self.assertEqual(filter_datasets[-1]["dataset_code"], "TRD")
-        
-        for d in provider.data_tree:
-            schemas.data_tree_schema(d)
-            
-        provider.update_database()
-        
-        doc = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(doc)
-        for i, d in enumerate(doc["data_tree"]):
-            self.assertEqual(doc["data_tree"][i], provider.data_tree[i])
-            
-        count = len(self.fetcher.datasets_list())
-        self.assertEqual(count, DATAFLOW_COUNT)        
-
-    #@httpretty.activate     
-    @unittest.skipIf(True, "FIXME")    
     def test_upsert_dataset_exr(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_upsert_dataset_exr
+
+        self._collections_is_empty()
          
         dataset_code = 'EXR'
 
-        self._register_urls_data(dataset_code)
-        
-        #TODO: analyse result
-        result = self.fetcher.upsert_dataset(dataset_code)
-        self.assertIsNotNone(result)
-        
-        self.assertDatasetOK(dataset_code)        
-        self.assertSeriesOK(dataset_code)
+        self.DATASETS[dataset_code]["DSD"]["codelist_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_keys"]
+        self.DATASETS[dataset_code]["DSD"]["codelist_count"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_count"]
 
+        self._load_files(dataset_code)
         
-           
+        self.assertProvider()
+        self.assertDataTree(dataset_code)
+        self.assertDataset(dataset_code)
+        self.assertSeries(dataset_code)
+
     @httpretty.activate
     def test_parse_agenda(self):
         
@@ -192,10 +148,11 @@ class FetcherTestCase(BaseFetcherTestCase):
 
     @httpretty.activate
     def test_get_calendar(self):
-        
+
         # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_get_calendar
         
-        self._register_urls_data_tree()        
+        dataset_code = 'EXR'
+        self._load_files(dataset_code)        
         
         httpretty.register_uri(httpretty.GET,
                                "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
@@ -229,8 +186,4 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertEqual(calendar_first, calendars[0])
         self.assertEqual(calendar_last, calendars[-1])
  
-    @unittest.skipIf(True, "TODO")    
-    def test_is_valid_frequency(self):
-        pass
-    
     
