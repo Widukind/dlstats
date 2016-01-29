@@ -37,7 +37,12 @@ opt_logger = click.option('--log-level', '-l',
                           type=click.Choice(['DEBUG', 'WARN', 'ERROR', 'INFO', 
                                              'CRITICAL']),
                           default='ERROR', 
+                          show_default=True,
                           help='Logging level')
+
+opt_logger_file = click.option('--log-file', 
+                               type=click.Path(exists=False), 
+                               help='log file for output')
 
 opt_logger_conf = click.option('--log-config', 
                                type=click.Path(exists=True), 
@@ -48,7 +53,7 @@ cmd_folder = os.path.abspath(
 
 class Context(object):
     def __init__(self, mongo_url=None, verbose=False,
-                 log_level='ERROR', log_config=None, 
+                 log_level='ERROR', log_config=None, log_file=None,                 
                  debug=False, silent=False, pretty=False):
         self.verbose = verbose
         self.debug = debug
@@ -58,6 +63,7 @@ class Context(object):
         
         self.log_level = log_level
         self.log_config = log_config
+        self.log_file = log_file
         
         if self.verbose:
             self.log_level = 'INFO'
@@ -71,6 +77,12 @@ class Context(object):
                                 #stdout_enable, 
                                 config_file=self.log_config, 
                                 level=self.log_level)
+        if self.log_file:
+            from logging import FileHandler
+            handler = FileHandler(filename=self.log_file)
+            if self.logger.hasHandlers():
+                handler.setFormatter(self.logger.handlers[0].formatter)
+            self.logger.addHandler(handler)
 
     def log(self, msg, *args):
         """Logs a message to stderr."""
