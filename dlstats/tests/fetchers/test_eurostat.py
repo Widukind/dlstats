@@ -8,14 +8,19 @@ from pprint import pprint
 from urllib.parse import urlparse
 from urllib.request import url2pathname, pathname2url
 
+from dlstats.fetchers.eurostat import Eurostat as Fetcher
+
 from dlstats.fetchers._commons import Datasets
 from dlstats.fetchers import eurostat
 from dlstats import constants
 
 import unittest
 from unittest import mock
+import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase, BaseDBTestCase
+from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
+from dlstats.tests.resources import xml_samples
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "eurostat"))
 TOC_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "table_of_contents.xml"))
@@ -617,7 +622,6 @@ DATASETS['dset2']["name"] = "dset2"
 DATASETS['dset2']["filename"] = "dset2"
 
 def make_url(self):
-    import tempfile
     filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                             self.provider_name, 
                                             self.dataset_code,
@@ -705,140 +709,73 @@ def load_fake_datas(select_dataset_code=None):
 def get_table_of_contents(self):
     return TOC_FP
 
-class EurostatDatasetsTestCase(BaseDBTestCase):
-    """Fetchers Tests - No DB access
-    """
+def extract_zip_file(zipfilepath):
+    import zipfile
+    zfile = zipfile.ZipFile(zipfilepath)
+    tmpfiledir = tempfile.mkdtemp()
+    filepaths = {}
+    for filename in zfile.namelist():
+        filepaths.update({filename: zfile.extract(filename, 
+                                                  os.path.abspath(tmpfiledir))})
+    return filepaths
+
+class FetcherTestCase(BaseFetcherTestCase):
     
-    # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsTestCase
+    # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase
     
-    @unittest.skipIf(True, "TODO")    
-    def test_nama_10_gdp(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsTestCase.test_nama_10_gdp        
-        datas = load_fake_datas('nama_10_gdp')
-        print("")
-        pprint(datas)
-
-        attempt = {'nama_10_gdp': {'series': [{'attributes': {},
-                                            'dataset_code': 'nama_10_gdp',
-                                            'dimensions': {'FREQ': "A",
-                                                           'unit': "CLV05_MEUR",
-                                                           'na_item': "B1G",
-                                                           'geo': "AT",
-                                                           'TIME_FORMAT': "P1Y"},
-                                            'end_date': 45,
-                                            'frequency': 'A',
-                                            'key': 'A.CLV05_MEUR.B1G.AT',
-                                            'name': '',
-                                  'provider_name': 'Eurostat',
-                                  'start_date': 25,
-                                  'values': ["176840.7", "180307.4", "184320.1"]}]}}        
-        self.assertDictEqual(datas, attempt)
-
-def fake_process_data(arg):
-    pass
-        
-class EurostatDatasetsDBTestCase(BaseDBTestCase):
-    """Fetchers Tests - with DB
+    FETCHER_KLASS = Fetcher
+    DEBUG_MODE = False
+    DATASETS = {
+        'nama_10_fcs': deepcopy(xml_samples.DATA_EUROSTAT)
+    }
+    DATASET_FIRST = "bop_c6_m"
+    DATASET_LAST = "nama_10_gdp"
     
-    sources from DATASETS[dataset_code]['datas'] written in zip file
-    """
-    
-    # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase
-    
-    def setUp(self):
-        BaseDBTestCase.setUp(self)
-        self.fetcher = eurostat.Eurostat(db=self.db)
-        self.dataset_code = None
-        self.dataset = None        
-        self.filepath = None
-
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.process_data',fake_process_data)
-    def test_parse_date(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_parse_date
-
-        _dataset = Datasets(provider_name='some name', 
-                            dataset_code='some code', 
-                            name='some name', 
-                            doc_href='', 
-                            fetcher=self.fetcher, 
-                            is_load_previous_version=False)
+    def _load_files(self, dataset_code=None):
         
-        e_data = eurostat.EurostatData(_dataset) 
-        # annual
-        (string_date,freq) = e_data.parse_date("2015","P1Y")
-        self.assertEqual(string_date,'2015')
-        self.assertEqual(freq,'A')
-
-        # quarterly
-        (string_date,freq) = e_data.parse_date("1988-Q3","P3M")
-        self.assertEqual(string_date,'1988Q3')
-        self.assertEqual(freq,'Q')
-
-        # monthly
-        (string_date,freq) = e_data.parse_date("2004-10","P1M")
-        self.assertEqual(string_date,'2004-10')
-        self.assertEqual(freq,'M')
-
-        # daily
-        (string_date,freq) = e_data.parse_date("20040906","P1D")
-        self.assertEqual(string_date,'2004-09-06')
-        self.assertEqual(freq,'D')
-
-
-    @mock.patch('requests.get', local_get)
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def _common_tests(self):
-
-        self._collections_is_empty()
+        url = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
+        self.register_url(url, 
+                          TOC_FP,
+                          match_querystring=True)
         
-        self.filepath = get_filepath(self.dataset_code)
-        self.assertTrue(os.path.exists(self.filepath))
+    @httpretty.activate
+    def test_upsert_dataset_nama_10_fcs(self):
         
-        # provider.update_database
-        self.fetcher.provider.update_database()
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase.test_upsert_dataset_nama_10_fcs
 
-        # upsert_categories
-        self.fetcher.upsert_categories()
+        dataset_code = "nama_10_fcs"
 
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider)
-
+        dataset_zip_filepath = os.path.abspath(os.path.join(RESOURCES_DIR, "nama_10_fcs.sdmx.zip"))
+        filepaths = extract_zip_file(dataset_zip_filepath)
+        self.DATASETS[dataset_code]["DSD"]["filepaths"]["datastructure"] = filepaths['nama_10_fcs.dsd.xml']
+        self.DATASETS[dataset_code]["filepath"] = filepaths['nama_10_fcs.sdmx.xml']
+        
+        url = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/%s.sdmx.zip" % dataset_code
+        self.register_url(url, 
+                          dataset_zip_filepath,
+                          match_querystring=True)
+        
+        self._load_files(dataset_code)
+        
+        self.assertProvider()
+        self.assertDataTree(dataset_code)
+        
+        #self.fetcher.selected_codes = ['nama_10', 'cat1']
         self.fetcher.get_selected_datasets()
-        self.assertEqual(len(self.fetcher.selected_datasets),6)
+        self.assertEqual(len(self.fetcher.selected_datasets), 6)
         
-        dataset = Datasets(provider_name=self.fetcher.provider_name, 
-                           dataset_code=self.dataset_code, 
-                           name=DATASETS[self.dataset_code]['name'],
-                           last_update=DATASETS[self.dataset_code]['last_update'],
-                           doc_href=DATASETS[self.dataset_code]['doc_href'], 
-                           fetcher=self.fetcher)
-
-        # manual Data for iterator
-        fetcher_data = eurostat.EurostatData(dataset,filename=self.dataset_code) 
-        dataset.series.data_iterator = fetcher_data
-        dataset.update_database()
-
-        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                            "dataset_code": self.dataset_code})
+        self.assertDataset(dataset_code)        
+        #self.assertSeries(dataset_code)
         
-        self.assertIsNotNone(self.dataset)
-        
-        self.assertEqual(len(self.dataset["dimension_list"]), DATASETS[self.dataset_code]["dimensions_count"])
-        
-        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
-                                                     "dataset_code": self.dataset_code})
-        self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
-
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
+    @httpretty.activate
     def test_data_tree(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_data_tree
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase.test_data_tree
 
-        self._collections_is_empty()
+        self._load_files()
 
+        results = self.fetcher.upsert_data_tree()
+        
         datasets_list = self.fetcher.datasets_list()
 
         self.assertEqual(len(datasets_list), 6)
@@ -847,7 +784,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'bop_c6_m',
               'name': 'Balance of payments by country - monthly data (BPM6)',
               'last_update': datetime.datetime(2015, 10, 20, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2015M08',
                             'data_start': '1991M01',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
@@ -855,7 +791,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'bop_c6_q',
               'name': 'Balance of payments by country - quarterly data (BPM6)',
               'last_update': datetime.datetime(2015, 10, 23, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2015Q2',
                             'data_start': '1982',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
@@ -863,7 +798,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'dset1',
               'name': 'Dset1',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2014',
                             'data_start': '1975',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
@@ -871,7 +805,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'dset2',
               'name': 'Dset2',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2014',
                             'data_start': '1975',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
@@ -879,7 +812,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'nama_10_fcs',
               'name': 'Final consumption aggregates by durability',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2014',
                             'data_start': '1975',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
@@ -887,7 +819,6 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
              {'dataset_code': 'nama_10_gdp',
               'name': 'GDP and main components (output, expenditure and income)',
               'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-              'exposed': True,
               'metadata': {'data_end': '2014',
                             'data_start': '1975',
                             'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
@@ -895,374 +826,4 @@ class EurostatDatasetsDBTestCase(BaseDBTestCase):
         ]
 
         self.assertEqual(datasets_list, datasets)
-
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider)
         
-        self.maxDiff = None
-        data_tree = [
-            {'category_code': 'Eurostat',
-              'datasets': [],
-              'description': None,
-              'doc_href': 'http://ec.europa.eu/eurostat',
-              'exposed': False,
-              'last_update': None,
-              'name': 'Eurostat'},
-             {'category_code': 'Eurostat.data',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'Database by themes'},
-             {'category_code': 'Eurostat.data.economy',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'Economy and finance'},
-             {'category_code': 'Eurostat.data.economy.bop_6',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'Balance of payments - International transactions (BPM6)'},
-             {'category_code': 'Eurostat.data.economy.bop_6.bop_q6',
-              'datasets': [{'dataset_code': 'bop_c6_m',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 20, 0, 0),
-                            'metadata': {'data_end': '2015M08',
-                                         'data_start': '1991M01',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
-                                         'values': 4355217},
-                            'name': 'Balance of payments by country - monthly data (BPM6)'},
-                           {'dataset_code': 'bop_c6_q',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 23, 0, 0),
-                            'metadata': {'data_end': '2015Q2',
-                                         'data_start': '1982',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/bop_6_esms.htm',
-                                         'values': 29844073},
-                            'name': 'Balance of payments by country - quarterly data (BPM6)'}],
-              'description': None,
-              'doc_href': None,
-              'exposed': True,
-              'last_update': None,
-              'name': 'Balance of payments statistics and International investment positions (BPM6)'},
-             {'category_code': 'Eurostat.data.economy.na10',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'National accounts (ESA 2010)'},
-             {'category_code': 'Eurostat.data.economy.na10.nama_10',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'Annual national accounts'},
-             {'category_code': 'Eurostat.data.economy.na10.nama_10.cat1',
-              'datasets': [{'dataset_code': 'dset1',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-                            'metadata': {'data_end': '2014',
-                                         'data_start': '1975',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                         'values': 417804},
-                            'name': 'Dset1'},
-                           {'dataset_code': 'dset2',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-                            'metadata': {'data_end': '2014',
-                                         'data_start': '1975',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                         'values': 69954},
-                            'name': 'Dset2'}],
-              'description': None,
-              'doc_href': None,
-              'exposed': True,
-              'last_update': None,
-              'name': 'Cat1'},
-             {'category_code': 'Eurostat.data.economy.na10.nama_10.nama_10_ma',
-              'datasets': [{'dataset_code': 'nama_10_fcs',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-                            'metadata': {'data_end': '2014',
-                                         'data_start': '1975',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                         'values': 69954},
-                            'name': 'Final consumption aggregates by durability'},
-                           {'dataset_code': 'nama_10_gdp',
-                            'exposed': True,
-                            'last_update': datetime.datetime(2015, 10, 26, 0, 0),
-                            'metadata': {'data_end': '2014',
-                                         'data_start': '1975',
-                                         'doc_href': 'http://ec.europa.eu/eurostat/cache/metadata/en/nama_10_esms.htm',
-                                         'values': 417804},
-                            'name': 'GDP and main components (output, expenditure and income)'}],
-              'description': None,
-              'doc_href': None,
-              'exposed': True,
-              'last_update': None,
-              'name': 'Main GDP aggregates'}
-        ]        
-                
-        self.assertEqual(provider.get("data_tree"), data_tree)
-        
-    def test_nama_10_gdp(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_nama_10_gdp
-                
-        self.dataset_code = 'nama_10_gdp'
-        
-        self._common_tests()        
-
-        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
-                                                        "dataset_code": self.dataset_code,
-                                                        "key": "A.CLV05_MEUR.B1G.AT"})
-        self.assertIsNotNone(series)
-        
-        d = series['dimensions']
-        self.assertEqual(d["freq"], 'A')
-        self.assertEqual(d["unit"], 'CLV05_MEUR')
-        self.assertEqual(d["geo"], 'AT')
-        
-    def test_bop_c6_m(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_bop_c6_m
-                
-        self.dataset_code = 'bop_c6_m'
-        
-        self._common_tests()        
-
-        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
-                                                        "dataset_code": self.dataset_code,
-                                                        "key": "M.MIO_EUR.CA.S1.S1.BAL.EA18.MT"})
-        self.assertIsNotNone(series)
-        
-        d = series['dimensions']
-        self.assertEqual(d["freq"], 'M')
-        self.assertEqual(d["currency"], 'MIO_EUR')
-        self.assertEqual(d["bop_item"], 'CA')
-        self.assertEqual(d["sector10"], 'S1')
-        self.assertEqual(d["sectpart"], 'S1')
-        self.assertEqual(d["stk_flow"], 'BAL')
-        self.assertEqual(d["partner"], 'EA18')
-        self.assertEqual(d["geo"], 'MT')
-        self.assertEqual(series["values"], [""])
-        self.assertEqual(series['attributes']['obs_status'],["c"])
-        
-    def test_bop_c6_q(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:EurostatDatasetsDBTestCase.test_bop_c6_q
-                
-        self.dataset_code = 'bop_c6_q'
-        
-        self._common_tests()        
-
-        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
-                                                        "dataset_code": self.dataset_code,
-                                                        "key": "Q.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
-        self.assertIsNotNone(series)
-        
-        d = series['dimensions']
-        self.assertEqual(d["freq"], 'Q')
-        self.assertEqual(d["currency"], 'MIO_EUR')
-        self.assertEqual(d["bop_item"], 'CA')
-        self.assertEqual(d["sector10"], 'S1')
-        self.assertEqual(d["sectpart"], 'S1')
-        self.assertEqual(d["stk_flow"], 'BAL')
-        self.assertEqual(d["partner"], 'AT')
-        self.assertEqual(d["geo"], 'MT')
-        self.assertEqual(series["values"], [""])
-        self.assertEqual(series['attributes']['obs_status'],["c"])
-        
-        series = self.db[constants.COL_SERIES].find_one({'provider_name': self.fetcher.provider_name, 
-                                                        "dataset_code": self.dataset_code,
-                                                        "key": "A.MIO_EUR.CA.S1.S1.BAL.AT.MT"})
-        self.assertIsNotNone(series)
-        
-        d = series['dimensions']
-        self.assertEqual(d["freq"], 'A')
-        self.assertEqual(series["values"], ['', '', '', '', '-201.4'])
-        
-        #TODO: meta_datas tests  
-
-        #TODO: clean filepath
-
-
-class LightEurostatDatasetsDBTestCase(BaseDBTestCase):
-    """Fetchers Tests - with DB and lights sources
-    
-    1. Créer un fichier zip à partir des données du dict DATASETS
-    
-    2. Execute le fetcher normalement et en totalité
-    """
-    
-    # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase
-    
-    def setUp(self):
-        BaseDBTestCase.setUp(self)
-        self.fetcher = eurostat.Eurostat(db=self.db)
-        self.dataset_code = None
-        self.dataset = None        
-        self.filepath = None
-        
-    @mock.patch('requests.get', local_get)
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def _common_tests(self):
-
-        self._collections_is_empty()
-
-        # Write czv/zip file in local directory
-        filepath = get_filepath(self.dataset_code)
-        self.assertTrue(os.path.exists(filepath))
-        # Replace dataset url by local filepath
-        DATASETS[self.dataset_code]['url'] = "file:%s" % pathname2url(filepath)
-
-        self.fetcher.provider.update_database()
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider)
-        
-        self.fetcher.upsert_categories()
-
-        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
-        self.assertIsNotNone(provider)
-
-        self.fetcher.get_selected_datasets()
-        self.assertEqual(len(self.fetcher.selected_datasets),6)
-
-
-        self.fetcher.upsert_dataset(self.dataset_code)
-        
-        self.dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                            "dataset_code": self.dataset_code})
-        self.assertIsNotNone(self.dataset)
-
-        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
-                                                     "dataset_code": self.dataset_code})
-
-        self.assertEqual(series.count(), DATASETS[self.dataset_code]['series_count'])
-
-    def test_nama_10_gdp(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_nama_10_gdp
-
-        self.dataset_code = 'nama_10_gdp'        
-
-        self._common_tests()
-
-    def test_bop_c6_m(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.bop_c6_m
-
-        self.dataset_code = 'bop_c6_m'        
-
-        self._common_tests()
-
-    def test_bop_c6_q(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.bop_c6_q
-
-        self.dataset_code = 'bop_c6_q'        
-
-        self._common_tests()
-
-    @mock.patch('requests.get', local_get)
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def test_upsert_dataset(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_upsert_dataset
-
-        self._collections_is_empty()
-
-        self.fetcher.provider.update_database()
-
-        dataset_code = 'nama_10_gdp'
-        
-        self.fetcher.upsert_dataset(dataset_code)
-
-        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                            "dataset_code": dataset_code})
-        self.assertIsNotNone(dataset)
-
-        series = self.db[constants.COL_SERIES].find({'provider_name': self.fetcher.provider_name, 
-                                                     "dataset_code": dataset_code})
-
-        self.assertEqual(series.count(), DATASETS[dataset_code]['series_count'])
-
-    @mock.patch('requests.get', local_get)
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def test_selected_datasets(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_selected_datasets
-
-        self._collections_is_empty()
-
-        self.fetcher.provider.update_database()
-
-        self.fetcher.upsert_categories()
-
-        self.fetcher.selected_codes = ['nama_10_ma', 'bad_category']
-
-        self.fetcher.get_selected_datasets()
-        
-        self.assertEqual(len(self.fetcher.selected_datasets), 2)
-        
-        self.assertEqual(sorted(list(self.fetcher.selected_datasets.keys())), ['nama_10_fcs', 'nama_10_gdp'])
-        
-    @mock.patch('requests.get', local_get)
-    @mock.patch('dlstats.fetchers.eurostat.EurostatData.make_url', make_url)    
-    @mock.patch('dlstats.fetchers.eurostat.Eurostat.get_table_of_contents', get_table_of_contents)    
-    def test_upsert_all_datasets(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:LightEurostatDatasetsDBTestCase.test_upsert_all_datasets
-
-        self._collections_is_empty()
-
-        self.fetcher.provider.update_database()
-
-        self.fetcher.upsert_categories()
-        
-        self.fetcher.selected_codes = ['nama_10', 'cat1']
-
-        self.fetcher.get_selected_datasets()
-
-        for d in self.fetcher.selected_datasets.keys():
-            if not d in DATASETS:
-                continue
-            # Write czv/zip file in local directory            
-            filepath = get_filepath(d)
-            self.assertTrue(os.path.exists(filepath))
-            # Replace dataset url by local filepath
-            DATASETS[d]['url'] = "file:%s" % pathname2url(filepath)
-
-        self.fetcher.upsert_all_datasets()
-
-        self.assertEqual(len(self.fetcher.selected_datasets), 4)
-
-        '''Change last_update for selected datasets'''
-        for d in self.fetcher.selected_datasets.values():
-            d["last_update"] = datetime.datetime(2015, 11, 1, 0, 0)
-
-        self.fetcher.upsert_all_datasets()
-        
-        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                               "dataset_code": 'nama_10_gdp'})
-        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
-
-        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                               "dataset_code": 'dset1'})
-        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
-
-        dataset = self.db[constants.COL_DATASETS].find_one({'provider_name': self.fetcher.provider_name, 
-                                                               "dataset_code": 'dset2'})
-        self.assertEqual(dataset['last_update'],datetime.datetime(2015,11,1))
-
