@@ -1,49 +1,54 @@
+#BIS - fetcher tests:
+http "https://www.bis.org/statistics/full_bis_dsr_csv.zip" > bis/full_bis_dsr_csv.zip
+http "https://www.bis.org/statistics/full_bis_eer_csv.zip" > bis/full_bis_eer_csv.zip
+http "http://www.bis.org/statistics/relcal.htm?m=6|37|68" > bis/agenda.html
 
-#ECB:
-http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" >ecb-datastructure-2.1.xml
-http "https://sdw-wsrest.ecb.europa.eu/service/dataflow/ECB/EXR" >ecb-dataflow-2.1.xml
-http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > ecb-data-generic-2.1.xml
-http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >ecb-data-specific-2.1.xml
+#ECB - fetcher tests:
+#DO NOT RELOADED:
+#http "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html" > ecb/statscal.htm
+http "http://sdw-wsrest.ecb.int/service/dataflow/ECB" > ecb/ecb-all-dataflow.xml
 
-http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >ecb-data-specific-X.ARS+AUD.EUR.SP00.A-2.1.xml
+#ECB - xmlutils tests:
+http "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB" > xmlutils/ecb/ecb-categoryscheme-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/categorisation/ECB" > xmlutils/ecb/ecb-categorisation-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/conceptscheme/ECB" > xmlutils/ecb/ecb-conceptscheme-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR" > xmlutils/ecb/ecb-dataflow-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > xmlutils/ecb/ecb-data-generic-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > xmlutils/ecb/ecb-data-specific-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=children" > xmlutils/ecb/ecb-datastructure-2.1.xml
 
-http "http://sdw-wsrest.ecb.int/service/dataflow/ECB" > ecb-dataflow.xml
-http "http://sdw-wsrest.ecb.int/service/categoryscheme/ECB/?references=parentsandsiblings" > ecb-categoryscheme.xml
-http "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR?references=all" > ecb-EXR-dataflow.xml
-http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > ecb-data-M.NOK.EUR.SP00.A.xml
-http "http://sdw-wsrest.ecb.int/service/data/EXR/.ARS+AUD.EUR.SP00.A" > ecb-data-X.ARS+AUD.NOK.EUR.SP00.A.xml
-http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" > ecb-ECB_EXR1-datastructure.xml
-http http://sdw-wsrest.ecb.europa.eu/service/data/EXR/M.NOK.EUR.SP00.A Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > ECB-EXR-M.NOK.EUR.SP00.A.structurespecificdata.xml
-http http://sdw-wsrest.ecb.europa.eu/service/codelist/ECB Accept-Encoding:gzip,deflate >ecb-codelist.xml
-http http://sdw-wsrest.ecb.europa.eu/service/conceptscheme/ECB >ecb-conceptscheme.xml
-#BP6: https://sdw-wsrest.ecb.europa.eu/service/dataflow/IMF/BP6?references=all
-#str id: BOP: https://sdw-wsrest.ecb.europa.eu/service/datastructure/IMF/BOP?references=all
-
-http http://sdw-wsrest.ecb.europa.eu/service/data/AME >ecb-bulk-data-AME.xml
-
-#INSEE:
-http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21?references=all" >insee-datastructure-2.1.xml
-http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21/M.B.BRUT" Accept:application/vnd.sdmx.genericdata+xml;version=2.1 >insee-data-generic-2.1.xml
-http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21/M.B.BRUT" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >insee-data-specific-2.1.xml
-http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17?references=all" Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
-
-http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 >insee-IPI-2010-A21-specificdata.xml
-
-http http://www.bdm.insee.fr/series/sdmx/dataflow?references=all Accept:application/xml Content-Type:application/xml > insee-dataflow.xml
-http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21 references==all Accept:application/xml Content-Type:application/xml > insee-IPI-2010-A21-datastructure.xml
-http http://www.bdm.insee.fr/series/sdmx/data/CNA-2010-CONSO-SI-A17 Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > insee-IPI-2010-A21-data.xml
-http http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CNA-2010-CONSO-SI-A17 references==all Accept:application/xml Content-Type:application/xml > insee-bug-data-namedtuple-datastructure.xml
+#INSEE - xmlutils tests:
+http "http://www.bdm.insee.fr/series/sdmx/dataflow/INSEE" > xmlutils/insee/insee-dataflow-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/categoryscheme/INSEE" > xmlutils/insee/insee-categoryscheme-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/categorisation/INSEE" > xmlutils/insee/insee-categorisation-2.1.xml    
+http "http://www.bdm.insee.fr/series/sdmx/conceptscheme/INSEE" > xmlutils/insee/insee-conceptscheme-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/IPI-2010-A21?references=children" > xmlutils/insee/insee-datastructure-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21" Accept:application/vnd.sdmx.genericdata+xml;version=2.1 > xmlutils/insee/insee-data-generic-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/data/IPI-2010-A21" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > xmlutils/insee/insee-data-specific-2.1.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_AREA" > xmlutils/insee/insee-codelist-cl_area.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_OBS_STATUS" > xmlutils/insee/insee-codelist-cl_obs_status.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_TIME_COLLECT" > xmlutils/insee/insee-codelist-cl_time_collect.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_UNIT" > xmlutils/insee/insee-codelist-cl_unit.xml
     
-
 #DESTATIS
-http https://www.destatis.de/sddsplus/DCS.xml > destatis-data-compact-2.0.xml
+http "https://www.destatis.de/sddsplus/DCS.xml" > xmlutils/destatis/destatis-data-compact-2.0.xml
 
+#FED - fetcher tests:
+http "http://www.federalreserve.gov/datadownload/Output.aspx?rel=G19&filetype=zip" > fed/FRB_G19.zip
 
-#EUROSTAT
-http "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/namq_10_lp_ulc.sdmx.zip" > namq_10_lp_ulc.sdmx.zip
-#unzip -d namq_10_lp_ulc.sdmx.zip
-#namq_10_lp_ulc.dsd.xml > eurostat-datastructure-2.0.xml 
-#namq_10_lp_ulc.sdmx.xml > eurostat-data-compact-2.0.xml
+#FED - xmlutils tests:
+#http "http://www.federalreserve.gov/datadownload/Output.aspx?rel=G19&filetype=zip" > fed/FRB_G19.zip
+#decomp zip and extract G19_data.xml and G19_struct.xml
+
+#EUROSTAT - fetcher tests:
+http "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/nama_10_fcs.sdmx.zip" > eurostat/nama_10_fcs.sdmx.zip
+#manual table_of_contents.xml
+
+#EUROSTAT - xmlutils tests:
+http "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=data/nama_10_fcs.sdmx.zip" > eurostat/nama_10_fcs.sdmx.zip
+#manual unzip nama_10_fcs.sdmx.zip
+#nama_10_fcs.dsd.xml > xmlutils/eurostat/eurostat-datastructure-2.0.xml 
+#nama_10_fcs.sdmx.xml > xmlutils/eurostat/eurostat-data-compact-2.0.xml
 
 #ESRI
 http "http://www.esri.cao.go.jp/index-e.html" > index-e.html 
@@ -124,3 +129,6 @@ http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mfy1532.csv" >  ritu-mfy1532.csv		
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mg1532.csv" >   ritu-mg1532.csv		
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mk1532.csv" >   ritu-mk1532.csv            
+
+# IMF - fetcher tests
+http "http://www.imf.org/external/ns/cs.aspx?id=28" > imf/weo-index.html

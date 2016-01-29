@@ -1,0 +1,1022 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xsi:schemaLocation="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message http://www.metadatatechnology.com/beta/SDMX2.1/SDMXMessage.xsd" xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
+  <mes:Header>
+    <mes:ID>IDREF82577</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-01-23T08:52:18.796Z</mes:Prepared>
+    <mes:Sender id="ECB"/>
+    <mes:Receiver id="unknown"/>
+  </mes:Header>
+  <mes:Structures>
+    <str:Concepts>
+      <str:ConceptScheme id="ECB_CONCEPTS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=ECB:ECB_CONCEPTS(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">ECB concepts</com:Name>
+        <str:Concept id="COUNT_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COUNT_AREA">
+          <com:Name xml:lang="en">Counterpart area</com:Name>
+        </str:Concept>
+        <str:Concept id="CURRENCY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURRENCY">
+          <com:Name xml:lang="en">Currency</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_PDF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_PDF">
+          <com:Name xml:lang="en">Data type in the PDF context</com:Name>
+        </str:Concept>
+        <str:Concept id="SUFFIX_QNA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SUFFIX_QNA">
+          <com:Name xml:lang="en">OECD QNA suffix</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_TRANS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_TRANS">
+          <com:Name xml:lang="en">Transactions and other flows</com:Name>
+        </str:Concept>
+        <str:Concept id="TRD_PRODUCT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRD_PRODUCT">
+          <com:Name xml:lang="en">Product breakdown -TRD context</com:Name>
+        </str:Concept>
+        <str:Concept id="IR_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IR_TYPE">
+          <com:Name xml:lang="en">Interest rate type</com:Name>
+        </str:Concept>
+        <str:Concept id="BDS_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BDS_ITEM">
+          <com:Name xml:lang="en">Business demography item</com:Name>
+        </str:Concept>
+        <str:Concept id="DD_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DD_SUFFIX">
+          <com:Name xml:lang="en">Derived data suffix</com:Name>
+        </str:Concept>
+        <str:Concept id="SAFE_QUESTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SAFE_QUESTION">
+          <com:Name xml:lang="en">SAFE question</com:Name>
+        </str:Concept>
+        <str:Concept id="BANKING_IND" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BANKING_IND">
+          <com:Name xml:lang="en">Banking indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="SEC_VALUATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SEC_VALUATION">
+          <com:Name xml:lang="en">Securities valuation</com:Name>
+        </str:Concept>
+        <str:Concept id="BKN_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BKN_TYPE">
+          <com:Name xml:lang="en">Banknote or coin</com:Name>
+        </str:Concept>
+        <str:Concept id="STS_CONCEPT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STS_CONCEPT">
+          <com:Name xml:lang="en">Concept - STS context</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_OUTS_AMOUNT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_OUTS_AMOUNT">
+          <com:Name xml:lang="en">Outstanding amount</com:Name>
+        </str:Concept>
+        <str:Concept id="DD_ECON_CONCEPT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DD_ECON_CONCEPT">
+          <com:Name xml:lang="en">Derived data economic concept</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY_CAT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY_CAT">
+          <com:Name xml:lang="en">Maturity category</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_STATUS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OBS_STATUS">
+          <com:Name xml:lang="en">Observation status</com:Name>
+        </str:Concept>
+        <str:Concept id="STS_INSTITUTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STS_INSTITUTION">
+          <com:Name xml:lang="en">Institution originating the data flow</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_VAL_METHOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_VAL_METHOD">
+          <com:Name xml:lang="en">CBD valuation method</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_PSS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_PSS">
+          <com:Name xml:lang="en">PSS data type</com:Name>
+        </str:Concept>
+        <str:Concept id="PROVIDER_FM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PROVIDER_FM">
+          <com:Name xml:lang="en">Financial market provider</com:Name>
+        </str:Concept>
+        <str:Concept id="SSS_INFO_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SSS_INFO_TYPE">
+          <com:Name xml:lang="en">Information type in securities settlement, clearing, trading context</com:Name>
+        </str:Concept>
+        <str:Concept id="PD_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PD_ITEM">
+          <com:Name xml:lang="en">Projection database item</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_COUPON_RATE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_COUPON_RATE">
+          <com:Name xml:lang="en">Coupon rate of the bond</com:Name>
+        </str:Concept>
+        <str:Concept id="NON_RESID_ECON_ACT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).NON_RESID_ECON_ACT">
+          <com:Name xml:lang="en">Non-resident economic activity</com:Name>
+        </str:Concept>
+        <str:Concept id="REP_CTY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REP_CTY">
+          <com:Name xml:lang="en">Reporting country</com:Name>
+        </str:Concept>
+        <str:Concept id="OFI_REP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OFI_REP_SECTOR">
+          <com:Name xml:lang="en">OFI reporting sector</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_PRICE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_PRICE">
+          <com:Name xml:lang="en">Valuation</com:Name>
+        </str:Concept>
+        <str:Concept id="BS_COUNT_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BS_COUNT_SECTOR">
+          <com:Name xml:lang="en">BS counterpart sector</com:Name>
+        </str:Concept>
+        <str:Concept id="EFFECT_DOMAIN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EFFECT_DOMAIN">
+          <com:Name xml:lang="en">Effect domain</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_CPAREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_CPAREA">
+          <com:Name xml:lang="en">Counterpart area</com:Name>
+        </str:Concept>
+        <str:Concept id="EMBARGO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EMBARGO">
+          <com:Name xml:lang="en">Embargo</com:Name>
+        </str:Concept>
+        <str:Concept id="METHOD_PUBL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).METHOD_PUBL">
+          <com:Name xml:lang="en">Methodology publication</com:Name>
+        </str:Concept>
+        <str:Concept id="REP_DELAY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REP_DELAY">
+          <com:Name xml:lang="en">Reporting delay</com:Name>
+        </str:Concept>
+        <str:Concept id="GOVNT_REF_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GOVNT_REF_SECTOR">
+          <com:Name xml:lang="en">Creditor user assets sector</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_SOURCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_SOURCE">
+          <com:Name xml:lang="en">MUFA source</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_REFERENCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_REFERENCE">
+          <com:Name xml:lang="en">Ameco reference</com:Name>
+        </str:Concept>
+        <str:Concept id="DD_TRANSF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DD_TRANSF">
+          <com:Name xml:lang="en">Derived data transformation</com:Name>
+        </str:Concept>
+        <str:Concept id="BKN_SERIES" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BKN_SERIES">
+          <com:Name xml:lang="en">Banknote/coin series</com:Name>
+        </str:Concept>
+        <str:Concept id="WEO_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).WEO_ITEM">
+          <com:Name xml:lang="en">WEO item</com:Name>
+        </str:Concept>
+        <str:Concept id="BLS_AGG_METHOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BLS_AGG_METHOD">
+          <com:Name xml:lang="en">BLS aggregation method</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_CONS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_CONS">
+          <com:Name xml:lang="en">Consolidation</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_DETAIL">
+          <com:Name xml:lang="en">Source detail</com:Name>
+        </str:Concept>
+        <str:Concept id="BOP_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BOP_ITEM">
+          <com:Name xml:lang="en">Balance of Payment item</com:Name>
+        </str:Concept>
+        <str:Concept id="SHI_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SHI_SUFFIX">
+          <com:Name xml:lang="en">Series variation -SHI context</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_PUBL_2" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_PUBL_2">
+          <com:Name xml:lang="en">Publication source 2</com:Name>
+        </str:Concept>
+        <str:Concept id="FIRM_TURNOVER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FIRM_TURNOVER">
+          <com:Name xml:lang="en">Firm turnover (SAFE)</com:Name>
+        </str:Concept>
+        <str:Concept id="IVF_REP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IVF_REP_SECTOR">
+          <com:Name xml:lang="en">Investment funds reporting sector</com:Name>
+        </str:Concept>
+        <str:Concept id="TRG_ACCOUNT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRG_ACCOUNT">
+          <com:Name xml:lang="en">Type of accounts in TARGET2</com:Name>
+        </str:Concept>
+        <str:Concept id="COMP_METHOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMP_METHOD">
+          <com:Name xml:lang="en">Compiliation methodology</com:Name>
+        </str:Concept>
+        <str:Concept id="FVC_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FVC_ITEM">
+          <com:Name xml:lang="en">Assets and liabilities item in financial vehicle corporation context</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_VALUE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OBS_VALUE">
+          <com:Name xml:lang="en">Observation value</com:Name>
+        </str:Concept>
+        <str:Concept id="STS_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STS_SUFFIX">
+          <com:Name xml:lang="en">Series variation - STS context</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_EXP_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_EXP_TYPE">
+          <com:Name xml:lang="en">CBD exposure type</com:Name>
+        </str:Concept>
+        <str:Concept id="AREA_DEFINITION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AREA_DEFINITION">
+          <com:Name xml:lang="en">Area definition</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY_NOT_IRATE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY_NOT_IRATE">
+          <com:Name xml:lang="en">Original maturity/Period of notice/Initial rate fixation</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_MATURITY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_MATURITY">
+          <com:Name xml:lang="en">Bond maturity</com:Name>
+        </str:Concept>
+        <str:Concept id="PORTFOLIO_CAT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PORTFOLIO_CAT">
+          <com:Name xml:lang="en">Portfolio category</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_REF_AREA">
+          <com:Name xml:lang="en">Ameco reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="COLLECTION_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COLLECTION_DETAIL">
+          <com:Name xml:lang="en">Collection explanation detail</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_DETAIL_2" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_DETAIL_2">
+          <com:Name xml:lang="en">Source detail 2</com:Name>
+        </str:Concept>
+        <str:Concept id="ISSUER_RBG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ISSUER_RBG">
+          <com:Name xml:lang="en">Participation of the issuer in the reporting group</com:Name>
+        </str:Concept>
+        <str:Concept id="REPO_CPARTY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REPO_CPARTY">
+          <com:Name xml:lang="en">Repo counterparty</com:Name>
+        </str:Concept>
+        <str:Concept id="COMPILATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMPILATION">
+          <com:Name xml:lang="en">Compilation</com:Name>
+        </str:Concept>
+        <str:Concept id="METHOD_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).METHOD_DETAIL">
+          <com:Name xml:lang="en">Methodology detail</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_DEBT_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_DEBT_AREA">
+          <com:Name xml:lang="en">MUFA debtor area</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_REGION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_REGION">
+          <com:Name xml:lang="en">NUTS 3 regional classification</com:Name>
+        </str:Concept>
+        <str:Concept id="FCT_TOPIC" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FCT_TOPIC">
+          <com:Name xml:lang="en">Forecast topic</com:Name>
+        </str:Concept>
+        <str:Concept id="SUBJECT_MEI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SUBJECT_MEI">
+          <com:Name xml:lang="en">OECD MEI subject</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_MM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_MM">
+          <com:Name xml:lang="en">Data type in money market survey context</com:Name>
+        </str:Concept>
+        <str:Concept id="REPORTING_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REPORTING_SECTOR">
+          <com:Name xml:lang="en">Reporting sector</com:Name>
+        </str:Concept>
+        <str:Concept id="SAFE_ANSWER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SAFE_ANSWER">
+          <com:Name xml:lang="en">SAFE answer</com:Name>
+        </str:Concept>
+        <str:Concept id="PD_SEAS_EX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PD_SEAS_EX">
+          <com:Name xml:lang="en">Projection database season exercise</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_MUFA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_MUFA">
+          <com:Name xml:lang="en">Data type - MUFAs context</com:Name>
+        </str:Concept>
+        <str:Concept id="BLS_COUNT_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BLS_COUNT_DETAIL">
+          <com:Name xml:lang="en">BLS counterpart motivation</com:Name>
+        </str:Concept>
+        <str:Concept id="SEC_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SEC_SUFFIX">
+          <com:Name xml:lang="en">Series suffix - SEC context</com:Name>
+        </str:Concept>
+        <str:Concept id="VIS_CTY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VIS_CTY">
+          <com:Name xml:lang="en">Vis-a-vis country</com:Name>
+        </str:Concept>
+        <str:Concept id="SAFE_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SAFE_ITEM">
+          <com:Name xml:lang="en">SAFE question related item</com:Name>
+        </str:Concept>
+        <str:Concept id="RT_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RT_DENOM">
+          <com:Name xml:lang="en">Real time database series denomination</com:Name>
+        </str:Concept>
+        <str:Concept id="CONF_STATUS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CONF_STATUS">
+          <com:Name xml:lang="en">Confidentiality status</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_BKN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_BKN">
+          <com:Name xml:lang="en">Banknote &amp; coin data type</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_LIG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_LIG">
+          <com:Name xml:lang="en">Data type - LIG context</com:Name>
+        </str:Concept>
+        <str:Concept id="OFI_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OFI_ITEM">
+          <com:Name xml:lang="en">OFI balance sheet item</com:Name>
+        </str:Concept>
+        <str:Concept id="REF_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REF_SECTOR">
+          <com:Name xml:lang="en">Reference sector</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_INDEX_BASE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT_INDEX_BASE">
+          <com:Name xml:lang="en">Unit index base</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95_SUFFIX">
+          <com:Name xml:lang="en">Series suffix - ESA95 context</com:Name>
+        </str:Concept>
+        <str:Concept id="COUNTERPART_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COUNTERPART_SECTOR">
+          <com:Name xml:lang="en">Counterpart sector</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_ITEM">
+          <com:Name xml:lang="en">MUFA item</com:Name>
+        </str:Concept>
+        <str:Concept id="TRG_BAND" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRG_BAND">
+          <com:Name xml:lang="en">Value &amp; time bands for TARGET2 operations</com:Name>
+        </str:Concept>
+        <str:Concept id="BANKING_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BANKING_ITEM">
+          <com:Name xml:lang="en">Banking reference BS/P&amp;L Item</com:Name>
+        </str:Concept>
+        <str:Concept id="IN_OUT_DATA_IFI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IN_OUT_DATA_IFI">
+          <com:Name xml:lang="en">IFI input-output data</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_COM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OBS_COM">
+          <com:Name xml:lang="en">Observation comment</com:Name>
+        </str:Concept>
+        <str:Concept id="PSS_SYSTEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PSS_SYSTEM">
+          <com:Name xml:lang="en">PSS entry point</com:Name>
+        </str:Concept>
+        <str:Concept id="STOCK_FLOW" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STOCK_FLOW">
+          <com:Name xml:lang="en">Stock/flow</com:Name>
+        </str:Concept>
+        <str:Concept id="COUNT_AREA_IFS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COUNT_AREA_IFS">
+          <com:Name xml:lang="en">IFS counterpart area</com:Name>
+        </str:Concept>
+        <str:Concept id="OPTION_TYPE_PDF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OPTION_TYPE_PDF">
+          <com:Name xml:lang="en">Option type in the PDF context</com:Name>
+        </str:Concept>
+        <str:Concept id="PD_ORIGIN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PD_ORIGIN">
+          <com:Name xml:lang="en">Projection database data origin</com:Name>
+        </str:Concept>
+        <str:Concept id="SAFE_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SAFE_DENOM">
+          <com:Name xml:lang="en">Denomination in SAFE context</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_MEASURE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT_MEASURE">
+          <com:Name xml:lang="en">Unit of measure</com:Name>
+        </str:Concept>
+        <str:Concept id="ICP_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ICP_SUFFIX">
+          <com:Name xml:lang="en">Series variation - ICP context</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_STRIKE_PRICE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_STRIKE_PRICE">
+          <com:Name xml:lang="en">Strike price of the options</com:Name>
+        </str:Concept>
+        <str:Concept id="STO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STO">
+          <com:Name xml:lang="en">Stocks, Transactions, Other Flows</com:Name>
+        </str:Concept>
+        <str:Concept id="ADJUSTMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ADJUSTMENT">
+          <com:Name xml:lang="en">Adjustment indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="INT_ACC_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).INT_ACC_ITEM">
+          <com:Name xml:lang="en">International accounts item</com:Name>
+        </str:Concept>
+        <str:Concept id="ADJU_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ADJU_DETAIL">
+          <com:Name xml:lang="en">Adjustment detail</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_MULT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT_MULT">
+          <com:Name xml:lang="en">Unit multiplier</com:Name>
+        </str:Concept>
+        <str:Concept id="SSS_INSTRUMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SSS_INSTRUMENT">
+          <com:Name xml:lang="en">Instrument in securities settlement, clearing and trading context</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY_RES" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY_RES">
+          <com:Name xml:lang="en">Residual maturity</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95_ACCOUNT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95_ACCOUNT">
+          <com:Name xml:lang="en">ESA95 account</com:Name>
+        </str:Concept>
+        <str:Concept id="PRICE_BASE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PRICE_BASE">
+          <com:Name xml:lang="en">Price base</com:Name>
+        </str:Concept>
+        <str:Concept id="BANKING_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BANKING_SUFFIX">
+          <com:Name xml:lang="en">DBI suffix</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_IFI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_IFI">
+          <com:Name xml:lang="en">Data type - IFI context</com:Name>
+        </str:Concept>
+        <str:Concept id="EXT_TITLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXT_TITLE">
+          <com:Name xml:lang="en">External title</com:Name>
+        </str:Concept>
+        <str:Concept id="VAL_ROW" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VAL_ROW">
+          <com:Name xml:lang="en">Publication row value</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_BRKDWN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_BRKDWN">
+          <com:Name xml:lang="en">Activity/product/other brkdwns</com:Name>
+        </str:Concept>
+        <str:Concept id="BS_REP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BS_REP_SECTOR">
+          <com:Name xml:lang="en">BS reference sector breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="NOM_CURR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).NOM_CURR">
+          <com:Name xml:lang="en">Nominal currency of the security</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_LOT_SIZE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_LOT_SIZE">
+          <com:Name xml:lang="en">Lot size units</com:Name>
+        </str:Concept>
+        <str:Concept id="VAL_REPORT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VAL_REPORT">
+          <com:Name xml:lang="en">Publication sub-report value</com:Name>
+        </str:Concept>
+        <str:Concept id="CIBL_CATEGORY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CIBL_CATEGORY">
+          <com:Name xml:lang="en">Basis, measure</com:Name>
+        </str:Concept>
+        <str:Concept id="HOLDER_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).HOLDER_SECTOR">
+          <com:Name xml:lang="en">Holder sector</com:Name>
+        </str:Concept>
+        <str:Concept id="REF_PERIOD_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REF_PERIOD_DETAIL">
+          <com:Name xml:lang="en">Reference period detail</com:Name>
+        </str:Concept>
+        <str:Concept id="CIBL_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CIBL_TYPE">
+          <com:Name xml:lang="en">Data type (vis-a-vis sector / maturity / risk transfers etc.)</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95_UNIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95_UNIT">
+          <com:Name xml:lang="en">Series unit - ESA95 context</com:Name>
+        </str:Concept>
+        <str:Concept id="PRICE_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PRICE_TYPE">
+          <com:Name xml:lang="en">Price type</com:Name>
+        </str:Concept>
+        <str:Concept id="TPH" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TPH">
+          <com:Name xml:lang="en">Third party holdings flag</com:Name>
+        </str:Concept>
+        <str:Concept id="ORGANISATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ORGANISATION">
+          <com:Name xml:lang="en">Organisation</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95_BREAKDOWN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95_BREAKDOWN">
+          <com:Name xml:lang="en">ESA95 breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="FIRM_SIZE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FIRM_SIZE">
+          <com:Name xml:lang="en">Firm size (SAFE)</com:Name>
+        </str:Concept>
+        <str:Concept id="COMPILING_ORG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMPILING_ORG">
+          <com:Name xml:lang="en">Compiling organisation</com:Name>
+        </str:Concept>
+        <str:Concept id="RPP_SOURCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RPP_SOURCE">
+          <com:Name xml:lang="en">Source of property price statistics</com:Name>
+        </str:Concept>
+        <str:Concept id="FVC_REP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FVC_REP_SECTOR">
+          <com:Name xml:lang="en">Reporting sector in financial vehicle corporation context</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT">
+          <com:Name xml:lang="en">Unit</com:Name>
+        </str:Concept>
+        <str:Concept id="MEASURE_MEI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MEASURE_MEI">
+          <com:Name xml:lang="en">OECD MEI measure</com:Name>
+        </str:Concept>
+        <str:Concept id="REF_AREA_MEI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REF_AREA_MEI">
+          <com:Name xml:lang="en">OECD MEI &amp; QNA reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="BANKING_REF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BANKING_REF">
+          <com:Name xml:lang="en">Banking reference institution</com:Name>
+        </str:Concept>
+        <str:Concept id="PUBL_MU" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PUBL_MU">
+          <com:Name xml:lang="en">Source publication (Euro area only)</com:Name>
+        </str:Concept>
+        <str:Concept id="ISSUER_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ISSUER_AREA">
+          <com:Name xml:lang="en">Issuer domicile country</com:Name>
+        </str:Concept>
+        <str:Concept id="PROVIDER_FM_ID" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PROVIDER_FM_ID">
+          <com:Name xml:lang="en">Financial market provider identifier</com:Name>
+        </str:Concept>
+        <str:Concept id="LIG_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).LIG_ITEM">
+          <com:Name xml:lang="en">Large insurance group related items</com:Name>
+        </str:Concept>
+        <str:Concept id="TRD_FLOW" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRD_FLOW">
+          <com:Name xml:lang="en">External trade flow</com:Name>
+        </str:Concept>
+        <str:Concept id="MARKET_ROLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MARKET_ROLE">
+          <com:Name xml:lang="en">Market role</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_SECTOR">
+          <com:Name xml:lang="en">Reporting institutional sector</com:Name>
+        </str:Concept>
+        <str:Concept id="COMMENT_TS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMMENT_TS">
+          <com:Name xml:lang="en">Title complement, detailed description of the series</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_PER_COLLECT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TIME_PER_COLLECT">
+          <com:Name xml:lang="en">Time period collection</com:Name>
+        </str:Concept>
+        <str:Concept id="CURRENCY_P_H" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURRENCY_P_H">
+          <com:Name xml:lang="en">Currency purchase - holding</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY_TYPE">
+          <com:Name xml:lang="en">Maturity type</com:Name>
+        </str:Concept>
+        <str:Concept id="PSS_INSTRUMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PSS_INSTRUMENT">
+          <com:Name xml:lang="en">PSS instrument</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_CRED_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_CRED_AREA">
+          <com:Name xml:lang="en">MUFA creditor area</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT_DETAIL">
+          <com:Name xml:lang="en">Unit detail</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_DBI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_DBI">
+          <com:Name xml:lang="en">Data type - DBI context</com:Name>
+        </str:Concept>
+        <str:Concept id="VAL_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VAL_ITEM">
+          <com:Name xml:lang="en">Publication item value</com:Name>
+        </str:Concept>
+        <str:Concept id="EXT_UNIT_MULT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXT_UNIT_MULT">
+          <com:Name xml:lang="en">External unit multiplier</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_AGG_METHOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_AGG_METHOD">
+          <com:Name xml:lang="en">Ameco aggregation method</com:Name>
+        </str:Concept>
+        <str:Concept id="MARKET_TRANS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MARKET_TRANS">
+          <com:Name xml:lang="en">FXS market type transaction</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_PUB" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_PUB">
+          <com:Name xml:lang="en">Publication source</com:Name>
+        </str:Concept>
+        <str:Concept id="PROPERTY_CPP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PROPERTY_CPP">
+          <com:Name xml:lang="en">Property types in CPP context</com:Name>
+        </str:Concept>
+        <str:Concept id="PUBL_PUBLIC" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PUBL_PUBLIC">
+          <com:Name xml:lang="en">Source publication (public)</com:Name>
+        </str:Concept>
+        <str:Concept id="ICP_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ICP_ITEM">
+          <com:Name xml:lang="en">Classification - ICP context</com:Name>
+        </str:Concept>
+        <str:Concept id="SERIES_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SERIES_DENOM">
+          <com:Name xml:lang="en">Series denominat/spec calcul</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_ITEM">
+          <com:Name xml:lang="en">Ameco item</com:Name>
+        </str:Concept>
+        <str:Concept id="EAPLUS_FLAG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EAPLUS_FLAG">
+          <com:Name xml:lang="en">EAPlus flag</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_DATA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_DATA">
+          <com:Name xml:lang="en">Raw statistical data source</com:Name>
+        </str:Concept>
+        <str:Concept id="SHI_INDICATOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SHI_INDICATOR">
+          <com:Name xml:lang="en">Structural housing indicators</com:Name>
+        </str:Concept>
+        <str:Concept id="ISSUER_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ISSUER_SECTOR">
+          <com:Name xml:lang="en">Issuer ESA 2010 sector</com:Name>
+        </str:Concept>
+        <str:Concept id="IR_FV_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IR_FV_TYPE">
+          <com:Name xml:lang="en">Interest rate type (fix/var)</com:Name>
+        </str:Concept>
+        <str:Concept id="OECD_A16_CODE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OECD_A16_CODE">
+          <com:Name xml:lang="en">OECD A16 code</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_REP_FRAMEWRK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_REP_FRAMEWRK">
+          <com:Name xml:lang="en">CBD reporting framework</com:Name>
+        </str:Concept>
+        <str:Concept id="WOB_TAXATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).WOB_TAXATION">
+          <com:Name xml:lang="en">Weekly oil bulletin taxation</com:Name>
+        </str:Concept>
+        <str:Concept id="BIS_BLOCK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BIS_BLOCK">
+          <com:Name xml:lang="en">International Financial Statistics block</com:Name>
+        </str:Concept>
+        <str:Concept id="COUNT_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COUNT_SECTOR">
+          <com:Name xml:lang="en">Counterpart sector</com:Name>
+        </str:Concept>
+        <str:Concept id="FLOW_STOCK_ENTRY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FLOW_STOCK_ENTRY">
+          <com:Name xml:lang="en">Flows and stocks indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_SEC" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_SEC">
+          <com:Name xml:lang="en">Securities data type</com:Name>
+        </str:Concept>
+        <str:Concept id="BIS_TOPIC" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BIS_TOPIC">
+          <com:Name xml:lang="en">BIS economic phenomenon</com:Name>
+        </str:Concept>
+        <str:Concept id="EONIA_BANK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EONIA_BANK">
+          <com:Name xml:lang="en">EONIA bank</com:Name>
+        </str:Concept>
+        <str:Concept id="MEASURE_QNA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MEASURE_QNA">
+          <com:Name xml:lang="en">OECD QNA measure</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_CRED_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_CRED_SECTOR">
+          <com:Name xml:lang="en">MUFA creditor sector</com:Name>
+        </str:Concept>
+        <str:Concept id="OEO_CODE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OEO_CODE">
+          <com:Name xml:lang="en">OEO code</com:Name>
+        </str:Concept>
+        <str:Concept id="PRE_BREAK_VALUE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PRE_BREAK_VALUE">
+          <com:Name xml:lang="en">Pre-break value</com:Name>
+        </str:Concept>
+        <str:Concept id="DEBT_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DEBT_TYPE">
+          <com:Name xml:lang="en">Debt type</com:Name>
+        </str:Concept>
+        <str:Concept id="RT_ECON_CONCEPT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RT_ECON_CONCEPT">
+          <com:Name xml:lang="en">Real time database item</com:Name>
+        </str:Concept>
+        <str:Concept id="ESCB_FLAG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESCB_FLAG">
+          <com:Name xml:lang="en">ESCB flag</com:Name>
+        </str:Concept>
+        <str:Concept id="REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).REF_AREA">
+          <com:Name xml:lang="en">Reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_REP_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_REP_SECTOR">
+          <com:Name xml:lang="en">CBD reference sector breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="ACCOUNT_ENTRY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ACCOUNT_ENTRY">
+          <com:Name xml:lang="en">Accounting entries</com:Name>
+        </str:Concept>
+        <str:Concept id="R_L_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).R_L_SECTOR">
+          <com:Name xml:lang="en">Resource or liability sector</com:Name>
+        </str:Concept>
+        <str:Concept id="RBG_ID" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RBG_ID">
+          <com:Name xml:lang="en">Reporting group</com:Name>
+        </str:Concept>
+        <str:Concept id="TITLE_COMPL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TITLE_COMPL">
+          <com:Name xml:lang="en">Title complement</com:Name>
+        </str:Concept>
+        <str:Concept id="CURR_BRKDWN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURR_BRKDWN">
+          <com:Name xml:lang="en">Currency breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="MA_FLAG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MA_FLAG">
+          <com:Name xml:lang="en">Macro-adjustment flag</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_PUT_CALL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_PUT_CALL">
+          <com:Name xml:lang="en">options type</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_IDENTIFIER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_IDENTIFIER">
+          <com:Name xml:lang="en">Financial instrument Identifier</com:Name>
+        </str:Concept>
+        <str:Concept id="SAFE_FILTER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SAFE_FILTER">
+          <com:Name xml:lang="en">SAFE filter - applicable answer</com:Name>
+        </str:Concept>
+        <str:Concept id="TRG_CATEGORY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRG_CATEGORY">
+          <com:Name xml:lang="en">Type of payments in TARGET2</com:Name>
+        </str:Concept>
+        <str:Concept id="ICPF_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ICPF_ITEM">
+          <com:Name xml:lang="en">Insurance corporations and pension funds assets and liabilities</com:Name>
+        </str:Concept>
+        <str:Concept id="RESID_ECON_ACT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RESID_ECON_ACT">
+          <com:Name xml:lang="en">Resident economic activity</com:Name>
+        </str:Concept>
+        <str:Concept id="ADJUST_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ADJUST_DETAIL">
+          <com:Name xml:lang="en">Adjustment detail</com:Name>
+        </str:Concept>
+        <str:Concept id="VALUATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VALUATION">
+          <com:Name xml:lang="en">Valuation</com:Name>
+        </str:Concept>
+        <str:Concept id="COMP_APPROACH" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMP_APPROACH">
+          <com:Name xml:lang="en">Compilation approach indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="FIRM_OWNERSHIP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FIRM_OWNERSHIP">
+          <com:Name xml:lang="en">Firm other breakdowns (ownership, export) (SAFE)</com:Name>
+        </str:Concept>
+        <str:Concept id="FM_CONTRACT_TIME" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FM_CONTRACT_TIME">
+          <com:Name xml:lang="en">Contract month/expired date</com:Name>
+        </str:Concept>
+        <str:Concept id="SUBJECT_QNA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SUBJECT_QNA">
+          <com:Name xml:lang="en">OECD QNA subject</com:Name>
+        </str:Concept>
+        <str:Concept id="MEASURE_SNA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MEASURE_SNA">
+          <com:Name xml:lang="en">OECD SNA measure</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_DC_AL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_DC_AL">
+          <com:Name xml:lang="en">Uses and resources</com:Name>
+        </str:Concept>
+        <str:Concept id="AGG_EQUN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AGG_EQUN">
+          <com:Name xml:lang="en">Aggregation equations</com:Name>
+        </str:Concept>
+        <str:Concept id="COLLATERAL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COLLATERAL">
+          <com:Name xml:lang="en">Collateral</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_TRANSFORMATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_TRANSFORMATION">
+          <com:Name xml:lang="en">Ameco transformation</com:Name>
+        </str:Concept>
+        <str:Concept id="BIS_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BIS_SUFFIX">
+          <com:Name xml:lang="en">BIS suffix</com:Name>
+        </str:Concept>
+        <str:Concept id="COUNTERPART_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COUNTERPART_AREA">
+          <com:Name xml:lang="en">Counterpart area</com:Name>
+        </str:Concept>
+        <str:Concept id="GROUP_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GROUP_TYPE">
+          <com:Name xml:lang="en">Group type</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_BOP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_BOP">
+          <com:Name xml:lang="en">Data type - BoP related data</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_SUFFIX">
+          <com:Name xml:lang="en">Reference table number</com:Name>
+        </str:Concept>
+        <str:Concept id="ICO_PAY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ICO_PAY">
+          <com:Name xml:lang="en">Insurance corporations operations item</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_FM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_FM">
+          <com:Name xml:lang="en">Financial market data type</com:Name>
+        </str:Concept>
+        <str:Concept id="FREQ" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FREQ">
+          <com:Name xml:lang="en">Frequency</com:Name>
+        </str:Concept>
+        <str:Concept id="BS_NFC_ACTIVITY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BS_NFC_ACTIVITY">
+          <com:Name xml:lang="en">Activity</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_SECTOR_SIZE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_SECTOR_SIZE">
+          <com:Name xml:lang="en">CBD reference sector size</com:Name>
+        </str:Concept>
+        <str:Concept id="CURRENCY_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURRENCY_DENOM">
+          <com:Name xml:lang="en">Currency denominator</com:Name>
+        </str:Concept>
+        <str:Concept id="FCT_SOURCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FCT_SOURCE">
+          <com:Name xml:lang="en">Forecaster identifier</com:Name>
+        </str:Concept>
+        <str:Concept id="STS_CLASS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).STS_CLASS">
+          <com:Name xml:lang="en">Classification - STS context</com:Name>
+        </str:Concept>
+        <str:Concept id="PROPERTY_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PROPERTY_SUFFIX">
+          <com:Name xml:lang="en">Property data series variation</com:Name>
+        </str:Concept>
+        <str:Concept id="DISS_ORG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DISS_ORG">
+          <com:Name xml:lang="en">Data dissemination organisation</com:Name>
+        </str:Concept>
+        <str:Concept id="FIRM_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FIRM_SECTOR">
+          <com:Name xml:lang="en">Firm economic activity (SAFE)</com:Name>
+        </str:Concept>
+        <str:Concept id="CCP_SYSTEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CCP_SYSTEM">
+          <com:Name xml:lang="en">System in the central counterparty clearing context</com:Name>
+        </str:Concept>
+        <str:Concept id="EMBARGO_DETAIL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EMBARGO_DETAIL">
+          <com:Name xml:lang="en">Embargo details</com:Name>
+        </str:Concept>
+        <str:Concept id="BS_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BS_ITEM">
+          <com:Name xml:lang="en">Balance sheet item</com:Name>
+        </str:Concept>
+        <str:Concept id="EONIA_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EONIA_ITEM">
+          <com:Name xml:lang="en">EONIA item</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_HORIZON" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TIME_HORIZON">
+          <com:Name xml:lang="en">Time horizon</com:Name>
+        </str:Concept>
+        <str:Concept id="BREAKS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BREAKS">
+          <com:Name xml:lang="en">Breaks</com:Name>
+        </str:Concept>
+        <str:Concept id="GOVNT_COUNT_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GOVNT_COUNT_SECTOR">
+          <com:Name xml:lang="en">Debtor resource liabil sector</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_AGENCY_2" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_AGENCY_2">
+          <com:Name xml:lang="en">Source agency 2</com:Name>
+        </str:Concept>
+        <str:Concept id="FVC_ORI_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FVC_ORI_SECTOR">
+          <com:Name xml:lang="en">Originator sector in financial vehicle corporation context</com:Name>
+        </str:Concept>
+        <str:Concept id="OLV_INDICATOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OLV_INDICATOR">
+          <com:Name xml:lang="en">Oversight Indicators</com:Name>
+        </str:Concept>
+        <str:Concept id="CURRENCY_TRANS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURRENCY_TRANS">
+          <com:Name xml:lang="en">Currency of transaction</com:Name>
+        </str:Concept>
+        <str:Concept id="MFI_LIST" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MFI_LIST">
+          <com:Name xml:lang="en">MFI category</com:Name>
+        </str:Concept>
+        <str:Concept id="EXR_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXR_SUFFIX">
+          <com:Name xml:lang="en">Series variation - EXR context</com:Name>
+        </str:Concept>
+        <str:Concept id="HOLDER_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).HOLDER_AREA">
+          <com:Name xml:lang="en">Holder country</com:Name>
+        </str:Concept>
+        <str:Concept id="BKN_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BKN_DENOM">
+          <com:Name xml:lang="en">BKN denomination breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY">
+          <com:Name xml:lang="en">Maturity</com:Name>
+        </str:Concept>
+        <str:Concept id="MM_SEGMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MM_SEGMENT">
+          <com:Name xml:lang="en">Money market segment</com:Name>
+        </str:Concept>
+        <str:Concept id="INSTRUMENT_FM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).INSTRUMENT_FM">
+          <com:Name xml:lang="en">Financial market instrument</com:Name>
+        </str:Concept>
+        <str:Concept id="COMMENT_OBS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COMMENT_OBS">
+          <com:Name xml:lang="en">Comments to the observation value</com:Name>
+        </str:Concept>
+        <str:Concept id="DOM_SER_IDS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DOM_SER_IDS">
+          <com:Name xml:lang="en">Domestic series ids</com:Name>
+        </str:Concept>
+        <str:Concept id="GOVNT_ST_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GOVNT_ST_SUFFIX">
+          <com:Name xml:lang="en">Series variation - GST context</com:Name>
+        </str:Concept>
+        <str:Concept id="SEC_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SEC_ITEM">
+          <com:Name xml:lang="en">Securities item</com:Name>
+        </str:Concept>
+        <str:Concept id="GOVNT_VALUATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GOVNT_VALUATION">
+          <com:Name xml:lang="en">Valuation - GST context</com:Name>
+        </str:Concept>
+        <str:Concept id="FCT_BREAKDOWN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FCT_BREAKDOWN">
+          <com:Name xml:lang="en">Forecast histograph breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="FLOATING_RATE_BASE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FLOATING_RATE_BASE">
+          <com:Name xml:lang="en">Floating rate base</com:Name>
+        </str:Concept>
+        <str:Concept id="WOB_CONCEPT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).WOB_CONCEPT">
+          <com:Name xml:lang="en">Weekly oil bulletin concept</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE">
+          <com:Name xml:lang="en">Data type</com:Name>
+        </str:Concept>
+        <str:Concept id="SEC_ISSUING_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SEC_ISSUING_SECTOR">
+          <com:Name xml:lang="en">Securities issuing sector</com:Name>
+        </str:Concept>
+        <str:Concept id="CURRENCY_S" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CURRENCY_S">
+          <com:Name xml:lang="en">Currency sale</com:Name>
+        </str:Concept>
+        <str:Concept id="IVF_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IVF_ITEM">
+          <com:Name xml:lang="en">Investment funds item</com:Name>
+        </str:Concept>
+        <str:Concept id="NAT_TITLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).NAT_TITLE">
+          <com:Name xml:lang="en">National language title</com:Name>
+        </str:Concept>
+        <str:Concept id="BLS_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BLS_ITEM">
+          <com:Name xml:lang="en">Bank lending survey item</com:Name>
+        </str:Concept>
+        <str:Concept id="CIBL_TABLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CIBL_TABLE">
+          <com:Name xml:lang="en">Type of reporting banks</com:Name>
+        </str:Concept>
+        <str:Concept id="PSS_INFO_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PSS_INFO_TYPE">
+          <com:Name xml:lang="en">PSS information type</com:Name>
+        </str:Concept>
+        <str:Concept id="EXT_REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXT_REF_AREA">
+          <com:Name xml:lang="en">External reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_PRE_BREAK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OBS_PRE_BREAK">
+          <com:Name xml:lang="en">Pre-break observation value</com:Name>
+        </str:Concept>
+        <str:Concept id="BOP_BASIS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BOP_BASIS">
+          <com:Name xml:lang="en">BoP data collection basis</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_MIR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_MIR">
+          <com:Name xml:lang="en">MFI interest rate data type</com:Name>
+        </str:Concept>
+        <str:Concept id="TRD_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRD_SUFFIX">
+          <com:Name xml:lang="en">Series variation -TRD context</com:Name>
+        </str:Concept>
+        <str:Concept id="INS_BUS_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).INS_BUS_TYPE">
+          <com:Name xml:lang="en">Type of insurance business</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_VALUATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_VALUATION">
+          <com:Name xml:lang="en">MUFAs valuation</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_PORTFOLIO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_PORTFOLIO">
+          <com:Name xml:lang="en">CBD portfolio</com:Name>
+        </str:Concept>
+        <str:Concept id="OIL_PRODUCT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OIL_PRODUCT">
+          <com:Name xml:lang="en">Oil product</com:Name>
+        </str:Concept>
+        <str:Concept id="SSS_SYSTEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SSS_SYSTEM">
+          <com:Name xml:lang="en">System in securities settlement and clearing context</com:Name>
+        </str:Concept>
+        <str:Concept id="METHOD_REF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).METHOD_REF">
+          <com:Name xml:lang="en">Methodology reference</com:Name>
+        </str:Concept>
+        <str:Concept id="SOURCE_AGENCY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SOURCE_AGENCY">
+          <com:Name xml:lang="en">Source agency</com:Name>
+        </str:Concept>
+        <str:Concept id="FCT_HORIZON" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FCT_HORIZON">
+          <com:Name xml:lang="en">Forecast horizon</com:Name>
+        </str:Concept>
+        <str:Concept id="WEO_REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).WEO_REF_AREA">
+          <com:Name xml:lang="en">WEO reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_TYPE_FXS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_TYPE_FXS">
+          <com:Name xml:lang="en">Data type in FXS context</com:Name>
+        </str:Concept>
+        <str:Concept id="NA_PRICE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).NA_PRICE">
+          <com:Name xml:lang="en">Nat accounts price reference</com:Name>
+        </str:Concept>
+        <str:Concept id="IFS_CODE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IFS_CODE">
+          <com:Name xml:lang="en">IFS code</com:Name>
+        </str:Concept>
+        <str:Concept id="SSI_INDICATOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SSI_INDICATOR">
+          <com:Name xml:lang="en">Structural statist indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="PUBLICATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PUBLICATION">
+          <com:Name xml:lang="en">ECB publication</com:Name>
+        </str:Concept>
+        <str:Concept id="BKN_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BKN_ITEM">
+          <com:Name xml:lang="en">Banknote &amp; coin related items</com:Name>
+        </str:Concept>
+        <str:Concept id="OTHER_METH_EXPL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OTHER_METH_EXPL">
+          <com:Name xml:lang="en">Methodological explanation</com:Name>
+        </str:Concept>
+        <str:Concept id="IS_IN_EADB" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IS_IN_EADB">
+          <com:Name xml:lang="en">Is in EADB</com:Name>
+        </str:Concept>
+        <str:Concept id="BS_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BS_SUFFIX">
+          <com:Name xml:lang="en">Balance sheet suffix</com:Name>
+        </str:Concept>
+        <str:Concept id="TR_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TR_TYPE">
+          <com:Name xml:lang="en">Transaction type</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_CPSECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_CPSECTOR">
+          <com:Name xml:lang="en">Counterpart institution sector</com:Name>
+        </str:Concept>
+        <str:Concept id="VAL_COLUMN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).VAL_COLUMN">
+          <com:Name xml:lang="en">Publication column value</com:Name>
+        </str:Concept>
+        <str:Concept id="PROPERTY_IND" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PROPERTY_IND">
+          <com:Name xml:lang="en">Property indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="MM_BANK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MM_BANK">
+          <com:Name xml:lang="en">Money market bank</com:Name>
+        </str:Concept>
+        <str:Concept id="MUFA_DEBT_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MUFA_DEBT_SECTOR">
+          <com:Name xml:lang="en">MUFA debtor sector</com:Name>
+        </str:Concept>
+        <str:Concept id="FIRM_AGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FIRM_AGE">
+          <com:Name xml:lang="en">Firm age (SAFE)</com:Name>
+        </str:Concept>
+        <str:Concept id="DATA_COMP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DATA_COMP">
+          <com:Name xml:lang="en">Underlying compilation</com:Name>
+        </str:Concept>
+        <str:Concept id="METHOD_AGENCY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).METHOD_AGENCY">
+          <com:Name xml:lang="en">Methodology agency</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_DENOM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_DENOM">
+          <com:Name xml:lang="en">Denomination</com:Name>
+        </str:Concept>
+        <str:Concept id="PUBL_ECB" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).PUBL_ECB">
+          <com:Name xml:lang="en">Source publication (ECB only)</com:Name>
+        </str:Concept>
+        <str:Concept id="RPP_GEO_COV" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RPP_GEO_COV">
+          <com:Name xml:lang="en">Property geographical coverage</com:Name>
+        </str:Concept>
+        <str:Concept id="RPP_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RPP_SUFFIX">
+          <com:Name xml:lang="en">Series variation - RPP context</com:Name>
+        </str:Concept>
+        <str:Concept id="AVAILABILITY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AVAILABILITY">
+          <com:Name xml:lang="en">Availability</com:Name>
+        </str:Concept>
+        <str:Concept id="CB_ITEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CB_ITEM">
+          <com:Name xml:lang="en">Consolidated banking data item</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_ASSET" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_ASSET">
+          <com:Name xml:lang="en">Asset/instr classification</com:Name>
+        </str:Concept>
+        <str:Concept id="MFI_STATUS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MFI_STATUS">
+          <com:Name xml:lang="en">MFI status</com:Name>
+        </str:Concept>
+        <str:Concept id="CREDIT_RATING" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CREDIT_RATING">
+          <com:Name xml:lang="en">Programme credit rating</com:Name>
+        </str:Concept>
+        <str:Concept id="BLS_COUNT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BLS_COUNT">
+          <com:Name xml:lang="en">BLS contract counterpart</com:Name>
+        </str:Concept>
+        <str:Concept id="RIR_SUFFIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RIR_SUFFIX">
+          <com:Name xml:lang="en">Series variation - IR context</com:Name>
+        </str:Concept>
+        <str:Concept id="IR_BUS_COV" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).IR_BUS_COV">
+          <com:Name xml:lang="en">IR business coverage</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_CONF" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).OBS_CONF">
+          <com:Name xml:lang="en">Observation confidentiality</com:Name>
+        </str:Concept>
+        <str:Concept id="SECURITY_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SECURITY_TYPE">
+          <com:Name xml:lang="en">Security type</com:Name>
+        </str:Concept>
+        <str:Concept id="INSTR_ASSET" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).INSTR_ASSET">
+          <com:Name xml:lang="en">Instrument and assets classification</com:Name>
+        </str:Concept>
+        <str:Concept id="EXR_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXR_TYPE">
+          <com:Name xml:lang="en">Exchange rate type</com:Name>
+        </str:Concept>
+        <str:Concept id="SURVEY_FREQ" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SURVEY_FREQ">
+          <com:Name xml:lang="en">Frequency of the survey</com:Name>
+        </str:Concept>
+        <str:Concept id="COVERAGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COVERAGE">
+          <com:Name xml:lang="en">Coverage</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_PRICE_BASE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).UNIT_PRICE_BASE">
+          <com:Name xml:lang="en">Unit price base</com:Name>
+        </str:Concept>
+        <str:Concept id="U_A_SECTOR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).U_A_SECTOR">
+          <com:Name xml:lang="en">Use or asset sector</com:Name>
+        </str:Concept>
+        <str:Concept id="GOVNT_ITEM_ESA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).GOVNT_ITEM_ESA">
+          <com:Name xml:lang="en">ESA item - GST context</com:Name>
+        </str:Concept>
+        <str:Concept id="DECIMALS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).DECIMALS">
+          <com:Name xml:lang="en">Decimals</com:Name>
+        </str:Concept>
+        <str:Concept id="MATURITY_ORIG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MATURITY_ORIG">
+          <com:Name xml:lang="en">Original maturity</com:Name>
+        </str:Concept>
+        <str:Concept id="MFI_LIST_IND" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).MFI_LIST_IND">
+          <com:Name xml:lang="en">Individual MFI list</com:Name>
+        </str:Concept>
+        <str:Concept id="TRG_ANCILLARY" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRG_ANCILLARY">
+          <com:Name xml:lang="en">Ancillary systems settling in TARGET2</com:Name>
+        </str:Concept>
+        <str:Concept id="CPP_METHOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).CPP_METHOD">
+          <com:Name xml:lang="en">Method in CPP context</com:Name>
+        </str:Concept>
+        <str:Concept id="EXT_UNIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).EXT_UNIT">
+          <com:Name xml:lang="en">External unit</com:Name>
+        </str:Concept>
+        <str:Concept id="ESA95TP_COM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ESA95TP_COM">
+          <com:Name xml:lang="en">Product breakdown</com:Name>
+        </str:Concept>
+        <str:Concept id="COLLECTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).COLLECTION">
+          <com:Name xml:lang="en">Collection indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="RPP_DWELLING" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).RPP_DWELLING">
+          <com:Name xml:lang="en">Type of residential property</com:Name>
+        </str:Concept>
+        <str:Concept id="AMOUNT_CAT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AMOUNT_CAT">
+          <com:Name xml:lang="en">Amount category</com:Name>
+        </str:Concept>
+        <str:Concept id="BANK_SELECTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).BANK_SELECTION">
+          <com:Name xml:lang="en">Bank selection</com:Name>
+        </str:Concept>
+        <str:Concept id="ICO_UNIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ICO_UNIT">
+          <com:Name xml:lang="en">Insurance corporations operations unit</com:Name>
+        </str:Concept>
+        <str:Concept id="ISSUER_IN" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).ISSUER_IN">
+          <com:Name xml:lang="en">Split into EMU/non-EMU issuer</com:Name>
+        </str:Concept>
+        <str:Concept id="TITLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TITLE">
+          <com:Name xml:lang="en">Title</com:Name>
+        </str:Concept>
+        <str:Concept id="SUBJECT_SNA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SUBJECT_SNA">
+          <com:Name xml:lang="en">OECD SNA subject</com:Name>
+        </str:Concept>
+        <str:Concept id="FXS_OP_TYPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FXS_OP_TYPE">
+          <com:Name xml:lang="en">Operation type in FXS context</com:Name>
+        </str:Concept>
+        <str:Concept id="SEE_SYSTEM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SEE_SYSTEM">
+          <com:Name xml:lang="en">System in securities exchange (trading) context</com:Name>
+        </str:Concept>
+        <str:Concept id="SECURITISATION_TYP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SECURITISATION_TYP">
+          <com:Name xml:lang="en">Asset securitisation type</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_FORMAT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TIME_FORMAT">
+          <com:Name xml:lang="en">Time format code</com:Name>
+        </str:Concept>
+        <str:Concept id="FUNCTIONAL_CAT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).FUNCTIONAL_CAT">
+          <com:Name xml:lang="en">Functional category</com:Name>
+        </str:Concept>
+        <str:Concept id="TRADE_WEIGHT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TRADE_WEIGHT">
+          <com:Name xml:lang="en">Weight in trade flows</com:Name>
+        </str:Concept>
+        <str:Concept id="SUBJECT_OEO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).SUBJECT_OEO">
+          <com:Name xml:lang="en">OECD Economic Outlook subject</com:Name>
+        </str:Concept>
+        <str:Concept id="AME_UNIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).AME_UNIT">
+          <com:Name xml:lang="en">Ameco unit</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_PERIOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=ECB:ECB_CONCEPTS(1.0).TIME_PERIOD">
+          <com:Name xml:lang="en">Time period or range</com:Name>
+        </str:Concept>
+      </str:ConceptScheme>
+    </str:Concepts>
+  </mes:Structures>
+</mes:Structure>

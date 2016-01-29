@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mes:Structure xsi:schemaLocation="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message http://www.metadatatechnology.com/beta/SDMX2.1/SDMXMessage.xsd" xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
   <mes:Header>
-    <mes:ID>IDREF12747</mes:ID>
+    <mes:ID>IDREF88549</mes:ID>
     <mes:Test>false</mes:Test>
-    <mes:Prepared>2016-01-09T07:05:51.851Z</mes:Prepared>
+    <mes:Prepared>2016-01-24T18:32:26.827Z</mes:Prepared>
     <mes:Sender id="ECB"/>
     <mes:Receiver id="unknown"/>
   </mes:Header>
@@ -28,56 +28,6 @@
         </str:Agency>
       </str:AgencyScheme>
     </str:OrganisationSchemes>
-    <str:Dataflows>
-      <str:Dataflow id="EXR" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB:EXR(1.0)" agencyID="ECB" version="1.0">
-        <com:Name xml:lang="en">Exchange Rates</com:Name>
-        <str:Structure>
-          <Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/>
-        </str:Structure>
-      </str:Dataflow>
-      <str:Dataflow id="EXR_PUB" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB.DISS:EXR_PUB(1.0)" agencyID="ECB.DISS" version="1.0">
-        <com:Annotations>
-          <com:Annotation>
-            <com:AnnotationTitle>MAPPED_FLOW_ID</com:AnnotationTitle>
-            <com:AnnotationText xml:lang="en">EXR</com:AnnotationText>
-          </com:Annotation>
-        </com:Annotations>
-        <com:Name xml:lang="en">Exchange Rates - Published series</com:Name>
-        <com:Description xml:lang="en">Series of the 'Exchange Rates' dataflow that are used in ECB publications</com:Description>
-        <str:Structure>
-          <Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/>
-        </str:Structure>
-      </str:Dataflow>
-      <str:Dataflow id="MOBILE_EXR" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB.DISS:MOBILE_EXR(1.0)" agencyID="ECB.DISS" version="1.0">
-        <com:Annotations>
-          <com:Annotation>
-            <com:AnnotationTitle>MAPPED_FLOW_ID</com:AnnotationTitle>
-            <com:AnnotationText xml:lang="en">EXR</com:AnnotationText>
-          </com:Annotation>
-          <com:Annotation>
-            <com:AnnotationTitle>TITLE_DIM</com:AnnotationTitle>
-            <com:AnnotationText xml:lang="en">CURRENCY</com:AnnotationText>
-          </com:Annotation>
-        </com:Annotations>
-        <com:Name xml:lang="en">Exchange rates</com:Name>
-        <com:Description xml:lang="en">Dataflow for the exchange rates section of the ECB Statistical Tablet Application.</com:Description>
-        <str:Structure>
-          <Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/>
-        </str:Structure>
-      </str:Dataflow>
-      <str:Dataflow id="MOBILE_KEY_6" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dataflow=ECB.DISS:MOBILE_KEY_6(1.0)" agencyID="ECB.DISS" version="1.0">
-        <com:Annotations>
-          <com:Annotation>
-            <com:AnnotationTitle>MAPPED_FLOW_ID</com:AnnotationTitle>
-            <com:AnnotationText xml:lang="en">EXR</com:AnnotationText>
-          </com:Annotation>
-        </com:Annotations>
-        <com:Name xml:lang="en">Key euro area indicators (EXR)</com:Name>
-        <str:Structure>
-          <Ref id="ECB_EXR1" version="1.0" agencyID="ECB" package="datastructure" class="DataStructure"/>
-        </str:Structure>
-      </str:Dataflow>
-    </str:Dataflows>
     <str:Codelists>
       <str:Codelist id="CL_COLLECTION" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=ECB:CL_COLLECTION(1.0)" agencyID="ECB" version="1.0">
         <com:Name xml:lang="en">Collection indicator code list</com:Name>

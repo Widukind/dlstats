@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mes:Structure xsi:schemaLocation="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message http://www.metadatatechnology.com/beta/SDMX2.1/SDMXMessage.xsd" xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
   <mes:Header>
-    <mes:ID>IDREF32447</mes:ID>
+    <mes:ID>IDREF82603</mes:ID>
     <mes:Test>false</mes:Test>
-    <mes:Prepared>2016-01-13T23:26:41.990Z</mes:Prepared>
+    <mes:Prepared>2016-01-23T09:09:42.771Z</mes:Prepared>
     <mes:Sender id="ECB"/>
     <mes:Receiver id="unknown"/>
   </mes:Header>
