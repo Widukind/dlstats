@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 import time
 import os
 import logging
@@ -135,3 +136,34 @@ class Downloader:
             logger.info("use local dataset file [%s]" % self.filepath)
         
         return self.filepath, response
+
+
+def clean_datetime(dt=None,
+                   rm_hour=False, 
+                   rm_minute=False, 
+                   rm_second=False, 
+                   rm_microsecond=True, 
+                   rm_tzinfo=True):
+    
+    now = dt or datetime.now()
+    year = now.year 
+    month = now.month 
+    day = now.day
+    hour = now.hour
+    minute = now.minute
+    second = now.second    
+    microsecond = now.microsecond
+    tzinfo = now.tzinfo
+    
+    if rm_hour:
+        hour = 0
+    if rm_minute:
+        minute = 0
+    if rm_second:
+        second = 0    
+    if rm_microsecond:
+        microsecond = 0
+    if rm_tzinfo:
+        tzinfo = None
+    return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+    
