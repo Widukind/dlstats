@@ -5,7 +5,6 @@ from datetime import datetime
 import logging
 import pprint
 from collections import OrderedDict
-from copy import deepcopy
 
 import pymongo
 from pymongo import ReturnDocument
@@ -17,7 +16,7 @@ from widukind_common.utils import get_mongo_db, create_or_update_indexes
 from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import errors
-from dlstats.utils import last_error
+from dlstats.utils import last_error, clean_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -537,7 +536,7 @@ class Datasets(DlstatsCollection):
             if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
                 raise errors.MaxErrors("The maximum number of errors is exceeded. MAX[%s]" % self.fetcher.max_errors)
 
-        now = datetime.now()
+        now = clean_datetime()
         
         if not self.download_first:
             self.download_first = now
@@ -569,8 +568,11 @@ class SeriesIterator:
         
         if not series:
             raise StopIteration()
-                
-        return self.clean_field(self.build_series(series))
+
+        try:
+            return self.clean_field(self.build_series(series))
+        except Exception as err:
+            return err
 
     def clean_field(self, bson):
         """
@@ -635,8 +637,10 @@ class Series:
 
                 elif isinstance(data, errors.RejectUpdatedSeries):
                     if logger.isEnabledFor(logging.DEBUG):
-                        msg_tmpl = "Reject series updated for dataset[%s] - key[%s]"
-                        msg = msg_tmpl % (self.dataset_code, data.key)
+                        msg_tmpl = "Reject series updated for provider[%s] - dataset[%s] - key[%s]"
+                        msg = msg_tmpl % (self.provider_name, 
+                                          self.dataset_code, 
+                                          data.key)
                         logger.debug(msg)
 
                 elif isinstance(data, errors.RejectFrequency):
