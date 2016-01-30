@@ -251,6 +251,9 @@ class Eurostat(Fetcher):
         
         if self.selected_datasets and not force:
             return self.selected_datasets  
+
+        if Categories.count(self.provider_name, db=self.db) == 0:
+            self.upsert_data_tree()
         
         query = {
             "$or": [
