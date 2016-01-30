@@ -1395,7 +1395,12 @@ class DataMixIn_ECB:
     _frequencies_supported = ["A", "M", "Q", "W", "D"]
     
     def get_name(self, series, dimensions, attributes):
-        return attributes["TITLE_COMPL"]
+        if "TITLE_COMPL" in attributes:
+            return attributes["TITLE_COMPL"]
+        else:
+            logger.warning("Not TITLE_COMPL field for provider[%s] - dataset[%s]" % (self.provider_name,
+                                                                                     self.dataset_code))
+            return attributes.get("TITLE")
 
     def get_key(self, series, dimensions, attributes):
         return ".".join([dimensions[key] for key in self.dimension_keys])
