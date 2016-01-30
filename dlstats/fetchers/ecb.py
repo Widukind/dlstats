@@ -12,7 +12,7 @@ import lxml.html
 import pytz
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, remove_file_and_dir
 from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
@@ -77,6 +77,9 @@ class ECB(Fetcher):
         if self._dataflows and not force:
             return
         
+        
+        for_delete = []
+        
         self.xml_sdmx = XMLSDMX(agencyID=self.provider_name,
                                 cache=self.cache_settings)
         
@@ -88,7 +91,9 @@ class ECB(Fetcher):
                               filename="dataflow.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._dataflows = self.xml_dsd.dataflows
 
         url = "http://sdw-wsrest.ecb.int/service/categoryscheme/%s" % self.provider_name
@@ -96,7 +101,9 @@ class ECB(Fetcher):
                               filename="categoryscheme.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._categoryschemes = self.xml_dsd.categories
 
         url = "http://sdw-wsrest.ecb.int/service/categorisation/%s" % self.provider_name
@@ -104,7 +111,9 @@ class ECB(Fetcher):
                               filename="categorisation.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._categorisations = self.xml_dsd.categorisations
         
         url = "http://sdw-wsrest.ecb.int/service/conceptscheme/%s" % self.provider_name
@@ -112,8 +121,13 @@ class ECB(Fetcher):
                               filename="conceptscheme.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
+        
+        for fp in for_delete:
+            remove_file_and_dir(fp)
 
     def build_data_tree(self, force_update=False):
 
@@ -251,7 +265,7 @@ class ECB(Fetcher):
     def load_datasets_update(self):
         #TODO: 
         self.load_datasets_first()
-
+        
 class ECB_Data(SeriesIterator):
     
     def __init__(self, dataset=None, fetcher=None):
@@ -273,10 +287,8 @@ class ECB_Data(SeriesIterator):
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
         self.xml_dsd.concepts = self.fetcher._concepts
         
-        self.rows = None
         self._load()
-        
-        
+                
     def _load(self):
 
         url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/%s?references=children" % self.dsd_id
@@ -284,7 +296,9 @@ class ECB_Data(SeriesIterator):
                               filename="dsd-%s.xml" % self.dataset_code,
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.fetcher.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        self.dataset.for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._set_dataset()
         
         url = "http://sdw-wsrest.ecb.int/service/data/%s" % self.dataset_code
@@ -298,7 +312,9 @@ class ECB_Data(SeriesIterator):
                                 dimension_keys=self.xml_dsd.dimension_keys,
                                 dimensions=self.xml_dsd.dimensions)
         
-        self.rows = self.xml_data.process(download.get_filepath())
+        filepath = download.get_filepath()
+        self.dataset.for_delete.append(filepath)
+        self.rows = self.xml_data.process(filepath)
 
     def _set_dataset(self):
 

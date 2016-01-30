@@ -13,6 +13,7 @@ from dlstats import errors
 from dlstats.xml_utils import (XMLStructure_1_0 as XMLStructure, 
                                XMLData_1_0_FED as XMLData,
                                dataset_converter_v2 as dataset_converter)
+from dlstats.tests.resources.xml_samples import filepath
 
 VERSION = 2
 
@@ -366,7 +367,8 @@ def extract_zip_file(zipfilepath):
         elif filename.endswith("data.xml"):
             key = "data.xml"
         else:
-            continue
+            key = filename
+
         filepath = zfile.extract(filename, os.path.dirname(zipfilepath))
         filepaths[key] = os.path.abspath(filepath)
 
@@ -465,9 +467,15 @@ class FED_Data(SeriesIterator):
 
         download = Downloader(url=self.url, 
                               filename="data-%s.zip" % self.dataset_code)
-        filepaths = (extract_zip_file(download.get_filepath()))
+        zip_filepath = download.get_filepath()
+        self.dataset.for_delete.append(zip_filepath)
+        
+        filepaths = (extract_zip_file(zip_filepath))
         dsd_fp = filepaths['struct.xml']
         data_fp = filepaths['data.xml']
+
+        for filepath in filepaths.values():
+            self.dataset.for_delete.append(filepath)
         
         self.xml_dsd.process(dsd_fp)
         

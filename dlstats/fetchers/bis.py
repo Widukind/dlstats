@@ -6,7 +6,6 @@ import io
 import zipfile
 import csv
 import datetime
-import tempfile
 import time
 import logging
 import re
@@ -449,7 +448,11 @@ class BIS_Data(SeriesIterator):
             # TODO: timeout, replace
             download = Downloader(url=self.url, filename=self.filename)
             
-            filepath = extract_zip_file(download.get_filepath())
+            zip_filepath = download.get_filepath()
+            self.dataset.for_delete.append(zip_filepath)
+            filepath = extract_zip_file(zip_filepath)
+            self.dataset.for_delete.append(zip_filepath)
+            
             kwargs['filepath'] = filepath
         else:
             kwargs['fileobj'] = io.StringIO(datas, newline="\n")

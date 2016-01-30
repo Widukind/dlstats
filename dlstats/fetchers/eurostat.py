@@ -17,7 +17,7 @@ import time
 from lxml import etree
 
 from dlstats import constants
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, remove_file_and_dir
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator, Categories
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLCompactData_2_0_EUROSTAT as XMLData,
@@ -237,6 +237,8 @@ class Eurostat(Fetcher):
 
         end = time.time() - start
         logger.info("build_data_tree load provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+        
+        remove_file_and_dir(filepath)
 
         return categories
         
@@ -378,6 +380,9 @@ class EurostatData(SeriesIterator):
         filepaths = (extract_zip_file(download.get_filepath()))
         dsd_fp = filepaths[self.dataset_code + ".dsd.xml"]        
         data_fp = filepaths[self.dataset_code + ".sdmx.xml"]
+        
+        self.dataset.for_delete.append(dsd_fp)
+        self.dataset.for_delete.append(data_fp)        
         
         self.xml_dsd.process(dsd_fp)
         self._set_dataset()

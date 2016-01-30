@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats.utils import Downloader, clean_datetime
+from dlstats.utils import Downloader, clean_datetime, remove_file_and_dir
 from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
@@ -83,7 +83,8 @@ class INSEE(Fetcher):
         if self._dataflows and not force:
             return
 
-        
+        for_delete = []
+
         self.xml_sdmx = XMLSDMX(agencyID=self.provider_name,
                                 cache=self.cache_settings)
         
@@ -96,7 +97,9 @@ class INSEE(Fetcher):
                               filename="dataflow.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._dataflows = self.xml_dsd.dataflows
 
         url = "http://www.bdm.insee.fr/series/sdmx/categoryscheme/%s" % self.provider_name
@@ -104,7 +107,9 @@ class INSEE(Fetcher):
                               filename="categoryscheme.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._categoryschemes = self.xml_dsd.categories
 
         url = "http://www.bdm.insee.fr/series/sdmx/categorisation/%s" % self.provider_name
@@ -112,7 +117,9 @@ class INSEE(Fetcher):
                               filename="categorisation.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._categorisations = self.xml_dsd.categorisations
         
         url = "http://www.bdm.insee.fr/series/sdmx/conceptscheme/%s" % self.provider_name
@@ -120,8 +127,13 @@ class INSEE(Fetcher):
                               filename="conceptscheme.xml",
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
+
+        for fp in for_delete:
+            remove_file_and_dir(fp)
         
     def load_datasets_first(self):
                 
@@ -268,7 +280,9 @@ class INSEE_Data(SeriesIterator):
                               filename="datastructure-%s.xml" % self.dsd_id,
                               headers=SDMX_METADATA_HEADERS,
                               cache=self.fetcher.cache_settings)
-        self.xml_dsd.process(download.get_filepath())
+        filepath = download.get_filepath()
+        self.dataset.for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
         self._set_dataset()
         
     def _load_dsd(self):
@@ -291,6 +305,7 @@ class INSEE_Data(SeriesIterator):
         elif response.status_code >= 400:
             raise response.raise_for_status()
         
+        self.dataset.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
@@ -334,7 +349,8 @@ class INSEE_Data(SeriesIterator):
             return
         elif response.status_code >= 400:
             raise response.raise_for_status()
-                    
+
+        self.dataset.for_delete.append(filepath)
         self.rows = self.xml_data.process(filepath)
 
     def select_short_dimension(self):
@@ -384,6 +400,8 @@ class INSEE_Data(SeriesIterator):
                 continue
             elif response.status_code >= 400:
                 raise response.raise_for_status()
+
+            self.dataset.for_delete.append(filepath)
             
             for row in self.xml_data.process(filepath):
                 yield row

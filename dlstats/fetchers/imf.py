@@ -181,6 +181,7 @@ class WeoData(SeriesIterator):
             
             download = Downloader(url=url, filename="weo-data.csv")        
             data_filepath = download.get_filepath()
+            self.dataset.for_delete.append(data_filepath)
             
             with open(data_filepath, encoding='latin-1') as fp:
                 
