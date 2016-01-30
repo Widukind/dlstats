@@ -9,7 +9,7 @@ from collections import OrderedDict
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, clean_datetime
 from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
@@ -54,6 +54,7 @@ class INSEE(Fetcher):
         self._categoryschemes = None
         self._categorisations = None
         self._concepts = None
+        self._codelists = OrderedDict()
         
     def _get_cache_settings(self):
 
@@ -207,7 +208,7 @@ class INSEE(Fetcher):
                            dataset_code=dataset_code,
                            name=kwargs.get('name', None),
                            doc_href=None,
-                           last_update=datetime.now(), #TODO:
+                           last_update=clean_datetime(),
                            fetcher=self)
         
         dataset_doc = self.db[constants.COL_DATASETS].find_one({'provider_name': self.provider_name,
@@ -251,6 +252,7 @@ class INSEE_Data(SeriesIterator):
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
                                     sdmx_client=self.fetcher.xml_sdmx)        
         self.xml_dsd.concepts = self.fetcher._concepts
+        self.xml_dsd.codelists = self.fetcher._codelists
 
         self.rows = None
         self._load()
@@ -309,6 +311,8 @@ class INSEE_Data(SeriesIterator):
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"] 
+        
+        self.fetcher._codelists.update(self.xml_dsd.codelists)
 
     def _load_data(self):
         
@@ -396,20 +400,12 @@ class INSEE_Data(SeriesIterator):
         if not series_updated:
             return True
         
-        if not series_updated > self.last_update:
+        if series_updated > self.last_update:
             return True
 
-        if logger.isEnabledFor(logging.INFO):
-            msg_tmpl = "bypass updated dataset[%s][%s] - series[%s][%s]"
-            logger.info(msg_tmpl % (self.dataset_code,
-                                    self.last_update, 
-                                    bson.get('key'),
-                                    series_updated))
-        
         return False
 
     def build_series(self, bson):
-        #TODO: last_update : update dataset ?
         if not self.is_updated(bson):
             raise errors.RejectUpdatedSeries(provider_name=self.provider_name,
                                              dataset_code=self.dataset_code,
