@@ -12,10 +12,6 @@ dlstats.fetchers.bis
    :members:
    :special-members:
 
-.. autoclass:: Downloader
-   :members:
-   :special-members:
-   
 .. function:: extract_zip_file
 
 .. function:: csv_dict

@@ -20,10 +20,22 @@ dlstats.fetchers.eurostat
 .. automodule:: dlstats.fetchers.eurostat
     :members:
 
-dlstats.fetchers.IMF
+dlstats.fetchers.fed
 ====================
 
-.. automodule:: dlstats.fetchers.IMF
+.. automodule:: dlstats.fetchers.fed
+    :members:
+
+dlstats.fetchers.imf
+====================
+
+.. automodule:: dlstats.fetchers.imf
+    :members:
+
+dlstats.fetchers.insee
+======================
+
+.. automodule:: dlstats.fetchers.insee
     :members:
 
 dlstats.fetchers.oecd
