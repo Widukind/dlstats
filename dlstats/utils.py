@@ -167,3 +167,26 @@ def clean_datetime(dt=None,
         tzinfo = None
     return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
     
+def remove_file_and_dir(filepath):
+    if not os.path.exists(filepath):
+        logger.warning("file not found [%s]" % filepath)
+        return
+    if not os.path.isfile(filepath):
+        logger.warning("file is not file [%s]" % filepath)
+        return
+    
+    dirname = os.path.dirname(filepath)
+
+    if not os.path.isdir(dirname) or not os.path.exists(dirname):
+        logger.warning("dir is not dir or not found [%s]" % dirname)
+        return
+    if os.path.ismount(dirname):
+        logger.critical("dir is protected [%s]" % dirname)
+        return
+
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("remove file[%s]" % filepath)    
+    os.remove(filepath)
+    if logger.isEnabledFor(logging.DEBUG):
+        logger.debug("remove dir[%s]" % dirname)    
+    os.rmdir(dirname)

@@ -16,7 +16,7 @@ from widukind_common.utils import get_mongo_db, create_or_update_indexes
 from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import errors
-from dlstats.utils import last_error, clean_datetime
+from dlstats.utils import last_error, clean_datetime, remove_file_and_dir
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +163,20 @@ class Fetcher(object):
         """        
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
+
+    def _hook_remove_temp_files(self, dataset):
+        if dataset and dataset.for_delete:
+            for filepath in dataset.for_delete:
+                try:
+                    remove_file_and_dir(filepath)
+                except Exception:
+                    logger.warning("not remove filepath[%s]" % filepath)
     
+    def hook_before_dataset(self, dataset):
+        pass
+
+    def hook_after_dataset(self, dataset):
+        self._hook_remove_temp_files(dataset)
         
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
@@ -458,7 +471,9 @@ class Datasets(DlstatsCollection):
 
         self.download_first = None
         self.download_last = None
-        
+
+        self.for_delete = []
+
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
             
@@ -528,6 +543,9 @@ class Datasets(DlstatsCollection):
         return False
         
     def update_database(self):
+
+        self.fetcher.hook_before_dataset(self)
+
         try:
             self.series.process_series_data()
         except Exception:
@@ -537,7 +555,7 @@ class Datasets(DlstatsCollection):
                 raise errors.MaxErrors("The maximum number of errors is exceeded. MAX[%s]" % self.fetcher.max_errors)
 
         now = clean_datetime()
-        
+
         if not self.download_first:
             self.download_first = now
 
@@ -549,10 +567,14 @@ class Datasets(DlstatsCollection):
         if not self.is_recordable():
             logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
             return
-        
-        return self.update_mongo_collection(constants.COL_DATASETS,
+
+        result = self.update_mongo_collection(constants.COL_DATASETS,
                                                 ['provider_name', 'dataset_code'],
                                                 self.bson)
+
+        self.fetcher.hook_after_dataset(self)
+
+        return result
 
 class SeriesIterator:
     """Base class for all Fetcher data class
