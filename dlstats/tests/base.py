@@ -35,6 +35,7 @@ class BaseDBTestCase(BaseTestCase):
 
     def _collections_is_empty(self):
         self.assertTrue(self.db[constants.COL_PROVIDERS].count() <= 1)
+        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 0)
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
         self.assertEqual(self.db[constants.COL_TAGS_DATASETS].count(), 0)
