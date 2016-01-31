@@ -1,16 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
-import uuid
 from datetime import datetime
-from random import choice, randint
-from copy import deepcopy
 
 from bson import ObjectId
 from voluptuous import MultipleInvalid
 from pymongo.errors import DuplicateKeyError
-
-from widukind_common import tags
 
 from dlstats import constants
 from dlstats import errors
@@ -25,7 +19,7 @@ from dlstats.fetchers._commons import (Fetcher,
 
 import unittest
 
-from dlstats.tests.base import BaseTestCase, BaseDBTestCase, RESOURCES_DIR
+from dlstats.tests.base import BaseTestCase, BaseDBTestCase
 
 class FakeSeriesIterator(SeriesIterator):
     
@@ -451,7 +445,8 @@ class DBDatasetTestCase(BaseDBTestCase):
 
         self._collections_is_empty()
 
-        f = Fetcher(provider_name="p1", 
+        f = Fetcher(provider_name="p1",
+                    max_errors=1, 
                     db=self.db)
 
         d = Datasets(provider_name="p1", 
@@ -471,11 +466,15 @@ class DBDatasetTestCase(BaseDBTestCase):
         datas = EmptySeriesIterator()
         d.series.data_iterator = datas
 
-        id = d.update_database()
-        self.assertIsNone(id)
+        _id = d.update_database()
+        self.assertIsNotNone(_id)
         
-        self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
+        self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
         
+        doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
+        self.assertIsNotNone(doc)
+        self.assertEqual(doc["enable"], False)
+                
         
 class DBSeriesTestCase(BaseDBTestCase):
 
@@ -567,10 +566,6 @@ class DBSeriesTestCase(BaseDBTestCase):
                                                      "dataset_code": dataset_code})
         self.assertEqual(series.count(), len(series_list))
 
-        tags.update_tags(self.db, 
-                         provider_name=f.provider_name, dataset_code=dataset_code,  
-                         col_name=constants.COL_SERIES)        
-
         '''Count series for this provider and dataset and in keys[]'''
         keys = [s['key'] for s in series_list]
         series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
@@ -579,10 +574,6 @@ class DBSeriesTestCase(BaseDBTestCase):
         
         self.assertEqual(series.count(), len(series_list))
 
-        for doc in series:
-            self.assertTrue("tags" in doc)
-            self.assertTrue(len(doc['tags']) > 0)
-        
     def test_revisions(self):        
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_revisions
