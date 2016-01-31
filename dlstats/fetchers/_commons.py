@@ -313,7 +313,8 @@ class Categories(DlstatsCollection):
                  datasets=[],
                  doc_href=None,
                  metadata=None,
-                 fetcher=None):
+                 fetcher=None,
+                 **kwargs):
         """
         :param str provider_name: Provider name
         :param str category_code: Unique Category Code
@@ -354,7 +355,6 @@ class Categories(DlstatsCollection):
                 'slug': self.slug(),
                 'datasets': self.datasets,
                 'doc_href': self.doc_href,
-                'tags': [],
                 'metadata': self.metadata,
                 "enable": self.enable,
                 "lock": self.lock}
@@ -439,7 +439,8 @@ class Datasets(DlstatsCollection):
                  metadata=None,
                  bulk_size=100,
                  fetcher=None, 
-                 is_load_previous_version=True):
+                 is_load_previous_version=True,
+                 **kwargs):
         """
         :param str provider_name: Provider name
         :param str dataset_code: Dataset code
@@ -466,7 +467,7 @@ class Datasets(DlstatsCollection):
         self.codelists = {}
         self.concepts = {}
 
-        self.enable = True
+        self.enable = False        
         self.lock = False
 
         self.download_first = None
@@ -529,14 +530,15 @@ class Datasets(DlstatsCollection):
             self.attribute_list.set_from_list(dataset['attribute_list'])
 
     def is_recordable(self):
+
+        if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+            return False
+        
+        if self.fetcher.db[constants.COL_PROVIDERS].count({"provider_name": self.provider_name}) == 0:
+            return False
         
         query = {"provider_name": self.provider_name,
                  "dataset_code": self.dataset_code}
-        projection = {"provider_name": True, "dataset_code": True}
-        
-        if self.fetcher.db[constants.COL_DATASETS].find_one(query, projection):
-            return True
-        
         if self.fetcher.db[constants.COL_SERIES].count(query) > 0:
             return True
 
@@ -552,29 +554,35 @@ class Datasets(DlstatsCollection):
             self.fetcher.errors += 1
             logger.critical(last_error())
             if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
-                raise errors.MaxErrors("The maximum number of errors is exceeded. MAX[%s]" % self.fetcher.max_errors)
-
-        now = clean_datetime()
-
-        if not self.download_first:
-            self.download_first = now
-
-        if not self.download_last:
-            self.download_last = now
-
-        schemas.dataset_schema(self.bson)
-        
-        if not self.is_recordable():
-            logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
-            return
-
-        result = self.update_mongo_collection(constants.COL_DATASETS,
-                                                ['provider_name', 'dataset_code'],
-                                                self.bson)
-
-        self.fetcher.hook_after_dataset(self)
-
-        return result
+                msg = "The maximum number of errors is exceeded for provider[%s] - dataset[%s]. MAX[%s]"
+                raise errors.MaxErrors(msg % (self.provider_name,
+                                              self.dataset_code,
+                                              self.fetcher.max_errors))
+        finally:
+            now = clean_datetime()
+    
+            if not self.download_first:
+                self.download_first = now
+    
+            if not self.download_last:
+                self.download_last = now
+    
+            schemas.dataset_schema(self.bson)
+            
+            if not self.is_recordable():
+                self.enable = False
+                logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, 
+                                                                                self.provider_name))
+            else:
+                self.enable = True
+    
+            result = self.update_mongo_collection(constants.COL_DATASETS,
+                                                    ['provider_name', 'dataset_code'],
+                                                    self.bson)
+    
+            self.fetcher.hook_after_dataset(self)
+    
+            return result
 
 class SeriesIterator:
     """Base class for all Fetcher data class
