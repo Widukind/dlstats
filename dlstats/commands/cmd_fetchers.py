@@ -251,56 +251,75 @@ def cmd_report(fetcher=None, **kwargs):
               default=20, 
               show_default=True,
               help='Max Bulk')
-@click.option('--collection', '-c', 
-              required=True,
-              default='ALL',
-              show_default=True,
-              type=click.Choice([constants.COL_DATASETS, constants.COL_SERIES, 'ALL']),
-              help='Collection')
 @click.option('-g', '--aggregate', is_flag=True, 
               help='Run aggregate tags after update.')
-def cmd_update_tags(fetcher=None, dataset=None, collection=None, max_bulk=20, 
-                    aggregate=False, **kwargs):
+@click.option('-n', '--dry-mode', is_flag=True, help="Dry Mode")
+def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100, 
+                    aggregate=False, dry_mode=False, **kwargs):
     """Create or Update field tags"""
     
     """
     Examples:
     
-    dlstats fetchers update-tags -f BIS -d CNFS -S -c ALL
-    dlstats fetchers update-tags -f BEA -d "10101 Ann" -S -c datasets
-    dlstats fetchers update-tags -f BEA -d "10101 Ann" -S -c series
-    dlstats fetchers update-tags -f Eurostat -d nama_10_a10 -S -c datasets
-    dlstats fetchers update-tags -f OECD -d MEI -S -c datasets
+    dlstats fetchers tag -f BIS -d CNFS -S -c ALL
+    dlstats fetchers tag -f BEA -d "10101 Ann" -S -c datasets
+    dlstats fetchers tag -f BEA -d "10101 Ann" -S -c series
+    dlstats fetchers tag -f Eurostat -d nama_10_a10 -S -c datasets
+    dlstats fetchers tag -f OECD -d MEI -S -c datasets
     
-    dlstats fetchers update-tags -f BIS -d CNFS -S -c ALL --aggregate
+    dlstats fetchers tag -f BIS -d CNFS -S -c ALL --aggregate
     """
 
     ctx = client.Context(**kwargs)
 
     ctx.log_ok("Run update tags for %s:" % fetcher)
-
+    
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
         db = ctx.mongo_database()
 
-        if collection == "ALL":
-            cols = [constants.COL_DATASETS, constants.COL_SERIES]
-        else:
-            cols = [collection]
-        
-        for col in cols:
-            #TODO: serie_key
-            #TODO: cumul result et rapport
-            result = tags.update_tags(db, 
-                                       provider_name=fetcher, 
-                                       dataset_code=dataset, 
-                                       serie_key=None,
-                                       col_name=col,
-                                       max_bulk=max_bulk)
+        f = FETCHERS[fetcher](db=db)        
+        provider_name = f.provider_name        
 
+        ctx.log("Update Categories tags...")
+        try:
+            tags.update_tags_categories(db, 
+                                      provider_name=provider_name, 
+                                      max_bulk=max_bulk,
+                                      dry_mode=dry_mode)
+            ctx.log_ok("Update Categories tags Success")
+        except Exception as err:
+            ctx.log_error("Update Categories tags Fail [%s]" % str(err))
+    
+        ctx.log("Update Datasets tags...")
+        try:
+            tags.update_tags_datasets(db,
+                                      provider_name=provider_name,
+                                      dataset_code=dataset, 
+                                      max_bulk=max_bulk,
+                                      dry_mode=dry_mode)
+            ctx.log_ok("Update Datasets tags Success")
+        except Exception as err:
+            ctx.log_error("Update Datasets tags Fail [%s]" % str(err))
+    
+
+        ctx.log("Update Series tags...")
+        try:
+            tags.update_tags_series(  db,
+                                      provider_name=provider_name,
+                                      dataset_code=dataset, 
+                                      max_bulk=max_bulk,
+                                      dry_mode=dry_mode)
+            ctx.log_ok("Update Series tags Success")
+        except Exception as err:
+            ctx.log_error("Update Series tags Fail [%s]" % str(err))
+        
         if aggregate:
+            ctx.log("Aggregate Datasets tags...")
             result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
-            result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
+            #ctx.log("Aggregate Series tags...")
+            #result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
+            #TODO: aggregate categories
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -349,11 +368,14 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     ctx = client.Context(**kwargs)
     db = ctx.mongo_database()
     
-    query = dict()
+    provider_name = None
+    if fetcher:
+        f = FETCHERS[fetcher](db=db)        
+        provider_name = f.provider_name        
 
-    result = tags.search_tags(db,
+    result, query = tags.search_tags(db,
                                search_type=search_type, 
-                               provider_name=fetcher, 
+                               provider_name=provider_name, 
                                dataset_code=dataset, 
                                frequency=frequency, 
                                search_tags=search, 
@@ -361,7 +383,6 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
     
     ctx.log("Count result : %s" % result.count())
     for doc in result:
-        #TODO: value/release_dates, ...
         if search_type == constants.COL_SERIES:
             fields = [doc['provider_name'], doc['dataset_code'], doc['key'], doc['name']]
         else:
