@@ -1,22 +1,19 @@
 # -*- coding: utf-8 -*-
 
-__all__ = ['FETCHERS', 'FETCHERS_DATASETS']
+__all__ = ['FETCHERS']
 
 FETCHERS = {}
-FETCHERS_DATASETS = {}
 
 try:
-    from dlstats.fetchers.bis import BIS, DATASETS as DATASETS_BIS
+    from dlstats.fetchers.bis import BIS
     FETCHERS['BIS'] = BIS
-    FETCHERS_DATASETS['BIS'] = DATASETS_BIS.copy()
     __all__.append('BIS')
 except ImportError:
     pass
 
 #try:
-#    from dlstats.fetchers.oecd import OECD, DATASETS as DATASETS_OECD
+#    from dlstats.fetchers.oecd import OECD
 #    FETCHERS['OECD'] = OECD
-#    FETCHERS_DATASETS['OECD'] = DATASETS_OECD.copy()
 #    __all__.append('OECD')
 #except ImportError:
 #    pass
@@ -24,7 +21,6 @@ except ImportError:
 try:
     from dlstats.fetchers.eurostat import Eurostat
     FETCHERS['EUROSTAT'] = Eurostat
-    #TODO: FETCHERS_DATASETS['EUROSTAT'] = None
     __all__.append('Eurostat')
 except ImportError:
     pass
@@ -32,7 +28,6 @@ except ImportError:
 #try:
 #    from dlstats.fetchers.world_bank import WorldBank
 #    FETCHERS['WORLDBANK'] = WorldBank
-#    #TODO: FETCHERS_DATASETS['WB'] = None
 #    __all__.append('WorldBank')
 #except ImportError:
 #    pass
@@ -47,7 +42,6 @@ except ImportError:
 #try:
 #    from dlstats.fetchers.bea import BEA
 #    FETCHERS['BEA'] = BEA
-#    #TODO: FETCHERS_DATASETS['BEA'] = None
 #    __all__.append('BEA')
 #except ImportError:
 #    pass
@@ -55,7 +49,6 @@ except ImportError:
 try:
     from dlstats.fetchers.ecb import ECB
     FETCHERS['ECB'] = ECB
-    #TODO: FETCHERS_DATASETS['ECB'] = None
     __all__.append('ECB')
 except ImportError:
     pass
@@ -63,7 +56,6 @@ except ImportError:
 try:
     from dlstats.fetchers.esri import Esri
     FETCHERS['ESRI'] = Esri
-    #TODO: FETCHERS_DATASETS['ESRI'] = None
     __all__.append('Esri')
 except ImportError:
     pass
