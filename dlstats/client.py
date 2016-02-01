@@ -26,6 +26,8 @@ opt_silent = click.option('--silent', '-S', is_flag=True,
 
 opt_debug = click.option('--debug', '-D', is_flag=True)
 
+opt_quiet = click.option('--quiet', is_flag=True)
+
 opt_verbose = click.option('-v', '--verbose', is_flag=True,
                            help='Enables verbose mode.')
 
@@ -54,12 +56,14 @@ cmd_folder = os.path.abspath(
 class Context(object):
     def __init__(self, mongo_url=None, verbose=False,
                  log_level='ERROR', log_config=None, log_file=None,                 
-                 debug=False, silent=False, pretty=False):
+                 debug=False, silent=False, pretty=False, quiet=False):
+
+        self.mongo_url = mongo_url
         self.verbose = verbose
         self.debug = debug
         self.silent = silent
         self.pretty = pretty
-        self.mongo_url = mongo_url
+        self.quiet = quiet
         
         self.log_level = log_level
         self.log_config = log_config
@@ -86,30 +90,40 @@ class Context(object):
 
     def log(self, msg, *args):
         """Logs a message to stderr."""
+        if self.quiet:
+            return
         if args:
             msg %= args
         click.echo(msg, file=sys.stderr)
 
     def log_error(self, msg, *args):
         """Logs a message to stderr."""
+        if self.quiet:
+            return
         if args:
             msg %= args
         click.echo(click.style(msg, fg='red'), file=sys.stderr)
 
     def log_ok(self, msg, *args):
         """Logs a message to stdout."""
+        if self.quiet:
+            return
         if args:
             msg %= args
         click.echo(click.style(msg, fg='green'), file=sys.stdout)
 
     def log_warn(self, msg, *args):
         """Logs a message to stdout."""
+        if self.quiet:
+            return
         if args:
             msg %= args
         click.echo(click.style(msg, fg='yellow'), file=sys.stdout)
 
     def vlog(self, msg, *args):
         """Logs a message to stderr only if verbose is enabled."""
+        if self.quiet:
+            return
         if self.verbose:
             self.log(msg, *args)
 
