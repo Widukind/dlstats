@@ -16,6 +16,7 @@ import time
 
 from lxml import etree
 
+from dlstats import errors
 from dlstats import constants
 from dlstats.utils import Downloader, remove_file_and_dir
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator, Categories
@@ -78,8 +79,8 @@ def extract_zip_file(zipfilepath):
 class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     
-    def __init__(self, db=None):
-        super().__init__(provider_name='Eurostat', db=db)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='Eurostat', **kwargs)
         
         if not self.provider:
             self.provider = Providers(name=self.provider_name,
@@ -322,6 +323,8 @@ class Eurostat(Fetcher):
             try:
                 self.upsert_dataset(dataset_code)
             except Exception as err:
+                if isinstance(err, errors.MaxErrors):
+                    raise
                 logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
 
         end = time.time() - start
@@ -344,6 +347,8 @@ class Eurostat(Fetcher):
                 try:
                     self.upsert_dataset(dataset_code)
                 except Exception as err:
+                    if isinstance(err, errors.MaxErrors):
+                        raise
                     logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
 
         end = time.time() - start
