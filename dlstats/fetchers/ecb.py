@@ -35,8 +35,8 @@ CACHE_EXPIRE = 60 * 60 * 4 #4H
 
 class ECB(Fetcher):
     
-    def __init__(self, db=None, sdmx=None, **kwargs):        
-        super().__init__(provider_name='ECB', db=db, **kwargs)
+    def __init__(self, **kwargs):        
+        super().__init__(provider_name='ECB', **kwargs)
 
         if not self.provider:        
             self.provider = Providers(name=self.provider_name,

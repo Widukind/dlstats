@@ -377,7 +377,7 @@ def extract_zip_file(zipfilepath):
 class FED(Fetcher):
     
     def __init__(self, **kwargs):        
-        super().__init__(provider_name='FED', max_errors=10, **kwargs)
+        super().__init__(provider_name='FED', **kwargs)
         
         if not self.provider:
             self.provider = Providers(name=self.provider_name,

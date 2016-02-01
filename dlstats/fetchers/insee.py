@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 class INSEE(Fetcher):
     
-    def __init__(self, db=None, sdmx=None, **kwargs):
-        super().__init__(provider_name='INSEE', db=db, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='INSEE', **kwargs)
 
         self.provider = Providers(name=self.provider_name,
                                  long_name='National Institute of Statistics and Economic Studies',
