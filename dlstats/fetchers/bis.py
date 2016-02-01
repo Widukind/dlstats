@@ -16,6 +16,7 @@ from lxml import etree
 from dlstats import constants
 from dlstats.utils import Downloader
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats import errors
 
 __all__ = ['BIS']
 
@@ -273,7 +274,13 @@ class BIS(Fetcher):
         logger.info("first load fetcher[%s] - START" % (self.provider_name))
         
         for dataset in self.datasets_list():
-            self.upsert_dataset(dataset["dataset_code"])
+            dataset_code = dataset["dataset_code"]
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                if isinstance(err, errors.MaxErrors):
+                    raise
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
         
         end = time.time() - start
         logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
