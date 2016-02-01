@@ -137,7 +137,7 @@ class IMF(Fetcher):
         
 class WeoData(SeriesIterator):
     
-    def __init__(self, dataset, fetcher):
+    def __init__(self, dataset, fetcher=None):
         super().__init__()
         
         self.dataset = dataset
