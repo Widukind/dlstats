@@ -524,17 +524,23 @@ class Datasets(DlstatsCollection):
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
+            self.enable = dataset.get('enable')
+            self.lock = dataset.get('lock')
             self.download_first = dataset.get('download_first')
-            #self.download_last = dataset.get('download_last')
+            self.last_update = dataset.get('last_update')
             self.dimension_list.set_from_list(dataset['dimension_list'])
             self.attribute_list.set_from_list(dataset['attribute_list'])
+            self.dimension_keys = dataset.get("dimension_keys", [])
+            self.attribute_keys = dataset.get("attribute_keys", [])
+            self.codelists = dataset.get("codelists", {})
+            self.concepts = dataset.get("concepts", {})
 
     def is_recordable(self):
 
         if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
             return False
         
-        if self.fetcher.db[constants.COL_PROVIDERS].count({"provider_name": self.provider_name}) == 0:
+        if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
             return False
         
         query = {"provider_name": self.provider_name,
