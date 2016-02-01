@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import time
 from operator import itemgetter
-import sys
-from pprint import pprint
 import click
 
 from widukind_common import tags
 
 from dlstats import constants
-from dlstats.fetchers import FETCHERS, FETCHERS_DATASETS
+from dlstats.fetchers import FETCHERS
 from dlstats import client
 
 opt_fetcher = click.option('--fetcher', '-f', 
@@ -22,6 +21,11 @@ opt_dataset = click.option('--dataset', '-d',
 opt_fetcher_not_required = click.option('--fetcher', '-f', 
                type=click.Choice(FETCHERS.keys()), 
                help='Fetcher choice')
+
+opt_async_mode = click.option('--async-mode', 
+              type=click.Choice(["gevent"]), 
+              help='Async mode choice')
+
 
 @click.group()
 def cli():
@@ -150,11 +154,14 @@ def cmd_calendar(fetcher=None, **kwargs):
 @client.opt_logger_conf
 @client.opt_logger_file
 @client.opt_mongo_url
+@click.option('--max-errors', '-M', default=0, type=int, 
+              show_default=True, help='Max errors accepted.')
 @click.option('--data-tree', is_flag=True,
               help='Update data-tree before run.')
 @opt_fetcher
 @opt_dataset
-def cmd_run(fetcher=None, dataset=None, data_tree=False, **kwargs):
+def cmd_run(fetcher=None, dataset=None, 
+            max_errors=0, data_tree=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
     ctx = client.Context(**kwargs)
@@ -163,14 +170,12 @@ def cmd_run(fetcher=None, dataset=None, data_tree=False, **kwargs):
     
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
-        f = FETCHERS[fetcher](db=ctx.mongo_database())
+        f = FETCHERS[fetcher](db=ctx.mongo_database(), max_errors=max_errors)
         
         if not dataset and not hasattr(f, "upsert_all_datasets"):
-            #TODO: translation EN
-            ctx.log_error("Ce fetcher n'implémente pas la méthode upsert_all_datasets().")
-            ctx.log_error("Vous devez choisir un dataset.")
+            ctx.log_error("upsert_all_datasets method is not implemented for this fetcher.")
+            ctx.log_error("Please choice a dataset.")
             ctx.log_error("Operation cancelled !")
-            #TODO: click fail ?
             return
         
         if data_tree:
@@ -240,79 +245,97 @@ def cmd_report(fetcher=None, **kwargs):
 @cli.command('tags', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
+@client.opt_quiet
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
 @opt_fetcher
 @opt_dataset
+@opt_async_mode
 @click.option('--max-bulk', '-M', 
               type=click.INT,
-              default=20, 
+              default=100, 
               show_default=True,
               help='Max Bulk')
 @click.option('-g', '--aggregate', is_flag=True, 
               help='Run aggregate tags after update.')
+@click.option('-u', '--update-only', is_flag=True, 
+              help='Update only if not tags in document')
 @click.option('-n', '--dry-mode', is_flag=True, help="Dry Mode")
 def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100, 
-                    aggregate=False, dry_mode=False, **kwargs):
+                    aggregate=False, update_only=False, async_mode=None, 
+                    dry_mode=False, **kwargs):
     """Create or Update field tags"""
     
     """
     Examples:
     
-    dlstats fetchers tag -f BIS -d CNFS -S -c ALL
-    dlstats fetchers tag -f BEA -d "10101 Ann" -S -c datasets
-    dlstats fetchers tag -f BEA -d "10101 Ann" -S -c series
-    dlstats fetchers tag -f Eurostat -d nama_10_a10 -S -c datasets
-    dlstats fetchers tag -f OECD -d MEI -S -c datasets
+    dlstats fetchers tag -f BIS -d CNFS -S 
+    dlstats fetchers tag -f BEA -d "10101 Ann" -S
+    dlstats fetchers tag -f BEA -d "10101 Ann" -S
+    dlstats fetchers tag -f Eurostat -d nama_10_a10 -S
+    dlstats fetchers tag -f OECD -d MEI -S
     
-    dlstats fetchers tag -f BIS -d CNFS -S -c ALL --aggregate
+    dlstats fetchers tag -f BIS -d CNFS -S --aggregate
     """
+    if async_mode == "gevent":
+        from gevent import monkey
+        monkey.patch_all()
 
     ctx = client.Context(**kwargs)
 
-    ctx.log_ok("Run update tags for %s:" % fetcher)
+    ctx.log("START update tags for [%s]" % fetcher)
     
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        start = time.time()
         
         db = ctx.mongo_database()
 
         f = FETCHERS[fetcher](db=db)        
         provider_name = f.provider_name        
 
-        ctx.log("Update Categories tags...")
+        ctx.log("Update provider[%s] Categories tags..." % provider_name)
         try:
-            tags.update_tags_categories(db, 
+            result = tags.update_tags_categories(db, 
                                       provider_name=provider_name, 
                                       max_bulk=max_bulk,
+                                      update_only=update_only,
                                       dry_mode=dry_mode)
-            ctx.log_ok("Update Categories tags Success")
+            ctx.log_ok("Update provider[%s] Categories tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
         except Exception as err:
-            ctx.log_error("Update Categories tags Fail [%s]" % str(err))
+            ctx.log_error("Update Categories tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
     
-        ctx.log("Update Datasets tags...")
+        ctx.log("Update provider[%s] Datasets tags..." % provider_name)
         try:
-            tags.update_tags_datasets(db,
+            result = tags.update_tags_datasets(db,
                                       provider_name=provider_name,
                                       dataset_code=dataset, 
                                       max_bulk=max_bulk,
+                                      update_only=update_only,
                                       dry_mode=dry_mode)
-            ctx.log_ok("Update Datasets tags Success")
+            ctx.log_ok("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
         except Exception as err:
-            ctx.log_error("Update Datasets tags Fail [%s]" % str(err))
+            ctx.log_error("Update Datasets tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
     
-
-        ctx.log("Update Series tags...")
+        ctx.log("Update provider[%s] Series tags..." % provider_name)
         try:
-            tags.update_tags_series(  db,
+            result = tags.update_tags_series(db,
                                       provider_name=provider_name,
                                       dataset_code=dataset, 
                                       max_bulk=max_bulk,
+                                      update_only=update_only,
+                                      async_mode=async_mode,
                                       dry_mode=dry_mode)
-            ctx.log_ok("Update Series tags Success")
+            if not async_mode:
+                ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
         except Exception as err:
-            ctx.log_error("Update Series tags Fail [%s]" % str(err))
+            ctx.log_error("Update Series tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
+        
+        end = time.time() - start
+        
+        ctx.log("END update tags for [%s] - time[%.3f]" % (fetcher, end))
         
         if aggregate:
             ctx.log("Aggregate Datasets tags...")
