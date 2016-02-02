@@ -154,7 +154,7 @@ def cmd_calendar(fetcher=None, **kwargs):
 @client.opt_logger_conf
 @client.opt_logger_file
 @client.opt_mongo_url
-@click.option('--max-errors', '-M', default=0, type=int, 
+@click.option('--max-errors', '-M', default=5, type=int, 
               show_default=True, help='Max errors accepted.')
 @click.option('--data-tree', is_flag=True,
               help='Update data-tree before run.')
