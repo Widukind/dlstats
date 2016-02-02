@@ -132,3 +132,13 @@ http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2
 
 # IMF - fetcher tests
 http "http://www.imf.org/external/ns/cs.aspx?id=28" > imf/weo-index.html
+
+# OECD - xmlutils tests
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/AUS.CCRETT02..A" > xmlutils/oecd/oecd-data-compact-2.0.xml
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/MEI" > xmlutils/oecd/oecd-datastructure-2.0.xml
+
+# OECD - fetcher tests
+http "http://stats.oecd.org/sdmx-json/dataflow/MEI" > oecd/oecd-mei-dataflow.json
+http "http://stats.oecd.org/sdmx-json/dataflow/EO" > oecd/oecd-eo-dataflow.json
+http "http://stats.oecd.org/sdmx-json/data/MEI/FRA.XTNTVA01..A" > oecd/oecd-mei-FRA.XTNTVA01.x.A.json
+http "http://stats.oecd.org/sdmx-json/data/EO/AUS.CB." > oecd/oecd-eo-AUS.CB.x.json

@@ -11,12 +11,12 @@ try:
 except ImportError:
     pass
 
-#try:
-#    from dlstats.fetchers.oecd import OECD
-#    FETCHERS['OECD'] = OECD
-#    __all__.append('OECD')
-#except ImportError:
-#    pass
+try:
+    from dlstats.fetchers.oecd import OECD
+    FETCHERS['OECD'] = OECD
+    __all__.append('OECD')
+except ImportError:
+    pass
 
 try:
     from dlstats.fetchers.eurostat import Eurostat

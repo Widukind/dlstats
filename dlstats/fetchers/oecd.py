@@ -3,133 +3,120 @@
 from collections import OrderedDict
 import logging
 import time
-from datetime import datetime
 import tempfile
 import os
-from io import StringIO
 
-#TODO: simplejson ou json
 import json
 
-import pandas
-import requests
+from dlstats.utils import Downloader, clean_datetime
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats import errors
 
-from dlstats.fetchers._commons import Fetcher, Providers, Datasets
+VERSION = 2
 
-VERSION = 1
+CACHE_EXPIRE = 60 * 60 * 4 #4H
 
 logger = logging.getLogger(__name__)
+
+"""
+Errors are not returned in the JSON format but HTTP status codes and messages are set according to the Web Services Guidelines
+401 Unauthorized is returned if a non-authorised dataset is requested
+"""
 
 DATASETS = {
     'MEI': { 
         'name': 'Main Economics Indicators',
         'doc_href': 'http://www.oecd-ilibrary.org/economics/data/main-economic-indicators_mei-data-en',
+        'sdmx_filter': "LOCATION"
     },
-    #'EO': { 
-    #    'name': 'Economic Outlook',
-    #    'doc_href': 'http://www.oecd.org/eco/outlook/',
-    #},
+    'EO': { 
+        'name': 'Economic Outlook',
+        'doc_href': 'http://www.oecd.org/eco/outlook/',
+        'sdmx_filter': "LOCATION"
+    },
 }
 
-class SDMXJson(object):
-    
-    def __init__(self, sdmx_url=None, agencyID=None, 
-                 timeout=20, requests_client=None):
-        
-        self.sdmx_url = sdmx_url
-        self.agencyID = agencyID
-        self.timeout = timeout
-        self.requests_client = requests_client
-        
-        self._codes = {}
-
-    def query_rest(self,url):
-        """Retrieve SDMX-json messages.
-
-        :param url: The URL of the message.
-        :type url: str
-        :return: A dictionnary of the SDMX message
-        """
-        # Fetch data from the provider    
-        logger.info('Requesting %s', url)
-        client = self.requests_client or requests
-        request = client.get(url, timeout=self.timeout)
-        return json.load(StringIO(request.text), object_pairs_hook=OrderedDict)
-        
-    def metadata(self, flowRef):
-        
-        resource = 'metadata'
-        url = '/'.join([self.sdmx_url, resource, flowRef])
-        message_dict = self.query_rest(url)
-        #message_dict['structure']['dimensions']['observation']
-        self._codes['header'] = message_dict.pop('header', None)
-        for code in message_dict['structure']['dimensions']['observation']:
-            self._codes[code['name']] = [(x['id'],x['name']) for x in code['values']]
-        return self._codes
-
-    def raw_data(self, flowRef, key=None, startperiod=None, endperiod=None):
-
-        code_lists = []         
-        raw_dates = {}
-        raw_values = {}
-        raw_attributes = {}
-        raw_codes = {}
-
-        if key is None:
-            key = 'all'
-        resource = 'data'
-        if startperiod and endperiod:
-            query = '/'.join([resource, flowRef, key
-                    + 'all?startperiod=' + startperiod
-                    + '&endPeriod=' + endperiod
-                    + '&dimensionAtObservation=TIME'])
-        else:
-            query = '/'.join([resource, flowRef, key,'all'])
-        url = '/'.join([self.sdmx_url,query])
-        message_dict = self.query_rest(url)
-        
-        dates = message_dict['structure']['dimensions']['observation'][0]
-        dates = [node['name'] for node in dates['values']]
-        series = message_dict['dataSets'][0]['series']
-        dimensions = message_dict['structure']['dimensions']
-        
-        for dimension in dimensions['series']:
-            dimension['keyPosition']
-            dimension['id']
-            dimension['name']
-            dimension['values']
-
-        for key in series:
-            dims = key.split(':')
-            code = ''
-            for dimension, position in zip(dimensions['series'],dims):
-                code = code + '.' + dimension['values'][int(position)]['id']
-            code_lists.append((key, code))
-
-        for key,code in code_lists:
-            observations = message_dict['dataSets'][0]['series'][key]['observations']
-            series_dates = [int(point) for point in list(observations.keys())]
-            raw_dates[code] = [dates[position] for position in series_dates]
-            raw_values[code] = [observations[key][0] for key in list(observations.keys())]
-            raw_attributes[code] = [observations[key][1] for key in list(observations.keys())]
-            raw_codes[code] = {}
-            for code_,dim in zip(key.split(':'),message_dict['structure']['dimensions']['series']):
-                raw_codes[code][dim['name']] = dim['values'][int(code_)]['id']
-
-        return (raw_values, raw_dates, raw_attributes, raw_codes)
-    
+SDMX_DATA_HEADERS = {
+    "Accept": "application/vnd.sdmx.draft-sdmx-json+json;version=2.1"
+}
 
 class OECD(Fetcher):
     
-    def __init__(self, db=None, **kwargs):
-        super().__init__(provider_name='OECD', db=db, **kwargs)
-        self.provider_name = 'OECD'
-        self.provider = Providers(name=self.provider_name, 
-                                  long_name='Organisation for Economic Co-operation and Development',
-                                  version=VERSION,
-                                  region='world',
-                                  website='http://www.oecd.org', 
-                                  fetcher=self)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='OECD', **kwargs)
+        
+        if not self.provider:
+            self.provider = Providers(name=self.provider_name, 
+                                      long_name='Organisation for Economic Co-operation and Development',
+                                      version=VERSION,
+                                      region='world',
+                                      website='http://www.oecd.org', 
+                                      fetcher=self)
+
+        if self.provider.version != VERSION:
+            self.provider.update_database()
+
+        self.cache_settings = self._get_cache_settings()
+
+    def _get_cache_settings(self):
+
+        tmp_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
+                                                    self.provider_name))
+        
+        return {
+            "cache_name": tmp_filepath, 
+            "backend": 'sqlite', 
+            "expire_after": CACHE_EXPIRE
+        }
+
+    def _load_datasets(self):
+        
+        for dataset in self.datasets_list():
+            dataset_code = dataset["dataset_code"]
+            try:
+                self.upsert_dataset(dataset_code)
+            except Exception as err:
+                if isinstance(err, errors.MaxErrors):
+                    raise
+                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+        
+    def load_datasets_first(self):
+        start = time.time()
+        logger.info("first load fetcher[%s] - START" % (self.provider_name))
+
+        self._load_datasets()
+        
+        end = time.time() - start
+        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+        
+    def load_datasets_update(self):
+        start = time.time()
+        logger.info("update fetcher[%s] - START" % (self.provider_name))
+
+        self._load_datasets()
+        
+        end = time.time() - start
+        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+
+    def build_data_tree(self, force_update=False):
+        
+        categories = []
+        
+        for category_code, dataset in DATASETS.items():
+            cat = {
+                "category_code": category_code,
+                "name": dataset["name"],
+                "doc_href": dataset["doc_href"],
+                "datasets": [{
+                    "name": dataset["name"], 
+                    "dataset_code": category_code,
+                    "last_update": None, 
+                    "metadata": None
+                }]
+            }
+            categories.append(cat)
+        
+        return categories
 
     def upsert_dataset(self, dataset_code, datas=None):
         
@@ -144,252 +131,313 @@ class OECD(Fetcher):
                            dataset_code=dataset_code, 
                            name=DATASETS[dataset_code]['name'], 
                            doc_href=DATASETS[dataset_code]['doc_href'],
+                           last_update=clean_datetime(),
                            fetcher=self)
         
-        fetcher_data = OECD_Data(dataset)
+        fetcher_data = OECD_Data(dataset, 
+                                 sdmx_filter=DATASETS[dataset_code]['sdmx_filter'],
+                                 fetcher=self)
         dataset.series.data_iterator = fetcher_data
-        dataset.update_database()
+        result = dataset.update_database()
 
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END-BEFORE-METAS - time[%.3f seconds]" % (dataset_code, end))
-
-        self.update_metas(dataset_code)
-        
         end = time.time() - start
         logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-
-    def datasets_list(self):
-        return DATASETS.keys()
-
-    def datasets_long_list(self):
-        return [(key, dataset['name']) for key, dataset in DATASETS.items()]
-
-    def upsert_all_datasets(self):
-        start = time.time()
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
         
-        for dataset_code in DATASETS.keys():
-            self.upsert_dataset(dataset_code) 
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
-    def upsert_categories(self):
-        
-        data_tree = {'name': 'OECD',
-                     'category_code': 'oecd_root',
-                     'children': []}
-        
-        for dataset_code in DATASETS.keys():
-            data_tree['children'].append({'name': DATASETS[dataset_code]['name'], 
-                                          'category_code': dataset_code,
-                                          'exposed': True,
-                                          'children': None})
+        return result
 
-        self.provider.add_data_tree(data_tree)    
 
-class OECD_Data():
+def json_dataflow(message_dict):
     
-    '''
-    init -> load_data_from_sdmx() -> load_codes() -> __next__() 
-    '''
+    _codes = {}
     
-    def __init__(self, dataset, limited_countries=None, is_autoload=True):
+    _codes['header'] = message_dict.pop('header', None)
+    
+    _codes['dimension_keys'] = []
+    _codes['attribute_dataset_keys'] = []
+    _codes['attribute_observation_keys'] = []
+    
+    #Attention à TIME_PERIOD
+    _codes['codelists'] = OrderedDict()
+    _codes['concepts'] = {}
+
+    for d in message_dict['structure']['dimensions']['observation']:
+        dim_id = d['id']
+        _codes['dimension_keys'].append(dim_id)
+        _codes["concepts"][dim_id] = d['name'] 
+        _codes['codelists'][dim_id] = OrderedDict([(x['id'], x['name']) for x in d['values']])
+        
+    ##UNIT, POWERCODE, REFERENCEPERIOD
+    for d in message_dict['structure']['attributes']['dataSet']:
+        attr_id = d['id']
+        _codes['attribute_dataset_keys'].append(attr_id)
+        _codes["concepts"][attr_id] = d['name'] 
+        _codes['codelists'][attr_id] = OrderedDict([(x['id'], x['name']) for x in d['values']])
+
+    #print("!!!attributes : ", list(message_dict['structure']['attributes'].keys()))
+    #print("!!!attributes obs : ", message_dict['structure']['attributes']['observation'])
+    ##TIME_FORMAT, OBS_STATUS
+    for d in message_dict['structure']['attributes']['observation']:
+        attr_id = d['id']
+        _codes['attribute_observation_keys'].append(attr_id)
+        _codes["concepts"][attr_id] = d['name'] 
+        _codes['codelists'][attr_id] = OrderedDict([(x['id'], x['name']) for x in d['values']])
+    
+    return _codes
+
+def json_data(message_dict):
+
+    periods = message_dict['structure']['dimensions']['observation'][0] #TIME_PERIOD
+    
+    if periods["id"] != "TIME_PERIOD":
+        raise Exception("First dimension observation is not TIME_PERIOD field")
+    periods = [period['id'] for period in periods['values']]
+
+    series_dimensions = message_dict['structure']['dimensions']['series']
+    attributes = message_dict['structure']['attributes']
+    series = message_dict['dataSets'][0]['series']
+
+    series_list = []
+
+    for key in series:
+        
+        series_key = {}
+        series_attrs = {}
+
+        dims = key.split(':')
+        for dimension, position in zip(series_dimensions, dims):
+            series_key[dimension['id']] = dimension['values'][int(position)]['id']
+
+        attrs = message_dict['dataSets'][0]['series'][key]['attributes']        
+        for attribute, position in zip(attributes['series'], attrs):
+            if position is None: continue
+            series_attrs[attribute['id']] = attribute['values'][int(position)]['id']
+        
+        observations = message_dict['dataSets'][0]['series'][key]['observations']
+        
+        _series = {
+            "key_o": key,
+            "dimensions": series_key,
+            "attributes": series_attrs,
+            "values": [],
+        }
+
+        for i, obs in enumerate(observations.values()):
+            
+            attr_obs = [position for position in obs[1:] if not position is None]
+            attrs = {}
+            if attr_obs:
+                for attribute, position in zip(attributes['observation'], attr_obs):
+                    if position is None: continue
+                    attrs[attribute['id']] = attribute['values'][int(position)]['id']
+                     
+            _series["values"].append({
+                "period": periods[i],                        
+                "value": str(obs[0]),
+                "attributes": attrs if attrs else None,
+            })
+
+        series_list.append(_series)
+        
+    return series_list
+
+def load_dataflow(url, dataset_code):
+
+    download = Downloader(url=url, filename="dataflow-%s.json" % dataset_code)
+    filepath = download.get_filepath()
+    
+    with open(filepath) as fp:
+        message_dict = json.load(fp, object_pairs_hook=OrderedDict)
+    
+    return json_dataflow(message_dict), filepath    
+
+
+def load_data(url, dataset_code, cache_settings=None):
+    
+    download = Downloader(url=url, 
+                          filename="data-%s.json" % dataset_code,
+                          headers=SDMX_DATA_HEADERS,
+                          cache=cache_settings)
+    filepath, response = download.get_filepath_and_response()
+    
+    if response.status_code >= 400:
+        return None, filepath, response.status_code, response
+        #raise response.raise_for_status()
+
+    """
+    304 (No change) No change since the timestamp supplied in the If-Modified-Since header
+    
+    if response.status_code == HTTP_ERROR_NO_RESULT:
+        continue
+    elif response.status_code >= 400:
+        raise response.raise_for_status()
+    """
+    with open(filepath) as fp:
+        message_dict = json.load(fp, object_pairs_hook=OrderedDict)
+    
+    return json_data(message_dict), filepath, response.status_code, response
+        
+        
+
+class OECD_Data(SeriesIterator):
+    
+    def __init__(self, dataset, sdmx_filter, fetcher=None):
         
         self.dataset = dataset
+        self.sdmx_filter = sdmx_filter
+        self.fetcher = fetcher
         
-        #TODO: limited countries
-        self.limited_countries = limited_countries# or ['FRA']
-        
-        self.prepared = None
-        
+        self.provider_name = self.fetcher.provider_name
+        self.dataset_code = dataset.dataset_code
+        self.dimension_list = dataset.dimension_list
+        self.attribute_list = dataset.attribute_list
+        self.release_date = self.dataset.last_update
+                
         self.codes = OrderedDict()
         
-        self.countries = {}
-
         self.dimension_keys = []
-
         self.attribute_keys = []
+        self.attribute_dataset_keys = []
+        self.attribute_observation_keys = []
         
-        self.fp = None
-                
-        self.sdmx_client = SDMXJson(sdmx_url='http://stats.oecd.org/sdmx-json', 
-                                    agencyID='OECD', 
-                                    timeout=60 * 5, 
-                                    requests_client=None)
-                                    
+        self.codelists = {}
+        self.concepts = {}
         
-        self.codes_loaded = False
-        self.datas_loaded = False
+        self._load_dataflow()
+        self.rows = self._load_data()
         
-        if is_autoload:
-            self.load_data_from_sdmx()
-    
-    def load_codes(self):
-        
-        if self.codes_loaded:
-            return
-        
-        codes = self.sdmx_client.metadata(self.dataset.dataset_code)
-        
-        header = codes.pop('header')
-        
-        #'2015-10-27T21:30:00.27625Z'
-        self.prepared = datetime.strptime(header['prepared'], "%Y-%m-%dT%H:%M:%S.%fZ")
-        
-        #TODO: vérifier si mise à jour sinon bypass ?
-        #Attention à timezone
-        self.dataset.last_update = self.prepared
+    def _get_url_dataflow(self):
+        return "http://stats.oecd.org/sdmx-json/dataflow/%s" % self.dataset_code        
 
-        #TODO: LOCATION
-        for k, v in codes['Country']:
-            self.countries[k] = v
+    def _get_url_data(self, flowkey):
+        return "http://stats.oecd.org/sdmx-json/data/%s/%s" % (self.dataset_code, flowkey)        
         
-        #TODO: TIME_PERIOD
-        self.dimension_keys = [k for k in sorted(codes.keys()) if not k == 'Time']
-        #TODO: self.attribute_keys = [k for k in codes['attributes'].keys() if not k == 'TIME_FORMAT']
-        
-        for key in self.dimension_keys:
-            if not key in self.codes:                
-                self.codes[key] = OrderedDict()
+    def _load_dataflow(self):
 
-            for k, v in codes[key]:
-                self.codes[key][k] = v
-                
-        self.codes_loaded = True
-                
-    def get_temp_file(self, filepath=None, mode='r'):
-        if not filepath:
-            tmpdir = tempfile.mkdtemp()                        
-            filepath = os.path.abspath(os.path.join(tmpdir, "%s.json.txt" % self.dataset.dataset_code))
+        url = self._get_url_dataflow()
+        self.codes, filepath = load_dataflow(url, self.dataset_code)
+        self.dataset.for_delete.append(filepath)
         
-        if logger.isEnabledFor(logging.DEBUG):
-            logger.debug("use temp filepath[%s]" % filepath)
-            
-        return filepath, open(filepath, mode=mode)
-    
-    def load_data_from_sdmx(self):
-        
-        if not self.codes_loaded:
-            self.load_codes()
-            
-        if self.datas_loaded:
-            return
-        
-        #TODO: utf ?
-        filepath, self.fp = self.get_temp_file(mode='w')
+        self.dataset.concepts = self.codes["concepts"]
+        self.dataset.codelists = self.codes["codelists"]
 
-        errors = 0
-        #TODO: dataset settings ?
-        max_errors = 3
+        self.codelists = self.dataset.codelists
+        self.concepts = self.dataset.concepts
+
+        self.dimension_keys = [k for k in self.codes["dimension_keys"] if k != "TIME_PERIOD"]
+        self.dataset.dimension_keys = self.dimension_keys
         
-        for country_code in self.countries.keys():
+        self.attribute_dataset_keys = self.codes["attribute_dataset_keys"]
+        self.attribute_observation_keys = self.codes["attribute_observation_keys"]
+        self.attribute_keys = self.attribute_dataset_keys + self.attribute_observation_keys
+        self.dataset.attribute_keys = self.attribute_keys
+        
+        """
+        TODO: ?
+            for k, dimensions in self.dimension_list.get_dict().items():
+                self.dataset.codelists[k] = dimensions
+
+            for k, attributes in self.attribute_list.get_dict().items():
+                self.dataset.codelists[k] = attributes
+        
+        """
+
+    def _select_filter_dimension(self):
+
+        position = self.dimension_keys.index(self.sdmx_filter)         
+                
+        dimension_values = list(self.codelists[self.sdmx_filter].keys())
+        
+        return (position, 
+                len(self.dimension_keys), 
+                self.sdmx_filter, 
+                dimension_values)
+
+    def _load_data(self):
+
+        position, count_dimensions, _key, dimension_values = self._select_filter_dimension()
+        
+        for value in dimension_values:
             
-            if self.limited_countries and not country_code in self.limited_countries:
+            #if not value in ["ARG", "NMEC", "BRA"]:
+            #    continue
+                        
+            sdmx_key = []
+            for i in range(count_dimensions):
+                if i == position:
+                    sdmx_key.append(value)
+                else:
+                    sdmx_key.append(".")
+            key = "".join(sdmx_key)
+
+            url = self._get_url_data(key)
+            
+            rows, filepath, status_code, response = load_data(url, self.dataset_code, self.fetcher.cache_settings)
+            self.dataset.for_delete.append(filepath)
+            
+            if status_code >= 400:
+                msg = "http error for provider[%s] - dataset[%s] - url[%s] - code[%s] - reason[%s]"
+                datas = (self.provider_name,self.dataset_code, url, 
+                         status_code, response.reason)
+                
+                if status_code >= 400 and status_code < 500:
+                    logger.warning(msg % datas)
+                elif status_code >= 500:
+                    logger.critical(msg % datas)
+                
                 continue
-        
-            logger.info("load for dataset[%s] - country[%s]" % (self.dataset.dataset_code, country_code))
+
+            if not rows:
+                print("response.reason : ", response.reason, status_code)
+                raise Exception("rows is None for url[%s]" % url)
             
-            try:
-                if errors >= max_errors:
-                    raise Exception("Too many errors max[%s]" % max_errors)
-                raw_values, raw_dates, raw_attributes, raw_codes = self.sdmx_client.raw_data(self.dataset.dataset_code,        
-                                                                                  "%s..." % country_code)#,#startperiod="2014",endperiod="2015")
-            except Exception as err:
-                errors += 1
-                logger.error("DATASET[%s] - COUNTRY[%s] - ERROR[%s]" % (self.dataset.dataset_code,
-                                                                        country_code, 
-                                                                        str(err)))
+            for row in rows:
+                try:
+                    yield row, None
+                except Exception as err:
+                    yield None, err
             
-            for id in raw_codes.keys():
-                #FIXME: pb fabrication ID sur sdmx
-                row = {"id": id}
-                row['dimensions'] = raw_codes[id]
-                row['values'] = raw_values[id]
-                row['periods'] = raw_dates[id]
-                row['attributes'] = raw_attributes[id]
-                row_str = "%s\n" % json.dumps(row)
-                self.fp.write(row_str)
-                
-        self.fp.close()
-        filepath, self.fp = self.get_temp_file(filepath=filepath, mode='r')    
-        
-        self.datas_loaded = True
-    
-    def __next__(self):
-        row_str = next(self.fp)
-        if row_str is None:
-            #TODO: delete tmp file ?
-            if self.fp and not self.fp.closed:
-                self.fp.close()
-
-            raise StopIteration()
-
-        #TODO: exception ?
-        #TODO: utf-8 ?        
-        row = json.loads(row_str, object_pairs_hook=OrderedDict) 
-        series = self.build_serie(row)
-        return(series)
-
-    def _patch_period(self, period, frequency):
-        """Patch for bad implementation of period with OECD"""
-        if frequency == "A":
-            return period
-
-        if frequency in ["M", "Q"]:
-            freq = period.split("-")[0]
-            value = period.split("-")[1]
-            return "%s-%s" % (value, freq)
-        else:
-            raise Exception("Not implemented Frequency[%s]" % frequency)
-
-    def build_serie(self, row):
+    def build_series(self, row):
         """Build one serie
         
         Return instance of :class:`dict`
         """
+        
+        series_key = ".".join([row["dimensions"][key] for key in self.dimension_keys])
 
-        values = [str(v) for v in row['values']]
-        periods = row['periods']
-        dimensions = row['dimensions']
-        frequency = row['dimensions']['Frequency']
+        frequency = row['dimensions']['FREQUENCY']
 
-        #TODO: All none
-        #row['attributes']
-        #raw_attributes = self.raw_attributes[row_key]
-        
-        period_start = self._patch_period(periods[0], frequency)
-        period_end = self._patch_period(periods[-1], frequency)
-        start_date = pandas.Period(period_start, freq=frequency)
-        end_date = pandas.Period(period_end, freq=frequency)
-        
-        new_dimensions = OrderedDict()
-        #TODO: attributes = {}
-        
-        for d in sorted(dimensions.keys()):
-            dim_short_id = dimensions[d]
-            dim_long_id = self.codes[d][dim_short_id]
-            new_dimensions[d] = self.dataset.dimension_list.update_entry(d, dim_short_id, dim_long_id)
-        
-        series_key = ".".join(new_dimensions.values())
-        series_name = " - ".join([self.codes[d][v] for d, v in new_dimensions.items()])
-        
-        #dimensions = OrderedDict([(d, self.codes[d][v]) for d, v in new_dimensions.items()])
-        dimensions = new_dimensions
-        
-        logger.debug("provider[%s] - dataset[%s] - serie[%s]" % (self.dataset.provider_name,
-                                                                 self.dataset.dataset_code,
-                                                                 series_key))
+        if not frequency in ['A', 'M', 'Q', 'W', 'D']:
+            raise errors.RejectFrequency(provider_name=self.provider_name,
+                                         dataset_code=self.dataset_code,
+                                         frequency=frequency)
+            
+        #for key, item in bson['dimensions'].items():
+        #    self.dimension_list.update_entry(key, item, item)
+            
+        for _row in row["values"]:
+            _row["release_date"] = self.release_date
+            _row["period_o"] = self.codelists["TIME_PERIOD"].get(_row["period"], _row["period"])
+            _row["ordinal"] = self.fetcher.get_ordinal_from_period(_row["period"], 
+                                                                   freq=frequency)
 
-        data = {'provider_name': self.dataset.provider_name,
-                'dataset_code': self.dataset.dataset_code,
+        _name = []
+        for key in self.dimension_keys:
+            value_key = row["dimensions"][key]
+            value_name = self.codelists[key][value_key]
+            _name.append(value_name)
+        series_name = " - ".join(_name)
+        
+        bson = {'provider_name': self.provider_name,
+                'dataset_code': self.dataset_code,
                 'name': series_name,
                 'key': series_key,
-                'values': values,
-                'attributes': {},
-                'dimensions': dimensions,
-                'last_update': self.prepared,
-                'start_date': start_date.ordinal,
-                'end_date': end_date.ordinal,
+                'values': row["values"],
+                'attributes': row['attributes'],
+                'dimensions': row['dimensions'],
+                'last_update': self.dataset.last_update,
+                'start_date': row["values"][0]["ordinal"],
+                'end_date': row["values"][-1]["ordinal"],
                 'frequency': frequency}
-        return(data)
+        
+        return bson
     
