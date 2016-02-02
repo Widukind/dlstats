@@ -689,6 +689,9 @@ class Series:
                 elif isinstance(data, errors.RejectEmptySeries):
                     logger.warning("Reject empty series for provider[%s] - dataset[%s]" % (self.provider_name,
                                                                                            self.dataset_code))
+                    
+                elif isinstance(data, Exception):
+                    raise Exception(str(data))
                 
             except StopIteration:
                 break
