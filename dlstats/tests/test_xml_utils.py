@@ -6,6 +6,8 @@ from pprint import pprint
 import time
 import os
 
+import unittest
+
 from dlstats import errors
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase
 from dlstats.tests.resources import xml_samples
@@ -17,12 +19,13 @@ logger = logging.getLogger(__name__)
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "xmlutils"))
 
 SAMPLES_DSD_1_0 = {
-    'FED': xml_samples.DSD_FED,
+    'FED': xml_samples.DSD_FED_TERMS,
+    #'FED-TERMS': xml_samples.DSD_FED_TERMS,
 }
 
 SAMPLES_DSD_2_0 = {
     "EUROSTAT": xml_samples.DSD_EUROSTAT, 
-    #"DESTATIS": xml_samples.DSD_DESTATIS, 
+    #"DESTATIS": xml_samples.DSD_DESTATIS,
 }
 
 SAMPLES_DSD_2_1 = {
@@ -31,7 +34,7 @@ SAMPLES_DSD_2_1 = {
 }
 
 SAMPLES_DATA_1_0 = {
-    "FED": xml_samples.DATA_FED, 
+    "FED": xml_samples.DATA_FED_TERMS, 
 }
 
 SAMPLES_DATA_COMPACT_2_0 = {
@@ -131,52 +134,66 @@ class BaseXMLStructureTestCase(BaseTestCase):
         print()
         print("-------------- DATAFLOW -------------------------")
         print("PROVIDER: ", provider_name)
-        print(list(xml.dataflows.keys()))
+        print(sorted(list(xml.dataflows.keys())))
         for dataflow in xml.dataflows.values():
-            print(dataflow['id'], dataflow['name'], dataflow['dsd_id'])
+            pprint(dataflow)
         print("-------------------------------------------------")
+
+    def _debug_datastructure(self, xml, provider, provider_name):
+        print()
+        print("-------------- DATASTRUCTURE --------------------")
+        print("PROVIDER: ", provider_name)
+        print(sorted(list(xml.datastructures.keys())))
+        for dsd in xml.datastructures.values():
+            pprint(dsd)
+        print("-------------------------------------------------")
+        
+        self._debug_dimension(xml, provider, provider_name)
+        
+        self._debug_attribute(xml, provider, provider_name)
+        
+        self._debug_dataset(xml, provider, provider_name)
         
     def _debug_conceptscheme(self, xml, provider, provider_name):
         print()
         print("-------------- CONCEPT --------------------------")
         print("PROVIDER: ", provider_name)
-        print(list(xml.concepts.keys()))
+        print(sorted(list(xml.concepts.keys())))
         print("-------------------------------------------------")
 
     def _debug_codelist(self, xml, provider, provider_name):
         print()
         print("-------------- CODELIST -------------------------")
         print("PROVIDER: ", provider_name)
-        print(list(xml.codelists.keys()))
-        for key in xml.codelists.keys():
+        print(sorted(list(xml.codelists.keys())))
+        for key in sorted(xml.codelists.keys()):
             print('"%s": %s,' % (key, len(xml.codelists[key]["enum"])))
         print("-------------------------------------------------")
 
     def _debug_dimension(self, xml, provider, provider_name):
         print()
         print("-------------- DIMENSION ------------------------")
-        print("PROVIDER: ", provider_name)
-        print(list(xml.dimension_keys))
-        for key in xml.dimension_keys:
-            print('"%s": %s,' % (key, len(xml.dimensions[key]["enum"])))
+        dsd_id = provider["dsd_id"]
+        print("PROVIDER/DATASET: ", provider_name, dsd_id)
+        print(list(xml.dimension_keys_by_dsd[dsd_id]))
+        for key in xml.dimension_keys_by_dsd[dsd_id]:
+            print('"%s": %s,' % (key, len(xml.dimensions_by_dsd[dsd_id][key]["enum"])))
         print("-------------------------------------------------")
 
     def _debug_attribute(self, xml, provider, provider_name):
         print()
         print("-------------- ATTRIBUTE ------------------------")
-        print("PROVIDER: ", provider_name)
-        print(list(xml.attribute_keys))
-        for key in xml.attribute_keys:
-            print('"%s": %s,' % (key, len(xml.attributes[key]["enum"])))
+        dsd_id = provider["dsd_id"]
+        print("PROVIDER/DATASET: ", provider_name, dsd_id)
+        print(list(xml.attribute_keys_by_dsd[dsd_id]))
+        for key in xml.attribute_keys_by_dsd[dsd_id]:
+            print('"%s": %s,' % (key, len(xml.attributes_by_dsd[dsd_id][key]["enum"])))
         print("-------------------------------------------------")
         
     def _debug_dataset(self, xml, provider, provider_name):
         print()
-        print("------------------------ DATASET V1------------------------------")
-        bson = xml_utils.dataset_converter_v1(xml, provider["dataset_code"])
-        pprint(bson, width=120)
-        print("------------------------ DATASET V2 -----------------------------")
-        bson = xml_utils.dataset_converter_v2(xml, provider["dataset_code"])
+        print("------------------------ DATASET --------------------------------")
+        bson = xml_utils.dataset_converter(xml, provider["dataset_code"])
         pprint(bson, width=120)
         print("-----------------------------------------------------------------")
 
@@ -219,48 +236,70 @@ class BaseXMLStructureTestCase(BaseTestCase):
                 self.assertTrue(dataflow_id in xml.dataflows)
 
     def assert_dataflow(self, xml, provider, provider_name):
-        
-        self.assertTrue(provider["dataflow_key"] in list(xml.dataflows.keys()))
+
+        self.assertEqual(provider["dataflow_keys"], sorted(list(xml.dataflows.keys())))
         self.assertEqual(xml.get_dsd_id(provider["dataset_code"]), provider["dsd_id"])
         self.assertEqual(xml.get_dataset_name(provider["dataset_code"]), provider["dataset_name"])        
+
+    def assert_datastructure(self, xml, provider, provider_name):
+
+        self.assertEqual(provider["dsd_ids"], sorted(list(xml.datastructures.keys())))
+        self.assert_dimension(xml, provider, provider_name)
+        self.assert_attribute(xml, provider, provider_name)
 
     def assert_conceptscheme(self, xml, provider, provider_name):
 
         # uniq verify in samples datas
         self.assertEqual(len(provider["concept_keys"]), len(set(provider["concept_keys"])))
 
-        self.assertEqual(list(xml.concepts.keys()), provider["concept_keys"])
+        self.assertEqual(sorted(list(xml.concepts.keys())), provider["concept_keys"])
 
     def assert_codelist(self, xml, provider, provider_name):
         
         # uniq verify in samples datas
         self.assertEqual(len(provider["codelist_keys"]), len(set(provider["codelist_keys"])))        
-        self.assertEqual(list(xml.codelists.keys()), provider["codelist_keys"])
+        self.assertEqual(sorted(list(xml.codelists.keys())), provider["codelist_keys"])
+
+        self.assertEqual(len(provider["codelist_keys"]), len(provider["codelist_count"]))
 
         for key in provider["codelist_keys"]:
             self.assertEqual(len(xml.codelists[key]["enum"].keys()), 
                              provider["codelist_count"][key])
-
+            
     def assert_dimension(self, xml, provider, provider_name):
 
-        self.assertEqual(xml.dimension_keys, provider["dimension_keys"])
+        dsd_id = provider["dsd_id"]
+        dimension_keys = xml.dimension_keys_by_dsd[dsd_id]
+        dimensions = xml.dimensions_by_dsd[dsd_id]
+
+        '''unicity'''
+        self.assertEqual(len(dimension_keys), len(set(dimension_keys)))        
         self.assertEqual(len(provider["dimension_keys"]), len(set(provider["dimension_keys"])))
-        self.assertEqual(len(xml.dimension_keys), len(set(xml.dimension_keys)))
+
+        '''equality'''
+        self.assertEqual(dimension_keys, provider["dimension_keys"])
         self.assertEqual(len(provider["dimension_count"].keys()), len(provider["dimension_keys"]))
 
         for key in provider["dimension_keys"]:
-            self.assertEqual(len(xml.dimensions[key]["enum"].keys()), 
+            self.assertEqual(len(dimensions[key]["enum"].keys()), 
                              provider["dimension_count"][key])
+        
+        #TODO: codelists and concepts ?
         
     def assert_attribute(self, xml, provider, provider_name):
 
-        self.assertEqual(xml.attribute_keys, provider["attribute_keys"])
+        dsd_id = provider["dsd_id"]
+        attribute_keys = xml.attribute_keys_by_dsd[dsd_id]
+        attributes = xml.attributes_by_dsd[dsd_id]
+
+        self.assertEqual(len(attribute_keys), len(set(attribute_keys)))
         self.assertEqual(len(provider["attribute_keys"]), len(set(provider["attribute_keys"])))
-        self.assertEqual(len(xml.attribute_keys), len(set(xml.attribute_keys)))
+
+        self.assertEqual(attribute_keys, provider["attribute_keys"])
         self.assertEqual(len(provider["attribute_count"].keys()), len(provider["attribute_keys"]))
 
         for key in provider["attribute_keys"]:
-            self.assertEqual(len(xml.attributes[key]["enum"].keys()), 
+            self.assertEqual(len(attributes[key]["enum"].keys()), 
                              provider["attribute_count"][key])
         
     def _commons_tests(self, test_name=None):
@@ -285,11 +324,9 @@ class BaseXMLStructureTestCase(BaseTestCase):
             
             if self.is_debug:
                 getattr(self, debug_method)(xml, provider, provider_name)
+            
             getattr(self, assert_method)(xml, provider, provider_name)
             
-            if self.is_debug:
-                self._debug_dataset(xml, provider, provider_name)
-
     def _test_agency(self):
         self._commons_tests("agency")
 
@@ -301,6 +338,9 @@ class BaseXMLStructureTestCase(BaseTestCase):
 
     def _test_dataflow(self):
         self._commons_tests("dataflow")
+        
+    def _test_datastructure(self):
+        self._commons_tests("datastructure")
 
     def _test_conceptscheme(self):
         self._commons_tests("conceptscheme")
@@ -329,15 +369,15 @@ class XMLStructure_1_0_TestCase(BaseXMLStructureTestCase):
     def test_codelist(self):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_codelist
         self._test_codelist()
+
+    def test_dataflow(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_dataflow
+        self._test_dataflow()
         
-    def test_dimension(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_dimension
-        self._test_dimension()
-
-    def test_attribute(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_attribute
-        self._test_attribute()
-
+    def test_datastructure(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_1_0_TestCase.test_datastructure
+        self._test_datastructure()
+    
 class XMLStructure_2_0_TestCase(BaseXMLStructureTestCase):
     
     # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase
@@ -354,13 +394,13 @@ class XMLStructure_2_0_TestCase(BaseXMLStructureTestCase):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_codelist
         self._test_codelist()
         
-    def test_dimension(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_dimension
-        self._test_dimension()
+    def test_dataflow(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_dataflow
+        self._test_dataflow()
 
-    def test_attribute(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_attribute
-        self._test_attribute()
+    def test_datastructure(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_datastructure
+        self._test_datastructure()    
 
 class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
     
@@ -385,6 +425,7 @@ class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_categorisation
         self._test_categorisation()
 
+    @unittest.skipIf(True, "TODO")
     def test_dataflow(self):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_dataflow
         self._test_dataflow()
@@ -396,15 +437,11 @@ class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
     def test_codelist(self):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_codelist
         self._test_codelist()
-        
-    def test_dimension(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_dimension
-        self._test_dimension()
 
-    def test_attribute(self):
-        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_attribute
-        self._test_attribute()
-
+    def test_datastructure(self):
+        # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_datastructure
+        self._test_datastructure()    
+    
 """
 TODO:
 class XMLStructure_2_1_Dataflow_TestCase(BaseXMLStructureTestCase):
@@ -484,46 +521,9 @@ class BaseXMLDataTestCase(BaseTestCase):
             pprint(self.series_list[0])
         else:
             print("NOT SERIES !!!")
+        pprint(xml.dimension_keys)
+        pprint(xml.dimensions)
         print("------------------------------------------------")        
-
-    def _assert_series_v1(self, xml, provider, provider_name, series):
-        """Pour la vérification d'une series avec la structure actuelle
-        """
-        series_sample = provider["series_sample"]
-        first_sample = series_sample["first_value"]
-        last_sample = series_sample["last_value"]
-        first_value = series["values"][0]
-        last_value = series["values"][-1]
-
-        dsd = provider["DSD"]
-        
-        self.assertEqual(first_value, first_sample["value"])
-        self.assertEqual(last_value, last_sample["value"])
-        
-        if dsd["is_completed"]:
-            for key in series["series_attributes"].keys():
-                self.assertTrue(key in dsd["attribute_keys"])
-        
-            for key in series["attributes"].keys():
-                self.assertTrue(key in dsd["attribute_keys"])
-                
-        #TODO: self.assertEqual(len(series["values"]), len(series["attributes"]))
-
-    def _assert_series_v2(self, xml, provider, provider_name, series):
-        """Pour la vérification d'une series avec la future structure
-        """
-        series_sample = provider["series_sample"]
-        first_sample = series_sample["first_value"]
-        last_sample = series_sample["last_value"]
-        first_value = series["values"][0]
-        last_value = series["values"][-1]
-        
-        for source, target in [(first_value, first_sample), (last_value, last_sample)]:
-            self.assertEqual(source["value"], target["value"])
-            self.assertEqual(source["ordinal"], target["ordinal"])
-            self.assertEqual(source["period"], target["period"])
-            self.assertEqual(source["period_o"], target["period_o"])
-            self.assertEqual(source["attributes"], target["attributes"])
 
     def assert_series(self, xml, provider, provider_name):
         
@@ -554,12 +554,21 @@ class BaseXMLDataTestCase(BaseTestCase):
         self.assertTrue(series["end_date"] >= series["start_date"])
         
         self.assertEqual(series["dimensions"], series_sample["dimensions"])
-            
-        if isinstance(series["values"][0], dict):
-            self._assert_series_v2(xml, provider, provider_name, series)
-        else:
-            self._assert_series_v1(xml, provider, provider_name, series)        
 
+        #self._assert_series_v2(xml, provider, provider_name, series)
+        series_sample = provider["series_sample"]
+        first_sample = series_sample["first_value"]
+        last_sample = series_sample["last_value"]
+        first_value = series["values"][0]
+        last_value = series["values"][-1]
+        
+        for source, target in [(first_value, first_sample), (last_value, last_sample)]:
+            self.assertEqual(source["value"], target["value"])
+            self.assertEqual(source["ordinal"], target["ordinal"])
+            self.assertEqual(source["period"], target["period"])
+            #self.assertEqual(source["period_o"], target["period_o"])
+            self.assertEqual(source["attributes"], target["attributes"])
+            
     def _commons_tests(self, test_name=None):
         
         assert_method = "assert_%s" % test_name
@@ -568,8 +577,8 @@ class BaseXMLDataTestCase(BaseTestCase):
         for provider_name, provider in self.samples.items():
             if not provider.get("filepath"):
                 self.fail("not filepath for provider[%s]" % provider_name)
-
-            klass = xml_utils.XLM_KLASS[provider["klass"]] 
+                
+            klass = xml_utils.XML_STRUCTURE_KLASS[provider["klass"]]
             xml = klass(**provider["kwargs"])
             
             self._run(xml, provider["filepath"])
@@ -584,9 +593,6 @@ class BaseXMLDataTestCase(BaseTestCase):
 
 
 class XMLData_1_0_TestCase(BaseXMLDataTestCase):
-    """
-    TODO: voir classe unique pour toutes les implémentations !
-    """
 
     # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_1_0_TestCase
     
