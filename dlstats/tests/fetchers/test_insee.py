@@ -11,41 +11,24 @@ from dlstats import constants
 import unittest
 import httpretty
 
-from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
+from dlstats.tests.fetchers.base import BaseFetcherTestCase
 from dlstats.tests.resources import xml_samples
 
 LOCAL_DATASETS_UPDATE = {
     "IPI-2010-A21": {
-        "concept_keys": ['CARBURANT', 'COMPTE', 'INDICATEUR', 'LOCAL', 'METIER', 
-                         'MONNAIE', 'TYPE-MENAGE', 'NATURE', 'DEVISE', 'IDBANK', 
-                         'ETAT-CONSTRUCTION', 'DEPARTEMENT', 'TIME_PER_COLLECT', 
-                         'QUOTITE-TRAV', 'STATUT', 'GEOGRAPHIE', 'TYPE-RESEAU', 
-                         'TIME_PERIOD', 'TYPE-EMP', 'CHEPTEL', 'TYPE-ETAB', 
-                         'INSTRUMENT', 'TYPE-SURF-ALIM', 'TYPE-VEHICULE', 'INDEX', 
-                         'FORMATION', 'LOGEMENT', 'FACTEUR-INV', 'REVENU', 
-                         'CAT-DE', 'DEST-INV', 'PRATIQUE', 'TYPE-CESS-ENT', 
-                         'FREQUENCE', 'PERIODE', 'CAT-FP', 'UNITE-URBAINE', 
-                         'LAST_UPDATE', 'ANCIENNETE', 'AGE', 'HALO', 
-                         'TAILLE-MENAGE', 'EFFOPE', 'UNIT_MEASURE', 'REGIONS', 
-                         'SPECIALITE-SANTE', 'OPERATION', 'TOURISME-INDIC', 
-                         'TYPE-SAL', 'DIPLOME', 'EXPAGRI', 'UNITE', 'FINANCEMENT', 
-                         'REGION', 'PROD-VEG', 'FORME-EMP', 'FORME-VENTE', 
-                         'IPC-CALC01', 'BASIND', 'BRANCHE', 'ACTIVITE', 
-                         'LOCALISATION', 'CARAC-LOG', 'TYPE-PRIX', 'TYPE-FAMILLE', 
-                         'CLIENTELE', 'OCC-SOL', 'DECIMALS', 'DATE-DEF-ENT', 
-                         'TYPE-CREAT-ENT', 'TITLE', 'PRIX', 'FONCTION', 'TYPE-EVO', 
-                         'TAILLE-ENT', 'CAUSE-DECES', 'MARCHANDISE', 'FREQ', 
-                         'ACCUEIL-PERS-AGEES', 'TYPE-TX-CHANGE', 'CHAMP-GEO', 
-                         'RESIDENCE', 'DEMOGRAPHIE', 'MIN-FPE', 'POPULATION', 
-                         'TYPE-COTIS', 'CORRECTION', 'UNIT_MULT', 'PRODUIT', 
-                         'DEPARTEMENTS', 'REPARTITION', 'SECT-INST', 'ETAB-SCOL', 
-                         'NATURE-FLUX', 'QUESTION', 'OBS_STATUS', 'ZONE-GEO', 
-                         'TYPE-ENT', 'OBS_VALUE', 'REF_AREA', 'COTISATION', 
-                         'TYPE-OE', 'SEXE', 'EMBARGO_TIME', 'TYPE-FLUX', 
-                         'FEDERATION', 'BASE_PER'],
-        "codelist_keys": ['TITLE', 'DECIMALS', 'NATURE', 'PRODUIT', 'LAST_UPDATE', 'FREQ', 
-                          'TIME_PER_COLLECT', 'IDBANK', 'EMBARGO_TIME', 'OBS_STATUS', 'UNIT_MULT', 
-                          'REF_AREA', 'UNIT_MEASURE', 'BASE_PER'],
+        "categories_root": ['COMPTA-NAT', 'CONDITIONS-VIE-SOCIETE', 'DEMO-ENT', 
+                            'ECHANGES-EXT', 'ENQ-CONJ', 'MARCHE-TRAVAIL', 
+                            'POPULATION', 'PRIX', 'PRODUCTION-ENT', 
+                            'SALAIRES-REVENUS', 'SERVICES-TOURISME-TRANSPORT', 
+                            'SRGDP'],
+        "concept_keys": ['REF_AREA', 'OBS_STATUS', 'LAST_UPDATE', 'TITLE', 
+                         'UNIT_MULT', 'IDBANK', 'PRODUIT', 'UNIT_MEASURE', 
+                         'FREQ', 'BASE_PER', 'NATURE', 'DECIMALS', 
+                         'TIME_PER_COLLECT', 'EMBARGO_TIME'],
+        "codelist_keys": ['REF_AREA', 'OBS_STATUS', 'LAST_UPDATE', 'TITLE', 
+                          'UNIT_MULT', 'IDBANK', 'PRODUIT', 'UNIT_MEASURE', 
+                          'FREQ', 'BASE_PER', 'NATURE', 'DECIMALS', 'TIME_PER_COLLECT', 
+                          'EMBARGO_TIME'],
         "codelist_count": {
             "TITLE": 0,
             "DECIMALS": 0,
@@ -75,7 +58,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     }
     DATASET_FIRST = "ACT-TRIM-ANC"
     DATASET_LAST = "TXEMP-AN-FR"
-    DEBUG_MODE = False
+    DEBUG_MODE = True
     
     def _load_files(self, dataset_code):
         
@@ -125,24 +108,43 @@ class FetcherTestCase(BaseFetcherTestCase):
                           self.DATASETS[dataset_code]['filepath'],
                           content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1',
                           match_querystring=True)
+
+    @httpretty.activate     
+    def test_load_datasets_first(self):
+
+        dataset_code = 'IPI-2010-A21'
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    def test_load_datasets_update(self):
+
+        dataset_code = 'IPI-2010-A21'
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_build_data_tree
+
+        dataset_code = 'IPI-2010-A21'
+        self._load_files(dataset_code)
+        self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
+        self.assertDataTree(dataset_code)
         
     @httpretty.activate     
     def test_upsert_dataset_ipi_2010_a21(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_upsert_dataset_ipi_2010_a21
 
-        self._collections_is_empty()
-        
         dataset_code = 'IPI-2010-A21'
 
-        self.DATASETS[dataset_code]["DSD"]["concept_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["concept_keys"]
-        self.DATASETS[dataset_code]["DSD"]["codelist_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_keys"]
-        self.DATASETS[dataset_code]["DSD"]["codelist_count"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_count"]
+        self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
 
         self._load_files(dataset_code)
         
         self.assertProvider()
-        self.assertDataTree(dataset_code)
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
 

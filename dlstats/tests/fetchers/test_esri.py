@@ -10,9 +10,6 @@ import httpretty
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
 
-import unittest
-from unittest import mock
-
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "esri"))
 
 def get_filepath(name):
@@ -70,14 +67,14 @@ DATA_KDED_CY = {
             'value': '105.7',
             'ordinal': 24,
             'period': '1994',
-            'period_o': '1994',
+            #'period_o': '1994',
             'attributes': None,
         },
         'last_value': {
             'value': '95.2',
             'ordinal': 44,
             'period': '2014',
-            'period_o': '2014',
+            #'period_o': '2014',
             'attributes': None
         },
         'dimensions': {
@@ -157,12 +154,41 @@ class FetcherTestCase(BaseFetcherTestCase):
     DATASET_LAST = "kritu-mk"
     DEBUG_MODE = False
     
-    def _common(self):
+    def _load_files(self, dataset_code=None):
         
         for url, filename in ESRI_HTML_PAGES:
             filepath = get_filepath(filename)
             self.assertTrue(os.path.exists(filepath))
             self.register_url(url, filepath, content_type='text/html')
+            
+    def _load_files_dataset_kdef_cy(self):
+        url = "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/kdef-cy1532.csv"
+        self.register_url(url, self.DATASETS["kdef-cy"]["filepath"],
+                          content_type='text/html')
+
+    @httpretty.activate     
+    def test_load_datasets_first(self):
+
+        dataset_code = "kdef-cy"
+        self._load_files(dataset_code)
+        self._load_files_dataset_kdef_cy()
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    def test_load_datasets_update(self):
+
+        dataset_code = "kdef-cy"
+        self._load_files(dataset_code)
+        self._load_files_dataset_kdef_cy()
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        dataset_code = "kdef-cy"
+        self._load_files(dataset_code)
+        self.assertDataTree(dataset_code)
+        
         
     @httpretty.activate     
     def test_upsert_dataset_kdef_cy(self):
@@ -170,15 +196,10 @@ class FetcherTestCase(BaseFetcherTestCase):
         # nosetests -s -v dlstats.tests.fetchers.test_esri:FetcherTestCase.test_upsert_dataset_kdef_cy
         
         dataset_code = "kdef-cy"
-        
-        self._common()
-
-        url = "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/kdef-cy1532.csv"
-        self.register_url(url, self.DATASETS[dataset_code]["filepath"],
-                          content_type='text/html')
+        self._load_files(dataset_code)
+        self._load_files_dataset_kdef_cy()
     
         self.assertProvider()
-        self.assertDataTree(dataset_code)    
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
 
@@ -188,15 +209,13 @@ class FetcherTestCase(BaseFetcherTestCase):
         # nosetests -s -v dlstats.tests.fetchers.test_esri:FetcherTestCase.test_upsert_dataset_kritu_jg
         
         dataset_code = "kritu-jg"
-        
-        self._common()
+        self._load_files(dataset_code)
 
         url = "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/kritu-jg1532.csv"
         self.register_url(url, self.DATASETS[dataset_code]["filepath"],
                           content_type='text/html')
     
         self.assertProvider()
-        self.assertDataTree(dataset_code)    
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
 

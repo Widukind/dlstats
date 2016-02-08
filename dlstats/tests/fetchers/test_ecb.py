@@ -8,7 +8,6 @@ import pytz
 
 from dlstats.fetchers.ecb import ECB as Fetcher
 
-import unittest
 import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
@@ -23,6 +22,7 @@ ALL_DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-all-dataflow.
 
 LOCAL_DATASETS_UPDATE = {
     "EXR": {
+        "concept_keys": ['CURRENCY', 'EXR_SUFFIX', 'TITLE', 'CURRENCY_DENOM', 'DECIMALS', 'OBS_CONF', 'TIME_FORMAT', 'EXR_TYPE', 'SOURCE_PUB', 'OBS_COM', 'DOM_SER_IDS', 'UNIT_INDEX_BASE', 'OBS_STATUS', 'FREQ', 'PUBL_MU', 'PUBL_PUBLIC', 'SOURCE_AGENCY', 'OBS_PRE_BREAK', 'COLLECTION', 'COMPILATION', 'NAT_TITLE', 'COVERAGE', 'BREAKS', 'PUBL_ECB', 'TITLE_COMPL', 'UNIT_MULT', 'UNIT'],
         "codelist_keys": ['OBS_COM', 'DOM_SER_IDS', 'EXR_TYPE', 'COVERAGE', 'UNIT_INDEX_BASE', 'COLLECTION', 'FREQ', 'BREAKS', 'EXR_SUFFIX', 'DECIMALS', 'TITLE', 'OBS_STATUS', 'COMPILATION', 'PUBL_MU', 'SOURCE_PUB', 'TITLE_COMPL', 'NAT_TITLE', 'PUBL_PUBLIC', 'CURRENCY', 'OBS_PRE_BREAK', 'CURRENCY_DENOM', 'OBS_CONF', 'PUBL_ECB', 'UNIT', 'TIME_FORMAT', 'SOURCE_AGENCY', 'UNIT_MULT'],
         "codelist_count": {
             "OBS_COM": 0,
@@ -97,7 +97,7 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type=dsd_content_type,
                           match_querystring=True)
         
-        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=children"
+        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all"
         self.register_url(url, 
                           filepaths["datastructure"],
                           content_type=dsd_content_type,
@@ -107,30 +107,45 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.register_url(url, 
                           self.DATASETS[dataset_code]['filepath'],
                           content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1')
+
+    @httpretty.activate     
+    def test_load_datasets_first(self):
+
+        dataset_code = 'EXR'
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    def test_load_datasets_update(self):
+
+        dataset_code = 'EXR'
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        dataset_code = 'EXR'
+        self._load_files(dataset_code)
+        self.assertDataTree(dataset_code)
         
     @httpretty.activate     
     def test_upsert_dataset_exr(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_upsert_dataset_exr
 
-        self._collections_is_empty()
-         
         dataset_code = 'EXR'
-
-        self.DATASETS[dataset_code]["DSD"]["codelist_keys"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_keys"]
-        self.DATASETS[dataset_code]["DSD"]["codelist_count"] = LOCAL_DATASETS_UPDATE[dataset_code]["codelist_count"]
-
+        self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
         self._load_files(dataset_code)
         
         self.assertProvider()
-        self.assertDataTree(dataset_code)
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
-
-    @httpretty.activate
-    def test_parse_agenda(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_parse_agenda
+    @httpretty.activate
+    def test__parse_agenda(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test__parse_agenda
         
         httpretty.register_uri(httpretty.GET,
                                "http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
@@ -144,7 +159,7 @@ class FetcherTestCase(BaseFetcherTestCase):
                  'scheduled_date': '10/04/2017 10:00 CET'}
 
         #TODO: test first and last
-        self.assertEqual(list(self.fetcher.parse_agenda())[-1], model)
+        self.assertEqual(list(self.fetcher._parse_agenda())[-1], model)
 
     @httpretty.activate
     def test_get_calendar(self):

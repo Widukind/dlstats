@@ -123,35 +123,55 @@ class FetcherTestCase(BaseFetcherTestCase):
     DATASET_LAST = "PP-SS"
     DEBUG_MODE = False
 
-    def _common(self, dataset_code):
+    def _load_files(self, dataset_code):
         url = FETCHER_DATASETS[dataset_code]["url"]
         self.register_url(url, 
                           self.DATASETS[dataset_code]["filepath"])
-    
+
+    @httpretty.activate     
+    def test_load_datasets_first(self):
+
+        dataset_code = "DSRP"
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    def test_load_datasets_update(self):
+
+        dataset_code = "DSRP"
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        dataset_code = "DSRP"
+        self.assertDataTree(dataset_code)
+            
     @httpretty.activate     
     def test_upsert_dataset_dsrp(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_bis:FetcherTestCase.test_upsert_dataset_dsrp
-        
+    
         dataset_code = "DSRP"
         
-        self._common(dataset_code)
+        self._load_files(dataset_code)
     
         self.assertProvider()
-        self.assertDataTree(dataset_code)    
+        #self.assertDataTree(dataset_code)    
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
 
     @httpretty.activate     
-    def test_dsrp_updated(self):
+    def test_dsrp_revision(self):
         
-        # nosetests -s -v dlstats.tests.fetchers.test_bis:FetcherTestCase.test_dsrp_updated
+        # nosetests -s -v dlstats.tests.fetchers.test_bis:FetcherTestCase.test_dsrp_revision
         
-        #Updated for revisions or other field: start/end date
+        #TODO: update for add value
         
         dataset_code = "DSRP"
         
-        self._common(dataset_code)
+        self._load_files(dataset_code)
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
         
@@ -159,36 +179,31 @@ class FetcherTestCase(BaseFetcherTestCase):
                  "dataset_code": dataset_code}
 
         old_bson = self.db[constants.COL_SERIES].find_one(query)
-        _id = old_bson["_id"]
-        #print("KEY : ", old_bson["key"])
+        backup_value = old_bson["values"][0]["value"]  
         
-        '''Change first value for one series'''
-        old_value = old_bson["values"][0]["value"]  
-        old_bson["values"][0]["value"] = "100"
-        query_update = {"$set": {"values.0": old_bson["values"][0]}}
-        result = self.db[constants.COL_SERIES].find_one_and_update({"_id": _id}, 
-                                                                    query_update)
-        self.assertIsNotNone(result)
+        '''Modify first value'''
+        query_update = {"$set": {"values.0.value": "5555555555"}}
+        result = self.db[constants.COL_SERIES].update_one({"_id": old_bson["_id"]}, 
+                                                          query_update)
+        self.assertEqual(result.modified_count, 1)
 
-        '''Change last_update for dataset'''        
-        doc = self.db[constants.COL_DATASETS].find_one(query)
-        old_date = doc["last_update"]
-        new_date = datetime.datetime(old_date.year -1, old_date.month, old_date.day)
-        ds_query_update = {"$set": {"last_update": new_date}}
-        result = self.db[constants.COL_DATASETS].find_one_and_update({"_id": doc["_id"]},
-                                                                     ds_query_update)
+        '''Modify dataset.last_udpate for force load data'''
+        query_update = {"$set": {"last_update": datetime.datetime(1970, 1, 1, 0, 0, 0)}}
+        result = self.db[constants.COL_DATASETS].update_one(query, query_update)
+        self.assertIsNotNone(result)
+        self.assertEqual(result.modified_count, 1)
         
         '''Reload upsert_dataset process'''
         result = self.fetcher.upsert_dataset(dataset_code)
         self.assertIsNotNone(result)
 
-        '''Load series modified'''        
-        series = self.db[constants.COL_SERIES].find_one({"_id": _id})
-        self.assertIsNotNone(series)
+        '''Load series from db after update'''
+        new_bson = self.db[constants.COL_SERIES].find_one({"_id": old_bson["_id"]})
+        self.assertIsNotNone(new_bson)
         
-        self.assertTrue("revisions" in series["values"][0])
-        self.assertEqual(series["values"][0]["value"], old_value)
-        self.assertEqual(series["values"][0]["revisions"][0]["value"], "100")
+        self.assertTrue("revisions" in new_bson["values"][0])
+        self.assertEqual(new_bson["values"][0]["value"], backup_value)
+        self.assertEqual(new_bson["values"][0]["revisions"][0]["value"], "5555555555")
         
 
     @httpretty.activate     
@@ -223,7 +238,7 @@ class CalendarTestCase(BaseDBTestCase):
                                streaming=True)
 
     @httpretty.activate
-    def test_parse_agenda(self):
+    def test__parse_agenda(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_bis:LightBISDatasetsDBTestCase.test_parse_agenda
         
@@ -262,7 +277,7 @@ class CalendarTestCase(BaseDBTestCase):
              ['BIS Statistical Bulletin', None, '6', None, None, '6', None, None]
         ]
         
-        agenda = self.fetcher.parse_agenda()
+        agenda = self.fetcher._parse_agenda()
         self.assertEqual(agenda, attempt)
                     
     @httpretty.activate

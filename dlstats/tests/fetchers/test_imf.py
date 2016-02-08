@@ -4,7 +4,6 @@ from datetime import datetime
 import os
 
 from dlstats.fetchers.imf import IMF as Fetcher
-from dlstats.fetchers.imf import DATASETS as FETCHER_DATASETS
 
 import httpretty
 
@@ -91,7 +90,7 @@ DATA_WEO = {
     }
 }
 
-def weo_urls_patch():
+def weo_urls_patch(self):
     return [
         "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls"
     ]
@@ -108,7 +107,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     DATASET_LAST = "WEO"
     DEBUG_MODE = False
 
-    def _common(self, dataset_code):
+    def _load_files(self, dataset_code):
         """
         TODO:
         http://www.imf.org/external/pubs/ft/weo/2015/02/weodata/download.aspx
@@ -118,24 +117,45 @@ class FetcherTestCase(BaseFetcherTestCase):
         url = "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls"
         self.register_url(url, 
                           self.DATASETS[dataset_code]["filepath"])
+
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch)
+    def test_load_datasets_first(self):
+
+        dataset_code = "WEO"
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch)
+    def test_load_datasets_update(self):
+
+        dataset_code = "WEO"
+        self._load_files(dataset_code)
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        dataset_code = "WEO"
+        self.assertDataTree(dataset_code)
     
     @httpretty.activate     
-    @mock.patch('dlstats.fetchers.imf.weo_urls', weo_urls_patch)
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch)
     def test_upsert_dataset_weo(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_upsert_dataset_weo
         
         dataset_code = "WEO"
-        
-        self._common(dataset_code)
+        self._load_files(dataset_code)
     
         self.assertProvider()
-        self.assertDataTree(dataset_code)    
+        #self.assertDataTree(dataset_code)    
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
 
     @httpretty.activate     
-    @mock.patch('dlstats.fetchers.imf.weo_urls', weo_urls_patch)
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch)
     @unittest.skipIf(True, "TODO")    
     def test_updated_dataset(self):
 
@@ -147,7 +167,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         """
         
         dataset_code = "WEO"
-        self._common(dataset_code)
+        self._load_files(dataset_code)
     
         self.assertProvider()
         self.assertDataset(dataset_code)        

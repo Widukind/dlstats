@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
 import os
-import datetime
-import json
-
 from dlstats.fetchers.oecd import OECD as Fetcher
-from dlstats.fetchers.oecd import json_dataflow, json_data, load_dataflow, load_data
 
-import unittest
 from unittest import mock
 import httpretty
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
-from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
+from dlstats.tests.fetchers.base import BaseFetcherTestCase
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "oecd"))
 
@@ -231,9 +225,11 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type="application/vnd.sdmx.draft-sdmx-json+json;version=2.1",
                           match_querystring=False)
         
-
+    """
     @httpretty.activate  
-    def test_load_dataflow(self):
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_url_data', _get_url_data_mock_MEI)
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._select_filter_dimension', _select_filter_dimension_mock_MEI)             
+    def test_load_json_dataflow(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_oecd:FetcherTestCase.test_load_dataflow
 
@@ -255,7 +251,9 @@ class FetcherTestCase(BaseFetcherTestCase):
                           'FREQUENCY', 'TIME_PERIOD'])
         
     @httpretty.activate  
-    def test_load_data(self):
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_url_data', _get_url_data_mock_MEI)
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._select_filter_dimension', _select_filter_dimension_mock_MEI)             
+    def test_load_json_data(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_oecd:FetcherTestCase.test_load_data
 
@@ -266,15 +264,42 @@ class FetcherTestCase(BaseFetcherTestCase):
 
         rows, filepath, status_code, response = load_data(url, dataset_code)
         
-        """
-        http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/FRA.XTNTVA01..A
-        http://stats.oecd.org/sdmx-json/data/MEI/FRA.XTNTVA01..A
-        """
+        #http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/FRA.XTNTVA01..A
+        #http://stats.oecd.org/sdmx-json/data/MEI/FRA.XTNTVA01..A
         
         self.assertEqual(len(rows), 4)
         self.assertEqual(rows[0]["key_o"], "0:0:0:0")
         self.assertEqual(rows[-1]["key_o"], "0:0:3:0")
+    """
+    
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_url_data', _get_url_data_mock_MEI)
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._select_filter_dimension', _select_filter_dimension_mock_MEI)             
+    def test_load_datasets_first(self):
 
+        dataset_code = "MEI"
+        self._load_url_structure(dataset_code)
+        url = "http://stats.oecd.org/sdmx-json/data/MEI/FRA.BPFAFD01.."
+        self._load_url_data(dataset_code, url)
+        self.assertLoadDatasetsFirst([dataset_code])
+
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_url_data', _get_url_data_mock_MEI)
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._select_filter_dimension', _select_filter_dimension_mock_MEI)             
+    def test_load_datasets_update(self):
+
+        dataset_code = "MEI"
+        self._load_url_structure(dataset_code)
+        url = "http://stats.oecd.org/sdmx-json/data/MEI/FRA.BPFAFD01.."
+        self._load_url_data(dataset_code, url)
+        self.assertLoadDatasetsUpdate([dataset_code])
+
+    @httpretty.activate     
+    def test_build_data_tree(self):
+
+        dataset_code = "MEI"
+        self._load_url_structure(dataset_code)
+        self.assertDataTree(dataset_code)
 
     @httpretty.activate
     @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_url_data', _get_url_data_mock_MEI)
@@ -290,7 +315,6 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_url_data(dataset_code, url)
     
         self.assertProvider()
-        self.assertDataTree(dataset_code)
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
         
