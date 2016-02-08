@@ -67,7 +67,7 @@ dataset_schema = Schema({
     'name': All(str, Length(min=1)),
     'provider_name': All(str, Length(min=1)),
     'dataset_code': All(str, Length(min=1)),
-    'doc_href': Any(None,str),
+    'doc_href': Any(None, str),
     'last_update': typecheck(datetime),
 
     'dimension_list': Any(None, {str: [All()]}),
@@ -79,7 +79,7 @@ dataset_schema = Schema({
     'concepts': Any(None, dict),
     
     'metadata': Any(None, dict),
-    Optional('notes'): str,
+    Optional('notes'): Any(None, str),
     'slug': All(str, Length(min=1)),
     'download_first': typecheck(datetime),
     'download_last': typecheck(datetime),
@@ -87,6 +87,7 @@ dataset_schema = Schema({
 
 series_revision_schema = Schema({
     'value': str,
+    'attributes': Any(None, dict),
     'revision_date': date_validator,
 }, required=True)
 
@@ -94,7 +95,6 @@ series_value_schema = Schema({
     'value': str,
     'release_date': date_validator,
     'ordinal': int,
-    'period_o': All(str, Length(min=1)),
     'period': All(str, Length(min=1)),
     'attributes': Any(None, dict),
     Optional('revisions'): [series_revision_schema],
