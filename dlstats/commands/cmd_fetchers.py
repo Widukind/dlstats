@@ -59,8 +59,20 @@ def cmd_dataset_list(fetcher, **kwargs):
         ctx.log_error("Not datasets for this fetcher")
         return
 
+    fmt = "{0:20} | {1:70} | {2:10}"
+    print("---------------------------------------------------------------------------------------------------------------------------")
+    print(fmt.format("Dataset Code", "Dataset Name", "Last Update"))
+    print("---------------------------------------------------------------------------------------------------------------------------")
+
     for dataset in datasets:
-        print(dataset["dataset_code"], dataset["name"])
+        last_update = ""
+        if dataset.get('last_update'):
+            last_update = str(dataset['last_update'].strftime("%Y-%m-%d"))
+        print(fmt.format(dataset["dataset_code"], 
+                         dataset["name"], 
+                         last_update))
+
+    print("---------------------------------------------------------------------------------------------------------------------------")
 
 @cli.command('datatree', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
@@ -69,9 +81,12 @@ def cmd_dataset_list(fetcher, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
+@client.opt_requests_cache_enable
+@client.opt_requests_cache_path
+@client.opt_requests_cache_expire
 @click.option('--force', is_flag=True, help="Force update")
 @opt_fetcher
-def cmd_update_data_tree(fetcher=None, force=False, **kwargs):
+def datatree(fetcher=None, force=False, **kwargs):
     """Create or Update fetcher Data-Tree"""
 
     ctx = client.Context(**kwargs)
@@ -154,14 +169,18 @@ def cmd_calendar(fetcher=None, **kwargs):
 @client.opt_logger_conf
 @client.opt_logger_file
 @client.opt_mongo_url
+@client.opt_cache_enable
+@client.opt_requests_cache_enable
+@client.opt_requests_cache_path
+@client.opt_requests_cache_expire
 @click.option('--max-errors', '-M', default=5, type=int, 
               show_default=True, help='Max errors accepted.')
-@click.option('--data-tree', is_flag=True,
+@click.option('--datatree', is_flag=True,
               help='Update data-tree before run.')
 @opt_fetcher
 @opt_dataset
 def cmd_run(fetcher=None, dataset=None, 
-            max_errors=0, data_tree=False, **kwargs):
+            max_errors=0, datatree=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
     ctx = client.Context(**kwargs)
@@ -178,11 +197,11 @@ def cmd_run(fetcher=None, dataset=None,
             ctx.log_error("Operation cancelled !")
             return
         
-        if data_tree:
+        if datatree:
             f.upsert_data_tree(force_update=True)
         
         if dataset:
-            f.upsert_dataset(dataset)
+            f.wrap_upsert_dataset(dataset)
         else:
             f.upsert_all_datasets()
         
@@ -258,13 +277,11 @@ def cmd_report(fetcher=None, **kwargs):
               default=100, 
               show_default=True,
               help='Max Bulk')
-@click.option('-g', '--aggregate', is_flag=True, 
-              help='Run aggregate tags after update.')
 @click.option('-u', '--update-only', is_flag=True, 
               help='Update only if not tags in document')
 @click.option('-n', '--dry-mode', is_flag=True, help="Dry Mode")
 def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100, 
-                    aggregate=False, update_only=False, async_mode=None, 
+                    update_only=False, async_mode=None, 
                     dry_mode=False, **kwargs):
     """Create or Update field tags"""
     
@@ -277,7 +294,6 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
     dlstats fetchers tag -f Eurostat -d nama_10_a10 -S
     dlstats fetchers tag -f OECD -d MEI -S
     
-    dlstats fetchers tag -f BIS -d CNFS -S --aggregate
     """
     if async_mode == "gevent":
         from gevent import monkey
@@ -337,12 +353,46 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
         
         ctx.log("END update tags for [%s] - time[%.3f]" % (fetcher, end))
         
-        if aggregate:
-            ctx.log("Aggregate Datasets tags...")
-            result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
-            #ctx.log("Aggregate Series tags...")
-            #result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
-            #TODO: aggregate categories
+@cli.command('tags-aggregate', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_quiet
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@opt_async_mode
+@click.option('--max-bulk', '-M', 
+              type=click.INT,
+              default=100, 
+              show_default=True,
+              help='Max Bulk')
+@click.option('-u', '--update-only', is_flag=True, 
+              help='Update only if not tags in document')
+def cmd_aggregate_tags(max_bulk=100, update_only=False, async_mode=None, 
+                       **kwargs):
+    """Create or Update field tags"""
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log("START aggregate tags")
+    
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        start = time.time()
+        
+        db = ctx.mongo_database()
+
+        ctx.log("Aggregate Datasets tags...")
+        result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
+
+        #ctx.log("Aggregate Series tags...")
+        #result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
+        #TODO: aggregate categories
+
+        end = time.time() - start
+        
+        ctx.log("END aggregate tags time[%.3f]" % end)        
 
 @cli.command('search', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
