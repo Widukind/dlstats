@@ -25,12 +25,12 @@ try:
 except ImportError:
     pass
 
-#try:
-#    from dlstats.fetchers.world_bank import WorldBank
-#    FETCHERS['WORLDBANK'] = WorldBank
-#    __all__.append('WorldBank')
-#except ImportError:
-#    pass
+try:
+    from dlstats.fetchers.world_bank import WorldBankAPI
+    FETCHERS['WORLDBANK'] = WorldBankAPI
+    __all__.append('WorldBankAPI')
+except ImportError:
+    pass
 
 try:
     from dlstats.fetchers.imf import IMF
