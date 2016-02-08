@@ -12,17 +12,16 @@ from datetime import datetime
 import logging
 import zipfile
 import os
-import time
 
 from lxml import etree
 
 from dlstats import errors
 from dlstats import constants
 from dlstats.utils import Downloader, remove_file_and_dir
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator, Categories
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLCompactData_2_0_EUROSTAT as XMLData,
-                               dataset_converter_v2 as dataset_converter)
+                               dataset_converter)
 
 TABLE_OF_CONTENT_NSMAP = {'nt': 'urn:eu.europa.ec.eurostat.navtree',
                           'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
@@ -39,8 +38,6 @@ xpath_ds_metadata_html = etree.XPath("nt:metadata[@format='html']/text()", names
 xpath_ds_data_start = etree.XPath("nt:dataStart/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_data_end = etree.XPath("nt:dataEnd/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_values = etree.XPath("nt:values/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
-
-__all__ = ['Eurostat']
 
 VERSION = 3
 
@@ -76,24 +73,26 @@ def extract_zip_file(zipfilepath):
                                                   os.path.dirname(zipfilepath))})
     return filepaths
 
+def make_url(dataset_code):
+    return("http://ec.europa.eu/eurostat/" +
+           "estat-navtree-portlet-prod/" +
+           "BulkDownloadListing?sort=1&file=data/" +
+           dataset_code + ".sdmx.zip")
+
 class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     
     def __init__(self, **kwargs):
-        super().__init__(provider_name='Eurostat', **kwargs)
+        super().__init__(provider_name='EUROSTAT', version=VERSION, **kwargs)
         
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name,
-                                      long_name='Eurostat',
-                                      version=VERSION,
-                                      region='Europe',
-                                      website='http://ec.europa.eu/eurostat',
-                                      fetcher=self)
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Eurostat',
+                                  version=VERSION,
+                                  region='Europe',
+                                  website='http://ec.europa.eu/eurostat',
+                                  fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-        
-        self.selected_codes = [
+        self.categories_filter = [
             'nama_10', 
             'namq_10', 
             'nasa_10', 
@@ -112,27 +111,27 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q'
         ]
-        self.selected_datasets = {}
+
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
         self._concepts = OrderedDict()
         self._codelists = OrderedDict()        
         
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         """Builds the data tree
         
         Pour créer les categories, ne prend que les branch dont l'un des <code> 
-        de la branch se trouvent dans selected_codes
+        de la branch se trouvent dans categories_filter
         
         Même chose pour les datasets. Prend le category_code du parent
-        et verifie si il est dans selected_codes
+        et verifie si il est dans categories_filter
         """
         
-        start = time.time()
-        logger.info("build_data_tree provider[%s] - START" % self.provider_name)
-        
-        filepath = self.get_table_of_contents()
+        download = Downloader(url=self.url_table_of_contents, 
+                              filename="table_of_contents.xml",
+                              store_filepath=self.store_path)
+        filepath = download.get_filepath()
         
         categories = []
         categories_keys = []
@@ -142,7 +141,7 @@ class Eurostat(Fetcher):
         def is_selected(parent_codes):
             """parent_codes is array of category_code
             """
-            for _select in self.selected_codes: 
+            for _select in self.categories_filter: 
                 if _select in parent_codes:
                     return True
             return False
@@ -203,7 +202,7 @@ class Eurostat(Fetcher):
                             dataset_code = xpath_code(dataset)[0]
                             _category = get_category(parent_codes[-1]) 
 
-                            '''Verifie si au moins un des category_code est dans selected_codes'''
+                            '''Verifie si au moins un des category_code est dans categories_filter'''
                             if not is_selected(parent_codes):
                                 continue
 
@@ -236,51 +235,14 @@ class Eurostat(Fetcher):
                         child.clear()
                     element.clear()
 
-        end = time.time() - start
-        logger.info("build_data_tree load provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
-        remove_file_and_dir(filepath)
+        remove_file_and_dir(filepath, let_root=True)
 
         return categories
         
-    def get_table_of_contents(self):
-        return Downloader(url=self.url_table_of_contents, 
-                              filename="table_of_contents.xml").get_filepath()
-
-    def get_selected_datasets(self, force=False):
-        """Collects the dataset codes that are in table of contents
-        below the ones indicated in "selected_codes" provided in configuration
-        :returns: list of dict of dataset settings"""
-        
-        if self.selected_datasets and not force:
-            return self.selected_datasets  
-
-        if Categories.count(self.provider_name, db=self.db) == 0:
-            self.upsert_data_tree()
-        
-        query = {
-            "$or": [
-                 {"category_code": {"$in": self.selected_codes}},
-                 {"all_parents": {"$in": self.selected_codes}},
-            ],
-            "datasets.0": {"$exists": True}
-        }
-        
-        categories = Categories.categories(self.provider_name, db=self.db, **query)
-        for category in categories.values():
-            for d in category["datasets"]:
-                self.selected_datasets[d['dataset_code']] = d
-        
-        return self.selected_datasets
-
     def upsert_dataset(self, dataset_code):
         """Updates data in Database for selected datasets
         """
-        
         self.get_selected_datasets()
-
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
 
         doc = self.db[constants.COL_DATASETS].find_one(
             {'provider_name': self.provider_name, 'dataset_code': dataset_code},
@@ -289,10 +251,10 @@ class Eurostat(Fetcher):
         dataset_settings = self.selected_datasets[dataset_code]
         
         if doc and  doc['last_update'] >= dataset_settings['last_update']:
-            end = time.time() - start
-            msg = "bypass updated dataset[%s] - last_update[%s] - END - time[%.3f seconds]"
-            logger.info(msg % (dataset_code, doc['last_update'], end))
-            return
+            comments = "update-date[%s]" % doc['last_update']
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=self.dataset_code,
+                                              comments=comments)            
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code, 
@@ -301,86 +263,60 @@ class Eurostat(Fetcher):
                            last_update=dataset_settings["last_update"], 
                            fetcher=self)
 
-        data_iterator = EurostatData(dataset, 
-                                     filename=dataset_code,
-                                     fetcher=self)
-        dataset.series.data_iterator = data_iterator
-        result = dataset.update_database()
-
-        end = time.time() - start
-        msg = "upsert dataset[%s] - BULK[%s] - END - time[%.3f seconds]"
-        logger.info(msg % (dataset_code, dataset.bulk_size, end))
+        dataset.series.data_iterator = EurostatData(dataset)
         
-        return result
-
-    def load_datasets_first(self):
-        self.get_selected_datasets()
-
-        start = time.time()
-        logger.info("first load provider[%s] - START" % (self.provider_name))
-
-        for dataset_code in self.selected_datasets.keys():
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-
-        end = time.time() - start
-        logger.info("first load provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
+        return dataset.update_database()
+    
     def load_datasets_update(self):
-        self.get_selected_datasets()
-        
-        start = time.time()
-        logger.info("update provider[%s] - START" % (self.provider_name))
 
-        selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider_name': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+        datasets_list = self.datasets_list()
+        dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
+        
+        #TODO: enable ?
+        cursor = self.db[constants.COL_DATASETS].find(
+            {'provider_name': self.provider_name, 
+             'dataset_code': {'$in': dataset_codes}},
             {'dataset_code': 1, 'last_update': 1})
 
-        selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
+        selected_datasets = {s['dataset_code'] : s for s in cursor}
 
-        for dataset_code, dataset in self.selected_datasets.items():
+        for dataset in datasets_list:
+            dataset_code = dataset["dataset_code"]
+            
             if (dataset_code not in selected_datasets) or (selected_datasets[dataset_code]['last_update'] < dataset['last_update']):
                 try:
-                    self.upsert_dataset(dataset_code)
+                    self.wrap_upsert_dataset(dataset_code)
                 except Exception as err:
                     if isinstance(err, errors.MaxErrors):
                         raise
-                    logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-
-        end = time.time() - start
-        logger.info("update provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+                    msg = "error for provider[%s] - dataset[%s]: %s"
+                    logger.critical(msg % (self.provider_name, 
+                                           dataset_code, 
+                                           str(err)))
 
 
 class EurostatData(SeriesIterator):
 
-    def __init__(self, dataset=None, filename=None, fetcher=None):
-        super().__init__()        
-        self.dataset = dataset
-        self.filename = filename
-        self.fetcher = fetcher
+    def __init__(self, dataset):
+        super().__init__(dataset)
 
-        self.attribute_list = self.dataset.attribute_list
-        self.dimension_list = self.dataset.dimension_list
-        self.provider_name = self.dataset.provider_name
-        self.dataset_code = self.dataset.dataset_code
-        self.dataset_url = self.make_url()
+        self.dataset_url = make_url(self.dataset_code)
         
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)
         self.xml_dsd.concepts = self.fetcher._concepts        
-        self.xml_dsd.codelists = self.fetcher._codelists        
+        self.xml_dsd.codelists = self.fetcher._codelists
         
-        self.rows = None
-
+        self.store_path = self.get_store_path()
+        
+        self.exclude_attributes = ["TIME_FORMAT"]        
+        
         self._load()
 
     def _load(self):
         
         download = Downloader(url=self.dataset_url, 
-                              filename="data-%s.zip" % self.dataset_code)
+                              filename="data-%s.zip" % self.dataset_code,
+                              store_filepath=self.store_path)
         
         filepaths = (extract_zip_file(download.get_filepath()))
         dsd_fp = filepaths[self.dataset_code + ".dsd.xml"]        
@@ -394,36 +330,36 @@ class EurostatData(SeriesIterator):
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                dimension_keys=self.xml_dsd.dimension_keys,
-                                dimensions=self.xml_dsd.dimensions)
-        
+                                xml_dsd=self.xml_dsd,
+                                #TODO: frequencies_supported=FREQUENCIES_SUPPORTED
+                                )        
         self.rows = self.xml_data.process(data_fp)
 
     def _set_dataset(self):
-        
-        dimensions = OrderedDict()
-        for key, item in self.xml_dsd.dimensions.items():
-            dimensions[key] = item["enum"]
-        self.dimension_list.set_dict(dimensions)
-        
-        attributes = OrderedDict()
-        for key, item in self.xml_dsd.attributes.items():
-            attributes[key] = item["enum"]
-        self.attribute_list.set_dict(attributes)
-        
-        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
-        self.dataset.dimension_keys = dataset["dimension_keys"] 
-        self.dataset.concepts = dataset["concepts"] 
-        self.dataset.codelists = dataset["codelists"] 
 
-    def make_url(self):
-        return("http://ec.europa.eu/eurostat/" +
-               "estat-navtree-portlet-prod/" +
-               "BulkDownloadListing?sort=1&file=data/" +
-               self.dataset_code + ".sdmx.zip")
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+        self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.attribute_keys = [attr for attr in dataset.get("attribute_keys", []) if not attr in self.exclude_attributes] 
+        self.dataset.concepts = dataset["concepts"] 
+        self.dataset.codelists = dataset["codelists"]
+        
+        for attr in self.exclude_attributes:
+            self.dataset.concepts.pop(attr, None)
+            self.dataset.codelists.pop(attr, None)
+        
+        self.dataset.dimension_list.set_dict(dataset["dimensions"])
+        self.dataset.attribute_list.set_dict(dataset["attributes"])
+
+    def clean_field(self, bson):
+        bson = super().clean_field(bson)
+        #TODO: remove in dataset ?
+        #TODO: remove in values.*.attributes
+        for attr in self.exclude_attributes:
+            bson.get("attributes", {}).pop(attr, None)
+        return bson
 
     def build_series(self, bson):
+        self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
         return bson
 

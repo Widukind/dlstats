@@ -1,24 +1,20 @@
 # -*- coding: utf-8 -*-
 
-import os
-import tempfile
-import time
 from datetime import datetime
 import logging
-from collections import OrderedDict
 import re
 
 import lxml.html
 import pytz
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats.utils import Downloader, remove_file_and_dir
+from dlstats import utils
 from dlstats import errors
-from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
-                               XMLStructure_2_1 as XMLStructure, 
+from dlstats.xml_utils import (XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_ECB as XMLData,
-                               dataset_converter_v2 as dataset_converter)
+                               dataset_converter)
 
+HTTP_ERROR_NOT_MODIFIED = 304
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
@@ -31,26 +27,53 @@ logger = logging.getLogger(__name__)
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
-CACHE_EXPIRE = 60 * 60 * 4 #4H
+#TODO: intégré à metadata du provider ou du dataset ?
+FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
+FREQUENCIES_REJECTED = ["E", "B", "H", "N", "S"] 
+
+"""
+https://sdw-wsrest.ecb.europa.eu/service/codelist/ECB/CL_FREQ
+https://sdw-wsrest.ecb.europa.eu/service/dataflow/ECB/EXR?references=all
+https://sdw-wsrest.ecb.europa.eu/service/data/EXR/.ARS...
+A: Annual (2015)
+B: Business (Pas d'exemple)
+D: Daily (2000-01-13)
+E: Event (not supported)
+H: Half-yearly (2000-S2)
+M: Monthly (2000-02)
+N: Minutely (Pas d'exemple)
+Q: Quarterly (2000-Q2)
+S: Half Yearly, semester (value H exists but change to S in 2009, move from H to this new value to be agreed in ESCB context) (Pas d'exemple)
+W: Weekly (Pas d'exemple)
+
+frequencies_supported = [
+    "A", #Annual
+    "D", #Daily
+    "M", #Monthly
+    "Q", #Quarterly
+    "W"  #Weekly
+]
+frequencies_rejected = [
+    "E", #Event
+    "B", #Business
+    "H", #Half-yearly
+    "N", #Minutely
+    "S", #Half Yearly, semester 
+]
+"""
 
 class ECB(Fetcher):
     
     def __init__(self, **kwargs):        
-        super().__init__(provider_name='ECB', **kwargs)
+        super().__init__(provider_name='ECB', version=VERSION, **kwargs)
 
-        if not self.provider:        
-            self.provider = Providers(name=self.provider_name,
-                                      long_name='European Central Bank',
-                                      version=VERSION,
-                                      region='Europe',
-                                      website='http://www.ecb.europa.eu',
-                                      fetcher=self)
-        
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-
-        self.cache_settings = self._get_cache_settings()
-
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='European Central Bank',
+                                  version=VERSION,
+                                  region='Europe',
+                                  website='http://www.ecb.europa.eu',
+                                  fetcher=self)
+    
         self.xml_sdmx = None
         self.xml_dsd = None
         
@@ -59,17 +82,6 @@ class ECB(Fetcher):
         self._categorisations = None
         self._concepts = None
 
-    def _get_cache_settings(self):
-
-        tmp_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
-                                                    self.provider_name))
-        
-        return {
-            "cache_name": tmp_filepath, 
-            "backend": 'sqlite', 
-            "expire_after": CACHE_EXPIRE
-        }
-
     def _load_structure(self, force=False):
         """Load structure and build data_tree
         """
@@ -77,59 +89,54 @@ class ECB(Fetcher):
         if self._dataflows and not force:
             return
         
-        
         for_delete = []
         
-        self.xml_sdmx = XMLSDMX(agencyID=self.provider_name,
-                                cache=self.cache_settings)
-        
-        self.xml_dsd = XMLStructure(provider_name=self.provider_name,
-                                    sdmx_client=self.xml_sdmx)       
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name)       
         
         url = "http://sdw-wsrest.ecb.int/service/dataflow/%s" % self.provider_name
-        download = Downloader(url=url, 
-                              filename="dataflow.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="dataflow.xml",
+                                    headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._dataflows = self.xml_dsd.dataflows
 
         url = "http://sdw-wsrest.ecb.int/service/categoryscheme/%s" % self.provider_name
-        download = Downloader(url=url, 
-                              filename="categoryscheme.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="categoryscheme.xml",
+                                    headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categoryschemes = self.xml_dsd.categories
 
         url = "http://sdw-wsrest.ecb.int/service/categorisation/%s" % self.provider_name
-        download = Downloader(url=url, 
-                              filename="categorisation.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="categorisation.xml",
+                                    headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categorisations = self.xml_dsd.categorisations
         
         url = "http://sdw-wsrest.ecb.int/service/conceptscheme/%s" % self.provider_name
-        download = Downloader(url=url, 
-                              filename="conceptscheme.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="conceptscheme.xml",
+                                    headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
         
         for fp in for_delete:
-            remove_file_and_dir(fp)
+            utils.remove_file_and_dir(fp, True)
 
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
 
         self._load_structure()
         
@@ -183,9 +190,9 @@ class ECB(Fetcher):
             
         return categories
         
-    def parse_agenda(self):
-        #TODO: use Downloader
-        download = Downloader(url="http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
+    def _parse_agenda(self):
+        download = utils.Downloader(store_filepath=self.store_path,
+                              url="http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
                               filename="statscall.html")
         with open(download.get_filepath(), 'rb') as fp:
             agenda = lxml.html.parse(fp)
@@ -207,7 +214,7 @@ class ECB(Fetcher):
     def get_calendar(self):
         datasets = [d["dataset_code"] for d in self.datasets_list()]
 
-        for entry in self.parse_agenda():
+        for entry in self._parse_agenda():
 
             if entry['dataflow_key'] in datasets:
 
@@ -225,61 +232,29 @@ class ECB(Fetcher):
         
         self._load_structure()
         
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
-        
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
                            name=None,
                            doc_href=self.provider.website,
-                           last_update=datetime.now(),
+                           last_update=utils.clean_datetime(),
                            fetcher=self)
-        
-        _data = ECB_Data(dataset=dataset, fetcher=self)
+
+        _data = ECB_Data(dataset=dataset)
         dataset.series.data_iterator = _data
-        result = dataset.update_database()
-        
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        
-        return result
+        return dataset.update_database()
 
     def load_datasets_first(self):
-        start = time.time()        
-        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
-        
         self._load_structure()
+        return super().load_datasets_first()
 
-        for dataset in self.datasets_list():
-            dataset_code = dataset["dataset_code"]
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-
-        end = time.time() - start
-        logger.info("datasets first load. provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def load_datasets_update(self):
-        #TODO: 
-        self.load_datasets_first()
-        
 class ECB_Data(SeriesIterator):
     
-    def __init__(self, dataset=None, fetcher=None):
+    def __init__(self, dataset):
         """
         :param Datasets dataset: Datasets instance
         """
-        super().__init__()
-        self.dataset = dataset
-        self.fetcher = fetcher
-        
-        self.attribute_list = self.dataset.attribute_list
-        self.dimension_list = self.dataset.dimension_list
-        self.provider_name = self.dataset.provider_name
-        self.dataset_code = self.dataset.dataset_code
+        super().__init__(dataset)
+        self.store_path = self.get_store_path()
 
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
@@ -291,51 +266,80 @@ class ECB_Data(SeriesIterator):
                 
     def _load(self):
 
-        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/%s?references=children" % self.dsd_id
-        download = Downloader(url=url, 
-                              filename="dsd-%s.xml" % self.dataset_code,
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.fetcher.cache_settings)
+        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/%s?references=all" % self.dsd_id
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="dsd-%s.xml" % self.dataset_code,
+                                    headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         self.dataset.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
+        headers = SDMX_DATA_HEADERS
         url = "http://sdw-wsrest.ecb.int/service/data/%s" % self.dataset_code
-        download = Downloader(url=url, 
-                              filename="data-%s.xml" % self.dataset_code,
-                              headers=SDMX_DATA_HEADERS,
-                              cache=self.fetcher.cache_settings)
+        last_modified = None
+        
+        if self.dataset.metadata and "Last-Modified" in self.dataset.metadata:
+            headers["If-Modified-Since"] = self.dataset.metadata["Last-Modified"]
+            last_modified = self.dataset.metadata["Last-Modified"]
+        
+        download = utils.Downloader(store_filepath=self.store_path,
+                                    url=url, 
+                                    filename="data-%s.xml" % self.dataset_code,
+                                    headers=headers)
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                dimension_keys=self.xml_dsd.dimension_keys,
-                                dimensions=self.xml_dsd.dimensions)
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        filepath = download.get_filepath()
+        filepath, response = download.get_filepath_and_response()
         self.dataset.for_delete.append(filepath)
+        
+        if response.status_code == HTTP_ERROR_NOT_MODIFIED:
+            comments = "update-date[%s]" % last_modified
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=self.dataset_code,
+                                              comments=comments)
+
+        if "Last-Modified" in response.headers:
+            if not self.dataset.metadata:
+                self.dataset.metadata = {}
+            self.dataset.metadata["Last-Modified"] = response.headers["Last-Modified"]
+        
         self.rows = self.xml_data.process(filepath)
 
     def _set_dataset(self):
 
-        dimensions = OrderedDict()
-        for key, item in self.xml_dsd.dimensions.items():
-            dimensions[key] = item["enum"]
-        self.dimension_list.set_dict(dimensions)
-        
-        attributes = OrderedDict()
-        for key, item in self.xml_dsd.attributes.items():
-            attributes[key] = item["enum"]
-        self.attribute_list.set_dict(attributes)
-        
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
+
         self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
-        self.dataset.codelists = dataset["codelists"] 
+        self.dataset.codelists = dataset["codelists"]
+        
+        self.dataset.dimension_list.set_dict(dataset["dimensions"])
+        self.dataset.attribute_list.set_dict(dataset["attributes"])
 
     def build_series(self, bson):
+        self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
+
+        """        
+        for key, dimension in bson.get('dimensions', {}).items():
+            dim_long_id = self.xml_dsd.codelists[key].get(dimension)
+            self.dimension_list.update_entry(key, dimension, dim_long_id)
+
+        for key, attribute in bson.get('attributes', {}).items():
+            dim_long_id = self.xml_dsd.codelists[key].get(attribute)
+            self.attribute_list.update_entry(key, dimension, dim_long_id)
+        
+        #TODO: attributes !!!
+        for value in bson["values"]:
+            pass
+        """
+        
         return bson
         
 

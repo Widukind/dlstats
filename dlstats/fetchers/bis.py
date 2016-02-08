@@ -6,7 +6,6 @@ import io
 import zipfile
 import csv
 import datetime
-import time
 import logging
 import re
 
@@ -14,11 +13,9 @@ import pytz
 from lxml import etree
 
 from dlstats import constants
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, get_ordinal_from_period, remove_file_and_dir
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import errors
-
-__all__ = ['BIS']
 
 VERSION = 3
 
@@ -210,33 +207,19 @@ AGENDA = {'url': 'http://www.bis.org/statistics/relcal.htm?m=6|37|68',
           'country': 'ch'
 }
 
-def get_agenda():
-    download = Downloader(url=AGENDA['url'],
-                          filename=AGENDA['filename'])
-    with open(download.get_filepath(), 'rb') as fp:
-        return fp.read()
-
 class BIS(Fetcher):
     
     def __init__(self, **kwargs):
-        super().__init__(provider_name='BIS', **kwargs)
+        super().__init__(provider_name='BIS', version=VERSION, **kwargs)
         
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name,
-                                      long_name='Bank for International Settlements',
-                                      version=VERSION,
-                                      region='world',
-                                      website='http://www.bis.org', 
-                                      fetcher=self)
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Bank for International Settlements',
+                                  version=VERSION,
+                                  region='World',
+                                  website='http://www.bis.org', 
+                                  fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-
     def upsert_dataset(self, dataset_code):
-        
-        start = time.time()
-        
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
         
         if not DATASETS.get(dataset_code):
             raise Exception("This dataset is unknown" + dataset_code)
@@ -250,45 +233,18 @@ class BIS(Fetcher):
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
                                 filename=DATASETS[dataset_code]['filename'],
-                                frequency=DATASETS[dataset_code]['frequency'],
-                                fetcher=self)
-
-        result = None
+                                frequency=DATASETS[dataset_code]['frequency'])
 
         if fetcher_data.is_updated():
-
             dataset.series.data_iterator = fetcher_data
-            result = dataset.update_database()
-
-            #TODO: clean datas (file temp)
-
-            end = time.time() - start
-            logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
+            return dataset.update_database()
         else:
-            logger.info("upsert dataset[%s] bypass because is updated from release_date[%s]" % (dataset_code, fetcher_data.release_date))
-
-        return result
-
-    def load_datasets_first(self):
-        start = time.time()
-        logger.info("first load fetcher[%s] - START" % (self.provider_name))
-        
-        for dataset in self.datasets_list():
-            dataset_code = dataset["dataset_code"]
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-        
-        end = time.time() - start
-        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
-    def load_datasets_update(self):
-        self.load_datasets_first()
-
-    def build_data_tree(self, force_update=False):
+            comments = "update-date[%s]" % fetcher_data.release_date
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=self.dataset_code,
+                                              comments=comments)
+            
+    def build_data_tree(self):
         
         categories = []
         
@@ -308,9 +264,20 @@ class BIS(Fetcher):
         
         return categories
 
-    def parse_agenda(self):
+    def _get_agenda(self):
+        download = Downloader(url=AGENDA['url'],
+                              filename=AGENDA['filename'],
+                              store_filepath=self.store_path)
+        filepath = download.get_filepath()        
+
+        with open(filepath, 'rb') as fp:
+            content = fp.read()
+            remove_file_and_dir(filepath, let_root=True)
+            return content
+    
+    def _parse_agenda(self):
         
-        agenda = etree.HTML(get_agenda())
+        agenda = etree.HTML(self._get_agenda())
         table = agenda.find('.//table')
         # only one table
         rows = table[0].findall('tr')
@@ -378,7 +345,7 @@ class BIS(Fetcher):
         return agenda
 
     def get_calendar(self):
-        agenda = self.parse_agenda()
+        agenda = self._parse_agenda()
 
         dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
 
@@ -424,26 +391,26 @@ class BIS(Fetcher):
 class BIS_Data(SeriesIterator):
     
     def __init__(self, dataset, url=None, filename=None, 
-                 is_autoload=True, frequency=None, fetcher=None):
-        super().__init__()
+                 is_autoload=True, frequency=None):
+        super().__init__(dataset)
+
+        self.store_path = self.get_store_path()
         
-        self.dataset = dataset
         self.url = url
         self.filename = filename
         self.frequency = frequency
-        self.fetcher = fetcher
 
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
-        
+        self.dataset.add_frequency(self.frequency)
+
         self.release_date = None
         self.dimension_keys = None
         self.periods = None
         self.start_date = None
         self.end_date = None
+        self._rows = None
 
-        self.rows = None
-                
+        self.rows = self._process()
+
         if is_autoload:
             self._load_datas()
         
@@ -453,7 +420,9 @@ class BIS_Data(SeriesIterator):
         
         if not datas:
             # TODO: timeout, replace
-            download = Downloader(url=self.url, filename=self.filename)
+            download = Downloader(url=self.url,
+                                  store_filepath=self.store_path, 
+                                  filename=self.filename)
             
             zip_filepath = download.get_filepath()
             self.dataset.for_delete.append(zip_filepath)
@@ -470,12 +439,10 @@ class BIS_Data(SeriesIterator):
         
         self.dataset.dimension_keys = self.dimension_keys
         
-        self.rows = self._process()
-        
         self.dataset.last_update = self.release_date
         
-        self.start_date = self.fetcher.get_ordinal_from_period(self.periods[0], freq=self.frequency)
-        self.end_date = self.fetcher.get_ordinal_from_period(self.periods[-1], freq=self.frequency)
+        self.start_date = get_ordinal_from_period(self.periods[0], freq=self.frequency)
+        self.end_date = get_ordinal_from_period(self.periods[-1], freq=self.frequency)
 
     def is_updated(self):
 
@@ -520,8 +487,8 @@ class BIS_Data(SeriesIterator):
             value = {
                 'attributes': None,
                 'release_date': self.release_date,
-                'ordinal': self.fetcher.get_ordinal_from_period(period, freq=self.frequency),
-                'period_o': period,
+                'ordinal': get_ordinal_from_period(period, freq=self.frequency),
+                #'period_o': period,
                 'period': period,
                 'value': row[period]
             }

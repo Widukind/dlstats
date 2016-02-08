@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import tempfile
-import os
-import time
-from datetime import datetime
 import logging
 from collections import OrderedDict
 
@@ -14,7 +10,7 @@ from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_INSEE as XMLData,
-                               dataset_converter_v2 as dataset_converter)
+                               dataset_converter)
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
@@ -26,14 +22,15 @@ VERSION = 3
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
-CACHE_EXPIRE = 60 * 60 * 4 #4H
+FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
+FREQUENCIES_REJECTED = ["S", "B", "I"]
 
 logger = logging.getLogger(__name__)
 
 class INSEE(Fetcher):
     
     def __init__(self, **kwargs):
-        super().__init__(provider_name='INSEE', **kwargs)
+        super().__init__(provider_name='INSEE', version=VERSION, **kwargs)
 
         self.provider = Providers(name=self.provider_name,
                                  long_name='National Institute of Statistics and Economic Studies',
@@ -42,11 +39,6 @@ class INSEE(Fetcher):
                                  website='http://www.insee.fr',
                                  fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-
-        self.cache_settings = self._get_cache_settings()
-                    
         self.xml_sdmx = None
         self.xml_dsd = None
         
@@ -55,18 +47,7 @@ class INSEE(Fetcher):
         self._categorisations = None
         self._concepts = None
         self._codelists = OrderedDict()
-        
-    def _get_cache_settings(self):
-
-        tmp_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
-                                                    self.provider_name))
-        
-        return {
-            "cache_name": tmp_filepath, 
-            "backend": 'sqlite', 
-            "expire_after": CACHE_EXPIRE
-        }
-        
+                
     def _add_metadata(self):
         return
         #TODO:
@@ -85,18 +66,16 @@ class INSEE(Fetcher):
 
         for_delete = []
 
-        self.xml_sdmx = XMLSDMX(agencyID=self.provider_name,
-                                cache=self.cache_settings)
+        self.xml_sdmx = XMLSDMX(agencyID=self.provider_name)
         
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
                                     sdmx_client=self.xml_sdmx)       
         
-        
         url = "http://www.bdm.insee.fr/series/sdmx/dataflow/%s" % self.provider_name
         download = Downloader(url=url, 
                               filename="dataflow.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -105,8 +84,8 @@ class INSEE(Fetcher):
         url = "http://www.bdm.insee.fr/series/sdmx/categoryscheme/%s" % self.provider_name
         download = Downloader(url=url, 
                               filename="categoryscheme.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -115,8 +94,8 @@ class INSEE(Fetcher):
         url = "http://www.bdm.insee.fr/series/sdmx/categorisation/%s" % self.provider_name
         download = Downloader(url=url, 
                               filename="categorisation.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -125,40 +104,21 @@ class INSEE(Fetcher):
         url = "http://www.bdm.insee.fr/series/sdmx/conceptscheme/%s" % self.provider_name
         download = Downloader(url=url, 
                               filename="conceptscheme.xml",
-                              headers=SDMX_METADATA_HEADERS,
-                              cache=self.cache_settings)
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
         filepath = download.get_filepath()
         for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
 
         for fp in for_delete:
-            remove_file_and_dir(fp)
+            remove_file_and_dir(fp, let_root=True)
         
     def load_datasets_first(self):
-                
         self._load_structure()
+        return super().load_datasets_first()
 
-        start = time.time()        
-        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
-        
-        for dataset in self.datasets_list():
-            dataset_code = dataset.pop("dataset_code")
-            try:
-                self.upsert_dataset(dataset_code, **dataset)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def load_datasets_update(self):
-        #TODO: 
-        self.load_datasets_first()
-
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         """Build data_tree from structure datas
         """
         self._load_structure()
@@ -209,49 +169,36 @@ class INSEE(Fetcher):
             
         return categories
 
-    def upsert_dataset(self, dataset_code, **kwargs):
+    def upsert_dataset(self, dataset_code):
 
         self._load_structure()
 
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
-        
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
-                           name=kwargs.get('name', None),
+                           name=None,
                            doc_href=None,
                            last_update=clean_datetime(),
                            fetcher=self)
         
-        dataset_doc = self.db[constants.COL_DATASETS].find_one({'provider_name': self.provider_name,
-                                                                "dataset_code": dataset_code})
+        query = {'provider_name': self.provider_name, 
+                 "dataset_code": dataset_code}        
+        dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
         
-        insee_data = INSEE_Data(dataset=dataset,
-                                dataset_doc=dataset_doc, 
-                                fetcher=self)
+        insee_data = INSEE_Data(dataset,
+                                dataset_doc=dataset_doc)
         dataset.series.data_iterator = insee_data
-        result = dataset.update_database()
-        
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        
-        return result
+        return dataset.update_database()
 
 class INSEE_Data(SeriesIterator):
     
-    def __init__(self, dataset=None, dataset_doc=None, fetcher=None):
+    def __init__(self, dataset, dataset_doc=None):
         """
         :param Datasets dataset: Datasets instance
         """
-        super().__init__()
-        self.dataset = dataset
+        super().__init__(dataset)
+
         self.dataset_doc = dataset_doc
-        self.fetcher = fetcher
-        
-        self.attribute_list = self.dataset.attribute_list
-        self.dimension_list = self.dataset.dimension_list
-        self.provider_name = self.dataset.provider_name
-        self.dataset_code = self.dataset.dataset_code
+        self.store_path = self.get_store_path()
         
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
@@ -266,7 +213,6 @@ class INSEE_Data(SeriesIterator):
         self.xml_dsd.concepts = self.fetcher._concepts
         self.xml_dsd.codelists = self.fetcher._codelists
 
-        self.rows = None
         self._load()
 
     def _load(self):
@@ -279,7 +225,8 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="datastructure-%s.xml" % self.dsd_id,
                               headers=SDMX_METADATA_HEADERS,
-                              cache=self.fetcher.cache_settings)
+                              store_filepath=self.store_path)
+        
         filepath = download.get_filepath()
         self.dataset.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -296,7 +243,8 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="dsd-%s.xml" % self.dsd_id,
                               headers=SDMX_METADATA_HEADERS,
-                              cache=self.fetcher.cache_settings)
+                              store_filepath=self.store_path)
+        
         filepath, response = download.get_filepath_and_response()
         
         if response.status_code == HTTP_ERROR_LONG_RESPONSE:
@@ -311,23 +259,18 @@ class INSEE_Data(SeriesIterator):
         
     def _set_dataset(self):
 
-        dimensions = OrderedDict()
-        for key, item in self.xml_dsd.dimensions.items():
-            dimensions[key] = item["enum"]
-        self.dimension_list.set_dict(dimensions)
-        
-        attributes = OrderedDict()
-        for key, item in self.xml_dsd.attributes.items():
-            attributes[key] = item["enum"]
-        self.attribute_list.set_dict(attributes)
-        
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
+
         self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
-        self.dataset.codelists = dataset["codelists"] 
+        self.dataset.codelists = dataset["codelists"]
         
+        self.dataset.dimension_list.set_dict(dataset["dimensions"])
+        self.dataset.attribute_list.set_dict(dataset["attributes"])
+
         self.fetcher._codelists.update(self.xml_dsd.codelists)
+
 
     def _load_data(self):
         
@@ -335,17 +278,17 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="data-%s.xml" % self.dataset_code,
                               headers=SDMX_DATA_HEADERS,
-                              cache=self.fetcher.cache_settings)
+                              store_filepath=self.store_path)
 
         #TODO: ?startperiod="2008"
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                dimension_keys=self.xml_dsd.dimension_keys,
-                                dimensions=self.xml_dsd.dimensions)
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
         
         filepath, response = download.get_filepath_and_response()
         if response.status_code == HTTP_ERROR_LONG_RESPONSE:
-            self.rows = self.get_data_by_dimension()
+            self.rows = self._get_data_by_dimension()
             return
         elif response.status_code >= 400:
             raise response.raise_for_status()
@@ -353,29 +296,30 @@ class INSEE_Data(SeriesIterator):
         self.dataset.for_delete.append(filepath)
         self.rows = self.xml_data.process(filepath)
 
-    def select_short_dimension(self):
+    def _select_short_dimension(self):
         """Renvoi le nom de la dimension qui contiens le moins de valeur
         pour servir ensuite de filtre dans le chargement des données (..A.)
         en tenant compte du nombre de dimension et de la position 
         """
-        dimension_keys = self.xml_dsd.dimension_keys
+        dimension_keys = self.xml_dsd.dimension_keys_by_dsd[self.dsd_id]
+        dimensions = self.xml_dsd.dimensions_by_dsd[self.dsd_id]
 
         _dimensions = {}        
-        for dim_id, dim in self.xml_dsd.dimensions.items():
+        for dim_id, dim in dimensions.items():
             _dimensions[dim_id] = len(dim["enum"].keys())
         
         _key = min(_dimensions, key=_dimensions.get)
         
         position = dimension_keys.index(_key)         
-        dimension_values = list(self.xml_dsd.dimensions[_key]["enum"].keys())
+        dimension_values = list(dimensions[_key]["enum"].keys())
         return (position, 
-                len(self.xml_dsd.dimension_keys), 
+                len(dimension_keys), 
                 _key, 
                 dimension_values)
             
-    def get_data_by_dimension(self):
+    def _get_data_by_dimension(self):
 
-        position, count_dimensions, _key, dimension_values = self.select_short_dimension()
+        position, count_dimensions, _key, dimension_values = self._select_short_dimension()
         
         for dimension_value in dimension_values:
             '''Pour chaque valeur de la dimension, generer une key d'url'''
@@ -388,12 +332,13 @@ class INSEE_Data(SeriesIterator):
                     sdmx_key.append(".")
             key = "".join(sdmx_key)
 
-            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, key)
+            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, 
+                                                                      key)
             
             download = Downloader(url=url, 
                                   filename="data-%s.xml" % self.dataset_code,
                                   headers=SDMX_DATA_HEADERS,
-                                  cache=self.fetcher.cache_settings)
+                                  store_filepath=self.store_path)
             filepath, response = download.get_filepath_and_response()
             
             if response.status_code == HTTP_ERROR_NO_RESULT:
@@ -406,7 +351,7 @@ class INSEE_Data(SeriesIterator):
             for row in self.xml_data.process(filepath):
                 yield row
     
-    def is_updated(self, bson):
+    def _is_updated(self, bson):
         """Verify if series changes
         
         Return True si la series doit etre mise a jour et False si elle est a jour  
@@ -424,7 +369,9 @@ class INSEE_Data(SeriesIterator):
         return False
 
     def build_series(self, bson):
-        if not self.is_updated(bson):
+        self.dataset.add_frequency(bson["frequency"])
+        
+        if not self._is_updated(bson):
             raise errors.RejectUpdatedSeries(provider_name=self.provider_name,
                                              dataset_code=self.dataset_code,
                                              key=bson.get('key'))

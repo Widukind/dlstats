@@ -3,51 +3,22 @@
 import csv
 from datetime import datetime
 from re import match
-import time
 import logging
 
 import requests
 from lxml import etree
 
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, get_ordinal_from_period
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats import errors
 
 VERSION = 1
 
 logger = logging.getLogger(__name__)
 
-def weo_urls():
-    download = Downloader(url='http://www.imf.org/external/ns/cs.aspx?id=28',
-                          filename="weo.html")
-    
-    with open(download.get_filepath(), 'rb') as fp:
-        webpage = fp.read()
-        
-    #TODO: replace by beautifoulsoup ?
-    html = etree.HTML(webpage)
-    hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
-    links = [href.values() for href in hrefs]
-    
-    #The last links of the WEO webpage lead to data we dont want to pull.
-    links = links[:-16]
-    #These are other links we don't want.
-    links.pop(-8)
-    links.pop(-10)
-    links = [link[0][:-10]+'download.aspx' for link in links]
-    
-    output = []
+FREQUENCIES_SUPPORTED = ["A"]
+FREQUENCIES_REJECTED = []
 
-    for link in links:
-        webpage = requests.get(link)
-        html = etree.HTML(webpage.text)
-        final_link = html.xpath("//div[@id = 'content']//table//a['href']")
-        final_link = final_link[0].values()
-        output.append(link[:-13]+final_link[0])
-
-    # we need to handle the issue in chronological order
-    return sorted(output)
     
 DATASETS = {
     'WEO': { 
@@ -59,20 +30,16 @@ DATASETS = {
 class IMF(Fetcher):
 
     def __init__(self, **kwargs):        
-        super().__init__(provider_name='IMF', **kwargs)
+        super().__init__(provider_name='IMF', version=VERSION, **kwargs)
 
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name, 
-                                      long_name="International Monetary Fund",
-                                      version=VERSION, 
-                                      region='world', 
-                                      website='http://www.imf.org/', 
-                                      fetcher=self)
+        self.provider = Providers(name=self.provider_name, 
+                                  long_name="International Monetary Fund",
+                                  version=VERSION, 
+                                  region='World', 
+                                  website='http://www.imf.org/', 
+                                  fetcher=self)
 
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-            
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         
         categories = []
         
@@ -94,29 +61,7 @@ class IMF(Fetcher):
         
         return categories
 
-    def load_datasets_first(self):        
-        start = time.time()
-        logger.info("first load fetcher[%s] - START" % (self.provider_name))
-        
-        for dataset in self.datasets_list():
-            dataset_code = dataset["dataset_code"]
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-        
-        end = time.time() - start
-        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def load_datasets_update(self):
-        #TODO: use download_last
-        self.load_datasets_first()
-        
     def upsert_dataset(self, dataset_code):
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
         
         settings = DATASETS[dataset_code]
         
@@ -126,32 +71,22 @@ class IMF(Fetcher):
                            doc_href=settings['doc_href'],
                            fetcher=self)
 
-        fetcher_data = DATASETS_KLASS[dataset_code](dataset, fetcher=self)
-        dataset.series.data_iterator = fetcher_data
-        result = dataset.update_database()
-
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        return result
+        dataset.series.data_iterator = DATASETS_KLASS[dataset_code](dataset)
         
+        return dataset.update_database()
         
 class WeoData(SeriesIterator):
     
-    def __init__(self, dataset, fetcher=None):
-        super().__init__()
+    def __init__(self, dataset):
+        super().__init__(dataset)
         
-        self.dataset = dataset
-        self.fetcher = fetcher
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
-        
-        self.urls = weo_urls()
+        self.store_path = self.get_store_path()
+        self.urls = self.weo_urls()
         
         self.release_date = None
 
         self.frequency = 'A'
+        self.dataset.add_frequency(self.frequency)
 
         self.dataset.dimension_keys = ['WEO Subject Code', 'ISO', 'WEO Country Code', 'Units']
         self.dataset.attribute_keys = ['Scale', 'flag']
@@ -161,10 +96,45 @@ class WeoData(SeriesIterator):
         self.attribute_list.update_entry('flag', 'e', 'Estimates Start After')        
         
         self.rows = self._process()
+
+    def weo_urls(self):
+        download = Downloader(url='http://www.imf.org/external/ns/cs.aspx?id=28',
+                              filename="weo.html",
+                              store_filepath=self.store_path)
         
+        filepath = download.get_filepath()
+        with open(filepath, 'rb') as fp:
+            webpage = fp.read()
+            
+        self.dataset.for_delete.append(filepath)
+            
+        #TODO: replace by beautifoulsoup ?
+        html = etree.HTML(webpage)
+        hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
+        links = [href.values() for href in hrefs]
+        
+        #The last links of the WEO webpage lead to data we dont want to pull.
+        links = links[:-16]
+        #These are other links we don't want.
+        links.pop(-8)
+        links.pop(-10)
+        links = [link[0][:-10]+'download.aspx' for link in links]
+        
+        output = []
+    
+        for link in links:
+            webpage = requests.get(link)
+            html = etree.HTML(webpage.text)
+            final_link = html.xpath("//div[@id = 'content']//table//a['href']")
+            final_link = final_link[0].values()
+            output.append(link[:-13]+final_link[0])
+    
+        # we need to handle the issue in chronological order
+        return sorted(output)
+            
     def _process(self):        
         for url in self.urls:
-
+            
             #ex: http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls]
             date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
             self.release_date = datetime.strptime(date_str, "%b%Y") #2006-09-01 00:00:00
@@ -175,11 +145,14 @@ class WeoData(SeriesIterator):
             #continue
             
             if not self.is_updated():
+                #TODO: reject updated dataset ?
                 msg = "upsert dataset[%s] bypass because is updated from release_date[%s]"
                 logger.info(msg % (self.dataset_code, self.release_date))
                 continue
             
-            download = Downloader(url=url, filename="weo-data.csv")        
+            download = Downloader(url=url,
+                                  store_filepath=self.store_path, 
+                                  filename="weo-data.csv")        
             data_filepath = download.get_filepath()
             self.dataset.for_delete.append(data_filepath)
             
@@ -187,9 +160,9 @@ class WeoData(SeriesIterator):
                 
                 self.sheet = csv.DictReader(fp, dialect=csv.excel_tab)
                 self.years = self.sheet.fieldnames[9:-1]
-                self.start_date = self.fetcher.get_ordinal_from_period(self.years[0], 
+                self.start_date = get_ordinal_from_period(self.years[0], 
                                                                        freq=self.frequency)
-                self.end_date = self.fetcher.get_ordinal_from_period(self.years[-1], 
+                self.end_date = get_ordinal_from_period(self.years[-1], 
                                                                      freq=self.frequency)
                 
                 for row in self.sheet:
@@ -197,9 +170,13 @@ class WeoData(SeriesIterator):
         
             for k, dimensions in self.dimension_list.get_dict().items():
                 self.dataset.codelists[k] = dimensions
+                #TODO: mapping des concepts
+                self.dataset.concepts[k] = k
 
             for k, attributes in self.attribute_list.get_dict().items():
                 self.dataset.codelists[k] = attributes
+                #TODO: mapping des concepts
+                self.dataset.concepts[k] = k
                 
     def is_updated(self):
         
@@ -332,8 +309,8 @@ class WeoData(SeriesIterator):
             value = {
                 'attributes': None,
                 'release_date': self.release_date,
-                'ordinal': self.fetcher.get_ordinal_from_period(period, freq=self.frequency),
-                'period_o': period,
+                'ordinal': get_ordinal_from_period(period, freq=self.frequency),
+                #'period_o': period,
                 'period': period,
                 'value': row[period]
             }

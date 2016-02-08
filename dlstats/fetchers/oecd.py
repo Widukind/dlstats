@@ -8,13 +8,11 @@ import os
 
 import json
 
-from dlstats.utils import Downloader, clean_datetime
+from dlstats.utils import Downloader, clean_datetime, get_ordinal_from_period
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import errors
 
 VERSION = 2
-
-CACHE_EXPIRE = 60 * 60 * 4 #4H
 
 logger = logging.getLogger(__name__)
 
@@ -40,65 +38,22 @@ SDMX_DATA_HEADERS = {
     "Accept": "application/vnd.sdmx.draft-sdmx-json+json;version=2.1"
 }
 
+FREQUENCIES_SUPPORTED = ['A', 'M', 'Q', 'W', 'D']
+FREQUENCIES_REJECTED = [] 
+
 class OECD(Fetcher):
     
     def __init__(self, **kwargs):
-        super().__init__(provider_name='OECD', **kwargs)
+        super().__init__(provider_name='OECD', version=VERSION, **kwargs)
         
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name, 
-                                      long_name='Organisation for Economic Co-operation and Development',
-                                      version=VERSION,
-                                      region='world',
-                                      website='http://www.oecd.org', 
-                                      fetcher=self)
+        self.provider = Providers(name=self.provider_name, 
+                                  long_name='Organisation for Economic Co-operation and Development',
+                                  version=VERSION,
+                                  region='World',
+                                  website='http://www.oecd.org', 
+                                  fetcher=self)
 
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-
-        self.cache_settings = self._get_cache_settings()
-
-    def _get_cache_settings(self):
-
-        tmp_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 
-                                                    self.provider_name))
-        
-        return {
-            "cache_name": tmp_filepath, 
-            "backend": 'sqlite', 
-            "expire_after": CACHE_EXPIRE
-        }
-
-    def _load_datasets(self):
-        
-        for dataset in self.datasets_list():
-            dataset_code = dataset["dataset_code"]
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                if isinstance(err, errors.MaxErrors):
-                    raise
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-        
-    def load_datasets_first(self):
-        start = time.time()
-        logger.info("first load fetcher[%s] - START" % (self.provider_name))
-
-        self._load_datasets()
-        
-        end = time.time() - start
-        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
-    def load_datasets_update(self):
-        start = time.time()
-        logger.info("update fetcher[%s] - START" % (self.provider_name))
-
-        self._load_datasets()
-        
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         
         categories = []
         
@@ -118,11 +73,7 @@ class OECD(Fetcher):
         
         return categories
 
-    def upsert_dataset(self, dataset_code, datas=None):
-        
-        start = time.time()
-        
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
+    def upsert_dataset(self, dataset_code):
         
         if not DATASETS.get(dataset_code):
             raise Exception("This dataset is unknown" + dataset_code)
@@ -134,17 +85,10 @@ class OECD(Fetcher):
                            last_update=clean_datetime(),
                            fetcher=self)
         
-        fetcher_data = OECD_Data(dataset, 
-                                 sdmx_filter=DATASETS[dataset_code]['sdmx_filter'],
-                                 fetcher=self)
-        dataset.series.data_iterator = fetcher_data
-        result = dataset.update_database()
-
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
+        dataset.series.data_iterator = OECD_Data(dataset, 
+                                                 sdmx_filter=DATASETS[dataset_code]['sdmx_filter'])
         
-        return result
-
+        return dataset.update_database()
 
 def json_dataflow(message_dict):
     
@@ -173,8 +117,6 @@ def json_dataflow(message_dict):
         _codes["concepts"][attr_id] = d['name'] 
         _codes['codelists'][attr_id] = OrderedDict([(x['id'], x['name']) for x in d['values']])
 
-    #print("!!!attributes : ", list(message_dict['structure']['attributes'].keys()))
-    #print("!!!attributes obs : ", message_dict['structure']['attributes']['observation'])
     ##TIME_FORMAT, OBS_STATUS
     for d in message_dict['structure']['attributes']['observation']:
         attr_id = d['id']
@@ -240,60 +182,17 @@ def json_data(message_dict):
         
     return series_list
 
-def load_dataflow(url, dataset_code):
-
-    download = Downloader(url=url, filename="dataflow-%s.json" % dataset_code)
-    filepath = download.get_filepath()
-    
-    with open(filepath) as fp:
-        message_dict = json.load(fp, object_pairs_hook=OrderedDict)
-    
-    return json_dataflow(message_dict), filepath    
-
-
-def load_data(url, dataset_code, cache_settings=None):
-    
-    download = Downloader(url=url, 
-                          filename="data-%s.json" % dataset_code,
-                          headers=SDMX_DATA_HEADERS,
-                          cache=cache_settings)
-    filepath, response = download.get_filepath_and_response()
-    
-    if response.status_code >= 400:
-        return None, filepath, response.status_code, response
-        #raise response.raise_for_status()
-
-    """
-    304 (No change) No change since the timestamp supplied in the If-Modified-Since header
-    
-    if response.status_code == HTTP_ERROR_NO_RESULT:
-        continue
-    elif response.status_code >= 400:
-        raise response.raise_for_status()
-    """
-    with open(filepath) as fp:
-        message_dict = json.load(fp, object_pairs_hook=OrderedDict)
-    
-    return json_data(message_dict), filepath, response.status_code, response
-        
-        
-
 class OECD_Data(SeriesIterator):
     
-    def __init__(self, dataset, sdmx_filter, fetcher=None):
+    def __init__(self, dataset, sdmx_filter):
+        super().__init__(dataset)
         
-        self.dataset = dataset
         self.sdmx_filter = sdmx_filter
-        self.fetcher = fetcher
+
+        self.store_path = self.get_store_path()
         
-        self.provider_name = self.fetcher.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
         self.release_date = self.dataset.last_update
-                
         self.codes = OrderedDict()
-        
         self.dimension_keys = []
         self.attribute_keys = []
         self.attribute_dataset_keys = []
@@ -310,12 +209,57 @@ class OECD_Data(SeriesIterator):
 
     def _get_url_data(self, flowkey):
         return "http://stats.oecd.org/sdmx-json/data/%s/%s" % (self.dataset_code, flowkey)        
+
+    def _load_json_dataflow(self, url):
+    
+        download = Downloader(url=url,                           
+                              filename="dataflow-%s.json" % self.dataset_code,
+                              store_filepath=self.store_path)
+        filepath = download.get_filepath()
         
+        with open(filepath) as fp:
+            message_dict = json.load(fp, object_pairs_hook=OrderedDict)
+        
+        return json_dataflow(message_dict), filepath    
+    
+    
+    def _load_json_data(self, url):
+        
+        download = Downloader(url=url, 
+                              filename="data-%s.json" % self.dataset_code,
+                              store_filepath=self.store_path,
+                              headers=SDMX_DATA_HEADERS)
+        filepath, response = download.get_filepath_and_response()
+        
+        self.dataset.for_delete.append(filepath)
+        
+        if response.status_code >= 400:
+            return None, filepath, response.status_code, response
+            #raise response.raise_for_status()
+    
+        """
+        304 (No change) No change since the timestamp supplied in the If-Modified-Since header
+        
+        if response.status_code == HTTP_ERROR_NO_RESULT:
+            continue
+        elif response.status_code >= 400:
+            raise response.raise_for_status()
+        """
+        with open(filepath) as fp:
+            message_dict = json.load(fp, object_pairs_hook=OrderedDict)
+        
+        return json_data(message_dict), filepath, response.status_code, response
+            
     def _load_dataflow(self):
 
         url = self._get_url_dataflow()
-        self.codes, filepath = load_dataflow(url, self.dataset_code)
+        self.codes, filepath = self._load_json_dataflow(url)
         self.dataset.for_delete.append(filepath)
+
+        self.dimension_keys = [k for k in self.codes["dimension_keys"] if k != "TIME_PERIOD"]
+        self.attribute_dataset_keys = self.codes["attribute_dataset_keys"]
+        self.attribute_observation_keys = self.codes["attribute_observation_keys"]
+        self.attribute_keys = self.attribute_dataset_keys + self.attribute_observation_keys
         
         self.dataset.concepts = self.codes["concepts"]
         self.dataset.codelists = self.codes["codelists"]
@@ -323,12 +267,7 @@ class OECD_Data(SeriesIterator):
         self.codelists = self.dataset.codelists
         self.concepts = self.dataset.concepts
 
-        self.dimension_keys = [k for k in self.codes["dimension_keys"] if k != "TIME_PERIOD"]
         self.dataset.dimension_keys = self.dimension_keys
-        
-        self.attribute_dataset_keys = self.codes["attribute_dataset_keys"]
-        self.attribute_observation_keys = self.codes["attribute_observation_keys"]
-        self.attribute_keys = self.attribute_dataset_keys + self.attribute_observation_keys
         self.dataset.attribute_keys = self.attribute_keys
         
         """
@@ -371,7 +310,7 @@ class OECD_Data(SeriesIterator):
 
             url = self._get_url_data(key)
             
-            rows, filepath, status_code, response = load_data(url, self.dataset_code, self.fetcher.cache_settings)
+            rows, filepath, status_code, response = self._load_json_data(url)
             self.dataset.for_delete.append(filepath)
             
             if status_code >= 400:
@@ -397,27 +336,22 @@ class OECD_Data(SeriesIterator):
                     yield None, err
             
     def build_series(self, row):
-        """Build one serie
-        
-        Return instance of :class:`dict`
-        """
         
         series_key = ".".join([row["dimensions"][key] for key in self.dimension_keys])
 
         frequency = row['dimensions']['FREQUENCY']
 
-        if not frequency in ['A', 'M', 'Q', 'W', 'D']:
+        if not frequency in FREQUENCIES_SUPPORTED:
             raise errors.RejectFrequency(provider_name=self.provider_name,
                                          dataset_code=self.dataset_code,
                                          frequency=frequency)
             
-        #for key, item in bson['dimensions'].items():
-        #    self.dimension_list.update_entry(key, item, item)
+        self.dataset.add_frequency(frequency)
             
         for _row in row["values"]:
             _row["release_date"] = self.release_date
-            _row["period_o"] = self.codelists["TIME_PERIOD"].get(_row["period"], _row["period"])
-            _row["ordinal"] = self.fetcher.get_ordinal_from_period(_row["period"], 
+            #_row["period_o"] = self.codelists["TIME_PERIOD"].get(_row["period"], _row["period"])
+            _row["ordinal"] = get_ordinal_from_period(_row["period"], 
                                                                    freq=frequency)
 
         _name = []
