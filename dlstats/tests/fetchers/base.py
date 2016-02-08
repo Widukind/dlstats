@@ -26,11 +26,13 @@ class BaseFetcherTestCase(BaseDBTestCase):
     def setUp(self):
         super().setUp()
         self.fetcher = self.FETCHER_KLASS(db=self.db)
-        self.fetcher.cache_settings = None
         self.is_debug = self.DEBUG_MODE
         if self.is_debug:
             logger = logging.getLogger("dlstats")
-            logger.setLevel(logging.DEBUG) 
+            logger.setLevel(logging.DEBUG)
+            
+    def tearDown(self):
+        httpretty.reset()
         
     def register_url(self, url, filepath, **settings):
         
@@ -50,41 +52,52 @@ class BaseFetcherTestCase(BaseDBTestCase):
     def _debug_dataset_concepts(self, dataset):
         print()
         print("-------------- CONCEPTS -------------------------")
-        print(list(dataset["concepts"].keys()))
+        print(sorted(list(dataset["concepts"].keys())))
         print("-------------------------------------------------")
     
     def _debug_dataset_codelists(self, dataset):
         print()
         print("-------------- CODELISTS ------------------------")
-        print(list(dataset["codelists"].keys()))
-        for key in dataset["codelists"].keys():
+        print(sorted(list(dataset["codelists"].keys())))
+        for key in sorted(list(dataset["codelists"].keys())):
             if key in dataset["codelists"]:
                 print('"%s": %s,' % (key, len(dataset["codelists"][key])))
             else:
                 print('"%s": %s,' % (key, "NOT !!!"))
         print("-------------------------------------------------")
 
-    def _debug_dataset_dimension(self, dataset):
+    def _debug_dataset_dimensions(self, dataset):
         print()
         print("-------------- DIMENSIONS -----------------------")
         print(dataset["dimension_keys"])
-        #print(list(dataset["dimension_list"].keys()))
         for key in dataset["dimension_keys"]:
-            #print('"%s": %s,' % (key, len(dataset["dimension_list"][key])))
             print('"%s": %s,' % (key, len(dataset["codelists"][key])))
         print("-------------------------------------------------")
 
-    def _debug_dataset_attribute(self, dataset):
+    def _debug_dataset_attributes(self, dataset):
         print()
         print("-------------- ATTRIBUTES ------------------------")
         print(dataset["attribute_keys"])
-        print(list(dataset["attribute_list"].keys()))
         for key in dataset["attribute_keys"]:
-            #print('"%s": %s,' % (key, len(dataset["attribute_list"][key])))
             print('"%s": %s,' % (key, len(dataset["codelists"][key])))
         print("-------------------------------------------------")
     
+    def _debug_dataset(self, dataset):
+        self._debug_dataset_concepts(dataset)
+        self._debug_dataset_codelists(dataset)
+        self._debug_dataset_dimensions(dataset)
+        self._debug_dataset_attributes(dataset)
+        print("--------- FULL DATASET --------------------")
+        pprint(dataset)
+        print("-------------------------------------------")
+        
     def assertProvider(self):
+        provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
+        self.assertIsNone(provider)
+        
+        provider = self.fetcher.provider_verify()
+        self.assertTrue(self.fetcher.provider.from_db)
+        
         provider = self.db[constants.COL_PROVIDERS].find_one({"name": self.fetcher.provider_name})
         self.assertIsNotNone(provider)
         
@@ -93,14 +106,26 @@ class BaseFetcherTestCase(BaseDBTestCase):
         settings = self.DATASETS[dataset_code]
         dsd = settings["DSD"]
         
-        results = self.fetcher.upsert_data_tree()
+        data_tree = self.fetcher.build_data_tree()
+        if self.is_debug:
+            print("------ DATA TREE LOCAL ---------")
+            pprint(data_tree)
         
+        results = self.fetcher.upsert_data_tree()
+        self.assertIsNotNone(results)
+        
+        data_tree = self.db[constants.COL_CATEGORIES].find({"provider_name": 
+                                                            self.fetcher.provider_name})
+        if self.is_debug:
+            print("------ DATA TREE FROM DB -------")
+            pprint(list(data_tree))
+
         datasets = self.fetcher.datasets_list()
         
-        #if self.is_debug:
-        #    print("------DATASET LIST--------")
-        #    pprint(datasets)
-        
+        if self.is_debug:
+            print("------DATASET LIST--------")
+            pprint(datasets)
+
         self.assertEqual(datasets[0]["dataset_code"], self.DATASET_FIRST)
         self.assertEqual(datasets[-1]["dataset_code"], self.DATASET_LAST)
         
@@ -121,18 +146,50 @@ class BaseFetcherTestCase(BaseDBTestCase):
         
         roots = Categories.root_categories(self.fetcher.provider_name,
                                            db=self.db)
+        self.assertEqual(roots.count(), 
+                         len(dsd["categories_root"])) 
         
         root_codes = [r["category_code"] for r in roots]
         
         if self.is_debug:
-            print("ROOTS : ", root_codes)
+            print("ROOTS : ", sorted(root_codes))
         
-        self.assertEqual(root_codes,
+        self.assertEqual(sorted(root_codes),
                          dsd["categories_root"])
+        
+    def assertLoadDatasetsFirst(self, datasets_filter=[]):
+
+        self.fetcher.datasets_filter = datasets_filter
+
+        query = {
+            'provider_name': self.fetcher.provider_name,
+        }
+        count = self.db[constants.COL_DATASETS].count(query)
+        self.assertEqual(count, 0)
+        
+        self.fetcher.load_datasets_first()
+
+        count = self.db[constants.COL_DATASETS].count(query)
+        self.assertEqual(count, len(datasets_filter))
+
+    def assertLoadDatasetsUpdate(self, datasets_filter=[]):
+        
+        self.fetcher.datasets_filter = datasets_filter
+        
+        query = {
+            'provider_name': self.fetcher.provider_name,
+        }
+        count = self.db[constants.COL_DATASETS].count(query)
+        self.assertEqual(count, 0)
+        
+        self.fetcher.load_datasets_update()
+
+        count = self.db[constants.COL_DATASETS].count(query)
+        self.assertEqual(count, len(datasets_filter))
         
     def assertDataset(self, dataset_code):
 
-        result = self.fetcher.upsert_dataset(dataset_code)
+        result = self.fetcher.wrap_upsert_dataset(dataset_code)
         self.assertIsNotNone(result)
         
         query = {
@@ -144,10 +201,10 @@ class BaseFetcherTestCase(BaseDBTestCase):
         self.assertIsNotNone(dataset)
         
         if self.is_debug:
-            self._debug_dataset_concepts(dataset)
-            self._debug_dataset_codelists(dataset)
-            self._debug_dataset_dimension(dataset)
-            self._debug_dataset_attribute(dataset)
+            self._debug_dataset(dataset)
+
+        self.assertIsNotNone(dataset.get("metadata"))
+        self.assertTrue('frequencies' in dataset.get("metadata"))
 
         dsd = self.DATASETS[dataset_code]["DSD"]
         
@@ -172,10 +229,11 @@ class BaseFetcherTestCase(BaseDBTestCase):
 
     def _debug_series(self, series):
         print()
-        print("------------------------------------------------")
+        print("---------------- SERIES ------------------------")
         pprint(series)
         print("------------------------------------------------")        
 
+    @httpretty.activate
     def assertSeries(self, dataset_code):
 
         query = {
@@ -185,7 +243,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
 
         settings = self.DATASETS[dataset_code]
 
-        series_list = list(self.db[constants.COL_SERIES].find(query))
+        series_list = list(self.db[constants.COL_SERIES].find(query).hint([("$natural", 1)]))
         self.assertEqual(settings["series_accept"], len(series_list))
 
         series_sample = settings["series_sample"]
@@ -225,7 +283,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
             self.assertEqual(source["value"], target["value"])
             self.assertEqual(source["ordinal"], target["ordinal"])
             self.assertEqual(source["period"], target["period"])
-            self.assertEqual(source["period_o"], target["period_o"])
+            #self.assertEqual(source["period_o"], target["period_o"])
             self.assertEqual(source["attributes"], target["attributes"])
 
         if dsd["is_completed"]:
