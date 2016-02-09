@@ -1,22 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import time
-import urllib
-from datetime import datetime
 import logging
 from collections import OrderedDict
 
-import requests
-import pandas
-from lxml import etree
-
-from pandasdmx.api import Request
-
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats.utils import Downloader
-from dlstats.xml_utils import (XMLStructure_2_1, 
-                               XMLSpecificData_2_1_INSEE as XMLData)
+from dlstats.utils import Downloader, clean_datetime, remove_file_and_dir
+from dlstats import errors
+from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
+                               XMLStructure_2_1 as XMLStructure, 
+                               XMLSpecificData_2_1_INSEE as XMLData,
+                               dataset_converter)
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
@@ -28,285 +22,358 @@ VERSION = 3
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
+FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
+FREQUENCIES_REJECTED = ["S", "B", "I"]
 
 logger = logging.getLogger(__name__)
 
-class ContinueRequest(Exception):
-    pass
-
-def TODO_parse_agenda(self):
-    """Parse agenda of new releases and schedule jobs"""
-    
-    #TODO: calendrier: RSS 2.0
-    
-    DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
-    url = 'http://www.insee.fr/en/publics/presse/agenda.asp'
-    agenda = BeautifulSoup(urllib.request.urlopen(url))
-    ul = agenda.find('div',id='contenu').find('ul','liens')
-    for li in ul.find_all('li'):
-        href = li.find('a')['href']
-        groups = parse_theme(href)
-        text = li.find('p','info').string
-        date = datetime.datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
-        print(date)
-
-def TODO_parse_theme(self,url):
-    """Find updated code groups"""
-    
-    #    url = "http://localhost:8800/insee/industrial_production.html"
-    theme = BeautifulSoup(urllib.request.urlopen(url))
-    p = theme.find('div',id='savoirplus').find('p')
-    groups = []
-    for a in p.find_all('a'):
-        groups += [a.string[1:]]
-    return groups
-
 class INSEE(Fetcher):
     
-    def __init__(self, db=None, sdmx=None, **kwargs):        
-        super().__init__(provider_name='INSEE', db=db, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='INSEE', version=VERSION, **kwargs)
 
-        if not self.provider:        
-            self.provider = Providers(name=self.provider_name,
-                                     long_name='National Institute of Statistics and Economic Studies',
-                                     version=VERSION,
-                                     region='France',
-                                     website='http://www.insee.fr',
-                                     fetcher=self)
-            self.provider.update_database()
+        self.provider = Providers(name=self.provider_name,
+                                 long_name='National Institute of Statistics and Economic Studies',
+                                 version=VERSION,
+                                 region='France',
+                                 website='http://www.insee.fr',
+                                 fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-            
-        
-        self.sdmx = sdmx or Request(agency='INSEE')
+        self.xml_sdmx = None
+        self.xml_dsd = None
         
         self._dataflows = None
         self._categoryschemes = None
         self._categorisations = None
+        self._concepts = None
+        self._codelists = OrderedDict()
+                
+    def _add_metadata(self):
+        return
+        #TODO:
+        self.provider.metadata = {
+            "web": {
+                "remote_series": "http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=%(key)s",
+                "remote_datasets": "http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=%(dataset_code)s",
+                "remote_category": None,
+            }
+        }
     
     def _load_structure(self, force=False):
         
         if self._dataflows and not force:
             return
-        
-        """
-        #http://www.bdm.insee.fr/series/sdmx/categoryscheme
-        categoryscheme_response = self.sdmx.get(resource_type='categoryscheme', params={"references": None})
-        logger.debug(categoryscheme_response.url)
-        self._categoryschemes = categoryscheme_response.msg.categoryschemes
-    
-        #http://www.bdm.insee.fr/series/sdmx/categorisation
-        categorisation_response = self.sdmx.get(resource_type='categorisation')
-        logger.debug(categorisation_response.url)
-        self._categorisations = categorisation_response.msg.categorisations
-        """
-    
-        #http://www.bdm.insee.fr/series/sdmx/dataflow
-        dataflows_response = self.sdmx.get(resource_type='dataflow')    
-        logger.debug(dataflows_response.url)
-        self._dataflows = dataflows_response.msg.dataflows
 
+        for_delete = []
+
+        self.xml_sdmx = XMLSDMX(agencyID=self.provider_name)
+        
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name,
+                                    sdmx_client=self.xml_sdmx)       
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/dataflow/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="dataflow.xml",
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._dataflows = self.xml_dsd.dataflows
+
+        url = "http://www.bdm.insee.fr/series/sdmx/categoryscheme/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="categoryscheme.xml",
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._categoryschemes = self.xml_dsd.categories
+
+        url = "http://www.bdm.insee.fr/series/sdmx/categorisation/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="categorisation.xml",
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._categorisations = self.xml_dsd.categorisations
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/conceptscheme/%s" % self.provider_name
+        download = Downloader(url=url, 
+                              filename="conceptscheme.xml",
+                              store_filepath=self.store_path,
+                              headers=SDMX_METADATA_HEADERS)
+        filepath = download.get_filepath()
+        for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._concepts = self.xml_dsd.concepts
+
+        for fp in for_delete:
+            remove_file_and_dir(fp, let_root=True)
+        
     def load_datasets_first(self):
-        start = time.time()        
-        logger.info("datasets first load. provider[%s] - START" % (self.provider_name))
-        
-        for dataset_code in self.datasets_list():
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+        self._load_structure()
+        return super().load_datasets_first()
 
-        end = time.time() - start
-        logger.info("update fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-
-    def load_datasets_update(self):
-        #TODO: 
-        self.load_datasets_first()
-
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         """Build data_tree from structure datas
         """
-        if self.provider.count_data_tree() > 1 and not force_update:
-            return self.provider.data_tree
-        
         self._load_structure()
         
-        for dataset_code, dataset in self._dataflows.items():
+        categories = []
+        
+        position = 0
+        for category_code, category in self.xml_dsd.categories.items():
+            parent_ids = self.xml_dsd.iter_parent_category_id(category)
 
-            name = dataset.name
-            if "en" in dataset.name:
-                name = dataset.name.en
+            parent = None
+            all_parents = None
+            if parent_ids:
+                all_parents = parent_ids.copy()
+                parent = parent_ids.pop()
             else:
-                name = dataset.name.fr
+                position += 1
+                
+            cat = {
+                "provider_name": self.provider_name,
+                "category_code": category_code,
+                "name": category["name"],
+                "position": position,
+                "parent": parent,                
+                "all_parents": all_parents,
+                "datasets": [],
+                "doc_href": None,
+                "metadata": {}
+            }
+            if category_code in self.xml_dsd.categorisations_categories:
+                categorisation_ids = self.xml_dsd.categorisations_categories[category_code]
+                
+                for categorisation_id in categorisation_ids:
+                    categorisation = self.xml_dsd.categorisations[categorisation_id]
+                    dataflow_id = categorisation["dataflow"]["id"]
+                    dataset = self.xml_dsd.dataflows[dataflow_id]
+                    
+                    cat["datasets"].append({
+                        "dataset_code": dataset['id'], 
+                        "name":dataset["name"],
+                        "last_update": None,
+                        "metadata": {
+                            "dsd_id": dataset["dsd_id"]
+                        }
+                    })
+                
+            categories.append(cat)
             
-            self.provider.add_dataset(dict(dataset_code=dataset_code, name=name), self.provider_name)
-            
-        return self.provider.data_tree
+        return categories
 
-        for category in self._categoryschemes.aslist():
-            
-            _category = dict(name=category.name.en,
-                             category_code=category.id)
-            category_key = self.provider.add_category(_category)
-             
-            for subcategory in category.values():
-                
-                if not subcategory.id in self._categorisations:
-                    continue
-                
-                _subcategory = dict(name=subcategory.name.en,
-                                    category_code=subcategory.id)
-                _subcategory_key = self.provider.add_category(_subcategory,
-                                           parent_code=category_key)
-                
-                try:
-                    _categorisation = self._categorisations[subcategory.id]
-                    for i in _categorisation:
-                        _d = self._dataflows[i.artefact.id]
-                        self.provider.add_dataset(dict(dataset_code=_d.id, name=_d.name.en), _subcategory_key)                        
-                except Exception as err:
-                    logger.error(err)   
-                    raise                             
-
-        return self.provider.data_tree
-    
     def upsert_dataset(self, dataset_code):
 
-        #self.load_structure(force=False)
-        
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
-        
-        #if not dataset_code in self._dataflows:
-        #    raise Exception("This dataset is unknown: %s" % dataset_code)
-        
-        #dataflow = self._dataflows[dataset_code]
-        
-        #cat = self.db[constants.COL_CATEGORIES].find_one({'category_code': dataset_code})
-        #dataset.name = cat['name']
-        #dataset.doc_href = cat['doc_href']
-        #dataset.last_update = cat['last_update']
+        self._load_structure()
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code,
-                           #name=dataflow.name.en,
+                           name=None,
                            doc_href=None,
-                           last_update=datetime.now(), #TODO:
+                           last_update=clean_datetime(),
                            fetcher=self)
         
-        dataset_doc = self.db[constants.COL_DATASETS].find_one({'provider_name': self.provider_name,
-                                                                "dataset_code": dataset_code})
+        query = {'provider_name': self.provider_name, 
+                 "dataset_code": dataset_code}        
+        dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
         
-        insee_data = INSEE_Data(dataset=dataset,
-                                dataset_doc=dataset_doc, 
-                                #dataflow=dataflow, 
-                                #sdmx=self.sdmx
-                                )
+        insee_data = INSEE_Data(dataset,
+                                dataset_doc=dataset_doc)
         dataset.series.data_iterator = insee_data
-        result = dataset.update_database()
-        
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-        
-        """
-        > IDBANK:  A définir dynamiquement sur site ?
-        doc_href d'une serie: http://www.bdm.insee.fr/bdm2/affichageSeries?idbank=001694226
-        > CODE GROUPE: Balance des Paiements mensuelle - Compte de capital
-        http://www.bdm.insee.fr/bdm2/choixCriteres?codeGroupe=1556
-        """
-        return result
+        return dataset.update_database()
 
-class INSEE_Data(object):
+class INSEE_Data(SeriesIterator):
     
-    def __init__(self, dataset=None, dataset_doc=None):
+    def __init__(self, dataset, dataset_doc=None):
         """
         :param Datasets dataset: Datasets instance
         """
-        self.dataset = dataset
+        super().__init__(dataset)
+
         self.dataset_doc = dataset_doc
-        self.attribute_list = self.dataset.attribute_list
-        self.dimension_list = self.dataset.dimension_list
-        self.provider_name = self.dataset.provider_name
-        self.dataset_code = self.dataset.dataset_code
-
+        self.store_path = self.get_store_path()
+        
+        self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
+        self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
+        
+        self.last_update = self.dataset.download_last #self.dataset.last_update
         if self.dataset_doc:
-            self.last_update = self.dataset_doc["last_update"]
+            #self.last_update = self.dataset_doc["last_update"]
+            self.last_update = self.dataset_doc["download_last"]
 
-        self.xml_dsd = XMLStructure_2_1(provider_name=self.provider_name, 
-                                        dataset_code=self.dataset_code)        
-        
-        self.rows = None
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name,
+                                    sdmx_client=self.fetcher.xml_sdmx)        
+        self.xml_dsd.concepts = self.fetcher._concepts
+        self.xml_dsd.codelists = self.fetcher._codelists
+
         self._load()
-        
-    def _load(self):
 
-        self.dsd_id = self.dataset_code
+    def _load(self):
+        self._load_dsd()
+        self._load_data()
+        
+    def _load_dsd_by_element(self):
+        
+        url = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s" % self.dsd_id
+        download = Downloader(url=url, 
+                              filename="datastructure-%s.xml" % self.dsd_id,
+                              headers=SDMX_METADATA_HEADERS,
+                              store_filepath=self.store_path)
+        
+        filepath = download.get_filepath()
+        self.dataset.for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._set_dataset()
+        
+    def _load_dsd(self):
+        """
+        #TODO: il y a une DSD pour chaque groupe de séries (soit environ 400),
+        - download 1 dsd partage par plusieurs dataset
+        - 668 datase
+        """
 
         url = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s?references=children" % self.dsd_id
         download = Downloader(url=url, 
-                              filename="dsd-%s.xml" % self.dataset_code,
-                              headers=SDMX_METADATA_HEADERS)
-        self.xml_dsd.process(download.get_filepath())
+                              filename="dsd-%s.xml" % self.dsd_id,
+                              headers=SDMX_METADATA_HEADERS,
+                              store_filepath=self.store_path)
         
-        self.dataset.name = self.xml_dsd.dataset_name
+        filepath, response = download.get_filepath_and_response()
         
-        dimensions = OrderedDict()
-        for key, item in self.xml_dsd.dimensions.items():
-            dimensions[key] = item["dimensions"]
-        self.dimension_list.set_dict(dimensions)
+        if response.status_code == HTTP_ERROR_LONG_RESPONSE:
+            self._load_dsd_by_element()
+            return
+        elif response.status_code >= 400:
+            raise response.raise_for_status()
         
-        attributes = OrderedDict()
-        for key, item in self.xml_dsd.attributes.items():
-            attributes[key] = item["values"]
-        self.attribute_list.set_dict(attributes)
+        self.dataset.for_delete.append(filepath)
+        self.xml_dsd.process(filepath)
+        self._set_dataset()
+        
+    def _set_dataset(self):
+
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+
+        self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.attribute_keys = dataset["attribute_keys"] 
+        self.dataset.concepts = dataset["concepts"] 
+        self.dataset.codelists = dataset["codelists"]
+        
+        self.dataset.dimension_list.set_dict(dataset["dimensions"])
+        self.dataset.attribute_list.set_dict(dataset["attributes"])
+
+        self.fetcher._codelists.update(self.xml_dsd.codelists)
+
+
+    def _load_data(self):
         
         url = "http://www.bdm.insee.fr/series/sdmx/data/%s" % self.dataset_code
         download = Downloader(url=url, 
                               filename="data-%s.xml" % self.dataset_code,
-                              headers=SDMX_DATA_HEADERS)
+                              headers=SDMX_DATA_HEADERS,
+                              store_filepath=self.store_path)
 
+        #TODO: ?startperiod="2008"
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                dimension_keys=self.xml_dsd.dimension_keys)
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        #TODO: response and exception
-        try:
-            filepath, response = download.get_filepath_and_response()        
-        except requests.exceptions.HTTPError as err:
-            logger.critical("AUTRE ERREUR HTTP : %s" % err.response.status_code)
-            raise
-            
+        filepath, response = download.get_filepath_and_response()
+        if response.status_code == HTTP_ERROR_LONG_RESPONSE:
+            self.rows = self._get_data_by_dimension()
+            return
+        elif response.status_code >= 400:
+            raise response.raise_for_status()
+
+        self.dataset.for_delete.append(filepath)
         self.rows = self.xml_data.process(filepath)
 
+    def _select_short_dimension(self):
+        """Renvoi le nom de la dimension qui contiens le moins de valeur
+        pour servir ensuite de filtre dans le chargement des données (..A.)
+        en tenant compte du nombre de dimension et de la position 
+        """
+        dimension_keys = self.xml_dsd.dimension_keys_by_dsd[self.dsd_id]
+        dimensions = self.xml_dsd.dimensions_by_dsd[self.dsd_id]
 
-    def __next__(self):
-        _series = next(self.rows)
+        _dimensions = {}        
+        for dim_id, dim in dimensions.items():
+            _dimensions[dim_id] = len(dim["enum"].keys())
         
-        if not _series:
-            raise StopIteration()
+        _key = min(_dimensions, key=_dimensions.get)
         
-        return self.build_series(_series)
+        position = dimension_keys.index(_key)         
+        dimension_values = list(dimensions[_key]["enum"].keys())
+        return (position, 
+                len(dimension_keys), 
+                _key, 
+                dimension_values)
+            
+    def _get_data_by_dimension(self):
 
-    def is_updated(self, bson):
+        position, count_dimensions, _key, dimension_values = self._select_short_dimension()
+        
+        for dimension_value in dimension_values:
+            '''Pour chaque valeur de la dimension, generer une key d'url'''
+                        
+            sdmx_key = []
+            for i in range(count_dimensions):
+                if i == position:
+                    sdmx_key.append(dimension_value)
+                else:
+                    sdmx_key.append(".")
+            key = "".join(sdmx_key)
+
+            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, 
+                                                                      key)
+            
+            download = Downloader(url=url, 
+                                  filename="data-%s.xml" % self.dataset_code,
+                                  headers=SDMX_DATA_HEADERS,
+                                  store_filepath=self.store_path)
+            filepath, response = download.get_filepath_and_response()
+            
+            if response.status_code == HTTP_ERROR_NO_RESULT:
+                continue
+            elif response.status_code >= 400:
+                raise response.raise_for_status()
+
+            self.dataset.for_delete.append(filepath)
+            
+            for row in self.xml_data.process(filepath):
+                yield row
+    
+    def _is_updated(self, bson):
         """Verify if series changes
+        
+        Return True si la series doit etre mise a jour et False si elle est a jour  
         """
         if not self.last_update:
             return True
         
-        series_updated = bson['last_update']
-        _is_updated = series_updated > self.last_update
-
-        if not _is_updated and logger.isEnabledFor(logging.INFO):
-            logger.info("bypass updated dataset_code[%s][%s] - idbank[%s][%s]" % (self.dataset_code,
-                                                                                 self.last_update, 
-                                                                                 bson['key'],
-                                                                                 series_updated))
+        series_updated = bson.get('last_update', None)
+        if not series_updated:
+            return True
         
-        return _is_updated
+        if series_updated > self.last_update:
+            return True
+
+        return False
 
     def build_series(self, bson):
-        #TODO: last_update : update dataset ?
-        #bson["last_update"] = self.last_update
+        self.dataset.add_frequency(bson["frequency"])
+        
+        if not self._is_updated(bson):
+            raise errors.RejectUpdatedSeries(provider_name=self.provider_name,
+                                             dataset_code=self.dataset_code,
+                                             key=bson.get('key'))
         return bson
 

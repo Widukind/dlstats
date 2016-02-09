@@ -1,151 +1,89 @@
 # -*- coding: utf-8 -*-
 
-import time
-import os
-import uuid
-from datetime import datetime
-from random import choice, randint
 from copy import deepcopy
+from datetime import datetime
+
 from bson import ObjectId
-
 from voluptuous import MultipleInvalid
-
 from pymongo.errors import DuplicateKeyError
 
-from widukind_common import tags
-
 from dlstats import constants
+from dlstats import errors
+from dlstats.fetchers import schemas
 from dlstats.fetchers._commons import (Fetcher, 
                                        CodeDict, 
                                        DlstatsCollection, 
                                        Providers,
+                                       Categories,
                                        Datasets, 
-                                       Series)
+                                       Series,
+                                       SeriesIterator,
+                                       series_is_changed,
+                                       series_revisions,
+                                       series_set_release_date,
+                                       series_update)
+from dlstats.fetchers.dummy import DUMMY, DUMMY_SAMPLE_SERIES
 
 import unittest
+from unittest import mock
 
-from dlstats.tests.base import BaseTestCase, BaseDBTestCase, RESOURCES_DIR
+from dlstats.tests.base import BaseTestCase, BaseDBTestCase
 
-class FakeDataset(Datasets):
+def update_mongo_collection(self, collection, keys, bson):
+    pass
+
+class FakeSeriesIterator(SeriesIterator):
     
-    def download(self, urls):
-        """Download all sources for this Dataset
+    def __init__(self, dataset, series_list):
+        super().__init__(dataset)
+        self.series_list = series_list
+        self.rows = self._process()
         
-        :param dict urls: URLS dict - key = final filename
+    def _process(self):
+        for row in self.series_list:
+            yield row, None
         
-        :return: :class:`dict`
-        
-        >>> fetcher = Fetcher(provider_name="test")
-        >>> dataset = Datasets(fetcher=fetcher)
-        >>> urls = ['http://localhost/file1.zip', http://localhost/file2.zip']
-        >>> dataset.download(urls)
+    def build_series(self, bson):
+        for key, dim in bson["dimensions"].items():
+            self.dataset.dimension_list.update_entry(key, dim, key)
+        return bson
+
+SERIES1 = {
+    'provider_name': 'p1',
+    'dataset_code': 'd1',
+    'name': 'series1',
+    'key': 'key1',
+    'slug': 'p1-d1-key1',
+    'values': [
         {
-            'file1.zip': '/tmp/dfkr56ert98/file1.zip',
-            'file2.zip': '/tmp/dfkr56ert98/file2.zip',
-        }        
-        
-        >>> from urllib.parse import urlparse
-        >>> url = 'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11'
-        >>> u = urlparse(url)
-        >>> u
-        ParseResult(scheme='http', netloc='www.bea.gov', path='//national/nipaweb/GetCSV.asp', params='', query='GetWhat=SS_Data/SectionAll_xls.zip&Section=11', fragment='')
-        >>> u.path
-        '//national/nipaweb/GetCSV.asp'        
-        """
-        #urllib.request.url2pathname()
-        files = {}
-        for url in urls:
-            filename = os.path.basename(url)
-            files[filename] = url        
-        return files
-        
-class FakeDatas():
-    """Fake data for series
-
-
-    - use:
-    
-        f = Fetcher(provider_name="p1", 
-                    db=self.db)
-        
-        d = Datasets(provider_name="p1", 
-                    dataset_code="d1",
-                    name="d1 Name",
-                    last_update=datetime.now(),
-                    doc_href="http://www.example.com",
-                    fetcher=f, 
-                    is_load_previous_version=False)
-        
-        d.dimension_list.update_entry("country", "country", "country")
-        
-        datas = FakeDatas(provider_name="p1", dataset_code="d1")
-        d.series.data_iterator = datas
-        
-        result = d.update_database()
-    """
-    
-    def __init__(self, provider_name=None, dataset_code=None, max_record=10, fetcher=None):
-        
-        self.provider_name = provider_name
-        self.dataset_code = dataset_code
-        self.max_record = max_record
-        self.fetcher = fetcher
-        
-        self.rows = []
-        self.keys = []
-        self._create_fixtures()
-        self._rows_iter = iter(self.rows)
-        
-    def _create_fixtures(self):
-        for i in range(0, self.max_record):
-            
-            key = str(uuid.uuid4())
-            self.keys.append(key)
-
-            '''Mongo format attribute names'''
-            n = 9
-            frequency = choice(['A','Q']) 
-            start_date = randint(10,100)
-            end_date = start_date + n - 1
-            data = {'provider_name': self.provider_name, 
-                    'dataset_code': self.dataset_code,
-                    'key': key, 
-                    'name': key,
-                    'frequency': frequency,
-                    'start_date': start_date,
-                    'end_date': end_date,
-                    'values': [str(randint(i+1, 100)) for i in range(n)],
-                    'attributes': {},
-                    'revisions': {},
-                    'dimensions': {
-                        'Country': 'AFG', 
-                        'Scale': 'Billions'
-                    }}
-            """
-            data = {'provider_name': self.provider_name, 
-                    'dataset_code': self.dataset_code,
-                    'key': key, 
-                    'name': key,
-                    'frequency': frequency,
-                    'start_date': start_date,
-                    'end_date': end_date,
-                    'values': [str(randint(i+1, 100)) for i in range(n)],
-                    'attributes': {},
-                    'revisions': {},
-                    'dimensions': {
-                        'Country': 'AFG', 
-                        'Scale': 'Billions'
-                    }}
-            """
-            self.rows.append(data)
-    
-    def __next__(self):
-        row = next(self._rows_iter) 
-        if row is None:
-            raise StopIteration()
-        return(row)
-    
-
+            'release_date': datetime(2015, 1, 1, 0, 0, 0),
+            'ordinal': 25,
+            #'period_o': '1995',
+            'period': '1995',
+            'value': '1.0',
+            'attributes': {
+                'OBS_STATUS': 'a'
+            },
+        },
+        {
+            'release_date': datetime(2015, 1, 1, 0, 0, 0),
+            'ordinal': 44,
+            #'period_o': '2014',
+            'period': '2014',
+            'value': '1.5',
+            'attributes': None
+        }
+    ],
+    'attributes': None,
+    'dimensions': {
+        'Country': 'AFG',
+        'Scale': 'Billions',
+    },
+    'last_update': None,
+    'start_date': 25, #1995
+    'end_date': 44, #2014
+    'frequency': 'A'           
+}
 
 class FetcherTestCase(BaseTestCase):
 
@@ -170,7 +108,7 @@ class FetcherTestCase(BaseTestCase):
         with self.assertRaises(NotImplementedError):
             f.upsert_dataset(None)
 
-#TODO: CodeDictTestCase
+@unittest.skipIf(True, "TODO")    
 class CodeDictTestCase(BaseTestCase):
     pass
 
@@ -189,11 +127,11 @@ class DlstatsCollectionTestCase(BaseTestCase):
         f = Fetcher(provider_name="test", is_indexes=False)
         DlstatsCollection(fetcher=f)
 
-class ProviderTestCase(BaseTestCase):
+class ProvidersTestCase(BaseTestCase):
 
     def test_constructor(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProviderTestCase.test_constructor
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:ProvidersTestCase.test_constructor
 
         with self.assertRaises(ValueError):
             Providers()
@@ -217,13 +155,11 @@ class ProviderTestCase(BaseTestCase):
         self.assertEqual(bson["website"], "http://www.example.com")
         self.assertEqual(bson["slug"], "p1")
 
-class DatasetTestCase(BaseTestCase):
-    
-    #TODO: test_load_previous_version()
+class DatasetsTestCase(BaseTestCase):
     
     def test_constructor(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DatasetTestCase.test_constructor
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DatasetsTestCase.test_constructor
         
         with self.assertRaises(ValueError):
             Datasets(is_load_previous_version=False)
@@ -252,12 +188,69 @@ class DatasetTestCase(BaseTestCase):
         self.assertIsNone(bson["last_update"])
         self.assertEqual(bson["slug"], "p1-d1")
 
-        #TODO: last_update        
-        d.last_update = datetime.now()
-                
-        #print(d.schema(d.bson))
 
+class SeriesIteratorTestCase(BaseTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesIteratorTestCase
+
+    def test_constructor(self):
+
+        with self.assertRaises(TypeError):
+            SeriesIterator("")
+            
+        fetcher = Fetcher(provider_name="p1", is_indexes=False)
+                
+        dataset = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    fetcher=fetcher, 
+                    is_load_previous_version=False)
+        
+        dclass = SeriesIterator(dataset)
+        
+        self.assertEqual(dclass.dataset_code, "d1")
+        self.assertEqual(dclass.provider_name, "p1")
+        self.assertIsNone(dclass.rows)
+
+        with self.assertRaises(NotImplementedError):
+            dclass.build_series({})
+
+    def test_implement(self):
+        
+        fetcher = Fetcher(provider_name="p1", is_indexes=False)
+                
+        dataset = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    fetcher=fetcher, 
+                    is_load_previous_version=False)
+
+        class DataClass(SeriesIterator):
+            
+            def __init__(self, dataset):
+                super().__init__(dataset)
+                self.rows = self._process()
+            
+            def _process(self):
+                yield {"key": "k1", "badfield": 1}, None
+            
+            def clean_field(self, bson):
+                bson.pop("badfield")
+                return bson
+            
+            def build_series(self, bson):
+                return bson
+        
+        dclass = DataClass(dataset)
+        bson = next(dclass)
+        self.assertEqual(bson, {"key": "k1"})
+        
+        with self.assertRaises(StopIteration):
+            next(dclass)
+        
 class SeriesTestCase(BaseTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase
     
     def test_constructor(self):
 
@@ -266,7 +259,7 @@ class SeriesTestCase(BaseTestCase):
         with self.assertRaises(ValueError):
             Series()
             
-        f = Fetcher(provider_name="p1")
+        f = Fetcher(provider_name="p1", is_indexes=False)
             
         s = Series(provider_name="p1", 
                    dataset_code="d1", 
@@ -275,18 +268,605 @@ class SeriesTestCase(BaseTestCase):
                    fetcher=f)
         
         self.assertFalse(hasattr(s, "data_iterator"))
-    
-class DBProviderTestCase(BaseDBTestCase):
 
-    #TODO: test indexes keys and properties
-    def test_indexes(self):
+    def test_series_set_release_date(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_set_release_date
+        
+        bson = None
+        last_update = None
+        with self.assertRaises(ValueError) as err:
+            series_set_release_date(bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "no bson or not dict instance")
+        
+        bson = {"field": None}
+        last_update = None
+        with self.assertRaises(ValueError) as err:
+            series_set_release_date(bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "no last_update or not datetime instance")
+
+        bson = {"field": None}
+        last_update = datetime.now()
+        with self.assertRaises(ValueError) as err:
+            series_set_release_date(bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "not values field in bson")
+
+        '''Add release_date field to values'''
+        bson = {
+            "values": [
+                {"period": "2000", "value": "1"},
+                {"period": "2001", "value": "2"},
+            ]
+        }
+        last_update = datetime.now()
+        series_set_release_date(bson, last_update)
+        self.assertTrue("release_date" in bson["values"][0])
+        self.assertTrue("release_date" in bson["values"][1])
+        self.assertEqual(bson["values"][0]["release_date"], last_update)
+        self.assertEqual(bson["values"][1]["release_date"], last_update)
+
+        '''Existing release_date field'''
+        bson = {
+            "values": [
+                {"period": "2000", "value": "1", "release_date": datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)},
+            ]
+        }
+        series_set_release_date(bson, last_update)
+        self.assertTrue(bson["values"][0]["release_date"],
+                        datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None))
+
+
+    def test_series_is_changed(self):
+
+        old_bson = None
+        new_bson = None
+        with self.assertRaises(ValueError) as err:
+            series_is_changed(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "no new_bson or not dict instance")
+
+        old_bson = None
+        new_bson = {"field": None}
+        with self.assertRaises(ValueError) as err:
+            series_is_changed(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "no old_bson or not dict instance")
+
+        old_bson = {"field": None}
+        new_bson = {"field": None}
+        with self.assertRaises(ValueError) as err:
+            series_is_changed(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "not values field in new_bson")
+                
+        old_bson = {"field": None}
+        new_bson = {"values": None}
+        with self.assertRaises(ValueError) as err:
+            series_is_changed(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "not values field in old_bson")
+        
+        
+        '''No change'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertFalse(series_is_changed(new_bson, old_bson))
+
+        '''Add values entry'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}, {}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Change notes'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": "xxx",
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Change dimension keys'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1", "b": "2"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Change dimension values'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "20"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+        
+        '''Change attribute keys'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "e"}, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+        
+        '''Change attribute values'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "e"}, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "f"}, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Change start_date'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 5, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+        
+        '''Change end_date'''        
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 30, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+    def test_series_schema(self):
+
+        bson = {
+            'provider_name': "p1", 'dataset_code': "d1",
+            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
+            'attributes': None,
+            'dimensions': {"COUNTRY": "FRA"},
+            'start_date': 10, 'end_date': 10,
+            'frequency': "A",
+            'values': [
+                {
+                    "period": "2000", 
+                    #"period_o": "2000", 
+                    "value": "1", 
+                    "ordinal": 10, "attributes": None,
+                    "release_date": datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None),
+                    "revisions": [{
+                        "revision_date": datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None),
+                        "value": "1",
+                        "attributes": None
+                    }]
+                 }
+            ],                
+        }
+        schemas.series_revision_schema(bson["values"][0]["revisions"][0])
+        schemas.series_value_schema(bson["values"][0])
+        schemas.series_schema(bson)
+
+    def test_series_update(self):
+
+        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
+        
+        '''No old_bson - insert'''
+        new_bson = {
+            'provider_name': "p1", 'dataset_code': "d1",
+            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
+            'attributes': None,
+            'dimensions': {"COUNTRY": "FRA"},
+            'start_date': 10, 'end_date': 10,
+            'frequency': "A",
+            'last_update': last_update,
+            'values': [
+                {"period": "2000", 
+                 #"period_o": "2000", 
+                 "value": "1", "ordinal": 10, "attributes": None}
+            ],                
+        }
+        modify_bson = series_update(new_bson, last_update=last_update)
+        self.assertIsNotNone(modify_bson)
+        
+        values_0 = modify_bson["values"][0]
+        self.assertTrue("release_date" in values_0) 
+        self.assertEqual(values_0["release_date"], last_update)
+
+
+        '''old_bson without change - insert'''
+        new_bson = {
+            'provider_name': "p1", 'dataset_code': "d1",
+            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
+            'attributes': None,
+            'dimensions': {"COUNTRY": "FRA"},
+            'start_date': 10, 'end_date': 10,
+            'frequency': "A",
+            'last_update': last_update,
+            'values': [
+                {"period": "2000", 
+                 #"period_o": "2000", 
+                 "value": "1", "ordinal": 10, "attributes": None}
+            ],                
+        }
+        old_bson = deepcopy(new_bson)
+        modify_bson = series_update(new_bson, old_bson=old_bson, last_update=last_update)
+        self.assertIsNone(modify_bson)
+        
+    def test_series_revisions_exceptions(self):
+
+        new_bson = None
+        old_bson = None
+        last_update = None
+        with self.assertRaises(ValueError) as err:
+            series_revisions(new_bson, old_bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "no new_bson or not dict instance")
+
+        new_bson = {"field": None}
+        old_bson = None
+        last_update = None
+        with self.assertRaises(ValueError) as err:
+            series_revisions(new_bson, old_bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "no old_bson or not dict instance")
+
+        new_bson = {"field": None}
+        old_bson = {"field": None}
+        last_update = None
+        with self.assertRaises(ValueError) as err:
+            series_revisions(new_bson, old_bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "no last_update or not datetime instance")
+
+        new_bson = {"field": None}
+        old_bson = {"field": None}
+        last_update = datetime.now()
+        with self.assertRaises(ValueError) as err:
+            series_revisions(new_bson, old_bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "not values field in new_bson")
+                
+        new_bson = {"values": None}
+        old_bson = {"field": None}
+        last_update = datetime.now()
+        with self.assertRaises(ValueError) as err:
+            series_revisions(new_bson, old_bson, last_update)
+        self.assertEqual(str(err.exception), 
+                         "not values field in old_bson")
+
+    def test_series_revisions_no_change(self):
+
+        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
+        last_update = datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None)
+
+        old_bson = {
+            "values": [
+                {"period": "2000", "value": "1", 
+                 "release_date": release_date, "attributes": None},
+            ]
+        }
+        new_bson = {
+            "values": [
+                {"period": "2000", "value": "1", 
+                 "release_date": release_date, "attributes": None},
+            ]
+        }
+        
+        changed = series_revisions(new_bson, old_bson, last_update)
+        self.assertFalse(changed)
+
+    def test_series_revisions_change_one_value(self):
+
+        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
+        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
+
+        '''Change one value - add one revision'''
+        old_bson = {
+            "values": [
+                {"period": "2000", "value": "1", 
+                 "release_date": release_date, "attributes": None},
+            ]
+        }
+        new_bson = {
+            "values": [
+                {"period": "2000", "value": "1000", 
+                 "release_date": release_date, "attributes": None},
+            ]
+        }
+        
+        changed = series_revisions(new_bson, old_bson, last_update)
+        self.assertTrue(changed)
+        self.assertTrue("revisions" in new_bson["values"][0])
+        self.assertEqual(len(new_bson["values"][0]["revisions"]), 1)
+        revision_entry = {
+            "revision_date": release_date,
+            "value": "1",
+            "attributes": None
+        } 
+        
+        self.assertEqual(new_bson["values"][0]["value"], "1000")
+        self.assertEqual(new_bson["values"][0]["release_date"], last_update)
+        self.assertEqual(new_bson["values"][0]["revisions"][0], revision_entry)
+
+    def test_series_revisions_change_one_value_add_existing_revision(self):
+
+        release_date = datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None)
+        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
+
+        '''Change one value - add revision entry'''
+
+        old_bson = {
+            "values": [
+                {"period": "2000", "value": "10", 
+                 "release_date": release_date, "attributes": None,
+                 "revisions": [{
+                    "revision_date": datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None),
+                    "value": "5",
+                    "attributes": None
+                }]},
+            ]
+        }
+        new_bson = {
+            "values": [
+                {"period": "2000", "value": "20", 
+                 "release_date": release_date, "attributes": None},
+            ]
+        }
+        changed = series_revisions(new_bson, old_bson, last_update)
+
+        self.assertTrue(changed)
+        self.assertEqual(len(new_bson["values"][0]["revisions"]), 2)
+
+        self.assertEqual(new_bson["values"][0]["value"], "20")
+        revision_0 = new_bson["values"][0]["revisions"][0]
+        revision_1 = new_bson["values"][0]["revisions"][1]
+        self.assertEqual(revision_0["value"], "5")
+        self.assertEqual(revision_1["value"], "10")
+        
+        self.assertEqual(revision_0["revision_date"].year, 2015)
+        self.assertEqual(revision_1["revision_date"].year, 2016)
+
+    def test_series_revisions_change_only_attribute(self):
+
+        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
+        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
+
+        '''change only one attribute'''
+        
+        old_bson = {
+            "values": [
+                {"period": "2000", "value": "1", 
+                 "release_date": release_date, 
+                 "attributes": {"OBS_STATUS": "e"}}, # estimated
+            ]
+        }
+        new_bson = {
+            "values": [
+                {"period": "2000", "value": "10", 
+                 "release_date": release_date, 
+                 "attributes": None}, # fixe value
+            ]
+        }
+        
+        changed = series_revisions(new_bson, old_bson, last_update)
+        self.assertTrue(changed)
+        self.assertTrue("revisions" in new_bson["values"][0])
+        self.assertEqual(len(new_bson["values"][0]["revisions"]), 1)
+
+        self.assertIsNone(new_bson["values"][0]["attributes"])
+        
+        revision_0 = new_bson["values"][0]["revisions"][0]
+        self.assertEqual(revision_0["attributes"], {"OBS_STATUS": "e"})
+
+    @mock.patch("dlstats.fetchers._commons.DlstatsCollection.update_mongo_collection", update_mongo_collection)
+    def test_process_series_data(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_process_series_data
+
+        f = Fetcher(provider_name="p1",
+                    max_errors=1, 
+                    is_indexes=False)
+
+        dataset = Datasets(provider_name="p1", 
+                    dataset_code="d1",
+                    name="d1 Name",
+                    last_update=datetime.now(),
+                    fetcher=f, 
+                    is_load_previous_version=False)
+        
+        class MockSeries(Series):
+            def update_series_list(self):
+                pass
+            
+        s = MockSeries(provider_name="p1", 
+                       dataset_code="d1", 
+                       last_update=None, 
+                       fetcher=f)
+        
+        class MyFetcher_Data(SeriesIterator):
+            
+            def rows_generator(self):
+                yield None, errors.RejectFrequency(frequency="S")
+                yield None, errors.RejectUpdatedSeries(key="series-updated")
+                yield None, errors.RejectEmptySeries()
+                yield SERIES1.copy(), None
+                yield {}, Exception("NOT CAPTURED EXCEPTION")
+                yield SERIES1.copy(), None
+            
+            def __init__(self, dataset):
+                super().__init__(dataset)
+                self.rows = self.rows_generator()
+                
+            def build_series(self, bson):
+                return bson
+        
+        s.data_iterator = MyFetcher_Data(dataset)
+
+        with self.assertRaises(Exception) as err:
+            s.process_series_data()
+        
+        self.assertEqual(str(err.exception), 
+                         "NOT CAPTURED EXCEPTION")
+        
+        self.assertEqual(len(s.series_list), 1)
+        self.assertTrue(s.fatal_error)
+        
+        self.assertEqual(s.count_accepts, 1)
+        self.assertEqual(s.count_rejects, 3)
+        
+        
+class DB_IndexesTestCase(BaseDBTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_IndexesTestCase
+
+    @unittest.skipIf(True, "TODO")    
+    def test_indexes_providers(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_indexes_categories(self):
         pass
     
+    def test_indexes_datasets(self):
+        
+        indexes = self.db[constants.COL_DATASETS].index_information()
+        
+        self.assertEqual(sorted(list(indexes.keys())),
+                         ['_id_',
+                          'enable_idx',
+                          'last_update_idx',
+                          'name_idx',
+                          'provider_dataset_idx',
+                          'provider_idx',
+                          'slug_idx',
+                          'tags_idx'])
+        
+        provider_dataset_idx = indexes["provider_dataset_idx"] 
+        self.assertEqual(len(provider_dataset_idx['key']), 2)
+        self.assertEqual(provider_dataset_idx['key'][0][0], "provider_name")
+        self.assertEqual(provider_dataset_idx['key'][1][0], "dataset_code")
+        self.assertTrue(provider_dataset_idx['unique'])
+
+    @unittest.skipIf(True, "TODO")    
+    def test_indexes_series(self):
+        pass
+    
+class DB_FetcherTestCase(BaseDBTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_FetcherTestCase
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_upsert_data_tree(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_load_provider_from_db(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_get_selected_datasets(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_datasets_list(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_provider(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_upsert_all_datasets(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_get_ordinal_from_period(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test_wrap_upsert_dataset(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")    
+    def test__hook_remove_temp_files(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_hook_before_dataset(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_hook_after_dataset(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_load_datasets_first(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_load_datasets_update(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_build_data_tree(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_get_calendar(self):
+        pass
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_upsert_dataset(self):
+        pass
+
+class DB_DlstatsCollectionTestCase(BaseDBTestCase):
+
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DlstatsCollectionTestCase
+    
+    @unittest.skipIf(True, "TODO")    
+    def test_update_mongo_collection(self):
+        pass
+    
+class DB_ProvidersTestCase(BaseDBTestCase):
+
+    @unittest.skipIf(True, "TODO")    
+    def test_schema(self):
+        pass
+
     def test_unique_constraint(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_unique_constraint
-
-        self._collections_is_empty()
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_ProvidersTestCase.test_unique_constraint
 
         f = Fetcher(provider_name="p1", 
                     db=self.db)
@@ -297,9 +877,13 @@ class DBProviderTestCase(BaseDBTestCase):
                       region="Dreamland",
                       website="http://www.example.com", 
                       fetcher=f)
-        p.update_database()        
+        
+        #f.provider = p
 
-        self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 1)
+        self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
+        
+        result = p.update_database()
+        self.assertIsNotNone(result)
         
         existing_provider = dict(name="p1")
         
@@ -318,9 +902,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
     def test_version_field(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_version_field
-
-        self._collections_is_empty()
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_ProvidersTestCase.test_version_field
 
         f = Fetcher(provider_name="p1", 
                     db=self.db)
@@ -344,9 +926,7 @@ class DBProviderTestCase(BaseDBTestCase):
 
     def test_update_database(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_update_database
-
-        self._collections_is_empty()
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_ProvidersTestCase.test_update_database
 
         f = Fetcher(provider_name="p1", 
                     db=self.db)
@@ -368,76 +948,132 @@ class DBProviderTestCase(BaseDBTestCase):
         self.assertEqual(bson["name"], "p1")
         self.assertEqual(bson["website"], "http://www.example.com")
 
-    def test_add_data_tree(self):
-        
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBProviderTestCase.test_add_data_tree
+class DB_CategoriesTestCase(BaseDBTestCase):
 
-        f = Fetcher(provider_name="p1", is_indexes=False)
+    @unittest.skipIf(True, "TODO")    
+    def test_schema(self):
+        pass
+
+    def test_unique_constraint(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_CategoriesTestCase.test_unique_constraint
+    
+        f = Fetcher(provider_name="p1", 
+                    db=self.db)
+        
+        cat = Categories(provider_name=f.provider_name, 
+                         category_code="c1", 
+                         name="C1", 
+                         fetcher=f)
+
+        result = cat.update_database()
+        self.assertIsNotNone(result)
+        
+        self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 1)
+                        
+        with self.assertRaises(DuplicateKeyError):
+            existing_dataset = dict(provider_name=cat.provider_name, 
+                                    category_code=cat.category_code)
+            self.db[constants.COL_CATEGORIES].insert(existing_dataset)
+
+    @unittest.skipIf(True, "TODO")
+    def test_slug(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_bson(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_categories(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_count(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_remove_all(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_search_category_for_dataset(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_root_categories(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_iter_parent(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_update_database(self):
+        pass
+
+    def test_add_categories(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_CategoriesTestCase.test_add_categories
+
+        f = Fetcher(provider_name="p1", 
+                    is_indexes=False, 
+                    db=self.db)
 
         p = Providers(name="p1",
                       long_name="Provider One",
                       version=1,
                       region="Dreamland",
                       website="http://www.example.com", 
-                      fetcher=f)
-        
-        self.assertEqual(len(p.data_tree), 1)
-        p.data_tree[0]["category_code"] = p.name
-        p.data_tree[0]["long_name"] = p.long_name
-        p.data_tree[0]["website"] = p.website
-        
+                      fetcher=f)        
         p.update_database()
         
         minimal_category = { 'category_code': "c0", 'name': "p1"}
-        p.add_category(minimal_category)
-        
-        data_tree = [
-             {'category_code': 'p1',
-              'datasets': [],
-              'description': None,
-              'doc_href': 'http://www.example.com',
-              'exposed': False,
-              'last_update': None,
-              'name': 'p1'},
-             {'category_code': 'p1.c0',
-              'datasets': [],
-              'description': None,
-              'doc_href': None,
-              'exposed': False,
-              'last_update': None,
-              'name': 'p1'}
-        ]        
-        
-        self.assertEqual(p.data_tree, data_tree)
+        result = f.upsert_data_tree([minimal_category])
+        self.assertEqual(len(result), 1)
 
-class DBDatasetTestCase(BaseDBTestCase):
+        cat = self.db[constants.COL_CATEGORIES].find_one({"_id": result[0]})
+        self.assertIsNotNone(cat)
+        
+        _categories = {'c0': {'all_parents': None,
+                'category_code': 'c0',
+                'datasets': [],
+                'doc_href': None,
+                'enable': True,
+                'lock': False,
+                'metadata': None,
+                'name': 'p1',
+                'parent': None,
+                'position': 0,
+                'provider_name': 'p1',
+                'slug': 'p1-c0'}}        
+        
+        cats = Categories.categories(f.provider_name, db=self.db)
+        self.assertEqual(len(cats), 1)
+        self.assertTrue("c0" in cats)
+        cats["c0"].pop("_id")
+        self.assertEqual(cats, _categories)
 
-    #TODO: test indexes keys and properties
-    def test_indexes(self):
+
+class DB_DatasetsTestCase(BaseDBTestCase):
+
+    @unittest.skipIf(True, "TODO")    
+    def test_schema(self):
         pass
-    
+
     def test_unique_constraint(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_unique_constraint
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DatasetsTestCase.test_unique_constraint
     
-        self._collections_is_empty()
-        
         f = Fetcher(provider_name="p1", 
                     db=self.db)
 
-        d = Datasets(provider_name="p1", 
-                    dataset_code="d1",
-                    name="d1 Name",
-                    last_update=datetime.now(),
-                    doc_href="http://www.example.com",
-                    fetcher=f, 
+        d = Datasets(provider_name="p1", dataset_code="d1", name="d1 Name",
+                    last_update=datetime.now(), fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("Country", "AFG", "AFG")
-        d.dimension_list.update_entry("Scale", "Billions", "Billions")
-
-        datas = FakeDatas(provider_name="p1", 
-                          dataset_code="d1",
-                          fetcher=f)
+        
+        series_list = [SERIES1.copy()]
+        datas = FakeSeriesIterator(d, series_list)
         d.series.data_iterator = datas
 
         result = d.update_database()
@@ -449,12 +1085,21 @@ class DBDatasetTestCase(BaseDBTestCase):
             existing_dataset = dict(provider_name="p1", dataset_code="d1")
             self.db[constants.COL_DATASETS].insert(existing_dataset)
 
+    @unittest.skipIf(True, "TODO")
+    def test_load_previous_version(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_is_recordable(self):
+        pass
+
+    @unittest.skipIf(True, "TODO")
+    def test_add_frequency(self):
+        pass
 
     def test_update_database(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_update_database
-
-        self._collections_is_empty()
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DatasetsTestCase.test_update_database
 
         f = Fetcher(provider_name="p1", 
                     db=self.db)
@@ -466,22 +1111,18 @@ class DBDatasetTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("Scale", "Billions", "Billions")
-        d.dimension_list.update_entry("country", "AFG", "AFG")
 
-        datas = FakeDatas(provider_name="p1", 
-                          dataset_code="d1",
-                          fetcher=f)
+        series_list = [SERIES1.copy()]
+        datas = FakeSeriesIterator(d, series_list)
         d.series.data_iterator = datas
 
-        id = d.update_database()
-        self.assertIsNotNone(id)
-        self.assertIsInstance(id, ObjectId)
-        self.db[constants.COL_DATASETS].find_one({'_id': ObjectId(id)})
+        _id = d.update_database()
+        self.assertIsNotNone(_id)
+        self.assertIsInstance(_id, ObjectId)
+        self.db[constants.COL_DATASETS].find_one({'_id': _id})
         
-        #print(result.raw)
-
-        bson = self.db[constants.COL_DATASETS].find_one({'provider_name': "p1", "dataset_code": "d1"})
+        bson = self.db[constants.COL_DATASETS].find_one({'provider_name': "p1", 
+                                                         "dataset_code": "d1"})
         self.assertIsNotNone(bson)
     
         self.assertEqual(bson['provider_name'], "p1")
@@ -491,17 +1132,16 @@ class DBDatasetTestCase(BaseDBTestCase):
         self.assertTrue(isinstance(bson["dimension_list"], dict))
         self.assertTrue(isinstance(bson["attribute_list"], dict))
 
-        series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
+        count = self.db[constants.COL_SERIES].count({'provider_name': f.provider_name, 
                                                      "dataset_code": d.dataset_code})
-        self.assertEqual(series.count(), datas.max_record)
+        self.assertEqual(count, 1)
 
     def test_not_recordable_dataset(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBDatasetTestCase.test_not_recordable_dataset
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DatasetsTestCase.test_not_recordable_dataset
 
-        self._collections_is_empty()
-
-        f = Fetcher(provider_name="p1", 
+        f = Fetcher(provider_name="p1",
+                    max_errors=1, 
                     db=self.db)
 
         d = Datasets(provider_name="p1", 
@@ -521,24 +1161,86 @@ class DBDatasetTestCase(BaseDBTestCase):
         datas = EmptySeriesIterator()
         d.series.data_iterator = datas
 
-        id = d.update_database()
-        self.assertIsNone(id)
+        _id = d.update_database()
+        self.assertIsNotNone(_id)
         
-        self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
+        self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
         
-        
-class DBSeriesTestCase(BaseDBTestCase):
-    
-    #TODO: test indexes keys and properties
-    def test_indexes(self):
+        doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
+        self.assertIsNotNone(doc)
+        self.assertEqual(doc["enable"], False)
+                
+class DB_SeriesTestCase(BaseDBTestCase):
+
+    @unittest.skipIf(True, "TODO")    
+    def test_schema(self):
         pass
 
-    def test_process_series_data(self):        
+    def test_reject_series(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_process_series_data
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_SeriesTestCase.test_reject_series
 
-        self._collections_is_empty()
-    
+        class MyFetcher_Data(SeriesIterator):
+            
+            def rows_generator(self):
+                yield None, errors.RejectFrequency(frequency="S")
+                yield None, errors.RejectUpdatedSeries(key="series-updated")
+                yield None, errors.RejectEmptySeries()
+                yield SERIES1.copy(), None
+                yield {}, Exception("NOT CAPTURED EXCEPTION")
+                yield SERIES1.copy(), None
+            
+            def __init__(self, dataset):
+                super().__init__(dataset)
+                self.rows = self.rows_generator()
+                
+            def build_series(self, bson):
+                bson['last_update'] = self.dataset.last_update
+                return bson
+        
+        fetcher = Fetcher(provider_name="test",                           
+                          db=self.db,
+                          max_errors=1)
+        
+        dataset = Datasets(provider_name="p1", 
+                           dataset_code="d1",
+                           name="d1 Name",
+                           last_update=datetime.now(),
+                           fetcher=fetcher, 
+                           is_load_previous_version=False)
+        
+        dataset.series.data_iterator = MyFetcher_Data(dataset)
+        s = dataset.series
+        s.bulk_size = 1
+
+        result = dataset.update_database()
+        self.assertIsNotNone(result)
+
+        self.assertTrue(s.fatal_error)
+        self.assertEqual(s.count_accepts, 1)
+        self.assertEqual(s.count_rejects, 3)
+        self.assertEqual(s.count_updates, 0)
+        self.assertEqual(s.count_inserts, 1)
+        
+        self.assertEqual(self.db[constants.COL_SERIES].count(), 1)
+        
+
+        """
+        TODO: capturer logs
+        dlstats.fetchers._commons: WARNING: Reject empty series for dataset[d1]
+        dlstats.fetchers._commons: DEBUG: Reject series updated for dataset[d1] - key[series-updated]
+        dlstats.fetchers._commons: WARNING: Reject frequency for dataset[d1] - frequency[S]        
+        """
+        self.assertEqual(self.db[constants.COL_SERIES].count(), 1)
+        
+        datasets = self.db[constants.COL_DATASETS].find()
+        self.assertEqual(datasets.count(), 1)
+        self.assertFalse(datasets[0]["enable"]) 
+
+    def test_update_series_list(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_SeriesTestCase.test_process_series_data
+
         provider_name = "p1"
         dataset_code = "d1"
         dataset_name = "d1 name"
@@ -553,54 +1255,40 @@ class DBSeriesTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("Scale", "Billions", "Billions")
-        d.dimension_list.update_entry("Country", "AFG", "AFG")
         
         s = Series(provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
                    last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
-        
-        datas = FakeDatas(provider_name=provider_name, 
-                          dataset_code=dataset_code,
-                          fetcher=f)
+
+        series_list = [SERIES1.copy()]
+        datas = FakeSeriesIterator(d, series_list)
         s.data_iterator = datas
         
         d.series = s
         d.update_database()        
         
         '''Count All series'''
-        self.assertEqual(self.db[constants.COL_SERIES].count(), datas.max_record)
+        self.assertEqual(self.db[constants.COL_SERIES].count(), len(series_list))
 
         '''Count series for this provider and dataset'''
         series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
                                                      "dataset_code": dataset_code})
-        self.assertEqual(series.count(), datas.max_record)
-
-        tags.update_tags(self.db, 
-                    provider_name=f.provider_name, dataset_code=dataset_code,  
-                    col_name=constants.COL_SERIES)        
+        self.assertEqual(series.count(), len(series_list))
 
         '''Count series for this provider and dataset and in keys[]'''
+        keys = [s['key'] for s in series_list]
         series = self.db[constants.COL_SERIES].find({'provider_name': f.provider_name, 
                                                      "dataset_code": dataset_code,
-                                                     "key": {"$in": datas.keys}})
+                                                     "key": {"$in": keys}})
         
-        self.assertEqual(series.count(), datas.max_record)
-        
+        self.assertEqual(series.count(), len(series_list))
 
-        for doc in series:
-            self.assertTrue("tags" in doc)
-            self.assertTrue(len(doc['tags']) > 0)
-        
-        
     def test_revisions(self):        
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:DBSeriesTestCase.test_revisions
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_SeriesTestCase.test_revisions
 
-        self._collections_is_empty()
-    
         provider_name = "p1"
         dataset_code = "d1"
         dataset_name = "d1 name"
@@ -615,188 +1303,106 @@ class DBSeriesTestCase(BaseDBTestCase):
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
-        d.dimension_list.update_entry("Scale", "Billions", "Billions")
-        d.dimension_list.update_entry("Country", "AFG", "AFG")
         
         s1 = Series(provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
                     last_update=datetime(2013,4,1), 
                     bulk_size=1, 
                     fetcher=f)
-        datas1 = FakeDatas(provider_name=provider_name, 
-                           dataset_code=dataset_code,
-                           fetcher=f)
+
+        series_list = [SERIES1.copy()]
+        datas1 = FakeSeriesIterator(d, series_list)
         s1.data_iterator = datas1
-
         d.series = s1
-        d.update_database()        
+        d.update_database()
 
-        # A. modifying existing values
-        test_key = datas1.rows[0]['key']
-        first_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
+        test_key = SERIES1['key']
+        
+        SERIES1.pop("_id", None)
+        old_value = SERIES1["values"][0]["value"] #1.0
+        old_release_date = SERIES1["values"][0]["release_date"]
 
-        s2 = Series(provider_name=f.provider_name, 
-                    dataset_code=dataset_code, 
-                    last_update=datetime(2014,4,1), 
-                    bulk_size=1, 
-                    fetcher=f)
-        
-        datas2 = FakeDatas(provider_name=provider_name, 
-                           dataset_code=dataset_code,
-                           fetcher=f)
-        
-        datas2.keys = datas1.keys
-        
-        for i,r in enumerate(datas2.rows):
-            r['key'] = datas2.keys[i]
-            r['frequency'] = datas1.rows[i]['frequency']
-            r['start_date'] = datas1.rows[i]['start_date']
-            r['end_date'] = datas1.rows[i]['end_date']
-        datas2.rows[0]['values'] = deepcopy(datas1.rows[0]['values'])
-        datas2.rows[0]['values'][1] = str(float(datas2.rows[0]['values'][1]) + 1.5)
-        datas2.rows[0]['values'][8] = str(float(datas2.rows[0]['values'][8]) - 0.9)
-        s2.data_iterator = datas2
-        
-        d.series = s2
-        d.update_database()        
+        SERIES2 = SERIES1.copy()
+        SERIES2["values"][0]["value"] = "10"
 
-        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
-        test_key = datas2.keys[0]
-        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
-        self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['1'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
-        self.assertEqual(test_series['revisions']['8'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
-        self.assertEqual(test_series['release_dates'][1],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][8],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][0],datetime(2013,4,1))
-        self.assertEqual(test_series['release_dates'][2:8],[datetime(2013,4,1) for i in range(6)])
-        self.assertEqual(test_series['start_date'],datas1.rows[0]['start_date'])
-        self.assertEqual(test_series['end_date'],datas1.rows[0]['end_date'])
+        s1.last_update = datetime(old_release_date.year+1, 
+                                  old_release_date.month, 
+                                  old_release_date.day)
 
-        # B. adding observations at the beginning of the series
-        s3 = Series(provider_name=f.provider_name, 
-                    dataset_code=dataset_code, 
-                    last_update=datetime(2014,4,1), 
-                    bulk_size=1, 
-                    fetcher=f)
-        
-        datas3 = FakeDatas(provider_name=provider_name, 
-                           dataset_code=dataset_code,
-                           fetcher=f)
-        
-        datas3.keys = datas1.keys
-        
-        for i,r in enumerate(datas3.rows):
-            r['key'] = datas3.keys[i]
-            r['frequency'] = datas1.rows[i]['frequency']
-            r['start_date'] = datas1.rows[i]['start_date']
-            r['end_date'] = datas1.rows[i]['end_date']
-        
-        datas3.rows[0]['start_date'] = datas1.rows[0]['start_date'] - 2;    
-        datas3.rows[0]['values'] = [ '10', '10'] + datas1.rows[0]['values']
-        datas3.rows[0]['values'][3] = str(float(datas3.rows[0]['values'][3]) + 1.5)
-        datas3.rows[0]['values'][10] = str(float(datas3.rows[0]['values'][10]) - 0.9)
-        s3.data_iterator = datas3
-        
-        d.series = s3
-        d.update_database()        
+        SERIES2["last_update"] = s1.last_update
 
-        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
-        test_key = datas3.keys[0]
-        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
-        self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(test_series['revisions']['3'],[{'value': datas1.rows[0]['values'][1],'release_date':s1.last_update}])
-        self.assertEqual(test_series['revisions']['10'],[{'value': datas1.rows[0]['values'][8],'release_date':s1.last_update}])
-        self.assertEqual(len(test_series['release_dates']),len(test_series['values']))
-        self.assertEqual(test_series['release_dates'][3],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][10],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][0:2],[datetime(2014,4,1) for i in range(2)])
-        self.assertEqual(test_series['release_dates'][2],datetime(2013,4,1))
-        self.assertEqual(test_series['release_dates'][4:10],[datetime(2013,4,1) for i in range(6)])
-        self.assertEqual(len(test_series['values']),11)
-        self.assertEqual(len(test_series['release_dates']),11)
-        self.assertEqual(test_series['start_date'],datas2.rows[0]['start_date']-2)
-        self.assertEqual(test_series['end_date'],datas2.rows[0]['end_date'])
-            
-        # C. adding observations at the end of the series
-        s4 = Series(provider_name=f.provider_name, 
-                    dataset_code=dataset_code, 
-                    last_update=datetime(2014,5,1), 
-                    bulk_size=1, 
-                    fetcher=f)
-        
-        datas4 = FakeDatas(provider_name=provider_name, 
-                           dataset_code=dataset_code,
-                           fetcher=f)
+        def _iter():
+            yield SERIES2
 
-        datas4.keys = datas1.keys
+        s1.data_iterator = _iter()
+        d.series = s1
+        d.update_database()
         
-        for i,r in enumerate(datas4.rows):
-            r['key'] = datas4.keys[i]
-            r['frequency'] = datas1.rows[i]['frequency']
-            r['start_date'] = datas3.rows[i]['start_date']
-            r['end_date'] = datas3.rows[i]['end_date']
-        
-        datas4.rows[0]['end_date'] = datas3.rows[0]['end_date'] + 1;    
-        datas4.rows[0]['values'] = datas3.rows[0]['values'] + ['1.0']
-        s4.data_iterator = datas4
-        
-        d.series = s4
-        d.update_database()        
+        bson = self.db[constants.COL_SERIES].find_one({'key': test_key})
 
-        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
-        test_key = datas4.keys[0]
-        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
-        self.assertEqual(len(test_series['revisions']),2)
-        self.assertEqual(len(test_series['values']),12)
-        self.assertEqual(test_series['values'][11],'1.0')
-        self.assertEqual(len(test_series['release_dates']),12)
-        self.assertEqual(test_series['release_dates'][11],datetime(2014,5,1))
-        self.assertEqual(test_series['start_date'],datas3.rows[0]['start_date'])
-        self.assertEqual(test_series['end_date'],datas3.rows[0]['end_date']+1)
-            
-        # D. removing observations at the beginning and the end of the series
-        s5 = Series(provider_name=f.provider_name, 
-                    dataset_code=dataset_code, 
-                    last_update=datetime(2014,6,1), 
-                    bulk_size=1, 
-                    fetcher=f)
+        self.assertTrue("revisions" in bson["values"][0])
         
-        datas5 = FakeDatas(provider_name=provider_name, 
-                           dataset_code=dataset_code,
-                           fetcher=f)
+        self.assertEqual(bson["values"][0]["value"], "10")
+        self.assertEqual(bson["values"][0]["release_date"], datetime(2016, 1, 1, 0, 0))
+        
+        self.assertEqual(len(bson["values"][0]["revisions"]), 1)        
+        self.assertEqual(bson["values"][0]["revisions"][0]["value"], old_value)
+        self.assertEqual(bson["values"][0]["revisions"][0]["revision_date"], old_release_date)
+        
+class DB_DummyTestCase(BaseDBTestCase):
 
-        datas5.keys = datas1.keys
+    # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DummyTestCase
+    
+    def test_upsert_dataset(self):
         
-        for i,r in enumerate(datas5.rows):
-            r['key'] = datas4.keys[i]
-            r['frequency'] = datas1.rows[i]['frequency']
-            r['start_date'] = datas4.rows[i]['start_date']
-            r['end_date'] = datas4.rows[i]['end_date']
+        fetcher = DUMMY(db=self.db)
         
-        datas5.rows[0]['start_date'] = datas4.rows[0]['start_date'] + 1;    
-        datas5.rows[0]['end_date'] = datas4.rows[0]['end_date'] - 1;    
-        datas5.rows[0]['values'] = datas4.rows[0]['values'][1:-1]
-        s5.data_iterator = datas5
+        datatree = fetcher.build_data_tree()
         
-        d.series = s5
-        d.update_database()        
+        self.assertEqual(datatree,
+                        [{'category_code': 'c1',
+                          'datasets': [{'dataset_code': 'ds1',
+                                        'last_update': None,
+                                        'metadata': None,
+                                        'name': 'My Dataset Name'}],
+                          'doc_href': 'http://www.example.org/c1',
+                          'name': 'category 1'}])
 
-        self.assertEqual(self.db[constants.COL_SERIES].count(),datas1.max_record)
-        test_key = datas5.keys[0]
-        test_series = self.db[constants.COL_SERIES].find_one({'key': test_key})
-        self.assertEqual(len(test_series['revisions']),4)
-        self.assertEqual(len(test_series['values']),12)
-        self.assertEqual(test_series['values'][0],'na')
-        self.assertEqual(test_series['values'][1],datas4.rows[0]['values'][1])
-        self.assertEqual(test_series['values'][10],datas4.rows[0]['values'][-2])
-        self.assertEqual(test_series['values'][11],'na')
-        self.assertEqual(test_series['release_dates'][0],datetime(2014,6,1))
-        self.assertEqual(test_series['release_dates'][1],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][10],datetime(2014,4,1))
-        self.assertEqual(test_series['release_dates'][11],datetime(2014,6,1))
-        self.assertEqual(test_series['start_date'],datas4.rows[0]['start_date'])
-        self.assertEqual(test_series['end_date'],datas4.rows[0]['end_date'])
-                                                             
-if __name__ == '__main__':
-    unittest.main()
+        result = fetcher.upsert_dataset("ds1")
+        self.assertIsNotNone(result)
+        
+        query = {"provider_name": fetcher.provider_name,
+                 "dataset_code": "ds1"}
+        cursor = self.db[constants.COL_SERIES].find(query)
+        count = cursor.count()
+        self.assertEqual(count, len(DUMMY_SAMPLE_SERIES))
+        
+        series = cursor[0]
+        
+        series.pop('_id')
+        for v in series["values"]:
+            v.pop("release_date")
+        
+        bson = {
+         'attributes': None,
+         'dataset_code': 'ds1',
+         'dimensions': {'COUNTRY': 'FRA'},
+         'end_date': 20,
+         'frequency': 'A',
+         'key': 'key1',
+         'name': 'name1',
+         'provider_name': 'DUMMY',
+         'slug': 'dummy-ds1-key1',
+         'start_date': 10,
+         'values': [{'attributes': {'OBS_STATUS': 'A'},
+                     'ordinal': 10,
+                     'period': '2000',
+                     #'release_date': datetime.datetime(2016, 2, 8, 9, 35, 16),
+                     'value': '1'},
+                    {'attributes': None,
+                     'ordinal': 20,
+                     'period': '2001',
+                     #'release_date': datetime.datetime(2016, 2, 8, 9, 35, 16),
+                     'value': '10'}]}        
+                
+        self.assertEqual(series, bson)

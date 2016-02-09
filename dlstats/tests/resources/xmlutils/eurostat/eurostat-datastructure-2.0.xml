@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Structure xmlns="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message" xmlns:common="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common" xmlns:compact="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact" xmlns:cross="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/cross" xmlns:generic="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/generic" xmlns:query="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/query" xmlns:structure="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/structure" xmlns:utility="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/utility" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.SDMX.org/resources/SDMXML/schemas/v2_0/message SDMXMessage.xsd">
 <Header>
-<ID>namq_10_lp_ulc_DSD</ID>
+<ID>nama_10_fcs_DSD</ID>
 <Test>false</Test>
 <Truncated>false</Truncated>
-<Name xml:lang="en">namq_10_lp_ulc_DSD</Name>
-<Prepared>2016-01-14T05:32:50</Prepared>
+<Name xml:lang="en">nama_10_fcs_DSD</Name>
+<Prepared>2016-01-14T20:39:52</Prepared>
 <Sender id="EUROSTAT">
 <Name xml:lang="en">EUROSTAT</Name>
 </Sender>
@@ -19,86 +19,126 @@
 <structure:Name xml:lang="en">Unit of measure</structure:Name>
 <structure:Name xml:lang="de">Maßeinheit</structure:Name>
 <structure:Name xml:lang="fr">Unité de mesure</structure:Name>
-<structure:Code value="I10">
-<structure:Description xml:lang="en">Index, 2010=100</structure:Description>
-<structure:Description xml:lang="de">Index, 2010=100</structure:Description>
-<structure:Description xml:lang="fr">Indice, 2010=100</structure:Description>
+<structure:Code value="PC_GDP">
+<structure:Description xml:lang="en">Percentage of gross domestic product (GDP)</structure:Description>
+<structure:Description xml:lang="de">Prozent des Bruttoinlandsprodukts (BIP)</structure:Description>
+<structure:Description xml:lang="fr">Pourcentage du produit intérieur brut (PIB)</structure:Description>
 </structure:Code>
-<structure:Code value="PCH_SM">
-<structure:Description xml:lang="en">Percentage change compared to same period in previous year</structure:Description>
-<structure:Description xml:lang="de">Veränderung in Prozent gegenüber dem Vorjahreszeitraum</structure:Description>
-<structure:Description xml:lang="fr">Variation en pourcentage par rapport à la période correspondante de l'année précédente</structure:Description>
+<structure:Code value="CP_MEUR">
+<structure:Description xml:lang="en">Current prices, million euro</structure:Description>
+<structure:Description xml:lang="de">Jeweilige Preise, Millionen Euro</structure:Description>
+<structure:Description xml:lang="fr">Prix courants, millions d'euros</structure:Description>
 </structure:Code>
-</structure:CodeList>
-<structure:CodeList id="CL_S_ADJ" agencyID="EUROSTAT" isFinal="true">
-<structure:Name xml:lang="en">Seasonal adjustment</structure:Name>
-<structure:Name xml:lang="de">Saisonbereinigung</structure:Name>
-<structure:Name xml:lang="fr">Désaisonnalisation</structure:Name>
-<structure:Code value="NSA">
-<structure:Description xml:lang="en">Not seasonally adjusted data</structure:Description>
-<structure:Description xml:lang="de">Nichtsaisonbereinigte Daten</structure:Description>
-<structure:Description xml:lang="fr">Données non désaisonnalisées</structure:Description>
+<structure:Code value="CP_MNAC">
+<structure:Description xml:lang="en">Current prices, million units of national currency</structure:Description>
+<structure:Description xml:lang="de">Jeweilige Preise, Millionen Landeswährung</structure:Description>
+<structure:Description xml:lang="fr">Prix courants, millions de monnaie nationale</structure:Description>
+</structure:Code>
+<structure:Code value="CLV05_MNAC">
+<structure:Description xml:lang="en">Chain linked volumes (2005), million units of national currency</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2005), Millionen Landeswährung</structure:Description>
+<structure:Description xml:lang="fr">Volumes chaînés (2005), millions de monnaie nationale</structure:Description>
+</structure:Code>
+<structure:Code value="CLV05_MEUR">
+<structure:Description xml:lang="en">Chain linked volumes (2005), million euro</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2005), Millionen Euro</structure:Description>
+<structure:Description xml:lang="fr">Volumes chaînés (2005), millions d'euros</structure:Description>
+</structure:Code>
+<structure:Code value="CLV10_MNAC">
+<structure:Description xml:lang="en">Chain linked volumes (2010), million units of national currency</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2010), Millionen Landeswährung</structure:Description>
+<structure:Description xml:lang="fr">Volumes chaînés (2010), millions de monnaie nationale</structure:Description>
+</structure:Code>
+<structure:Code value="CLV10_MEUR">
+<structure:Description xml:lang="en">Chain linked volumes (2010), million euro</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2010), Millionen Euro</structure:Description>
+<structure:Description xml:lang="fr">Volumes chaînés (2010), millions d'euros</structure:Description>
+</structure:Code>
+<structure:Code value="PYP_MNAC">
+<structure:Description xml:lang="en">Previous year prices, million units of national currency</structure:Description>
+<structure:Description xml:lang="de">Vorjahrespreise, Millionen Landeswährung</structure:Description>
+<structure:Description xml:lang="fr">Prix de l'année précédente, millions de monnaie nationale</structure:Description>
+</structure:Code>
+<structure:Code value="PYP_MEUR">
+<structure:Description xml:lang="en">Previous year prices, million euro</structure:Description>
+<structure:Description xml:lang="de">Vorjahrespreise, Millionen Euro</structure:Description>
+<structure:Description xml:lang="fr">Prix de l'année précédente, millions d'euros</structure:Description>
+</structure:Code>
+<structure:Code value="CLV_I05">
+<structure:Description xml:lang="en">Chain linked volumes, index 2005=100</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2010), Index 2005=100</structure:Description>
+<structure:Description xml:lang="fr">Mesures de volume chaînées, indice 2005=100</structure:Description>
+</structure:Code>
+<structure:Code value="CLV_I10">
+<structure:Description xml:lang="en">Chain linked volumes, index 2010=100</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen (2010), Index 2010=100</structure:Description>
+<structure:Description xml:lang="fr">Mesures de volume chaînées, indice 2010=100</structure:Description>
+</structure:Code>
+<structure:Code value="CLV_PCH_PRE">
+<structure:Description xml:lang="en">Chain linked volumes, percentage change over previous period</structure:Description>
+<structure:Description xml:lang="de">Verkettete Volumen, Veränderung in Prozent gegenüber der Vorperiode</structure:Description>
+<structure:Description xml:lang="fr">Volumes chaînés, variation en pourcentage par rapport à la période précédente</structure:Description>
 </structure:Code>
 </structure:CodeList>
 <structure:CodeList id="CL_NA_ITEM" agencyID="EUROSTAT" isFinal="true">
 <structure:Name xml:lang="en">National accounts indicator (ESA10)</structure:Name>
 <structure:Name xml:lang="de">Volkswirtschaftliche Gesamtrechnungen Indikator (ESVG10)</structure:Name>
 <structure:Name xml:lang="fr">Indicateur des comptes nationaux (SEC10)</structure:Name>
-<structure:Code value="RLPR_PER">
-<structure:Description xml:lang="en">Real labour productivity per person</structure:Description>
-<structure:Description xml:lang="de">Reale Arbeitsproduktivität je Erwerbstätigen</structure:Description>
-<structure:Description xml:lang="fr">Productivité réelle du travail par personne employée</structure:Description>
+<structure:Code value="P31_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages</structure:Description>
 </structure:Code>
-<structure:Code value="RLPR_HW">
-<structure:Description xml:lang="en">Real labour productivity per hour worked</structure:Description>
-<structure:Description xml:lang="de">Reale Arbeitsproduktivität je Arbeitsstunde</structure:Description>
-<structure:Description xml:lang="fr">Productivité réelle du travail par heures travaillées</structure:Description>
+<structure:Code value="P311_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households, durable goods</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte, langlebige Güter</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages, biens durables</structure:Description>
 </structure:Code>
-<structure:Code value="NULC_PER">
-<structure:Description xml:lang="en">Nominal unit labour cost based on persons</structure:Description>
-<structure:Description xml:lang="de">Nominale Lohnstückkosten (auf Basis von Personen) </structure:Description>
-<structure:Description xml:lang="fr">Coût salarial unitaire nominal (basé sur les personnes)</structure:Description>
+<structure:Code value="P312_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households, semi-durable goods</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte, mittellebige Güter</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages, biens semi-durables</structure:Description>
 </structure:Code>
-<structure:Code value="NULC_HW">
-<structure:Description xml:lang="en">Nominal unit labour cost based on hours worked</structure:Description>
-<structure:Description xml:lang="de">Nominale Lohnstückkosten (auf Basis von Arbeitsstunden)</structure:Description>
-<structure:Description xml:lang="fr">Coût salarial unitaire nominal (basée sur les heures travaillées)</structure:Description>
+<structure:Code value="P313_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households, non-durable goods</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte, kurzlebige Güter</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages, biens non-durables</structure:Description>
+</structure:Code>
+<structure:Code value="P314_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households, services</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte, Dienstleistungen</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages, services</structure:Description>
+</structure:Code>
+<structure:Code value="P312N_S14">
+<structure:Description xml:lang="en">Final consumption expenditure of households, semi-durable goods, non-durable goods and services</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte, mittellebige und kurzlebige Güter und Dienstleistungen</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages, biens semi-durables, biens non-durables et services</structure:Description>
+</structure:Code>
+<structure:Code value="P31_S14_NC">
+<structure:Description xml:lang="en">Final consumption expenditure of households (national concept)</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte (Inländerkonzept)</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages (concept national)</structure:Description>
+</structure:Code>
+<structure:Code value="P33">
+<structure:Description xml:lang="en">Final consumption expenditure of resident households in the rest of the world - total</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der gebietsansässigen privaten Haushalte in der Übrigen Welt - insgesamt</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages résidents dans le reste du monde - total</structure:Description>
+</structure:Code>
+<structure:Code value="P34">
+<structure:Description xml:lang="en">Final consumption expenditure of non-resident households on the economic territory - total</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der gebietsfremden privaten Haushalte im Inland - insgesamt</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages non-résidents sur le territoire économique - total</structure:Description>
+</structure:Code>
+<structure:Code value="P31_S14_DC">
+<structure:Description xml:lang="en">Final consumption expenditure of households (domestic concept)</structure:Description>
+<structure:Description xml:lang="de">Konsumausgaben der privaten Haushalte (Inlandskonzept)</structure:Description>
+<structure:Description xml:lang="fr">Dépense de consommation finale des ménages (concept intérieur)</structure:Description>
 </structure:Code>
 </structure:CodeList>
 <structure:CodeList id="CL_GEO" agencyID="EUROSTAT" isFinal="true">
 <structure:Name xml:lang="en">Geopolitical entity (reporting)</structure:Name>
 <structure:Name xml:lang="de">Geopolitische Meldeeinheit</structure:Name>
 <structure:Name xml:lang="fr">Entité géopolitique (déclarante)</structure:Name>
-<structure:Code value="EU28">
-<structure:Description xml:lang="en">European Union (28 countries)</structure:Description>
-<structure:Description xml:lang="de">Europäische Union (28 Länder)</structure:Description>
-<structure:Description xml:lang="fr">Union européenne (28 pays)</structure:Description>
-</structure:Code>
-<structure:Code value="EU15">
-<structure:Description xml:lang="en">European Union (15 countries)</structure:Description>
-<structure:Description xml:lang="de">Europäische Union (15 Länder)</structure:Description>
-<structure:Description xml:lang="fr">Union européenne (15 pays)</structure:Description>
-</structure:Code>
-<structure:Code value="EA">
-<structure:Description xml:lang="en">Euro area (EA11-2000, EA12-2006, EA13-2007, EA15-2008, EA16-2010, EA17-2013, EA18-2014, EA19)</structure:Description>
-<structure:Description xml:lang="de">Euroraum (EA11-2000, EA12-2006, EA13-2007, EA15-2008, EA16-2010, EA17-2013, EA18-2014, EA19)</structure:Description>
-<structure:Description xml:lang="fr">Zone euro (EA11-2000, EA12-2006, EA13-2007, EA15-2008, EA16-2010, EA17-2013, EA18-2014, EA19)</structure:Description>
-</structure:Code>
-<structure:Code value="EA19">
-<structure:Description xml:lang="en">Euro area (19 countries)</structure:Description>
-<structure:Description xml:lang="de">Euroraum (19 Länder)</structure:Description>
-<structure:Description xml:lang="fr">Zone euro (19 pays)</structure:Description>
-</structure:Code>
-<structure:Code value="EA18">
-<structure:Description xml:lang="en">Euro area (18 countries)</structure:Description>
-<structure:Description xml:lang="de">Euroraum (18 Länder)</structure:Description>
-<structure:Description xml:lang="fr">Zone euro (18 pays)</structure:Description>
-</structure:Code>
-<structure:Code value="EA12">
-<structure:Description xml:lang="en">Euro area (12 countries)</structure:Description>
-<structure:Description xml:lang="de">Euroraum (12 Länder)</structure:Description>
-<structure:Description xml:lang="fr">Zone euro (12 pays)</structure:Description>
-</structure:Code>
 <structure:Code value="BE">
 <structure:Description xml:lang="en">Belgium</structure:Description>
 <structure:Description xml:lang="de">Belgien</structure:Description>
@@ -148,11 +188,6 @@
 <structure:Description xml:lang="en">France</structure:Description>
 <structure:Description xml:lang="de">Frankreich</structure:Description>
 <structure:Description xml:lang="fr">France</structure:Description>
-</structure:Code>
-<structure:Code value="HR">
-<structure:Description xml:lang="en">Croatia</structure:Description>
-<structure:Description xml:lang="de">Kroatien</structure:Description>
-<structure:Description xml:lang="fr">Croatie</structure:Description>
 </structure:Code>
 <structure:Code value="IT">
 <structure:Description xml:lang="en">Italy</structure:Description>
@@ -239,10 +274,35 @@
 <structure:Description xml:lang="de">Vereinigtes Königreich</structure:Description>
 <structure:Description xml:lang="fr">Royaume-Uni</structure:Description>
 </structure:Code>
+<structure:Code value="IS">
+<structure:Description xml:lang="en">Iceland</structure:Description>
+<structure:Description xml:lang="de">Island</structure:Description>
+<structure:Description xml:lang="fr">Islande</structure:Description>
+</structure:Code>
 <structure:Code value="NO">
 <structure:Description xml:lang="en">Norway</structure:Description>
 <structure:Description xml:lang="de">Norwegen</structure:Description>
 <structure:Description xml:lang="fr">Norvège</structure:Description>
+</structure:Code>
+<structure:Code value="ME">
+<structure:Description xml:lang="en">Montenegro</structure:Description>
+<structure:Description xml:lang="de">Montenegro</structure:Description>
+<structure:Description xml:lang="fr">Monténégro</structure:Description>
+</structure:Code>
+<structure:Code value="MK">
+<structure:Description xml:lang="en">Former Yugoslav Republic of Macedonia, the</structure:Description>
+<structure:Description xml:lang="de">Die ehemalige jugoslawische Republik Mazedonien</structure:Description>
+<structure:Description xml:lang="fr">Ancienne République yougoslave de Macédoine</structure:Description>
+</structure:Code>
+<structure:Code value="AL">
+<structure:Description xml:lang="en">Albania</structure:Description>
+<structure:Description xml:lang="de">Albanien</structure:Description>
+<structure:Description xml:lang="fr">Albanie</structure:Description>
+</structure:Code>
+<structure:Code value="RS">
+<structure:Description xml:lang="en">Serbia</structure:Description>
+<structure:Description xml:lang="de">Serbien</structure:Description>
+<structure:Description xml:lang="fr">Serbie</structure:Description>
 </structure:Code>
 </structure:CodeList>
 <structure:CodeList id="CL_TIME_FORMAT" agencyID="SDMX" isFinal="true">
@@ -373,10 +433,6 @@
 <structure:Name xml:lang="de">Maßeinheit</structure:Name>
 <structure:Name xml:lang="fr">Unité de mesure</structure:Name>
 </structure:Concept>
-<structure:Concept id="s_adj"><structure:Name xml:lang="en">Seasonal adjustment</structure:Name>
-<structure:Name xml:lang="de">Saisonbereinigung</structure:Name>
-<structure:Name xml:lang="fr">Désaisonnalisation</structure:Name>
-</structure:Concept>
 <structure:Concept id="na_item"><structure:Name xml:lang="en">National accounts indicator (ESA10)</structure:Name>
 <structure:Name xml:lang="de">Volkswirtschaftliche Gesamtrechnungen Indikator (ESVG10)</structure:Name>
 <structure:Name xml:lang="fr">Indicateur des comptes nationaux (SEC10)</structure:Name>
@@ -397,12 +453,11 @@
 </Concepts>
 
 <KeyFamilies>
-<structure:KeyFamily id="namq_10_lp_ulc_DSD" agencyID="EUROSTAT" isFinal="true" isExternalReference="false"><structure:Name xml:lang="en">namq_10_lp_ulc_DSD</structure:Name>
+<structure:KeyFamily id="nama_10_fcs_DSD" agencyID="EUROSTAT" isFinal="true" isExternalReference="false"><structure:Name xml:lang="en">nama_10_fcs_DSD</structure:Name>
 
 <structure:Components>
 <structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="FREQ" codelistAgency="SDMX" codelist="CL_FREQ" isFrequencyDimension="true"/>
 <structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="unit" codelistAgency="ESTAT" codelist="CL_UNIT" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
-<structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="s_adj" codelistAgency="ESTAT" codelist="CL_S_ADJ" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
 <structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="na_item" codelistAgency="ESTAT" codelist="CL_NA_ITEM" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
 <structure:Dimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="geo" codelistAgency="ESTAT" codelist="CL_GEO" crossSectionalAttachDataSet="false" crossSectionalAttachGroup="false" crossSectionalAttachSection="true" crossSectionalAttachObservation="false"></structure:Dimension>
 <structure:TimeDimension conceptSchemeRef="CONCEPTS" conceptSchemeAgency="EUROSTAT" conceptRef="TIME_PERIOD"><structure:TextFormat textType="String"></structure:TextFormat>

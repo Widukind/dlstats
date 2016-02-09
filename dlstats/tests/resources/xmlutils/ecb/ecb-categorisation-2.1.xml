@@ -1,0 +1,572 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xsi:schemaLocation="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message http://www.metadatatechnology.com/beta/SDMX2.1/SDMXMessage.xsd" xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
+  <mes:Header>
+    <mes:ID>IDREF82587</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-01-23T08:59:35.857Z</mes:Prepared>
+    <mes:Sender id="ECB"/>
+    <mes:Receiver id="unknown"/>
+  </mes:Header>
+  <mes:Structures>
+    <str:Categorisations>
+      <str:Categorisation id="00CC3B37-3732-D5BD-EB54-E2EC6BE90E1A" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:00CC3B37-3732-D5BD-EB54-E2EC6BE90E1A(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:YC(1.0)</com:Name>
+        <str:Source>
+          <Ref id="YC" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="011AE4B5-0247-FAEC-AED8-E2E44EEECFA2" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:011AE4B5-0247-FAEC-AED8-E2E44EEECFA2(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:PSS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="PSS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="0482BCD9-A640-23C5-CD4E-E2E3161F23E8" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:0482BCD9-A640-23C5-CD4E-E2E3161F23E8(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ST1(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ST1" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="0666EB9E-05E1-765C-76D2-E2ED369DD56B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:0666EB9E-05E1-765C-76D2-E2ED369DD56B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:LIG(1.0)</com:Name>
+        <str:Source>
+          <Ref id="LIG" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="0881E03C-6D83-30F7-8F50-E2DDBACBA970" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:0881E03C-6D83-30F7-8F50-E2DDBACBA970(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ESA(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ESA" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="09402891-EE67-166B-ADAB-E2E5AB52EF2F" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:09402891-EE67-166B-ADAB-E2E5AB52EF2F(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SST(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SST" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="125E4935-C05B-CBB8-923A-E2E286B053E1" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:125E4935-C05B-CBB8-923A-E2E286B053E1(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:TRD(1.0)</com:Name>
+        <str:Source>
+          <Ref id="TRD" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="146679AB-6A0F-F0EB-D566-6F63CE655365" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:146679AB-6A0F-F0EB-D566-6F63CE655365(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:EON(1.0)</com:Name>
+        <str:Source>
+          <Ref id="EON" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="1A6D20DF-D678-1DC5-C147-6F6353968B7B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:1A6D20DF-D678-1DC5-C147-6F6353968B7B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RIR(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RIR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="1EBBA171-FD0D-61B3-978C-6F63A06F3611" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:1EBBA171-FD0D-61B3-978C-6F63A06F3611(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:IRS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="IRS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="253A7C17-8BFD-6308-F5AC-E2EE0576EF80" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:253A7C17-8BFD-6308-F5AC-E2EE0576EF80(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:DD(1.0)</com:Name>
+        <str:Source>
+          <Ref id="DD" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="25DE8924-1BAA-00CF-FBDE-E2EE2E9AD050" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:25DE8924-1BAA-00CF-FBDE-E2EE2E9AD050(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RDF(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RDF" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="26C3125F-464D-CC14-A466-DF7512B56FB5" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:26C3125F-464D-CC14-A466-DF7512B56FB5(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWEUROSTAT:JVC(1.0)</com:Name>
+        <str:Source>
+          <Ref id="JVC" version="1.0" agencyID="EUROSTAT" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="2BA99489-9EEF-A474-2548-E2E2DD0E3985" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:2BA99489-9EEF-A474-2548-E2E2DD0E3985(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RA(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RA" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="38A46223-A714-AF11-5BBA-E2E4B7ABF809" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:38A46223-A714-AF11-5BBA-E2E4B7ABF809(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BSP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BSP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="3A2D268A-8E41-3967-6D93-E2DCC4A4DDD9" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:3A2D268A-8E41-3967-6D93-E2DCC4A4DDD9(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BSI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BSI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="43D54DD4-AE8F-16F8-8FED-E2EB5289FAD6" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:43D54DD4-AE8F-16F8-8FED-E2EB5289FAD6(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:FM(1.0)</com:Name>
+        <str:Source>
+          <Ref id="FM" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="47E9F622-0C0D-774E-252C-E2A41F82C269" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:47E9F622-0C0D-774E-252C-E2A41F82C269(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:CPP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="CPP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="4C77BFBA-3625-05B5-9432-E2ED9DE2EA81" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:4C77BFBA-3625-05B5-9432-E2ED9DE2EA81(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BLS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BLS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="4C8DA341-C7A0-0033-D4D6-E2EA3D6F2D2C" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:4C8DA341-C7A0-0033-D4D6-E2EA3D6F2D2C(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:DCM(1.0)</com:Name>
+        <str:Source>
+          <Ref id="DCM" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="4D0278B4-4436-5B8F-0E1D-E2E056F0D7DD" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:4D0278B4-4436-5B8F-0E1D-E2E056F0D7DD(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SPF(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SPF" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="529442B8-22AE-0367-4C30-E2DD5F0F4627" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:529442B8-22AE-0367-4C30-E2DD5F0F4627(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ICP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ICP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="53A341E8-D48B-767E-D5FF-E2E3E0E2BB19" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:53A341E8-D48B-767E-D5FF-E2E3E0E2BB19(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:EXR(1.0)</com:Name>
+        <str:Source>
+          <Ref id="EXR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="07" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="58268D72-8FBE-40E0-EFFC-C489756BAF7E" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:58268D72-8FBE-40E0-EFFC-C489756BAF7E(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:WTS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="WTS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="07" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="5A2A4FBC-9775-9088-7A97-E2E578A9C8FB" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:5A2A4FBC-9775-9088-7A97-E2E578A9C8FB(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:CCP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="CCP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="5DD3A543-6E33-E906-C094-E2E9A0251A9F" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:5DD3A543-6E33-E906-C094-E2E9A0251A9F(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:OFI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="OFI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="5ED0876D-6962-1D85-4CF0-E2EBAA7D9227" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:5ED0876D-6962-1D85-4CF0-E2EBAA7D9227(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:KRI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="KRI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="6FF00938-B303-C3D8-0273-DF745CDEB4CE" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:6FF00938-B303-C3D8-0273-DF745CDEB4CE(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SHS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SHS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7383BF92-53BF-772C-CDD6-E2E25D4F1CEC" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7383BF92-53BF-772C-CDD6-E2E25D4F1CEC(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ST3(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ST3" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="73A0D166-61A6-92AC-B2E7-E2E97A2EA956" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:73A0D166-61A6-92AC-B2E7-E2E97A2EA956(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:IVF(1.0)</com:Name>
+        <str:Source>
+          <Ref id="IVF" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="77C71E1F-0BEE-5E20-EBD1-E2DD89A9FB9E" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:77C71E1F-0BEE-5E20-EBD1-E2DD89A9FB9E(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:STS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="STS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="77F3E73C-C7BD-CBA8-CE33-E2ED565A61CA" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:77F3E73C-C7BD-CBA8-CE33-E2ED565A61CA(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SSI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SSI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7875AF1F-ED93-0080-B4BB-E2E4E458B1C6" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7875AF1F-ED93-0080-B4BB-E2E4E458B1C6(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SSP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SSP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7C00C478-687C-65AA-A8B9-E2E5457468D5" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7C00C478-687C-65AA-A8B9-E2E5457468D5(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SEE(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SEE" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7C28903A-0A04-2A08-6A46-E2E148D1B83B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7C28903A-0A04-2A08-6A46-E2E148D1B83B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:GST(1.0)</com:Name>
+        <str:Source>
+          <Ref id="GST" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="05" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7C64141B-4ECF-99D2-25B3-E2DCEE35A92B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7C64141B-4ECF-99D2-25B3-E2DCEE35A92B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ILM(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ILM" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="7E9698C7-5664-F123-23C9-E2EDDE86689A" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:7E9698C7-5664-F123-23C9-E2EDDE86689A(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:CISS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="CISS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="82E5DA4D-40F0-FA23-549B-DF749F693EF5" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:82E5DA4D-40F0-FA23-549B-DF749F693EF5(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWESTAT:E11(1.0)</com:Name>
+        <str:Source>
+          <Ref id="E11" version="1.0" agencyID="ESTAT" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="05" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="86CFA983-B97F-ED41-FE42-E2EA6B65AB39" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:86CFA983-B97F-ED41-FE42-E2EA6B65AB39(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:STP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="STP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="8AFBB39E-FF7A-EA80-70AA-5BA02C8A1838" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:8AFBB39E-FF7A-EA80-70AA-5BA02C8A1838(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:TGB(1.0)</com:Name>
+        <str:Source>
+          <Ref id="TGB" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="9306E88D-C912-61A6-D2A9-E2EAD692809B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:9306E88D-C912-61A6-D2A9-E2EAD692809B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:MIR(1.0)</com:Name>
+        <str:Source>
+          <Ref id="MIR" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="98B11933-4856-F9B0-2D6C-E2E947B446D0" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:98B11933-4856-F9B0-2D6C-E2E947B446D0(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BSI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BSI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="A091C5EA-03CA-6A5A-45B8-6F62BBBAE4DA" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:A091C5EA-03CA-6A5A-45B8-6F62BBBAE4DA(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:AME(1.0)</com:Name>
+        <str:Source>
+          <Ref id="AME" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="A094949C-6B68-4917-AB52-E2E517CC7DCC" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:A094949C-6B68-4917-AB52-E2E517CC7DCC(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BKN(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BKN" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="BAF3FE74-EC04-9FDF-DCBA-C485CF6BA4E7" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:BAF3FE74-EC04-9FDF-DCBA-C485CF6BA4E7(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:IFI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="IFI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="10" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="BED65536-D668-C63E-6935-E2DDF081AC37" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:BED65536-D668-C63E-6935-E2DDF081AC37(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RPV(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RPV" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="C653E485-149F-8E86-F7E1-C487739D1FEC" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:C653E485-149F-8E86-F7E1-C487739D1FEC(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BKN(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BKN" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="09" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="C9194F13-FBA6-0CA9-F8F3-E2E1F50F1467" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:C9194F13-FBA6-0CA9-F8F3-E2E1F50F1467(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BOP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BOP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="CD1296F3-68CE-6641-55E7-E2ECBD466A5E" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:CD1296F3-68CE-6641-55E7-E2ECBD466A5E(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SAFE(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SAFE" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="D8760E14-0D2A-5345-BACE-E2E223A19E74" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:D8760E14-0D2A-5345-BACE-E2E223A19E74(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:ESB(1.0)</com:Name>
+        <str:Source>
+          <Ref id="ESB" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="06" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="D93FB51C-D102-E370-8AA8-E2EA1517229E" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:D93FB51C-D102-E370-8AA8-E2EA1517229E(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:SEC(1.0)</com:Name>
+        <str:Source>
+          <Ref id="SEC" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="E2C5D685-668F-869E-AFCB-E2EC445C5FED" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:E2C5D685-668F-869E-AFCB-E2EC445C5FED(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:MMS(1.0)</com:Name>
+        <str:Source>
+          <Ref id="MMS" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="E43709C9-CE12-50D2-239D-C47580D9456E" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:E43709C9-CE12-50D2-239D-C47580D9456E(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RTD(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RTD" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="11" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="E71A2065-6B34-F51D-81BD-7394DF797D1B" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:E71A2065-6B34-F51D-81BD-7394DF797D1B(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RDE(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RDE" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="E8248E19-06BF-55C3-283B-7394612F1D08" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:E8248E19-06BF-55C3-283B-7394612F1D08(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RAI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RAI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="EC1EAF77-5BE7-95BB-0227-E2E0268AC931" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:EC1EAF77-5BE7-95BB-0227-E2E0268AC931(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:RPP(1.0)</com:Name>
+        <str:Source>
+          <Ref id="RPP" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="ED37A886-6561-931D-81C1-E2DC7D5A7909" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:ED37A886-6561-931D-81C1-E2DC7D5A7909(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:FM(1.0)</com:Name>
+        <str:Source>
+          <Ref id="FM" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="01" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="F1EA383A-879A-9601-61A0-E2EC97EBF307" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:F1EA383A-879A-9601-61A0-E2EC97EBF307(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:CBD(1.0)</com:Name>
+        <str:Source>
+          <Ref id="CBD" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="F674EB7A-8F23-B317-2EEF-E2ED7A4D0F9A" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:F674EB7A-8F23-B317-2EEF-E2ED7A4D0F9A(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:FVC(1.0)</com:Name>
+        <str:Source>
+          <Ref id="FVC" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="F7750322-506E-98D3-1374-E2E484C3B758" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:F7750322-506E-98D3-1374-E2E484C3B758(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:BSI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="BSI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="08" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="F9014AEC-7B2F-6779-9159-E2EB7AD22250" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:F9014AEC-7B2F-6779-9159-E2EB7AD22250(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWECB:MFI(1.0)</com:Name>
+        <str:Source>
+          <Ref id="MFI" version="1.0" agencyID="ECB" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="03" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+      <str:Categorisation id="FB8F132B-15EF-4C41-9542-DF74DAB434FE" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Categorisation=ECB:FB8F132B-15EF-4C41-9542-DF74DAB434FE(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Categorise: DATAFLOWESTAT:IDCM(1.0)</com:Name>
+        <str:Source>
+          <Ref id="IDCM" version="1.0" agencyID="ESTAT" package="datastructure" class="Dataflow"/>
+        </str:Source>
+        <str:Target>
+          <Ref id="02" maintainableParentID="MOBILE_NAVI" maintainableParentVersion="1.0" agencyID="ECB" package="categoryscheme" class="Category"/>
+        </str:Target>
+      </str:Categorisation>
+    </str:Categorisations>
+  </mes:Structures>
+</mes:Structure>

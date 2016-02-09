@@ -1,26 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from collections import OrderedDict
 import os
 import io
 import zipfile
 import csv
 import datetime
-import tempfile
-import time
 import logging
 import re
 
 import pytz
-import pandas
 from lxml import etree
 
 from dlstats import constants
-from dlstats.utils import Downloader
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
+from dlstats.utils import Downloader, get_ordinal_from_period, remove_file_and_dir
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats import errors
 
-__all__ = ['BIS']
-
-VERSION = 2
+VERSION = 3
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +76,7 @@ def local_read_csv(filepath=None, fileobj=None,
             release_date_txt = line[1]
         if rows.line_num == headers_line:
             break
-    
+
     release_date = datetime.datetime.strptime(release_date_txt, date_format)
     headers_list = next(rows)
     headers_list_copy = headers_list.copy()
@@ -210,34 +207,19 @@ AGENDA = {'url': 'http://www.bis.org/statistics/relcal.htm?m=6|37|68',
           'country': 'ch'
 }
 
-def get_agenda():
-    download = Downloader(url=AGENDA['url'],
-                          filename=AGENDA['filename'])
-    with open(download.get_filepath(), 'rb') as fp:
-        return fp.read()
-
 class BIS(Fetcher):
     
-    def __init__(self, db=None):
-        super().__init__(provider_name='BIS', db=db)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='BIS', version=VERSION, **kwargs)
         
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name,
-                                      long_name='Bank for International Settlements',
-                                      version=VERSION,
-                                      region='world',
-                                      website='http://www.bis.org', 
-                                      fetcher=self)
-            self.provider.update_database()
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Bank for International Settlements',
+                                  version=VERSION,
+                                  region='World',
+                                  website='http://www.bis.org', 
+                                  fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-
     def upsert_dataset(self, dataset_code):
-        
-        start = time.time()
-        
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
         
         if not DATASETS.get(dataset_code):
             raise Exception("This dataset is unknown" + dataset_code)
@@ -250,55 +232,52 @@ class BIS(Fetcher):
         
         fetcher_data = BIS_Data(dataset, 
                                 url=DATASETS[dataset_code]['url'], 
-                                filename=DATASETS[dataset_code]['filename'])
+                                filename=DATASETS[dataset_code]['filename'],
+                                frequency=DATASETS[dataset_code]['frequency'])
 
         if fetcher_data.is_updated():
-
             dataset.series.data_iterator = fetcher_data
-            dataset.update_database()
-
-            #TODO: clean datas (file temp)
-
-            end = time.time() - start
-            logger.info("upsert dataset[%s] - END-BEFORE-METAS - time[%.3f seconds]" % (dataset_code, end))
-
-            self.update_metas(dataset_code)
-
-            end = time.time() - start
-            logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
+            return dataset.update_database()
         else:
-            logger.info("upsert dataset[%s] bypass because is updated from release_date[%s]" % (dataset_code, fetcher_data.release_date))
-
-    def load_datasets_first(self):
-        start = time.time()
-        logger.info("first load fetcher[%s] - START" % (self.provider_name))
-        
-        for dataset_code in DATASETS.keys():
-            self.upsert_dataset(dataset_code) 
-
-        end = time.time() - start
-        logger.info("first load fetcher[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
-        
-    def load_datasets_update(self):
-        self.load_datasets_first()
-
-    def build_data_tree(self, force_update=False):
-        
-        if self.provider.count_data_tree() > 1 and not force_update:
-            return self.provider.data_tree
-
-        for category_code, dataset in DATASETS.items():
-            category_key = self.provider.add_category({"name": dataset["name"],
-                                                       "category_code": category_code,
-                                                       "doc_href": dataset["doc_href"]})
-            _dataset = {"name": dataset["name"], "dataset_code": category_code}
-            self.provider.add_dataset(_dataset, category_key)
-        
-        return self.provider.data_tree
+            comments = "update-date[%s]" % fetcher_data.release_date
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=self.dataset_code,
+                                              comments=comments)
             
-    def parse_agenda(self):
+    def build_data_tree(self):
         
-        agenda = etree.HTML(get_agenda())
+        categories = []
+        
+        for category_code, dataset in DATASETS.items():
+            cat = {
+                "category_code": category_code,
+                "name": dataset["name"],
+                "doc_href": dataset["doc_href"],
+                "datasets": [{
+                    "name": dataset["name"], 
+                    "dataset_code": category_code,
+                    "last_update": None, 
+                    "metadata": None
+                }]
+            }
+            categories.append(cat)
+        
+        return categories
+
+    def _get_agenda(self):
+        download = Downloader(url=AGENDA['url'],
+                              filename=AGENDA['filename'],
+                              store_filepath=self.store_path)
+        filepath = download.get_filepath()        
+
+        with open(filepath, 'rb') as fp:
+            content = fp.read()
+            remove_file_and_dir(filepath, let_root=True)
+            return content
+    
+    def _parse_agenda(self):
+        
+        agenda = etree.HTML(self._get_agenda())
         table = agenda.find('.//table')
         # only one table
         rows = table[0].findall('tr')
@@ -366,7 +345,7 @@ class BIS(Fetcher):
         return agenda
 
     def get_calendar(self):
-        agenda = self.parse_agenda()
+        agenda = self._parse_agenda()
 
         dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
 
@@ -409,59 +388,61 @@ class BIS(Fetcher):
                                          "timezone": pytz.country_timezones(AGENDA['country'])}
                      }
 
-class BIS_Data():
+class BIS_Data(SeriesIterator):
     
-    def __init__(self, dataset, url=None, filename=None, store_filepath=None, is_autoload=True):
+    def __init__(self, dataset, url=None, filename=None, 
+                 is_autoload=True, frequency=None):
+        super().__init__(dataset)
 
-        self.dataset = dataset
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
+        self.store_path = self.get_store_path()
         
         self.url = url
         self.filename = filename
-        self.store_filepath = store_filepath
-        
-        self.frequency = 'Q'
-        
+        self.frequency = frequency
+
+        self.dataset.add_frequency(self.frequency)
+
         self.release_date = None
         self.dimension_keys = None
         self.periods = None
         self.start_date = None
         self.end_date = None
+        self._rows = None
 
-        self.rows = None
-                
+        self.rows = self._process()
+
         if is_autoload:
             self._load_datas()
-        
-    def get_store_path(self):
-        return self.store_filepath or os.path.abspath(os.path.join(
-                                                                tempfile.gettempdir(), 
-                                                                self.dataset.provider_name, 
-                                                                self.dataset.dataset_code))
         
     def _load_datas(self, datas=None):
         
         kwargs = {}
         
         if not datas:
-            store_filepath = self.get_store_path()
             # TODO: timeout, replace
-            download = Downloader(url=self.url, filename=self.filename, store_filepath=store_filepath)
+            download = Downloader(url=self.url,
+                                  store_filepath=self.store_path, 
+                                  filename=self.filename)
             
-            filepath = extract_zip_file(download.get_filepath())
+            zip_filepath = download.get_filepath()
+            self.dataset.for_delete.append(zip_filepath)
+            filepath = extract_zip_file(zip_filepath)
+            self.dataset.for_delete.append(zip_filepath)
+            
             kwargs['filepath'] = filepath
         else:
             kwargs['fileobj'] = io.StringIO(datas, newline="\n")
         
         kwargs['date_format'] = "%a %b %d %H:%M:%S %Z %Y"
         kwargs['headers_line'] = DATASETS[self.dataset.dataset_code]['lines']['headers']
-        self.rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
+        self._rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
+        
+        self.dataset.dimension_keys = self.dimension_keys
         
         self.dataset.last_update = self.release_date
         
-        self.start_date = pandas.Period(self.periods[0], freq=self.frequency)
-        self.end_date = pandas.Period(self.periods[-1], freq=self.frequency)
+        self.start_date = get_ordinal_from_period(self.periods[0], freq=self.frequency)
+        self.end_date = get_ordinal_from_period(self.periods[-1], freq=self.frequency)
 
     def is_updated(self):
 
@@ -476,27 +457,22 @@ class BIS_Data():
 
         return False
 
-    def __next__(self):
-        row = csv_dict(self.headers, next(self.rows)) 
-        series = self.build_serie(row)
-        if series is None:
-            #TODO: close self.rows and delete file ?
-            raise StopIteration()
-        return(series)
-    
-    def build_serie(self, row):
-        """Build one serie
-        
-        Return instance of :class:`dict`
-        """
-        series_key = row['KEY']
-        
-        logger.debug("provider[%s] - dataset[%s] - serie[%s]" % (self.dataset.provider_name,
-                                                                 self.dataset.dataset_code,
-                                                                 series_key))
+    def _process(self):
+        for row in self._rows:
+            yield csv_dict(self.headers, row), None
 
-        values = [row[period] for period in self.periods]
-        dimensions = {}
+        self.dataset.concepts = dict(zip(self.dimension_keys, self.dimension_keys))
+
+        for k, dimensions in self.dimension_list.get_dict().items():
+            self.dataset.codelists[k] = dimensions
+
+        #for k, attributes in self.attribute_list.get_dict().items():
+        #    self.dataset.codelists[k] = attributes
+
+    def build_series(self, row):
+        series_key = row['KEY']
+
+        dimensions = OrderedDict()
         
         for d in self.dimension_keys:
             dim_short_id = row[d].split(":")[0]
@@ -504,40 +480,31 @@ class BIS_Data():
             dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
 
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
+
+        values = []
         
-        data = {'provider_name': self.dataset.provider_name,
+        for period in self.periods:
+            value = {
+                'attributes': None,
+                'release_date': self.release_date,
+                'ordinal': get_ordinal_from_period(period, freq=self.frequency),
+                #'period_o': period,
+                'period': period,
+                'value': row[period]
+            }
+            values.append(value)
+        
+        bson = {'provider_name': self.dataset.provider_name,
                 'dataset_code': self.dataset.dataset_code,
                 'name': series_name,
                 'key': series_key,
                 'values': values,
-                'attributes': {},
+                'attributes': None,
                 'dimensions': dimensions,
                 'last_update': self.release_date,
-                'start_date': self.start_date.ordinal,
-                'end_date': self.end_date.ordinal,
+                'start_date': self.start_date,
+                'end_date': self.end_date,
                 'frequency': self.frequency}
 
-        return(data)
+        return bson
         
-    
-def download_all_sources():
-    """Download all datasets files (if not exist) and store local temp directory
-    
-    Store in /[TMP_DIR]/[PROVIDER_NAME]/[DATASET_CODE]/[FILENAME]
-    
-    return a dict with key is filename and value is full filepath
-    """
-    
-    filepaths = {}
-    
-    for dataset_code, dataset in DATASETS.items():
-        store_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), PROVIDER_NAME, dataset_code))
-        download = Downloader(url=dataset['url'], filename=dataset['filename'], store_filepath=store_filepath)# TODO:, timeout, replace)
-        filepaths[dataset['filename']] = os.path.abspath(os.path.join(store_filepath, dataset['filename']))
-        logger.info("Download file[%s]" % download.get_filepath())
-        
-    return filepaths
-        
-if __name__ == '__main__':
-    b = BIS()
-    b.get_calendar_()

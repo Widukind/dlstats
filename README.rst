@@ -10,7 +10,6 @@ Requires
 
 - MongoDB 3+
 - Python 3.4
-- `pySDMX`_
 - `Widukind Common`_
 - `Widukind Web`_ for WebUI (Optional)
 
@@ -68,7 +67,6 @@ LICENSE
 GNU Affero General Public License version 3
 
 
-.. _`pySDMX`: https://github.com/Widukind/pysdmx
 .. _`Widukind Web`: https://github.com/Widukind/widukind-web
 .. _`Widukind Docker`: https://github.com/Widukind/widukind-docker
 .. _`Widukind Common`: https://github.com/Widukind/widukind-common

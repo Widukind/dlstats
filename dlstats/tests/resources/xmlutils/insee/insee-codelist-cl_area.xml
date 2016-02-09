@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
+  <mes:Header>
+    <mes:ID>codelist_CL_AREA_1453091748418</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-01-18T04:35:48.418Z</mes:Prepared>
+    <mes:Sender id="FR1">
+      <com:Name xml:lang="fr">Institut national de la statistique et des études économiques</com:Name>
+    </mes:Sender>
+    <mes:Receiver id="unknown"/>
+    <mes:Source xml:lang="fr">Banque de données macro-économiques</mes:Source>
+  </mes:Header>
+  <mes:Structures>
+    <str:Codelists>
+      <str:Codelist id="CL_AREA" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_AREA(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Zone géographique</com:Name>
+        <com:Name xml:lang="en">Reference area</com:Name>
+        <str:Code id="_Z" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0)._Z">
+          <com:Name xml:lang="fr">Non applicable</com:Name>
+          <com:Name xml:lang="en">Not applicable</com:Name>
+        </str:Code>
+        <str:Code id="FE" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FE">
+          <com:Name xml:lang="fr">France</com:Name>
+          <com:Name xml:lang="en">France</com:Name>
+        </str:Code>
+        <str:Code id="FM" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FM">
+          <com:Name xml:lang="fr">France métropolitaine</com:Name>
+          <com:Name xml:lang="en">Metropolitan France</com:Name>
+        </str:Code>
+        <str:Code id="DOM" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).DOM">
+          <com:Name xml:lang="fr">Départements d'Outre-Mer</com:Name>
+          <com:Name xml:lang="en">French Overseas Departments</com:Name>
+        </str:Code>
+        <str:Code id="INF" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).INF">
+          <com:Name xml:lang="fr">Zone métropolitaine infra-nationale (hors DOM)</com:Name>
+          <com:Name xml:lang="en">Geographical area of lower national level (excepting Overseas French Departments)</com:Name>
+        </str:Code>
+        <str:Code id="ETR" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).ETR">
+          <com:Name xml:lang="fr">Pays ou groupe de pays étrangers</com:Name>
+          <com:Name xml:lang="en">Country or group of foreign countries</com:Name>
+        </str:Code>
+        <str:Code id="FR-D976" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FR-D976">
+          <com:Name xml:lang="fr">France hors Mayotte (France métropolitaine + 4 DOM)</com:Name>
+          <com:Name xml:lang="en">France except Mayotte (Metropolitan France + 4 French Overseas Departments)</com:Name>
+        </str:Code>
+        <str:Code id="MULTIPLE-1" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).MULTIPLE-1">
+          <com:Name xml:lang="fr">Série parisienne jusqu'en 1962, Ménages "urbains" jusqu'en 1992, France métropolitaine depuis 1993, Métropole + DOM depuis 1999</com:Name>
+          <com:Name xml:lang="en">Parisian series until 1962, "urban" households until 1992, Metropolitan France since 1993, whole France since 1999</com:Name>
+        </str:Code>
+        <str:Code id="FM-CORSE" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FM-CORSE">
+          <com:Name xml:lang="fr">France métropolitaine hors Corse</com:Name>
+          <com:Name xml:lang="en">Metropolitan France excepting Corsica</com:Name>
+        </str:Code>
+        <str:Code id="FM99_FR00" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FM99_FR00">
+          <com:Name xml:lang="fr">France métropolitaine jusqu'en 1999, France (métropole + DOM) depuis 2000</com:Name>
+          <com:Name xml:lang="en">Metropolitan France until 1999, whole France since 2000</com:Name>
+        </str:Code>
+        <str:Code id="FR_D976_2014" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AREA(1.0).FR_D976_2014">
+          <com:Name xml:lang="fr">France (y compris Mayotte depuis 2014)</com:Name>
+          <com:Name xml:lang="en">France (including Mayotte From the data of 2014)</com:Name>
+        </str:Code>
+      </str:Codelist>
+    </str:Codelists>
+  </mes:Structures>
+</mes:Structure>

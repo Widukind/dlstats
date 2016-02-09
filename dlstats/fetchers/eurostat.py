@@ -7,37 +7,24 @@
 .. :moduleauthor :: Widukind team <widukind-dev@cepremap.org>
 """
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from datetime import datetime
-import re
 import logging
 import zipfile
 import os
-import tempfile
-import time
 
-import pandas
-import bson
 from lxml import etree
 
+from dlstats import errors
 from dlstats import constants
-from dlstats.utils import Downloader
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers
-
-REGEX_DATE_P3M = re.compile(r"(\d+)-Q(\d)")
-REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
+from dlstats.utils import Downloader, remove_file_and_dir
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
+                               XMLCompactData_2_0_EUROSTAT as XMLData,
+                               dataset_converter)
 
 TABLE_OF_CONTENT_NSMAP = {'nt': 'urn:eu.europa.ec.eurostat.navtree',
                           'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-
-DSD_NSMAP = {'common': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common',
-             'compact': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact',
-             'cross': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/cross',
-             'generic': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/generic',
-             'query': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/query',
-             'structure': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/structure',
-             'utility': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/utility',
-             'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
 xpath_datasets = etree.XPath("descendant::nt:leaf[@type='dataset']", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_parent_codes = etree.XPath("ancestor::nt:branch/nt:code/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
@@ -51,8 +38,6 @@ xpath_ds_metadata_html = etree.XPath("nt:metadata[@format='html']/text()", names
 xpath_ds_data_start = etree.XPath("nt:dataStart/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_data_end = etree.XPath("nt:dataEnd/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_values = etree.XPath("nt:values/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
-
-__all__ = ['Eurostat']
 
 VERSION = 3
 
@@ -69,24 +54,6 @@ def first_element_xpath(values, default=None):
     
     return default
     
-def get_nsmap(xml_iterator):
-    """Extract namespaces from XML document 
-    parsed with etree.iterparse
-    
-    Ex:     
-    xml_iterator = etree.iterparse(filepath, events=['end','start-ns'])
-    nsmap = get_nsmap(xml_iterator)
-    """
-    nsmap = {}
-    for event, element in xml_iterator:
-        if event == 'start-ns':
-            ns, url = element
-            if len(ns) > 0:
-                nsmap[ns] = url
-        else:
-            break
-    return nsmap
-
 def extract_zip_file(zipfilepath):
     """Extract first file in zip file and return absolute path for the file extracted
     
@@ -102,28 +69,30 @@ def extract_zip_file(zipfilepath):
     zfile = zipfile.ZipFile(zipfilepath)
     filepaths = {}
     for filename in zfile.namelist():
-        filepaths.update({filename: zfile.extract(filename, os.path.dirname(zipfilepath))})
+        filepaths.update({filename: zfile.extract(filename, 
+                                                  os.path.dirname(zipfilepath))})
     return filepaths
+
+def make_url(dataset_code):
+    return("http://ec.europa.eu/eurostat/" +
+           "estat-navtree-portlet-prod/" +
+           "BulkDownloadListing?sort=1&file=data/" +
+           dataset_code + ".sdmx.zip")
 
 class Eurostat(Fetcher):
     """Class for managing the SDMX endpoint from eurostat in dlstats."""
     
-    def __init__(self, db=None):
-        super().__init__(provider_name='Eurostat', db=db)
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='EUROSTAT', version=VERSION, **kwargs)
         
-        if not self.provider:
-            self.provider = Providers(name=self.provider_name,
-                                      long_name='Eurostat',
-                                      version=VERSION,
-                                      region='Europe',
-                                      website='http://ec.europa.eu/eurostat',
-                                      fetcher=self)
-            self.provider.update_database()
+        self.provider = Providers(name=self.provider_name,
+                                  long_name='Eurostat',
+                                  version=VERSION,
+                                  region='Europe',
+                                  website='http://ec.europa.eu/eurostat',
+                                  fetcher=self)
         
-        if self.provider.version != VERSION:
-            self.provider.update_database()
-        
-        self.selected_codes = [
+        self.categories_filter = [
             'nama_10', 
             'namq_10', 
             'nasa_10', 
@@ -142,46 +111,53 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q'
         ]
-        self.selected_datasets = {}
+
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
         self.dataset_url = None
         
-    def build_data_tree(self, force_update=False):
+        self._concepts = OrderedDict()
+        self._codelists = OrderedDict()        
+        
+    def build_data_tree(self):
         """Builds the data tree
         
         Pour créer les categories, ne prend que les branch dont l'un des <code> 
-        de la branch se trouvent dans selected_codes
+        de la branch se trouvent dans categories_filter
         
         Même chose pour les datasets. Prend le category_code du parent
-        et verifie si il est dans selected_codes
+        et verifie si il est dans categories_filter
         """
         
-        start = time.time()
-        logger.info("build_data_tree provider[%s] - START" % self.provider_name)
+        download = Downloader(url=self.url_table_of_contents, 
+                              filename="table_of_contents.xml",
+                              store_filepath=self.store_path)
+        filepath = download.get_filepath()
         
-        if self.provider.count_data_tree() > 1 and not force_update:
-            logger.info("use existing data-tree for provider[%s]" % self.provider_name)
-            return self.provider.data_tree
-
-        filepath = self.get_table_of_contents()
+        categories = []
+        categories_keys = []
 
         it = etree.iterparse(filepath, events=['end'])
 
         def is_selected(parent_codes):
             """parent_codes is array of category_code
             """
-            for _select in self.selected_codes: 
+            for _select in self.categories_filter: 
                 if _select in parent_codes:
                     return True
             return False
 
+        def get_category(category_code):
+            for c in categories:
+                if c["category_code"] == category_code:
+                    return c
+
+        position = 0
         for event, element in it:
             if event == 'end':
 
                 if element.tag == fixtag_toc('nt', 'branch'):
 
                     for child in element.iterchildren(tag=fixtag_toc('nt', 'children')):
-
                         _parent_codes = xpath_parent_codes(child)
                         _parents = xpath_ancestor_branch(child)
 
@@ -193,30 +169,40 @@ class Eurostat(Fetcher):
                             _parent_title =xpath_title(parent)[0]
 
                             '''Extrait la partie gauche des categories parents'''
-                            _parent_categories = ".".join(_parent_codes[:_parent_codes.index(_parent_code)])
-                            _category = None
+                            _parent_categories = _parent_codes[:_parent_codes.index(_parent_code)]
                             _parent = None
 
-                            if not _parent_categories or len(_parent_categories) == 0:
-                                _category = {"category_code": _parent_code, "name": _parent_title}
-                            else:
-                                _parent = self.provider._category_key(_parent_categories)
-                                _category = {"category_code": _parent_code, "name": _parent_title}
+                            _category = {
+                                "provider_name": self.provider_name,
+                                "category_code": _parent_code,
+                                "name": _parent_title,
+                                "position": 0,
+                                "parent": None,
+                                'all_parents': None,
+                                "datasets": [],
+                                "doc_href": None,
+                                "metadata": None
+                            }
 
-                            try:
-                                _key = self.provider.add_category(_category, _parent)
-                            except:
-                                #Pas de capture car verifie seulement si existe
-                                pass
+                            if _parent_categories and len(_parent_categories) >= 1:
+                                _category["parent"] = _parent_categories[-1]
+                                _category["all_parents"] = _parent_categories
+                            else:
+                                position += 1
+                                _category["position"] = position
+                            
+                            if not _category["category_code"] in categories_keys:
+                                categories_keys.append(_category["category_code"])
+                                categories.append(_category)    
 
                         datasets = xpath_datasets(child)
 
                         for dataset in datasets:
                             parent_codes = xpath_parent_codes(dataset)
                             dataset_code = xpath_code(dataset)[0]
-                            category_code = self.provider._category_key(".".join(parent_codes))
+                            _category = get_category(parent_codes[-1]) 
 
-                            '''Verifie si au moins un des category_code est dans selected_codes'''
+                            '''Verifie si au moins un des category_code est dans categories_filter'''
                             if not is_selected(parent_codes):
                                 continue
 
@@ -233,7 +219,7 @@ class Eurostat(Fetcher):
                                 last_modified = datetime.strptime(last_modified[0], '%d.%m.%Y')
                                 last_update = max(last_update, last_modified)
 
-                            dataset = {
+                            _dataset = {
                                 "dataset_code": dataset_code, 
                                 "name": name,
                                 "last_update": last_update,
@@ -244,39 +230,31 @@ class Eurostat(Fetcher):
                                     "values": int(first_element_xpath(values, default="0")),
                                 }
                             }             
-                            self.provider.add_dataset(dataset, category_code)
+                            _category["datasets"].append(_dataset)
                             dataset.clear()
                         child.clear()
                     element.clear()
 
-        end = time.time() - start
-        logger.info("build_data_tree load provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+        remove_file_and_dir(filepath, let_root=True)
 
-        return self.provider.data_tree
-    
-    def get_table_of_contents(self):
-        return Downloader(url=self.url_table_of_contents, 
-                              filename="table_of_contents.xml").get_filepath()
-
-    def get_selected_datasets(self):
-        """Collects the dataset codes that are in table of contents
-        below the ones indicated in "selected_codes" provided in configuration
-        :returns: list of dict of dataset settings"""
-        category_filter = [".*%s.*" % d for d in self.selected_codes]
-        category_filter = "|".join(category_filter)
-        self.selected_datasets = {d['dataset_code']: d for d in self.datasets_list(category_filter=category_filter)}
-        return self.selected_datasets
-
+        return categories
+        
     def upsert_dataset(self, dataset_code):
         """Updates data in Database for selected datasets
-        :dset: dataset_code
-        :returns: None"""
+        """
         self.get_selected_datasets()
 
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
+        doc = self.db[constants.COL_DATASETS].find_one(
+            {'provider_name': self.provider_name, 'dataset_code': dataset_code},
+            {'dataset_code': 1, 'last_update': 1})
 
         dataset_settings = self.selected_datasets[dataset_code]
+        
+        if doc and  doc['last_update'] >= dataset_settings['last_update']:
+            comments = "update-date[%s]" % doc['last_update']
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=self.dataset_code,
+                                              comments=comments)            
 
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code, 
@@ -285,223 +263,103 @@ class Eurostat(Fetcher):
                            last_update=dataset_settings["last_update"], 
                            fetcher=self)
 
-        data_iterator = EurostatData(dataset, filename=dataset_code)
-        dataset.series.data_iterator = data_iterator
-        dataset.update_database()
-
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-
-    def load_datasets_first(self):
-        self.get_selected_datasets()
-
-        start = time.time()
-        logger.info("first load provider[%s] - START" % (self.provider_name))
-
-        for dataset_code in self.selected_datasets.keys():
-            try:
-                self.upsert_dataset(dataset_code)
-            except Exception as err:
-                logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
-
-        end = time.time() - start
-        logger.info("first load provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
+        dataset.series.data_iterator = EurostatData(dataset)
         
+        return dataset.update_database()
+    
     def load_datasets_update(self):
-        self.get_selected_datasets()
+
+        datasets_list = self.datasets_list()
+        dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
         
-        start = time.time()
-        logger.info("update provider[%s] - START" % (self.provider_name))
-
-        selected_datasets = self.db[constants.COL_DATASETS].find(
-            {'provider_name': self.provider_name, 'dataset_code': {'$in': list(self.selected_datasets.keys())}},
+        #TODO: enable ?
+        cursor = self.db[constants.COL_DATASETS].find(
+            {'provider_name': self.provider_name, 
+             'dataset_code': {'$in': dataset_codes}},
             {'dataset_code': 1, 'last_update': 1})
-        selected_datasets = {s['dataset_code'] : s for s in selected_datasets}
 
-        for dataset_code, dataset in self.selected_datasets.items():
+        selected_datasets = {s['dataset_code'] : s for s in cursor}
+
+        for dataset in datasets_list:
+            dataset_code = dataset["dataset_code"]
+            
             if (dataset_code not in selected_datasets) or (selected_datasets[dataset_code]['last_update'] < dataset['last_update']):
                 try:
-                    self.upsert_dataset(dataset_code)
+                    self.wrap_upsert_dataset(dataset_code)
                 except Exception as err:
-                    logger.fatal("error for dataset[%s]: %s" % (dataset_code, str(err)))
+                    if isinstance(err, errors.MaxErrors):
+                        raise
+                    msg = "error for provider[%s] - dataset[%s]: %s"
+                    logger.critical(msg % (self.provider_name, 
+                                           dataset_code, 
+                                           str(err)))
 
-        end = time.time() - start
-        logger.info("update provider[%s] - END - time[%.3f seconds]" % (self.provider_name, end))
 
-class EurostatData:
-    
-    def __init__(self,dataset, filename=None, store_filepath=None):
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.last_update = dataset.last_update
-        self.attribute_list = dataset.attribute_list
-        self.dimension_list = dataset.dimension_list
-        self.filename = filename
-        self.store_filepath = store_filepath
-        self.dataset_url = self.make_url()
-        self.sdmx_tree_iterator = None
-        # parse DSD, prepare and set sdmx_tree_iterator
-        self.process_data()
+class EurostatData(SeriesIterator):
 
-    def __next__(self):
-        for event, element in self.sdmx_tree_iterator:
-            if event == 'end':
-                if element.tag == self.fixtag('data','Series'):
-                    bson = self.one_series(element)
-                    element.clear()
-                    return bson
-        raise StopIteration()        
+    def __init__(self, dataset):
+        super().__init__(dataset)
 
-    def get_store_path(self):
-        return self.store_filepath or os.path.abspath(os.path.join(
-            tempfile.gettempdir(), 
-            self.provider_name, 
-            self.dataset_code))
+        self.dataset_url = make_url(self.dataset_code)
+        
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name)
+        self.xml_dsd.concepts = self.fetcher._concepts        
+        self.xml_dsd.codelists = self.fetcher._codelists
+        
+        self.store_path = self.get_store_path()
+        
+        self.exclude_attributes = ["TIME_FORMAT"]        
+        
+        self._load()
 
-    def _load_datas(self):
-
-        store_filepath = self.get_store_path()
+    def _load(self):
+        
         download = Downloader(url=self.dataset_url, 
-                              filename=self.filename, 
-                              store_filepath=store_filepath)
+                              filename="data-%s.zip" % self.dataset_code,
+                              store_filepath=self.store_path)
+        
+        filepaths = (extract_zip_file(download.get_filepath()))
+        dsd_fp = filepaths[self.dataset_code + ".dsd.xml"]        
+        data_fp = filepaths[self.dataset_code + ".sdmx.xml"]
+        
+        self.dataset.for_delete.append(dsd_fp)
+        self.dataset.for_delete.append(data_fp)        
+        
+        self.xml_dsd.process(dsd_fp)
+        self._set_dataset()
 
-        '''Return 2 filepath (dsd and data)'''    
-        return (extract_zip_file(download.get_filepath()))
+        self.xml_data = XMLData(provider_name=self.provider_name,
+                                dataset_code=self.dataset_code,
+                                xml_dsd=self.xml_dsd,
+                                #TODO: frequencies_supported=FREQUENCIES_SUPPORTED
+                                )        
+        self.rows = self.xml_data.process(data_fp)
 
-    def process_data(self):
-        filepaths = self._load_datas()
+    def _set_dataset(self):
 
-        # parse dsd
-        with open(filepaths[self.dataset_code + ".dsd.xml"],"rb") as f:
-            dsd_file = f.read()
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+        self.dataset.dimension_keys = dataset["dimension_keys"] 
+        self.dataset.attribute_keys = [attr for attr in dataset.get("attribute_keys", []) if not attr in self.exclude_attributes] 
+        self.dataset.concepts = dataset["concepts"] 
+        self.dataset.codelists = dataset["codelists"]
+        
+        for attr in self.exclude_attributes:
+            self.dataset.concepts.pop(attr, None)
+            self.dataset.codelists.pop(attr, None)
+        
+        self.dataset.dimension_list.set_dict(dataset["dimensions"])
+        self.dataset.attribute_list.set_dict(dataset["attributes"])
 
-        [attributes,dimensions] = self.parse_dsd(dsd_file,self.dataset_code)
-        self.attribute_list.set_dict(attributes)
-        self.dimension_list.set_dict(dimensions)
+    def clean_field(self, bson):
+        bson = super().clean_field(bson)
+        #TODO: remove in dataset ?
+        #TODO: remove in values.*.attributes
+        for attr in self.exclude_attributes:
+            bson.get("attributes", {}).pop(attr, None)
+        return bson
 
-        # prepare sdmx iterator for datas
-        sdmx_filename = filepaths[self.dataset_code + ".sdmx.xml"]
-        self.sdmx_tree_iterator = etree.iterparse(sdmx_filename, 
-                                                  events=['end','start-ns'])
-        self.nsmap = get_nsmap(self.sdmx_tree_iterator)
+    def build_series(self, bson):
+        self.dataset.add_frequency(bson["frequency"])
+        bson["last_update"] = self.dataset.last_update
+        return bson
 
-    def fixtag(self, ns, tag):
-        return '{' + self.nsmap[ns] + '}' + tag
-
-    def one_series(self,series):
-        attributes = defaultdict(list)
-        values = []
-        raw_dates = []
-        # drop TIME FORMAT that isn't informative
-
-        dimensions = OrderedDict([(key.lower(), value) for key,value in series.attrib.items() if key != 'TIME_FORMAT'])
-        time_format = series.attrib['TIME_FORMAT']
-
-        nobs = 1
-        for observation in series.iterchildren():
-            for k in attributes:
-                attributes[k] += [""]
-            attrib = observation.attrib
-            value_field = False
-            for a in attrib:
-                if a == "TIME_PERIOD":
-                    raw_dates.append(attrib[a])
-                elif a == "OBS_VALUE":
-                    values.append(attrib[a])
-                    value_field = True
-                else:
-                    if not a in attributes.keys():
-                        attributes[a] = ["" for i in range(nobs)]
-                    attributes[a][-1] = attrib[a]
-
-            # OBS_VALUE may be missing in the attributes
-            # this indicates a missing value
-            if not value_field:
-                values.append('')
-            nobs += 1
-
-        # force attributes' key to be lower case
-        attributes = {k.lower() : attributes[k] for k in attributes} 
-
-        bson = {}
-        bson['provider_name'] = self.provider_name
-        bson['dataset_code'] = self.dataset_code
-        bson['name'] =  "-".join([self.dimension_list.get_dict()[n][v]
-                             for n,v in dimensions.items()])
-        bson['key'] = ".".join(dimensions.values())
-        bson['values'] = values
-        bson['last_update'] = self.last_update
-        bson['attributes'] = attributes
-        bson['dimensions'] = dimensions
-        (start_string, freq) = self.parse_date(raw_dates[0], time_format)        
-        (end_string, freq) = self.parse_date(raw_dates[-1], time_format)
-        bson['start_date'] = pandas.Period(start_string, freq=freq).ordinal
-        bson['end_date'] = pandas.Period(end_string, freq=freq).ordinal
-        bson['frequency'] = freq
-
-        return(bson)
-    
-    def parse_dsd(self, file, dataset_code):
-        parser = etree.XMLParser(ns_clean=True, recover=True,
-                                      encoding='utf-8') 
-        tree = etree.fromstring(file, parser)
-
-        nsmap = DSD_NSMAP
-        code_desc = OrderedDict()
-
-        for code_lists in tree.iterfind("{*}CodeLists", namespaces=nsmap):
-
-            for code_list in code_lists.iterfind(
-                ".//structure:CodeList", namespaces=nsmap):
-                name = code_list.get('id')
-                # truncate intial "CL_" in name
-                name = name[3:]
-                # a dot "." can't be part of a JSON field name
-                name = re.sub(r"\.","",name)
-                dimension = OrderedDict()
-                
-                for code in code_list.iterfind(".//structure:Code",
-                                                     namespaces=nsmap):
-                    key = code.get("value")
-                    for desc in code:
-                        if desc.attrib.items()[0][1] == "en":
-                            dimension[key] = desc.text
-                code_desc[name] = dimension
-
-        # Splitting codeList in dimensions and attributes
-        for concept_list in tree.iterfind(".//structure:Components",
-                                          namespaces=nsmap):
-
-            dl = [d.get("codelist")[3:] for d in concept_list.iterfind(
-                ".//structure:Dimension",namespaces=nsmap)]
-            al = [d.get("codelist")[3:] for d in concept_list.iterfind(
-                ".//structure:Attribute",namespaces=nsmap)]
-
-        # force key name tp lowercase
-        attributes = OrderedDict([(key.lower(), code_desc[key]) for key in al])
-        dimensions = OrderedDict([(key.lower(), code_desc[key]) for key in dl])
-
-        return (attributes, dimensions)
-    
-    def parse_date(self,_str,fmt):
-        if (fmt == 'P1Y'):
-            return (_str,'A')
-        elif (fmt == 'P3M'):
-            m = re.match(REGEX_DATE_P3M,_str)
-            return (m.groups()[0]+'Q'+m.groups()[1],'Q')
-        elif (fmt == 'P1M'):
-            return (_str,'M')
-        elif (fmt == 'P1D'):
-            m = re.match(REGEX_DATE_P1D,_str)
-            return ('-'.join(m.groups()),'D')
-        else:
-            msg = 'eurostat, '+self.datase_code+', TIME FORMAT not recognized'
-            logger.critical(msg)
-            raise Exception(msg)
-
-    def make_url(self):
-        return("http://ec.europa.eu/eurostat/" +
-               "estat-navtree-portlet-prod/" +
-               "BulkDownloadListing?sort=1&file=data/" +
-               self.dataset_code + ".sdmx.zip")
-    

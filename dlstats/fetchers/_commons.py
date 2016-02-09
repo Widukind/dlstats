@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from operator import itemgetter
-import re
+import time
 import os
-import pymongo
-from pymongo import ReturnDocument
+import tempfile
+from operator import itemgetter
 from datetime import datetime
 import logging
 import pprint
-from collections import defaultdict, OrderedDict
-from copy import deepcopy
+from collections import OrderedDict
 
+import pymongo
+from pymongo import ReturnDocument
 from slugify import slugify
 
 from widukind_common.utils import get_mongo_db, create_or_update_indexes
@@ -18,8 +18,14 @@ from widukind_common.utils import get_mongo_db, create_or_update_indexes
 from dlstats import constants
 from dlstats.fetchers import schemas
 from dlstats import errors
+from dlstats.utils import (last_error, 
+                           clean_datetime, 
+                           remove_file_and_dir, 
+                           make_store_path)
 
 logger = logging.getLogger(__name__)
+
+IS_SCHEMAS_VALIDATION_DISABLE = constants.SCHEMAS_VALIDATION_DISABLE == "true"
 
 class Fetcher(object):
     """Abstract base class for all fetchers"""
@@ -27,7 +33,9 @@ class Fetcher(object):
     def __init__(self, 
                  provider_name=None, 
                  db=None, 
-                 is_indexes=True):
+                 is_indexes=True,
+                 version=0,
+                 **kwargs):
         """
         :param str provider_name: Provider Name
         :param pymongo.database.Database db: MongoDB Database instance        
@@ -40,93 +48,189 @@ class Fetcher(object):
 
         self.provider_name = provider_name
         self.db = db or get_mongo_db()
-        self.provider = self.load_provider_from_db()
+        self.version = version
+        self.max_errors = kwargs.pop("max_errors", 5)
+        
+        self.provider = None
+        
+        self.errors = 0
+
+        self.categories_filter = [] #[category_code]
+        self.datasets_filter = []   #[dataset_code]
+        
+        self.selected_datasets = {}
+        
+        self.store_path = os.path.abspath(os.path.join(tempfile.gettempdir(), 
+                                                       self.provider_name))
         
         if is_indexes:
             create_or_update_indexes(self.db)
-        
+            
+        if IS_SCHEMAS_VALIDATION_DISABLE:
+            logger.warning("schemas validation is disable")
+    
     def upsert_data_tree(self, data_tree=None, force_update=False):
+        #TODO: bulk
 
         if data_tree and not isinstance(data_tree, list):
             raise TypeError("data_tree is not instance of list")
 
-        if not data_tree:
-            data_tree = self.build_data_tree(force_update=force_update)
+        if not data_tree or force_update:
+            data_tree = self.build_data_tree()
+            Categories.remove_all(self.provider_name, db=self.db)
 
-        self.provider.data_tree = data_tree
+        results = []            
+        for data in data_tree:
+            cat = Categories(fetcher=self, **data)
+            results.append(cat.update_database())
+            
+        return results
 
-        for d in data_tree:
-            schemas.data_tree_schema(d)
+    def get_selected_datasets(self, force=False):
+        
+        if self.selected_datasets and not force:
+            return self.selected_datasets  
 
-        query_filter = {'name': self.provider_name}
-        query_update = {'$set': {'data_tree': data_tree}}
+        if Categories.count(self.provider_name, db=self.db) == 0:
+            self.upsert_data_tree()
+        
+        query = {
+            "datasets.0": {"$exists": True}
+        }
+        
+        #TODO: enable ?
+        if self.categories_filter:
+            query["$or"] = [
+                {"category_code": {"$in": self.categories_filter}},
+                {"all_parents": {"$in": self.categories_filter}},
+            ]
 
-        return self.db[constants.COL_PROVIDERS].find_one_and_update(query_filter,
-                                                                    query_update,
-                                                                    return_document=pymongo.ReturnDocument.AFTER)
+        categories = Categories.categories(self.provider_name, 
+                                           db=self.db, **query)
+        for category in categories.values():
+            for d in category["datasets"]:
+                if self.datasets_filter and not d['dataset_code'] in self.datasets_filter:
+                    continue
+                self.selected_datasets[d['dataset_code']] = d
+        
+        return self.selected_datasets
 
+    def datasets_list(self):
+        self.get_selected_datasets()
+        datasets = self.selected_datasets.values()
+        return sorted(datasets, key=itemgetter("dataset_code"))
+
+    def provider_verify(self):
+        
+        if self.provider.from_db:
+            return
+        
+        query = {"name": self.provider_name}
+        
+        provider = self.db[constants.COL_PROVIDERS].find_one(query)
+        if not provider:
+            self.provider.update_database()
+        
+        self.provider = self.load_provider_from_db()
+    
+        if self.provider.version != self.version:
+            self.provider.update_database()
+            
     def load_provider_from_db(self):
         """Load and set provider fields from DB
         """
-        doc = self.db[constants.COL_PROVIDERS].find_one({"name": self.provider_name})
+        query = {"name": self.provider_name}
+        doc = self.db[constants.COL_PROVIDERS].find_one(query)
         if not doc:
             return
 
         doc.pop('_id')
-        return Providers.factory(fetcher=self, **doc)
-
-    def filter_datasets(self, datasets):
-        """Return one unique list of dataset
-
-        TODO: translation EN
-        Surchargez cette méthode pour effectuer un autre filtrage.
-        """
-        keys = []
-        for d in sorted(datasets, key=itemgetter("dataset_code")):
-            if not d["dataset_code"] in keys:
-                keys.append(d["dataset_code"])
-                yield d
-
-    def get_selected_dataset_codes(self, category_filter=None):
-        """Return array of tuple(dataset_code, name)
-        """
-        if self.provider.count_data_tree() <= 1:
-            self.upsert_data_tree()
-
-        datasets = []
-
-        for dataset in self.provider.datasets(category_filter=category_filter):
-            datasets.append(dataset)
-
-        return [d for d in self.filter_datasets(datasets)]
-
-    def datasets_list(self, category_filter=None):
-        """Return a list of tuple (dataset code, name)
-        """
-        return self.get_selected_dataset_codes(category_filter=category_filter)
-
+        return Providers(fetcher=self, from_db=True, **doc)
+    
     def upsert_all_datasets(self):
-        if self.db[constants.COL_DATASETS].count({"provider_name": self.provider_name}) == 0:
-            return self.load_datasets_first()
-        else:
-            return self.load_datasets_update()
+        start = time.time()        
+        msg_op = "update"
+        
+        self.provider_verify()
+        
+        try:
+            query = {"provider_name": self.provider_name}
+            
+            if self.db[constants.COL_DATASETS].count(query) == 0:
+                msg_op = "load"
+                msg = "fetcher load START: provider[%s]"
+                logger.info(msg % self.provider_name)
+                return self.load_datasets_first()
+            else:
+                msg = "fetcher update START: provider[%s]"
+                logger.info(msg % self.provider_name)
+                return self.load_datasets_update()
+
+        except Exception:
+            msg = "fetcher %s ERROR: provider[%s] - error[%s]"
+            logger.critical(msg % (msg_op, self.provider_name, last_error()))
+
+        finally:
+            end = time.time() - start
+            msg = "fetcher %s END: provider[%s] - time[%.3f seconds]"
+            logger.info(msg % (msg_op, self.provider_name, end))
+        
+    def wrap_upsert_dataset(self, dataset_code):
+
+        start = time.time()
+        msg = " dataset upsert START: provider[%s] - dataset[%s]"
+        logger.info(msg % (self.provider_name, dataset_code))
+
+        self.provider_verify()
+
+        try:
+            return self.upsert_dataset(dataset_code)
+        except errors.RejectUpdatedDataset:
+            msg = "Reject dataset updated for provider[%s] - dataset[%s]"
+            logger.info(msg % (self.provider_name, dataset_code))
+        finally:
+            end = time.time() - start
+            msg = "dataset upsert END: provider[%s] - dataset[%s] - time[%.3f seconds]"
+            logger.info(msg % (self.provider_name, dataset_code, end))
+        
+    def _hook_remove_temp_files(self, dataset):
+        if dataset and dataset.for_delete:
+            for filepath in dataset.for_delete:
+                try:
+                    remove_file_and_dir(filepath)
+                except Exception:
+                    logger.warning("not remove filepath[%s]" % filepath)
+    
+    def hook_before_dataset(self, dataset):
+        pass
+
+    def hook_after_dataset(self, dataset):
+        self._hook_remove_temp_files(dataset)
 
     def load_datasets_first(self):
-        raise NotImplementedError()
+
+        for dataset in self.datasets_list():
+            dataset_code = dataset["dataset_code"]
+            try:
+                self.wrap_upsert_dataset(dataset_code)
+            except Exception as err:
+                if isinstance(err, errors.MaxErrors):
+                    raise
+                msg = "error for provider[%s] - dataset[%s]: %s"
+                logger.critical(msg % (self.provider_name, 
+                                       dataset_code, 
+                                       str(err)))
 
     def load_datasets_update(self):
-        raise NotImplementedError()
+        #TODO: log and/or warning
+        return self.load_datasets_first()
 
-    def build_data_tree(self, force_update=False):
+    def build_data_tree(self):
         raise NotImplementedError()
-
-    def upsert_categories(self):
-        """Upsert the categories in MongoDB
-        
-        TODO: remove function. replace with upsert_data_tree()
-        """
-        self.upsert_data_tree()
     
+    def get_calendar(self):
+        raise NotImplementedError()
+
     def upsert_dataset(self, dataset_code):
         """Upsert a dataset in MongoDB
         
@@ -134,12 +238,6 @@ class Fetcher(object):
         """        
         raise NotImplementedError("This method from the Fetcher class must"
                                   "be implemented.")
-    
-    def update_metas(self, dataset_code):
-        """Update Meta datas to ElasticSearch
-        
-        :param str dataset_code: ID of :class:`Datasets`
-        """        
         
 class DlstatsCollection(object):
     """Abstract base class for objects that are stored and indexed by dlstats
@@ -161,8 +259,7 @@ class DlstatsCollection(object):
         
         self.fetcher = fetcher
         
-    def update_mongo_collection(self, collection, keys, bson, 
-                                log_level=logging.INFO):
+    def update_mongo_collection(self, collection, keys, bson):
         """Update one document
 
         :param str collection: Collection name
@@ -172,17 +269,17 @@ class DlstatsCollection(object):
         
         :return: Instance of :class:`bson.objectid.ObjectId`  
         """
-        lgr = logging.getLogger(__name__)
         key = {k: bson[k] for k in keys}
+        result = None
         try:
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
             result = result['_id']
         except Exception as err:
-            lgr.critical('%s.update_database() failed for %s - %s [%s]' % (collection, str(key), str(result), str(err)))
+            logger.critical('%s.update_database() failed for %s error[%s]' % (collection, str(key), str(err)))
             return None
         else:
-            lgr.log(log_level,collection + ' ' + str(key) + ' updated.')
+            logger.debug(collection + ' ' + str(key) + ' updated.')
             return result
         
 class Providers(DlstatsCollection):
@@ -197,8 +294,12 @@ class Providers(DlstatsCollection):
                  version=0,
                  region=None,
                  website=None,
-                 fetcher=None,
-                 **kwargs):
+                 metadata=None,
+                 enable=True,
+                 lock=False,
+                 from_db=None,
+                 slug=None,
+                 fetcher=None):
         """        
         :param str name: Provider Short Name
         :param str long_name: Provider Long Name
@@ -212,10 +313,12 @@ class Providers(DlstatsCollection):
         self.version = version
         self.region = region
         self.website = website
+        self.metadata = metadata
+        self.enable = enable
+        self.lock = lock
+        self.from_db = from_db
 
-        self.__data_tree = OrderedDict()
         self.validate = schemas.provider_schema(self.bson)
-        self.set_root_category()
 
     def __repr__(self):
         return pprint.pformat([(key, self.validate[key]) for key in sorted(self.validate.keys()) if not key in ["data_tree", "slug"]])
@@ -225,24 +328,6 @@ class Providers(DlstatsCollection):
             return 
         return slugify(self.name, word_boundary=False, save_order=True)
 
-    @classmethod
-    def factory(cls, data_tree=None, **kwargs):
-        provider = cls(**kwargs)
-        if data_tree:
-            provider.data_tree = data_tree
-        return provider
-
-    def populate_obj(self, doc):
-        self.name = doc['name']
-        self.long_name = doc['long_name']
-        self.version = doc['version']
-        self.slug = doc['slug']
-        self.region = doc['region']
-        self.website = doc['website']
-        if doc.get('data_tree'):
-            self.data_tree = doc.get('data_tree')
-        return self
-
     @property
     def bson(self):
         return {'name': self.name,
@@ -251,126 +336,144 @@ class Providers(DlstatsCollection):
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website,
-                'data_tree': self.data_tree}
+                'metadata': self.metadata,
+                "enable": self.enable,
+                "lock": self.lock}
 
-    def set_root_category(self):
-        if not self.name in self.__data_tree:
-            self.__data_tree[self.name] = DataTreeEntry(name=self.name, 
-                                                        category_code=self.name, 
-                                                        doc_href=self.website, 
-                                                        is_root=True) 
-
-    def _category_key(self, category_code, is_root=False, parent_code=None):
-
-        key = category_code
-        
-        if parent_code:
-            parent = self.__data_tree[str(parent_code)]
-            key = "%s.%s" % (parent.category_code, key)
-
-        if not is_root:
-            if not key.startswith(self.name + "."):
-                key = "%s.%s" % (self.name, key)
-        
-        return key
-
-    def add_category(self, category, parent_code=None):
-        self.set_root_category()
-
-        if isinstance(category, dict):
-            category = DataTreeEntry(**category)
-
-        key = self._category_key(category.category_code, category.is_root, parent_code)
-
-        if key in self.__data_tree:
-            raise Exception("Duplicate category")
-
-        category.category_code = key
-        self.__data_tree[key] = category
-
-        return key
-    
-    def add_dataset(self, dataset, category_code):
-        category_code = str(category_code)
-
-        if not category_code in self.__data_tree:
-            raise Exception("category not found[%s]" % category_code)
-
-        category = self.__data_tree[category_code]
-        category.add_dataset(**dataset)
-
-    def count_data_tree(self):
-        return len(self.__data_tree)
-
-    def has_key(self, key):
-        return key in self.__data_tree
-
-    @property
-    def data_tree(self):
-        return sorted([d.bson for d in self.__data_tree.values()], key=itemgetter("category_code"))
-
-    @data_tree.setter
-    def data_tree(self, data_tree):
-        if not isinstance(data_tree, list):
-            raise TypeError("data_tree is not instance of list")
-        
-        self.__data_tree = OrderedDict()
-        for d in data_tree:
-            self.__data_tree[d["category_code"]] = DataTreeEntry(**d)
-
-    def _find_datasets(self, category_filter=None):
-        filter_reg = None
-        if category_filter:
-            filter_reg = re.compile(category_filter)
-        
-        for category_code, d in self.__data_tree.items():
-            if len(d.datasets) > 0:
-                if filter_reg and not filter_reg.match(category_code):
-                    continue
-                for dataset in d.datasets:
-                    yield dataset["dataset_code"], dataset
-        
-    def datasets(self, category_filter=None, sorted_attr="dataset_code"):
-        datasets = OrderedDict([(d[0], d[1]) for d in self._find_datasets(category_filter)])
-        return sorted(datasets.values(), key=itemgetter(sorted_attr))
-    
-    def get_categories(self, base=None):
-        """Return hierarchy of categories
-        
-        ECB
-            ECB.MOBILE_NAVI
-                ECB.MOBILE_NAVI.07
-                
-        ECB -> MOBILE_NAVI -> 07
-        
-        Si base = base de départ:
-            ex: ECB.MOBILE_NAVI
-                
-        """
-        raise NotImplementedError()
-                
-        if base:
-            first_category = base
-        else:
-            first_category = self.name
-        
-        data_tree = self.data_tree.copy()
-        
-        categories = data_tree[first_category]
-        categories["children"] = []
-        
-        for key in data_tree.keys():
-            if key == first_category: 
-                continue
-            if key.startswith(first_category + "."):
-                categories["children"].append(data_tree[key])
-    
     def update_database(self):
         schemas.provider_schema(self.bson)
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
                                             ['name'], 
                                             self.bson)
 
+class Categories(DlstatsCollection):
+    """Categories class
+    
+    Inherit from :class:`DlstatsCollection`
+    """
+    
+    def __init__(self,
+                 provider_name=None,
+                 category_code=None,
+                 name=None,
+                 position=0,
+                 parent=None,
+                 all_parents=None,
+                 datasets=[],
+                 doc_href=None,
+                 metadata=None,
+                 fetcher=None,
+                 **kwargs):
+        """
+        :param str provider_name: Provider name
+        :param str category_code: Unique Category Code
+        :param str name: Category name
+        :param list datasets: Array of dataset_code        
+        :param str doc_href: (Optional) Category - web link
+        :param Fetcher fetcher: Fetcher instance
+        """        
+        super().__init__(fetcher=fetcher)
+        self.provider_name = provider_name
+        if not provider_name:
+            self.provider_name = self.fetcher.provider_name
+        
+        self.category_code = category_code
+        self.name = name
+        self.position = position
+        self.parent = parent
+        self.all_parents = all_parents
+        self.datasets = datasets
+        self.doc_href = doc_href
+        self.metadata = metadata
+
+        self.enable = True
+        self.lock = False
+
+    def slug(self):
+        txt = "-".join([self.provider_name, self.category_code])
+        return slugify(txt, word_boundary=False, save_order=True)
+
+    @property
+    def bson(self):
+        return {'provider_name': self.provider_name,
+                'category_code': self.category_code,
+                'name': self.name,
+                'position': self.position,
+                'parent': self.parent,
+                'all_parents': self.all_parents,
+                'slug': self.slug(),
+                'datasets': self.datasets,
+                'doc_href': self.doc_href,
+                'metadata': self.metadata,
+                "enable": self.enable,
+                "lock": self.lock}
+
+    @classmethod
+    def categories(cls, provider_name, db=None, **query):
+        db = db or get_mongo_db()
+        if not "provider_name" in query:
+            query["provider_name"] = provider_name
+        cursor = db[constants.COL_CATEGORIES].find(query)
+        return dict([(doc["category_code"], doc) for doc in cursor])
+
+    @classmethod
+    def count(cls, provider_name, db=None):
+        db = db or get_mongo_db()
+        query = {"provider_name": provider_name}
+        return db[constants.COL_CATEGORIES].count(query)
+
+    @classmethod
+    def remove_all(cls, provider_name, db=None):
+        db = db or get_mongo_db()
+        query = {"provider_name": provider_name}
+        logger.info("remove all categories for [%s]" % provider_name)
+        return db[constants.COL_CATEGORIES].remove(query)
+    
+    @classmethod
+    def search_category_for_dataset(cls, provider_name, dataset_code, db=None):
+        db = db or get_mongo_db()
+        query = {"provider_name": provider_name,
+                 "datasets.0": {"$exists": True},
+                 "datasets.dataset_code": dataset_code}
+        return db[constants.COL_CATEGORIES].find_one(query)
+
+    @classmethod
+    def root_categories(cls, provider_name, db=None):
+        db = db or get_mongo_db()
+        query = {"provider_name": provider_name, "parent": None}
+        cursor = db[constants.COL_CATEGORIES].find(query)
+        return cursor.sort([("position", 1), ("category_code", 1)])
+    
+    @classmethod
+    def _iter_parent(cls, category, categories):
+        if not categories:
+            categories = cls.categories()
+        parents_keys = []
+        if category.get("parent"):
+            parent_id = category.get("parent")
+            parents_keys.append(parent_id)
+            parent_category = categories.get(parent_id)
+            if parent_category:
+                parents_keys.extend(cls._iter_parent(parent_category, 
+                                                     categories))
+        return parents_keys
+
+    @classmethod
+    def iter_parent(cls, category, categories):
+        """Recursive function for retrieve all parents
+        for one category
+        
+        Return array of category_code for all parents
+        """
+        parents_keys = cls._iter_parent(category, categories)
+        parents_keys.reverse()
+        return parents_keys
+        
+    def update_database(self):
+        schemas.category_schema(self.bson)
+        return self.update_mongo_collection(constants.COL_CATEGORIES, 
+                                            ['provider_name', 'category_code'],
+                                            self.bson)
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
@@ -383,9 +486,11 @@ class Datasets(DlstatsCollection):
                  name=None,
                  doc_href=None,
                  last_update=None,
+                 metadata=None,
                  bulk_size=100,
                  fetcher=None, 
-                 is_load_previous_version=True):
+                 is_load_previous_version=True,
+                 **kwargs):
         """
         :param str provider_name: Provider name
         :param str dataset_code: Dataset code
@@ -402,17 +507,28 @@ class Datasets(DlstatsCollection):
         self.name = name
         self.doc_href = doc_href
         self.last_update = last_update
+        self.metadata = metadata or {}
         self.bulk_size = bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
+        
+        self.dimension_keys = []
+        self.attribute_keys = []
+        self.codelists = {}
+        self.concepts = {}
+
+        self.enable = False        
+        self.lock = False
 
         self.download_first = None
         self.download_last = None
-        
+
+        self.for_delete = []
+
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
             
-        self.notes = ''
+        self.notes = None
         
         self.series = Series(provider_name=self.provider_name, 
                              dataset_code=self.dataset_code, 
@@ -434,13 +550,23 @@ class Datasets(DlstatsCollection):
                 'name': self.name,
                 'dataset_code': self.dataset_code,
                 'slug': self.slug(),
+                
                 'dimension_list': self.dimension_list.get_list(),
                 'attribute_list': self.attribute_list.get_list(),
+
+                'dimension_keys': self.dimension_keys,
+                'attribute_keys': self.attribute_keys,
+                'codelists': self.codelists,
+                'concepts': self.concepts,
+                
+                'metadata': self.metadata,
                 'doc_href': self.doc_href,
                 'last_update': self.last_update,
                 'download_first': self.download_first,
                 'download_last': self.download_last,
-                'notes': self.notes}
+                'notes': self.notes,
+                "enable": self.enable,
+                "lock": self.lock}
 
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
@@ -448,49 +574,316 @@ class Datasets(DlstatsCollection):
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
-            self.download_first = dataset['download_first']
+            self.enable = dataset.get('enable')
+            self.lock = dataset.get('lock')
+            self.metadata = dataset.get('metadata', {}) or {}
+            self.download_first = dataset.get('download_first')
+            self.last_update = dataset.get('last_update')
             self.dimension_list.set_from_list(dataset['dimension_list'])
             self.attribute_list.set_from_list(dataset['attribute_list'])
+            self.dimension_keys = dataset.get("dimension_keys", [])
+            self.attribute_keys = dataset.get("attribute_keys", [])
+            self.codelists = dataset.get("codelists", {})
+            self.concepts = dataset.get("concepts", {})
+        else:
+            msg = "dataset not found for previous loading. provider[%s] - dataset[%s]"
+            logger.warning(msg % (provider_name, dataset_code))
 
+    def add_frequency(self, frequency):
+        if not frequency:
+            return
+        if not self.metadata:
+            self.metadata = {}
+        if not "frequencies" in self.metadata:
+            self.metadata["frequencies"] = []
+        if not frequency in self.metadata["frequencies"]:
+            self.metadata["frequencies"].append(frequency)
+    
     def is_recordable(self):
+
+        if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+            return False
+        
+        if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
+            logger.critical("provider[%s] not found in DB" % self.provider_name)
+            return False
         
         query = {"provider_name": self.provider_name,
                  "dataset_code": self.dataset_code}
-        projection = {"provider_name": True, "dataset_code": True}
-        
-        doc = self.fetcher.db[constants.COL_DATASETS].find_one(query, projection)
-        if doc:
+        if self.fetcher.db[constants.COL_SERIES].count(query) > 0:
             return True
-        
-        count_series = self.fetcher.db[constants.COL_SERIES].count(query)
-        if count_series > 0:
-            return True
-        
+
         return False
         
     def update_database(self):
+
+        self.fetcher.hook_before_dataset(self)
+        
         try:
             self.series.process_series_data()
-        except Exception as err:
-            logger.critical(err)
-
-        now = datetime.now()
-        if not self.download_first:
-            self.download_first = now
-        if not self.download_last:
+        except Exception:
+            self.fetcher.errors += 1
+            logger.critical(last_error())
+            if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+                msg = "The maximum number of errors is exceeded for provider[%s] - dataset[%s]. MAX[%s]"
+                raise errors.MaxErrors(msg % (self.provider_name,
+                                              self.dataset_code,
+                                              self.fetcher.max_errors))
+        finally:
+            now = clean_datetime()
+    
+            if not self.download_first:
+                self.download_first = now
+    
             self.download_last = now
+    
+            schemas.dataset_schema(self.bson)
+            
+            if not self.is_recordable():
+                self.enable = False
+                msg = "disable dataset[%s] for provider[%s]"
+                logger.warning(msg % (self.dataset_code, 
+                                      self.provider_name))
+            else:
+                self.enable = True
 
-        schemas.dataset_schema(self.bson)
+            if logger.isEnabledFor(logging.INFO):    
+                msg_stats = "STATS dataset-update: provider[%s] - dataset[%s] - accepts[%s] - rejects[%s] - inserts[%s] - updates[%s]"
+                logger.info(msg_stats % (self.provider_name,
+                                         self.dataset_code,
+                                         self.series.count_accepts,
+                                         self.series.count_rejects,
+                                         self.series.count_inserts,
+                                         self.series.count_updates))
+            
+            result = self.update_mongo_collection(constants.COL_DATASETS,
+                                                  ['provider_name', 
+                                                   'dataset_code'],
+                                                  self.bson)
+    
+            self.fetcher.hook_after_dataset(self)
+    
+            return result
+
+class SeriesIterator:
+    """Base class for all Fetcher data class
+    """
+    
+    def __init__(self, dataset):
+        """
+        :param Datasets dataset: Datasets instance
+        """
         
-        if not self.is_recordable():
-            logger.warning("Not recordable dataset[%s] for provider[%s]" % (self.dataset_code, self.provider_name))
+        if not isinstance(dataset, Datasets):
+            raise TypeError("dataset is not instance of Datasets")
+        
+        self.dataset = dataset
+        self.fetcher = self.dataset.fetcher
+        self.dataset_code = self.dataset.dataset_code
+        self.provider_name = self.fetcher.provider_name
+        self.dimension_list = dataset.dimension_list
+        self.attribute_list = dataset.attribute_list
+        
+        self.rows = None
+        
+    def get_store_path(self):
+        return make_store_path(base_path=self.fetcher.store_path,
+                               dataset_code=self.dataset_code)
+
+    def __next__(self):
+        bson, err = next(self.rows)
+        if err:
+            return err
+        
+        if not bson:
+            raise StopIteration()
+
+        try:
+            return self.clean_field(self.build_series(bson))
+        except Exception as err:
+            return err
+
+    def clean_field(self, bson):
+        #for d in bson["values"]:            
+        #    d.pop("period_o", None)
+        return bson
+
+    def build_series(self, bson):
+        raise NotImplementedError()
+
+def series_set_release_date(bson, last_update):
+    
+    if not bson or not isinstance(bson, dict):
+        raise ValueError("no bson or not dict instance")            
+    
+    if not last_update or not isinstance(last_update, datetime):
+        raise ValueError("no last_update or not datetime instance")            
+    
+    if not "values" in bson:
+        raise ValueError("not values field in bson")
+    
+    for obs in bson["values"]:
+        if not obs.get("release_date"):
+            obs["release_date"] = last_update
+
+def series_revisions(new_bson, old_bson, last_update):
+
+    if not new_bson or not isinstance(new_bson, dict):
+        raise ValueError("no new_bson or not dict instance")            
+
+    if not old_bson or not isinstance(old_bson, dict):
+        raise ValueError("no old_bson or not dict instance")            
+    
+    if not last_update or not isinstance(last_update, datetime):
+        raise ValueError("no last_update or not datetime instance")            
+
+    if not "values" in new_bson:
+        raise ValueError("not values field in new_bson")
+
+    if not "values" in old_bson:
+        raise ValueError("not values field in old_bson")
+    
+    old_values = old_bson["values"]
+    changed = False
+    
+    old_values_by_periods = {}    
+    for old_value in old_values:
+        old_values_by_periods[old_value["period"]] = old_value
+    
+    for obs in new_bson["values"]:
+        
+        period = obs["period"]
+
+        '''new period - bypass'''
+        if not period in old_values_by_periods:
+            continue
+        
+        '''load old revisions if exists'''        
+        old_obs = old_values_by_periods[period]
+        if "revisions" in old_obs:
+            obs["revisions"] = old_obs["revisions"] 
+        
+        '''Search if new revision'''
+        is_new_revision = False
+        
+        '''is value change'''
+        if old_obs["value"] != obs["value"]:
+            is_new_revision = True
+            
+        '''is attributes change'''
+        if old_obs.get("attributes") != obs.get("attributes"):
+            is_new_revision = True
+        
+        if not is_new_revision:
+            continue
+        
+        changed = True
+        
+        if not obs.get("revisions"):
+            obs["revisions"] = []
+        
+        obs["revisions"].append({ 
+            "revision_date": old_obs["release_date"],
+            "value": old_obs["value"],
+            "attributes": old_obs.get("attributes") 
+        })
+        
+        '''new release date'''
+        obs["release_date"] = last_update
+    
+    return changed
+
+def series_is_changed(new_bson, old_bson):
+
+    if not new_bson or not isinstance(new_bson, dict):
+        raise ValueError("no new_bson or not dict instance")            
+
+    if not old_bson or not isinstance(old_bson, dict):
+        raise ValueError("no old_bson or not dict instance")            
+
+    if not "values" in new_bson:
+        raise ValueError("not values field in new_bson")
+
+    if not "values" in old_bson:
+        raise ValueError("not values field in old_bson")
+    
+    if len(new_bson["values"]) != len(old_bson["values"]):
+        return True 
+    
+    if new_bson.get("notes") != old_bson.get("notes"):
+        return True
+
+    if sorted(list(new_bson.get("dimensions", {}).keys())) != sorted(list(old_bson.get("dimensions", {}).keys())):
+        return True
+
+    if sorted(list(new_bson.get("dimensions", {}).values())) != sorted(list(old_bson.get("dimensions", {}).values())):
+        return True
+
+    if new_bson.get("attributes") and not old_bson.get("attributes"):
+        return True
+
+    if old_bson.get("attributes") and not new_bson.get("attributes"):
+        return True
+
+    if new_bson.get("attributes") and old_bson.get("attributes"):
+        if sorted(list(new_bson.get("attributes", {}).keys())) != sorted(list(old_bson.get("attributes", {}).keys())):
+            return True
+    
+        if sorted(list(new_bson.get("attributes", {}).values())) != sorted(list(old_bson.get("attributes", {}).values())):
+            return True
+    
+    if new_bson["start_date"] != old_bson["start_date"]:
+        return True 
+
+    if new_bson["end_date"] != old_bson["end_date"]:
+        return True
+
+    return False
+
+def series_update(new_bson, old_bson=None, last_update=None):
+
+    if not new_bson or not isinstance(new_bson, dict):
+        raise ValueError("no new_bson or not dict instance")            
+
+    if old_bson and not isinstance(old_bson, dict):
+        raise ValueError("old_bson is not dict instance")            
+
+    if not "values" in new_bson:
+        raise ValueError("not values field in new_bson")
+
+    if old_bson and not "values" in old_bson:
+        raise ValueError("not values field in old_bson")
+    
+    if not isinstance(new_bson["values"][0], dict):
+        raise ValueError("Invalid format for this series : %s" % new_bson)
+
+    _last_update = clean_datetime(new_bson.pop('last_update', None))
+    if not _last_update:                                
+        _last_update = clean_datetime(last_update)
+        
+    #TODO: valeurs manquantes à remplacer par chaine Unique: NaN
+
+    series_set_release_date(new_bson, _last_update)
+
+    if not old_bson:
+        if not IS_SCHEMAS_VALIDATION_DISABLE:
+            schemas.series_schema(new_bson)
+        return new_bson
+    else:
+        changed = series_revisions(new_bson, old_bson, _last_update)
+        
+        if not changed:
+            changed = series_is_changed(new_bson, old_bson)
+            
+        if not changed:
             return
-        
-        return self.update_mongo_collection(constants.COL_DATASETS,
-                                                ['provider_name', 'dataset_code'],
-                                                self.bson)
 
-class Series(DlstatsCollection):
+        if not IS_SCHEMAS_VALIDATION_DISABLE:
+            schemas.series_schema(new_bson)
+        
+    return new_bson
+
+class Series:
     """Time Series class
     """
     
@@ -506,14 +899,28 @@ class Series(DlstatsCollection):
         :param datetime.datetime last_update: Last updated date
         :param int bulk_size: Batch size for mongo bulk
         :param Fetcher fetcher: Fetcher instance
-        """        
-        super().__init__(fetcher=fetcher)
+        """
         self.provider_name = provider_name
         self.dataset_code = dataset_code
         self.last_update = last_update
         self.bulk_size = bulk_size
+        
+        if not fetcher:
+            raise ValueError("fetcher is required")
+
+        if not isinstance(fetcher, Fetcher):
+            raise TypeError("Bad type for fetcher")
+        
+        self.fetcher = fetcher        
+
         # temporary storage necessary to get old_bson in bulks
         self.series_list = []
+        self.fatal_error = False
+        
+        self.count_accepts = 0
+        self.count_rejects = 0
+        self.count_inserts = 0
+        self.count_updates = 0
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -521,184 +928,124 @@ class Series(DlstatsCollection):
                                ('last_update', self.last_update)])
 
     def process_series_data(self):
-        count = 0
-        while True:
-            try:
-                # append result from __next__ method in fetchers
-                # one iteration by serie
-                data = next(self.data_iterator)
-                self.series_list.append(data)
-            except errors.RejectFrequency as err:
-                msg ="Reject frequency for dataset[%s] - frequency[%s]" % (self.dataset_code, 
-                                                                           err.frequency)
-                logger.warning(msg)
-                continue
-            except errors.RejectEmptySeries as err:
-                logger.warning("Reject empty series for dataset[%s]" % self.dataset_code)
-                continue
-            except StopIteration:
-                break
-            
-            count += 1
-            if count > self.bulk_size:
-                self.update_series_list()
-                count = 0
+        
+        try:
+            while True:
+                
+                self.fatal_error = False
+                try:
+                    data = next(self.data_iterator)
+    
+                    if isinstance(data, dict):
+                        self.count_accepts += 1
+                        self.series_list.append(data)
+    
+                    elif isinstance(data, errors.RejectFrequency):
+                        self.count_rejects += 1
+                        msg = "Reject frequency for provider[%s] - dataset[%s] - frequency[%s]"
+                        logger.warning(msg % (self.provider_name, 
+                                              self.dataset_code, 
+                                              data.frequency))
+                        continue
+                    
+                    elif isinstance(data, errors.RejectUpdatedSeries):
+                        self.count_rejects += 1
+                        if logger.isEnabledFor(logging.DEBUG):
+                            msg = "Reject series updated for provider[%s] - dataset[%s] - key[%s]"
+                            logger.debug(msg % (self.provider_name, 
+                                                self.dataset_code, 
+                                                data.key))
+                        continue
+    
+                    elif isinstance(data, errors.RejectEmptySeries):
+                        self.count_rejects += 1
+                        msg = "Reject empty series for provider[%s] - dataset[%s]"
+                        logger.warning(msg % (self.provider_name, 
+                                              self.dataset_code))
+                        continue
+                        
+                    elif isinstance(data, Exception):
+                        self.fatal_error = True
+                        raise errors.InterruptProcessSeriesData(str(data))
 
-        if len(self.series_list) > 0:
-            self.update_series_list()
+                    if len(self.series_list) >= self.bulk_size:
+                        self.update_series_list()
+                    
+                except StopIteration:
+                    break
+                except Exception:
+                    raise
+        finally:
+            if not self.fatal_error and len(self.series_list) > 0:
+                self.update_series_list()
 
     def slug(self, key):
         txt = "-".join([self.provider_name, self.dataset_code, key])
         return slugify(txt, word_boundary=False, save_order=True)
-        
+    
     def update_series_list(self):
 
         #TODO: gestion erreur bulk (BulkWriteError)
 
         keys = [s['key'] for s in self.series_list]
 
-        old_series = self.fetcher.db[constants.COL_SERIES].find({
+        cursor = self.fetcher.db[constants.COL_SERIES].find({
                                         'provider_name': self.provider_name,
                                         'dataset_code': self.dataset_code,
                                         'key': {'$in': keys}})
-
-        old_series = {s['key']:s for s in old_series}
+        old_series = {s['key']:s for s in cursor}
         
-        bulk = self.fetcher.db[constants.COL_SERIES].initialize_ordered_bulk_op()
-
+        bulk = self.fetcher.db[constants.COL_SERIES].initialize_unordered_bulk_op()
+        bulk_ops = 0
+        
         for data in self.series_list:
+            
             key = data['key']
+
+            if not data.get("slug", None):
+                data['slug'] = self.slug(key)
+            
             if not key in old_series:
-                bson = self.update_series(data,is_bulk=True)
+                self.count_inserts += 1
+                bson = series_update(data, last_update=self.last_update)
                 bulk.insert(bson)
+                bulk_ops += 1
             else:
                 old_bson = old_series[key]
-                bson = self.update_series(data,
-                                          old_bson=old_bson,
-                                          is_bulk=True)                
-                bulk.find({'_id': old_bson['_id']}).update({'$set': bson})
-        
-        try:
-            result = bulk.execute()
-        except pymongo.errors.BulkWriteError as err:
-            logger.critical(str(err.details))
-            pprint.pprint(err.details)
-            raise
+                
+                bson = series_update(data, old_bson=old_bson, 
+                                     last_update=self.last_update)
+
+                if bson:
+                    self.count_updates += 1
+                    query_update = {
+                        "start_date": bson["start_date"],     
+                        "end_date": bson["end_date"],     
+                        "values": bson["values"],     
+                        "attributes": bson["attributes"],     
+                        "dimensions": bson["dimensions"],     
+                        "notes": bson.get("notes"),     
+                    }
+                    bulk.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
+                    bulk_ops += 1
+                else:
+                    if logger.isEnabledFor(logging.DEBUG):
+                        logger.debug("series[%s] not changed" % old_bson["slug"])                    
+                    
+
+        result = None        
+        if bulk_ops > 0:
+            try:
+                result = bulk.execute()
+            except pymongo.errors.BulkWriteError as err:
+                logger.critical(last_error())
+                #TODO: use pprint and StringIO for err.details output
+                #logger.critical(str(err.details))
+                raise
                  
         self.series_list = []
         return result
 
-    def format_last_update(self, date_value):
-        if not date_value:
-            return None
-        return datetime(date_value.year, date_value.month, date_value.day, date_value.hour, date_value.minute)
-            
-    def update_series(self, bson, old_bson=None, is_bulk=False):
-        # gets either last_update passed to Datasets or the one provided
-        # in the bson
-        if not 'slug' in bson:
-            bson['slug'] = self.slug(bson['key'])                                
-        
-        last_update = self.format_last_update(self.last_update)
-        if 'last_update' in bson:
-            last_update = self.format_last_update(bson.pop('last_update'))
-
-        col = self.fetcher.db[constants.COL_SERIES]
-
-        if not old_bson:
-            bson['release_dates'] = [last_update for v in bson['values']]
-            schemas.series_schema(bson)
-
-            self.check_values_attributes_releasedates(bson)
-            
-            if is_bulk:
-                return bson
-            return col.insert(bson)
-        else:
-            revisions_is_present = False
-            if 'revisions' in old_bson and len(old_bson['revisions']) > 0:
-                bson['revisions'] = old_bson['revisions']
-                revisions_is_present = True
-
-            start_date = bson['start_date']
-            old_start_date = old_bson['start_date']
-            bson['release_dates'] = deepcopy(old_bson['release_dates'])
-            
-            iv1 = iv2 = 0
-            if start_date < old_start_date:
-                # index of old_bson values in bson values 
-                iv2 = old_start_date - start_date
-                # update all positions
-                if revisions_is_present:
-                    offset = old_start_date - start_date
-                    ikeys = [int(k) for k in bson['revisions']]
-                    for p in sorted(ikeys,reverse=True):
-                        bson['revisions'][str(p+offset)] = bson['revisions'][str(p)]
-                        bson['revisions'].pop(str(p))
-                # add last_update in fron of release_dates
-                bson['release_dates'] = [last_update for r in range(iv2)] + bson['release_dates']
-                        
-            elif start_date > old_start_date:
-                # previous, longer, series is kept
-                # fill beginning with na
-                for p in range(start_date-old_start_date):
-                    # insert in front of the values, release_dates and attributes
-                    bson['values'].insert(0,'na')
-                    bson['release_dates'][p] = last_update
-                    for a in bson['attributes']:
-                        bson['attributes'][a].insert(0,"") 
-                bson['start_date'] = old_bson['start_date']
-                
-            if bson['end_date'] < old_bson['end_date']:
-                for p in range(old_bson['end_date']-bson['end_date']):
-                    bson['values'].append('na')
-                    bson['release_dates'][p] = last_update
-                    for a in bson['attributes']:
-                        bson['attributes'][a].append("")
-                bson['end_date'] = old_bson['end_date']
-
-            for position,values in enumerate(zip(old_bson['values'][iv1:],bson['values'][iv2:])):
-                if values[0] != values[1]:
-                    bson['release_dates'][position+iv2] = last_update
-                    if not revisions_is_present:
-                        bson['revisions'] = {}
-                        revisions_is_present = True
-                    rev = {'value':values[0],
-                           'release_date':old_bson['release_dates'][position+iv1]}
-                    if str(position+iv2) in bson['revisions']:
-                        bson['revisions'][str(position+iv2)].append(rev)
-                    else:
-                        bson['revisions'][str(position+iv2)] = [rev]
-
-            if bson['end_date'] > old_bson['end_date']:
-                for p in range(bson['end_date']-old_bson['end_date']):
-                    bson['release_dates'].append(last_update)
-
-            self.check_values_attributes_releasedates(bson)
-            
-            schemas.series_schema(bson)
-            if is_bulk:
-                return bson
-            return col.find_one_and_update({'_id': old_bson['_id']}, {'$set': bson})
-
-    def check_values_attributes_releasedates(self,bson):
-        # checking consistency of values, release_dates and attributes
-        n = len(bson['values'])
-        if len(bson['release_dates']) != n:
-            logger.critical('release_dates has not the right length')
-            logger.critical('series key: ' + bson['key'])
-            logger.critical('values length: ' + str(len(bson['values'])))
-            logger.critical('release_dates length: ' + str(len(bson['release_dates'])))
-            raise Exception('release_dates has not the right length')
-        """
-        for a in bson['attributes']:
-            if len(bson['attributes'][a]) != n:
-                logger.critical('attributes has not the right length')
-                logger.critical('series key: ' + bson['key'])
-                logger.critical('values length: ' + str(len(bson['values'])))
-                logger.critical('attributes length: ' + str(len(bson['release_dates'])))
-                raise Exception('attributes has not the right length')
-        """
 class CodeDict():
     """Class for handling code lists
     
@@ -710,13 +1057,15 @@ class CodeDict():
     def __init__(self):
         # code_dict is a dict of OrderedDict
         self.code_dict = {}
-        schemas.codedict_schema(self.code_dict)
+        if not IS_SCHEMAS_VALIDATION_DISABLE:
+            schemas.codedict_schema(self.code_dict)
         
     def update(self,arg):
-        schemas.codedict_schema(arg.code_dict)
+        if not IS_SCHEMAS_VALIDATION_DISABLE:
+            schemas.codedict_schema(arg.code_dict)
         self.code_dict.update(arg.code_dict)
         
-    def update_entry(self,dim_name,dim_short_id,dim_long_id):
+    def update_entry(self, dim_name, dim_short_id, dim_long_id):
         if dim_name in self.code_dict:
             if not dim_long_id:
                 dim_short_id = 'None'
@@ -739,10 +1088,10 @@ class CodeDict():
         return(dim_short_id)
 
     def get_dict(self):
-        return(self.code_dict)
+        return self.code_dict
 
     def get_list(self):
-        return({d1: list(d2.items()) for d1,d2 in self.code_dict.items()})
+        return {d1: list(d2.items()) for d1,d2 in self.code_dict.items()}
 
     def set_dict(self,arg):
         self.code_dict = arg
@@ -750,41 +1099,4 @@ class CodeDict():
     def set_from_list(self,dimension_list):
         self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
     
-
-class DataTreeEntry(object):
-
-    def __init__(self, name=None, category_code=None, doc_href=None,
-                 last_update=None, datasets=None, description=None,
-                 exposed=False, is_root=False):
-        self.name = name
-        self.category_code = category_code
-        self.doc_href = doc_href
-        self.last_update = last_update ##TODO: voir si utile pour dire qu'au moins 1 dataset dans la branche est recent ?
-        self.datasets = datasets or []
-        self.description = description
-        self.exposed = exposed
-        self.is_root = is_root
-        
-    def add_dataset(self, dataset_code=None, name=None, 
-                    last_update=None, exposed=True, metadata=None):
-        dataset = OrderedDict()
-        dataset["dataset_code"] = dataset_code
-        dataset["name"] = name
-        dataset["last_update"] = last_update
-        dataset["exposed"] = exposed
-        dataset["metadata"] = metadata
-        self.datasets.append(dataset)
-        self.exposed = True
-
-    @property        
-    def bson(self):
-        return {
-            "name": self.name,
-            "category_code": self.category_code,
-            "doc_href": self.doc_href,
-            "last_update": self.last_update,
-            "datasets": sorted([d for d in self.datasets], key=itemgetter("dataset_code")),
-            "description": self.description,
-            "exposed": self.exposed
-        }
 

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xsi:schemaLocation="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message http://www.metadatatechnology.com/beta/SDMX2.1/SDMXMessage.xsd" xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common">
+  <mes:Header>
+    <mes:ID>IDREF90294</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-01-25T08:55:25.994Z</mes:Prepared>
+    <mes:Sender id="ECB"/>
+    <mes:Receiver id="unknown"/>
+  </mes:Header>
+  <mes:Structures>
+    <str:CategorySchemes>
+      <str:CategoryScheme id="MOBILE_NAVI" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.CategoryScheme=ECB:MOBILE_NAVI(1.0)" agencyID="ECB" version="1.0">
+        <com:Name xml:lang="en">Economic concepts</com:Name>
+        <com:Description xml:lang="en">This category scheme is used for the Data Explorer of the ECB SDW mobile application. It is used for grouping all dataflows following the top-level categories displayed on the SDW portal.</com:Description>
+        <str:Category id="01" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).01">
+          <com:Name xml:lang="en">Monetary operations</com:Name>
+          <com:Description xml:lang="en">This section shows the key ECB interest rates for the euro area as well as statistics on minimum reserves and liquidity factors and conditions.</com:Description>
+        </str:Category>
+        <str:Category id="02" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).02">
+          <com:Name xml:lang="en">Prices, output, demand and labour market</com:Name>
+          <com:Description xml:lang="en">HICP, national accounts, labour market and survey indicator data.</com:Description>
+        </str:Category>
+        <str:Category id="03" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).03">
+          <com:Name xml:lang="en">Monetary and financial statistics</com:Name>
+          <com:Description xml:lang="en">Statistics regarding monetary financial institutions (MFIs), investment funds, financial stability and financial markets, and payments within the euro area. This includes the monetary aggregates, their counterparts and other monetary stocks and flows statistics, including minimum reserve and liquidity statistics and all seasonally adjusted statistics; statistics on securities issues (including quoted shares), investment funds and other financial intermediaries, statistics on yields and interest rates, banking statistics, financial market statistics, financial integration indicators, and STEP statistics.</com:Description>
+        </str:Category>
+        <str:Category id="04" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).04">
+          <com:Name xml:lang="en">Euro area accounts</com:Name>
+          <com:Description xml:lang="en">These statistics present balance sheets (stocks) and financial and non-financial flows of the different sectors of the euro area, and between these sectors and the rest of the world. Selected items for other economic areas are also included.</com:Description>
+        </str:Category>
+        <str:Category id="05" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).05">
+          <com:Name xml:lang="en">Government finance</com:Name>
+          <com:Description xml:lang="en">These statistics show the general government deficit, debt and deficit-debt adjustment.</com:Description>
+        </str:Category>
+        <str:Category id="06" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).06">
+          <com:Name xml:lang="en">External transactions and positions</com:Name>
+          <com:Description xml:lang="en">This section provides data on balance of payments (b.o.p.) statistics, euro area external trade in goods, aggregated data on the international investment position (i.i.p.) and the outstanding amounts of the Eurosystem's international reserves The euro area b.o.p. is compiled by the ECB whereas the main source for trade data is the European Commission (Eurostat).</com:Description>
+        </str:Category>
+        <str:Category id="07" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).07">
+          <com:Name xml:lang="en">Exchange rates</com:Name>
+          <com:Description xml:lang="en">This section shows the euro foreign exchange reference rates that are based on the regular daily concertation procedure between central banks within and outside the European System of Central Banks, which normally takes place at 2.15 p.m. ECB time (CET). It also shows the nominal effective exchange rates of the euro as calculated by the ECB.</com:Description>
+        </str:Category>
+        <str:Category id="08" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).08">
+          <com:Name xml:lang="en">Payments and securities trading, clearing, settlement</com:Name>
+          <com:Description xml:lang="en">Covers statistics of: payment instructions processed by TARGET and other selected interbank fund transfer systems, domestic payments in each RTGS system participating in or connected to TARGET, and statistics on cross-border payments. All data are presented both by volume and by value of transactions.</com:Description>
+        </str:Category>
+        <str:Category id="09" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).09">
+          <com:Name xml:lang="en">Banknotes and Coins</com:Name>
+        </str:Category>
+        <str:Category id="10" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).10">
+          <com:Name xml:lang="en">Indicators of Financial Integration</com:Name>
+        </str:Category>
+        <str:Category id="11" urn="urn:sdmx:org.sdmx.infomodel.categoryscheme.Category=ECB:MOBILE_NAVI(1.0).11">
+          <com:Name xml:lang="en">Real Time Database (research database)</com:Name>
+          <com:Description xml:lang="en">This is an experimental dataset constructed to provide historical vintages of data published in the Monthly Bulletin since January 2001.</com:Description>
+        </str:Category>
+      </str:CategoryScheme>
+    </str:CategorySchemes>
+  </mes:Structures>
+</mes:Structure>

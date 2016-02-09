@@ -6,6 +6,7 @@ from pprint import pprint
 import click
 
 from widukind_common.utils import create_or_update_indexes
+from widukind_common import tests_tools as utils
 
 from dlstats import constants
 from dlstats import client
@@ -16,6 +17,7 @@ CURRENT_SCHEMAS = {
     constants.COL_PROVIDERS: schemas.provider_schema,
     constants.COL_DATASETS: schemas.dataset_schema,
     constants.COL_SERIES: schemas.series_schema,
+    constants.COL_CATEGORIES: schemas.category_schema,
 }
 
 
@@ -29,7 +31,8 @@ def cli():
 @client.opt_silent
 @client.opt_debug
 @client.opt_mongo_url
-def cmd_reindex(**kwargs):
+@click.option('--drop-before', is_flag=True, help="Drop index before")
+def cmd_reindex(drop_before=False, **kwargs):
     """Reindex collections"""
 
     ctx = client.Context(**kwargs)
@@ -39,15 +42,30 @@ def cmd_reindex(**kwargs):
     
         db = ctx.mongo_database()
         
+        if drop_before:
+            with click.progressbar(constants.COL_ALL ,
+                                   length=len(constants.COL_ALL)+1,
+                                   label='Drop indexes') as collections:
+                for collection in collections:
+                    ctx.log_ok(" [%s]" % collection)
+                    try:
+                        db[collection].drop_indexes()
+                    except Exception as err:
+                        ctx.log_warn(str(err))
+
+        ctx.log("Create or update all indexes !")
         create_or_update_indexes(db)
         
-        with click.progressbar(constants.COL_ALL,
-                               length=len(constants.COL_ALL),
-                               label='Reindex collections') as collections:
-            for collection in collections:
-                print(" [%s]" % collection)
-                _col = db[collection]
-                _col.reindex()
+        if not drop_before:
+            with click.progressbar(constants.COL_ALL,
+                                   length=len(constants.COL_ALL)+1,
+                                   label='Reindex collections') as collections:
+                for collection in collections:
+                    ctx.log_ok(" [%s]" % collection)
+                    try:
+                        db[collection].reindex()
+                    except Exception as err:
+                        ctx.log_warn(str(err))
 
 @cli.command('check', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_mongo_url
@@ -160,18 +178,18 @@ def cmd_check_schemas(max_errors=None, **kwargs):
             #find(limit=0)
             #projection={‘_id’: False}
             for doc in db[col].with_options(read_preference=ReadPreference.SECONDARY_PREFERRED).find():
-                id = None
+                _id = None
                 if max_errors and report[col]['error'] >= max_errors:
                     ctx.log_warn("Max error attempt. Skip test !")
                     break
                 try:
                     report[col]['verified'] += 1
-                    id = str(doc.pop('_id'))
+                    _id = str(doc.pop('_id'))
                     _schema(doc)
                 except Exception as err:
                     report[col]['error'] += 1
                     if ctx.verbose:
-                        ctx.log_error("%s - %s - %s" % (col, id, str(err)))
+                        ctx.log_error("%s - %s - %s" % (col, _id, str(err)))
                     
             report[col]['time'] = "%.3f" % (time.time() - s)
         
@@ -201,7 +219,7 @@ def cmd_check_schemas(max_errors=None, **kwargs):
 @client.opt_debug
 @client.opt_mongo_url
 def cmd_clean(**kwargs):
-    """Delete MongoDB collections"""
+    """Delete All MongoDB collections"""
 
     ctx = client.Context(**kwargs)
     #TODO: translation
@@ -211,9 +229,5 @@ def cmd_clean(**kwargs):
     
         db = ctx.mongo_database()
         
-        for col in constants.COL_ALL:
-            try:
-                print("delete collection [%s]..." % col)
-                db.drop_collection(col)
-            except:
-                pass
+        utils.clean_mongodb(db)
+        

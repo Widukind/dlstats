@@ -1,7 +1,7 @@
 ====================
-dlstats.fetchers.BEA
+dlstats.fetchers.bea
 ====================
 
-.. automodule:: dlstats.fetchers.BEA
+.. automodule:: dlstats.fetchers.bea
     :members:
 
