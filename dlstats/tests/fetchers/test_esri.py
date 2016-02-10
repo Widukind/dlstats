@@ -35,8 +35,8 @@ DATA_KDED_CY = {
         "dataset_code": "kdef-cy",
         "dsd_id": "kdef-cy",
         "is_completed": True,
-        "categories_key": "Amount",
-        "categories_parents": ["SNA", "QuarterlyGDP", "FD"],
+        "categories_key": "SNA.QuarterlyGDP.FD.Deflators.Amount",
+        "categories_parents": ["SNA", "SNA.QuarterlyGDP", "SNA.QuarterlyGDP.FD", "SNA.QuarterlyGDP.FD.Deflators"],
         "categories_root": ['SNA'],
         "concept_keys": ['concept'],
         "codelist_keys": ['concept'],
@@ -150,9 +150,9 @@ class FetcherTestCase(BaseFetcherTestCase):
         'kdef-cy': DATA_KDED_CY,
         'kritu-jg': DATA_KRITU_JG
     }    
-    DATASET_FIRST = "kdef-cy"
-    DATASET_LAST = "kritu-mk"
-    DEBUG_MODE = False
+    DATASET_FIRST = "def-cy"
+    DATASET_LAST = "ritu-mk"
+    DEBUG_MODE = True
     
     def _load_files(self, dataset_code=None):
         
