@@ -58,7 +58,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     }
     DATASET_FIRST = "ACT-TRIM-ANC"
     DATASET_LAST = "TXEMP-AN-FR"
-    DEBUG_MODE = True
+    DEBUG_MODE = False
     
     def _load_files(self, dataset_code):
         
