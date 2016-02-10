@@ -110,7 +110,6 @@ def parse_dates(column):
             end_quarter = next_quarter
             last_row = last_row + 1
 
-    #TODO: period cache
     if freq == 'A':
         start_date = get_ordinal_from_period(start_year, freq='A')
         end_date = get_ordinal_from_period(end_year, freq='A')
@@ -430,13 +429,17 @@ class Esri(Fetcher):
         categories = []
         
         def make_node(data, parent_key=None):
-            _category = dict(name=data['name'],
-                             category_code=data['category_code'],
-                             parent=parent_key,
-                             all_parents=[],
-                             datasets=[])
+            _category = {
+                "name": data['name'],
+                "category_code": data['category_code'],
+                "parent": parent_key,
+                "all_parents": [],
+                "datasets": []
+            }
+            if parent_key:
+                _category['category_code'] = "%s.%s" % (parent_key, _category['category_code'])
             
-            _category_key = data['category_code']
+            _category_key = _category['category_code']
             
             if 'children' in data:
                 for c in data['children']:
@@ -468,8 +471,8 @@ class Esri(Fetcher):
         
         for c in categories:
             parents = Categories.iter_parent(c, _categories)
-            c["all_parents"] = parents[:-1]
-        
+            c["all_parents"] = parents
+
         return categories
         
     def upsert_dataset(self, dataset_code):
@@ -664,7 +667,6 @@ class EsriData():
                 'attributes': None,
                 'release_date': self.release_date,
                 'ordinal': period.ordinal,
-                #'period_o': str(period),
                 'period': str(period),
                 'value': v
             }
