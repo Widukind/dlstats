@@ -7,29 +7,44 @@ class DlstatsException(Exception):
         self.comments = kwargs.pop("comments", None)
         super().__init__(*args, **kwargs)
 
-class RejectFrequency(DlstatsException):
+class RejectUpdatedDataset(DlstatsException):
+    """Reject if dataset is updated
+    """
+
+class LockedDataset(DlstatsException):
+    """if lock=True
+    """
+    
+class MaxErrors(DlstatsException):
+    pass
+
+class InterruptProcessSeriesData(DlstatsException):
+    pass
+
+class SeriesException(DlstatsException):
+
+    def __init__(self, *args, **kwargs):
+        self.bson = kwargs.pop("bson", None)
+        super().__init__(*args, **kwargs)
+
+class RejectFrequency(SeriesException):
 
     def __init__(self, *args, **kwargs):
         self.frequency = kwargs.pop("frequency", None)
         super().__init__(*args, **kwargs)
 
-class InterruptProcessSeriesData(DlstatsException):
+class RejectInvalidSeries(SeriesException):
     pass
 
-class RejectEmptySeries(DlstatsException):
+class RejectEmptySeries(SeriesException):
     pass
 
-class RejectUpdatedDataset(DlstatsException):
-    """Reject if dataset is updated
-    """
-    
-class RejectUpdatedSeries(DlstatsException):
+class RejectUpdatedSeries(SeriesException):
     """Reject if series is updated
     """
 
     def __init__(self, *args, **kwargs):
+        self.bson = kwargs.pop("bson", None)
         self.key = kwargs.pop("key", None)
         super().__init__(*args, **kwargs)
 
-class MaxErrors(DlstatsException):
-    pass

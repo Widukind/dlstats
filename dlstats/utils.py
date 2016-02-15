@@ -45,7 +45,7 @@ class Downloader:
     
     def __init__(self, url=None, filename=None, store_filepath=None, 
                  timeout=None, max_retries=0, 
-                 replace=True, force_replace=True,
+                 replace=True, force_replace=True, use_existing_file=False,
                  headers={}, client=None):
         
         self.url = url
@@ -56,6 +56,7 @@ class Downloader:
         self.force_replace = force_replace
         self.headers = headers
         self.client = client or requests
+        self.use_existing_file = use_existing_file
 
         if not self.url:
             raise ValueError("url is required")
@@ -74,7 +75,7 @@ class Downloader:
         
         self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
         
-        if os.path.exists(self.filepath) and not replace:
+        if os.path.exists(self.filepath) and not self.use_existing_file and not replace:
             raise Exception("filepath is already exist : %s" % self.filepath)
 
     def _download(self, raise_errors=True):
@@ -119,7 +120,7 @@ class Downloader:
     
     def get_filepath(self):
         
-        if os.path.exists(self.filepath) and self.force_replace:
+        if os.path.exists(self.filepath) and not self.use_existing_file and self.force_replace:
             os.remove(self.filepath)
         
         if not os.path.exists(self.filepath):
@@ -134,7 +135,7 @@ class Downloader:
         
         response = None
         
-        if os.path.exists(self.filepath) and self.force_replace:
+        if os.path.exists(self.filepath) and not self.use_existing_file and self.force_replace:
             os.remove(self.filepath)
         
         if not os.path.exists(self.filepath):
@@ -229,17 +230,17 @@ def remove_file_and_dir(filepath, let_root=False):
 def get_ordinal_from_period(date_str, freq=None):
     from dlstats.cache import cache
     from dlstats import constants
-    import pandas
+    from pandas import Period
     
     if not cache or not freq in constants.CACHE_FREQUENCY:
-        return pandas.Period(date_str, freq=freq).ordinal
+        return Period(date_str, freq=freq).ordinal
     
     key = "%s.%s" % (date_str, freq)
     period_from_cache = cache.get(key)
     if period_from_cache:
         return period_from_cache
     
-    period_ordinal = pandas.Period(date_str, freq=freq).ordinal
+    period_ordinal = Period(date_str, freq=freq).ordinal
     cache.set(key, period_ordinal)
     
     return period_ordinal
