@@ -8,9 +8,11 @@ from datetime import datetime
 import logging
 import pprint
 from collections import OrderedDict
+from itertools import groupby
 
 import pymongo
 from pymongo import ReturnDocument
+from pymongo import InsertOne, UpdateOne
 from slugify import slugify
 
 from widukind_common.utils import get_mongo_db, create_or_update_indexes
@@ -35,6 +37,9 @@ class Fetcher(object):
                  db=None, 
                  is_indexes=True,
                  version=0,
+                 max_errors=5,
+                 use_existing_file=False,
+                 not_remove_files=False,
                  **kwargs):
         """
         :param str provider_name: Provider Name
@@ -49,7 +54,9 @@ class Fetcher(object):
         self.provider_name = provider_name
         self.db = db or get_mongo_db()
         self.version = version
-        self.max_errors = kwargs.pop("max_errors", 5)
+        self.max_errors = max_errors
+        self.use_existing_file = use_existing_file
+        self.not_remove_files = not_remove_files
         
         self.provider = None
         
@@ -184,7 +191,18 @@ class Fetcher(object):
         self.provider_verify()
 
         try:
+            query = {"provider_name": self.provider_name,
+                     "dataset_code": dataset_code}
+            projection = {"lock": True}
+            dataset_doc = self.db[constants.COL_DATASETS].find_one(query, 
+                                                                   projection)
+            if dataset_doc and dataset_doc["lock"] is True:
+                raise errors.LockedDataset("dataset is locked",
+                                           provider_name=self.provider_name,
+                                           dataset_code=dataset_code)
+
             return self.upsert_dataset(dataset_code)
+
         except errors.RejectUpdatedDataset:
             msg = "Reject dataset updated for provider[%s] - dataset[%s]"
             logger.info(msg % (self.provider_name, dataset_code))
@@ -194,7 +212,7 @@ class Fetcher(object):
             logger.info(msg % (self.provider_name, dataset_code, end))
         
     def _hook_remove_temp_files(self, dataset):
-        if dataset and dataset.for_delete:
+        if dataset and dataset.for_delete and not self.not_remove_files:
             for filepath in dataset.for_delete:
                 try:
                     remove_file_and_dir(filepath)
@@ -530,7 +548,8 @@ class Datasets(DlstatsCollection):
             
         self.notes = None
         
-        self.series = Series(provider_name=self.provider_name, 
+        self.series = Series(dataset=self,
+                             provider_name=self.provider_name, 
                              dataset_code=self.dataset_code, 
                              last_update=self.last_update, 
                              bulk_size=self.bulk_size, 
@@ -750,47 +769,60 @@ def series_revisions(new_bson, old_bson, last_update):
     for old_value in old_values:
         old_values_by_periods[old_value["period"]] = old_value
     
-    for obs in new_bson["values"]:
-        
-        period = obs["period"]
+    keyfunc = lambda x: x["ordinal"]
+    groups = []
+    uniquekeys = []
+    data = sorted(old_bson["values"] + new_bson["values"], key=keyfunc)
 
-        '''new period - bypass'''
-        if not period in old_values_by_periods:
+    for k, g in groupby(data, keyfunc):
+        groups.append(list(g))
+        uniquekeys.append(k)
+
+    new_bson["values"] = []
+
+    for group in groups:
+        if len(group) == 1:
+            new_bson["values"].append(group[0])
             continue
         
         '''load old revisions if exists'''        
-        old_obs = old_values_by_periods[period]
+        old_obs = group[0]
+        new_obs = group[1]
+
         if "revisions" in old_obs:
-            obs["revisions"] = old_obs["revisions"] 
+            new_obs["revisions"] = old_obs["revisions"] 
         
         '''Search if new revision'''
         is_new_revision = False
         
         '''is value change'''
-        if old_obs["value"] != obs["value"]:
+        if old_obs["value"] != new_obs["value"]:
             is_new_revision = True
             
         '''is attributes change'''
-        if old_obs.get("attributes") != obs.get("attributes"):
+        if old_obs.get("attributes") != new_obs.get("attributes"):
             is_new_revision = True
         
         if not is_new_revision:
+            new_bson["values"].append(group[0])
             continue
         
         changed = True
         
-        if not obs.get("revisions"):
-            obs["revisions"] = []
+        if not new_obs.get("revisions"):
+            new_obs["revisions"] = []
         
-        obs["revisions"].append({ 
+        new_obs["revisions"].append({ 
             "revision_date": old_obs["release_date"],
             "value": old_obs["value"],
             "attributes": old_obs.get("attributes") 
         })
         
         '''new release date'''
-        obs["release_date"] = last_update
-    
+        new_obs["release_date"] = last_update
+
+        new_bson["values"].append(new_obs)
+
     return changed
 
 def series_is_changed(new_bson, old_bson):
@@ -806,9 +838,18 @@ def series_is_changed(new_bson, old_bson):
 
     if not "values" in old_bson:
         raise ValueError("not values field in old_bson")
-    
+
+    # Already in revisions process - before run series_is_changed
+    """    
     if len(new_bson["values"]) != len(old_bson["values"]):
+        return True
+    
+    if new_bson["values"][0]["period"] != old_bson["values"][0]["period"]:
         return True 
+
+    if new_bson["values"][-1]["period"] != old_bson["values"][-1]["period"]:
+        return True 
+    """
     
     if new_bson.get("notes") != old_bson.get("notes"):
         return True
@@ -857,9 +898,19 @@ def series_update(new_bson, old_bson=None, last_update=None):
     if not isinstance(new_bson["values"][0], dict):
         raise ValueError("Invalid format for this series : %s" % new_bson)
 
-    _last_update = clean_datetime(new_bson.pop('last_update', None))
-    if not _last_update:                                
+    if new_bson["start_date"] > new_bson["end_date"]:
+        raise errors.RejectInvalidSeries("Invalid dates. start_date > end_date",
+                                         provider_name=new_bson["provider_name"],
+                                         dataset_code=new_bson["dataset_code"],
+                                         bson=new_bson) 
+
+    _last_update = None
+    if new_bson.get('last_update'):
+        _last_update = clean_datetime(new_bson.pop('last_update', None))
+    else:
         _last_update = clean_datetime(last_update)
+    
+    new_bson.pop('last_update', None)
         
     #TODO: valeurs manquantes à remplacer par chaine Unique: NaN
 
@@ -888,6 +939,7 @@ class Series:
     """
     
     def __init__(self, 
+                 dataset=None,
                  provider_name=None, 
                  dataset_code=None, 
                  last_update=None, 
@@ -900,6 +952,7 @@ class Series:
         :param int bulk_size: Batch size for mongo bulk
         :param Fetcher fetcher: Fetcher instance
         """
+        self.dataset = None
         self.provider_name = provider_name
         self.dataset_code = dataset_code
         self.last_update = last_update
@@ -910,8 +963,15 @@ class Series:
 
         if not isinstance(fetcher, Fetcher):
             raise TypeError("Bad type for fetcher")
+
+        if not dataset:
+            raise ValueError("dataset is required")
+
+        if not isinstance(dataset, Datasets):
+            raise TypeError("Bad type for dataset")
         
         self.fetcher = fetcher        
+        self.dataset = dataset
 
         # temporary storage necessary to get old_bson in bulks
         self.series_list = []
@@ -921,6 +981,11 @@ class Series:
         self.count_rejects = 0
         self.count_inserts = 0
         self.count_updates = 0
+
+        self.codelists = {}
+        self.concepts = {}
+        self.dimension_keys = []
+        self.attribute_keys = []
     
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -978,38 +1043,79 @@ class Series:
         finally:
             if not self.fatal_error and len(self.series_list) > 0:
                 self.update_series_list()
+            self.update_dataset_lists_finalize()
 
     def slug(self, key):
         txt = "-".join([self.provider_name, self.dataset_code, key])
         return slugify(txt, word_boundary=False, save_order=True)
     
-    def update_series_list(self):
+    def update_dataset_lists(self, bson):
 
-        #TODO: gestion erreur bulk (BulkWriteError)
+        obs_attrs = {}
+        for value in bson["values"]:
+            if not value.get("attributes"):
+                continue
+            for k, v in value.get("attributes").items():
+                if not k in obs_attrs:
+                    obs_attrs[k] = v
+
+        dimensions = bson.get("dimensions")
+        attributes = bson.get("attributes")
+        for field, target in [(dimensions, self.dimension_keys), (attributes, self.attribute_keys), (obs_attrs, self.attribute_keys)]:
+
+            if not field:
+                continue
+
+            for key, value_key in field.items():
+
+                if not key in target:
+                    target.append(key)
+
+                if not key in self.concepts and key in self.dataset.concepts:
+                    self.concepts[key] = self.dataset.concepts[key]
+
+                if key in self.dataset.codelists:
+
+                    if not key in self.codelists:
+                        self.codelists[key] = {}
+
+                    if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
+                        self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
+
+    def update_dataset_lists_finalize(self):
+        self.dataset.concepts = self.concepts
+        self.dataset.codelists = self.codelists
+        #self.dataset.dimension_keys = self.dimension_keys
+        self.dataset.attribute_keys = self.attribute_keys
+
+    def update_series_list(self):
 
         keys = [s['key'] for s in self.series_list]
 
-        cursor = self.fetcher.db[constants.COL_SERIES].find({
-                                        'provider_name': self.provider_name,
-                                        'dataset_code': self.dataset_code,
-                                        'key': {'$in': keys}})
+        query = {
+            'provider_name': self.provider_name,
+            'dataset_code': self.dataset_code,
+            'key': {'$in': keys}
+        }
+        projection = {"tags": False}
+
+        cursor = self.fetcher.db[constants.COL_SERIES].find(query, projection)
+
         old_series = {s['key']:s for s in cursor}
-        
-        bulk = self.fetcher.db[constants.COL_SERIES].initialize_unordered_bulk_op()
-        bulk_ops = 0
-        
+
+        bulk_requests = []
         for data in self.series_list:
-            
+
             key = data['key']
 
             if not data.get("slug", None):
                 data['slug'] = self.slug(key)
-            
+
             if not key in old_series:
-                self.count_inserts += 1
                 bson = series_update(data, last_update=self.last_update)
-                bulk.insert(bson)
-                bulk_ops += 1
+                bulk_requests.append(InsertOne(bson))
+                self.update_dataset_lists(bson)
+                self.count_inserts += 1
             else:
                 old_bson = old_series[key]
                 
@@ -1017,7 +1123,6 @@ class Series:
                                      last_update=self.last_update)
 
                 if bson:
-                    self.count_updates += 1
                     query_update = {
                         "start_date": bson["start_date"],     
                         "end_date": bson["end_date"],     
@@ -1026,17 +1131,21 @@ class Series:
                         "dimensions": bson["dimensions"],     
                         "notes": bson.get("notes"),     
                     }
-                    bulk.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
-                    bulk_ops += 1
+                    bulk_requests.append(UpdateOne({'_id': old_bson['_id']}, 
+                                              {'$set': query_update}))
+                    #bulk.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
+                    self.update_dataset_lists(bson)
+                    self.count_updates += 1
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
                         logger.debug("series[%s] not changed" % old_bson["slug"])                    
                     
 
         result = None        
-        if bulk_ops > 0:
+        if len(bulk_requests) > 0:
             try:
-                result = bulk.execute()
+                result = self.fetcher.db[constants.COL_SERIES].bulk_write(bulk_requests)
+                bulk_requests = []
             except pymongo.errors.BulkWriteError as err:
                 logger.critical(last_error())
                 #TODO: use pprint and StringIO for err.details output
