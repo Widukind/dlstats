@@ -69,6 +69,7 @@ class Fetcher(object):
         
         self.store_path = os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                                        self.provider_name))
+        self.for_delete = []
         
         if is_indexes:
             create_or_update_indexes(self.db)
@@ -214,6 +215,13 @@ class Fetcher(object):
     def _hook_remove_temp_files(self, dataset):
         if dataset and dataset.for_delete and not self.not_remove_files:
             for filepath in dataset.for_delete:
+                try:
+                    remove_file_and_dir(filepath)
+                except Exception:
+                    logger.warning("not remove filepath[%s]" % filepath)
+
+        if not self.not_remove_files:
+            for filepath in self.for_delete:
                 try:
                     remove_file_and_dir(filepath)
                 except Exception:
@@ -1086,7 +1094,7 @@ class Series:
         self.dataset.concepts = self.concepts
         self.dataset.codelists = self.codelists
         #self.dataset.dimension_keys = self.dimension_keys
-        self.dataset.attribute_keys = self.attribute_keys
+        #self.dataset.attribute_keys = self.attribute_keys
 
     def update_series_list(self):
 
