@@ -506,7 +506,7 @@ class Esri(Fetcher):
         
     # TODO: load earlier versions to get revisions
 
-class EsriData():
+class EsriData:
     
     def __init__(self, dataset,  url):
         self.dataset = dataset
@@ -552,9 +552,10 @@ class EsriData():
         # TODO: timeout, replace
         download = Downloader(url=self.dataset_url, 
                               filename=self.dataset_code,
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.fetcher.use_existing_file)
         filepath = download.get_filepath()
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         return filepath
     
     def get_csv_data(self):
@@ -632,14 +633,24 @@ class EsriData():
             
             column = self.panda_csv.iloc[:,self.column_nbr]
         
-        series = self._build_series(column, 
+        series = self.clean_field(self._build_series(column, 
                                    str(self.key), 
-                                   self.series_names[self.column_nbr])
+                                   self.series_names[self.column_nbr]))
         
         self.key += 1
         self.column_nbr += 1
         
         return series 
+
+    def clean_field(self, bson):
+
+        if not "start_ts" in bson or not bson.get("start_ts"):
+            bson["start_ts"] = pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime()
+
+        if not "end_ts" in bson or not bson.get("end_ts"):
+            bson["end_ts"] = pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime()
+        
+        return bson
 
     def _build_series(self, column, key, name):
         dimensions = {}
