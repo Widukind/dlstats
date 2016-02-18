@@ -90,6 +90,48 @@ DSD_EUROSTAT = {
     }, 
 }
 
+DSD_IMF_DOT = {
+    "provider": "IMF",
+    "filepaths": {
+        "datastructure": filepath("imf", "imf-dot-datastructure-2.0.xml"),
+    },
+    "dataset_code": "DOT",
+    "dataset_name": "Direction of Trade Statistics (DOTS)",
+    "dsd_id": "DOT",
+    "dsd_ids": ["DOT"],
+    "dataflow_keys": ['DOT'],
+    "is_completed": True,
+    "categories_key": "DOT",
+    "categories_parents": None,
+    "categories_root": None,    
+    "concept_keys": ['CMT', 'FREQ', 'INDICATOR', 'OBS_STATUS', 'REF_AREA', 'SCALE', 'SERIESCODE', 'TIME_FORMAT', 'TIME_PERIOD', 'VALUE', 'VIS_AREA'],
+    "codelist_keys": ['CL_COUNTERPART_COUNTRY|DOT', 'CL_COUNTRY|DOT', 'CL_FREQ|DOT', 'CL_INDICATOR|DOT', 'CL_OBJ60433867|DOT', 'CL_TIME_FORMAT|DOT', 'CL_UNIT_MULT|DOT'],
+    "codelist_count": {
+        "CL_COUNTERPART_COUNTRY|DOT": 311,
+        "CL_COUNTRY|DOT": 248,
+        "CL_FREQ|DOT": 3,
+        "CL_INDICATOR|DOT": 4,
+        "CL_OBJ60433867|DOT": 13,
+        "CL_TIME_FORMAT|DOT": 6,
+        "CL_UNIT_MULT|DOT": 31,
+    },
+    "dimension_keys": ['REF_AREA', 'INDICATOR', 'VIS_AREA', 'FREQ', 'SCALE'],
+    "dimension_count": {
+        "REF_AREA": 248,
+        "INDICATOR": 4,
+        "VIS_AREA": 311,
+        "FREQ": 3,
+        "SCALE": 31,
+    },
+    "attribute_keys": ['SERIESCODE', 'CMT', 'OBS_STATUS', 'TIME_FORMAT'],
+    "attribute_count": {
+        "SERIESCODE": 0,
+        "CMT": 0,
+        "OBS_STATUS": 13,
+        "TIME_FORMAT": 6,
+    }, 
+}
+
 DSD_DESTATIS =  {
     "provider": "DESTATIS",
     "filepaths": {},
@@ -107,6 +149,94 @@ DSD_DESTATIS =  {
     "attribute_keys": [],
     "attribute_count": None,
 }                   
+
+DSD_OECD_MEI = {
+    "provider": "OECD",
+    "filepaths": {
+        "datastructure": filepath("oecd", "oecd-mei-datastructure-2.0.xml"),
+    },
+    "dataset_code": "MEI",
+    "dataset_name": "Main Economic Indicators Publication",
+    "dsd_id": "MEI",
+    "dsd_ids": ["MEI"],
+    "dataflow_keys": ['MEI'],
+    "is_completed": True,
+    "categories_key": "MEI",
+    "categories_parents": ["MEI"],
+    "categories_root": ["MEI"],    
+    "concept_keys": ['FREQUENCY', 'LOCATION', 'MEASURE', 'OBS_STATUS', 'OBS_VALUE', 'POWERCODE', 'REFERENCEPERIOD', 'SUBJECT', 'TIME', 'TIME_FORMAT', 'UNIT'],
+    "codelist_keys": ['CL_MEI_FREQUENCY', 'CL_MEI_LOCATION', 'CL_MEI_MEASURE', 'CL_MEI_OBS_STATUS', 'CL_MEI_POWERCODE', 'CL_MEI_REFERENCEPERIOD', 'CL_MEI_SUBJECT', 'CL_MEI_TIME', 'CL_MEI_TIME_FORMAT','CL_MEI_UNIT'],
+    "codelist_count": {
+        "CL_MEI_FREQUENCY": 3,
+        "CL_MEI_LOCATION": 64,
+        "CL_MEI_MEASURE": 24,
+        "CL_MEI_OBS_STATUS": 14,
+        "CL_MEI_POWERCODE": 32,
+        "CL_MEI_REFERENCEPERIOD": 68,
+        "CL_MEI_SUBJECT": 1099,
+        "CL_MEI_TIME": 1172,
+        "CL_MEI_TIME_FORMAT": 5,
+        "CL_MEI_UNIT": 296,    
+    },
+    "dimension_keys": ['LOCATION', 'SUBJECT', 'MEASURE', 'FREQUENCY'],
+    "dimension_count": {
+        "LOCATION": 64,
+        "SUBJECT": 1099,
+        "MEASURE": 24,
+        "FREQUENCY": 3,        
+    },
+    "attribute_keys": ['OBS_STATUS', 'TIME_FORMAT', 'UNIT', 'REFERENCEPERIOD', 'POWERCODE'],
+    "attribute_count": {
+        "OBS_STATUS": 14,
+        "TIME_FORMAT": 5,
+        "UNIT": 296,
+        "REFERENCEPERIOD": 68,
+        "POWERCODE": 32,
+    }, 
+}
+
+DSD_OECD_EO = {
+    "provider": "OECD",
+    "filepaths": {
+        "datastructure": filepath("oecd", "oecd-eo-datastructure-2.0.xml"),
+    },
+    "dataset_code": "EO",
+    "dataset_name": "Economic Outlook No 98 - November 2015",
+    "dsd_id": "EO",
+    "dsd_ids": ["EO"],
+    "dataflow_keys": ['EO'],
+    "is_completed": True,
+    "categories_key": "EO",
+    "categories_parents": ["EO"],
+    "categories_root": ["EO"],
+    "concept_keys": ['FREQUENCY', 'LOCATION', 'OBS_STATUS', 'OBS_VALUE', 'POWERCODE', 'REFERENCEPERIOD', 'TIME', 'TIME_FORMAT', 'UNIT', 'VARIABLE'],
+    "codelist_keys": ['CL_EO_FREQUENCY', 'CL_EO_LOCATION', 'CL_EO_OBS_STATUS', 'CL_EO_POWERCODE', 'CL_EO_REFERENCEPERIOD', 'CL_EO_TIME', 'CL_EO_TIME_FORMAT', 'CL_EO_UNIT', 'CL_EO_VARIABLE'],
+    "codelist_count": {
+        "CL_EO_FREQUENCY": 2,
+        "CL_EO_LOCATION": 59,
+        "CL_EO_OBS_STATUS": 14,
+        "CL_EO_POWERCODE": 32,
+        "CL_EO_REFERENCEPERIOD": 68,
+        "CL_EO_TIME": 406,
+        "CL_EO_TIME_FORMAT": 5,
+        "CL_EO_UNIT": 296,
+        "CL_EO_VARIABLE": 297,
+    },
+    "dimension_keys": ['LOCATION', 'VARIABLE', 'FREQUENCY'],
+    "dimension_count": {
+        "LOCATION": 59,
+        "VARIABLE": 297,
+        "FREQUENCY": 2,
+    },
+    "attribute_keys": ['OBS_STATUS', 'TIME_FORMAT', 'UNIT', 'REFERENCEPERIOD', 'POWERCODE'],
+    "attribute_count": {
+        "OBS_STATUS": 14,
+        "TIME_FORMAT": 5,
+        "UNIT": 296,
+        "REFERENCEPERIOD": 68,
+        "POWERCODE": 32,
+    }, 
+}
 
 DSD_ECB = {
     "provider": "ECB",
@@ -244,9 +374,11 @@ DSD_INSEE = {
         "conceptscheme": filepath("insee", "insee-conceptscheme-2.1.xml"),
         "datastructure": filepath("insee", "insee-datastructure-2.1.xml"),
         "CL_UNIT": filepath("insee", "insee-codelist-cl_unit.xml"),
+        "CL_UNIT_MULT": filepath("insee", "insee-codelist-cl_unit_mult.xml"),
         "CL_AREA": filepath("insee", "insee-codelist-cl_area.xml"),
         "CL_TIME_COLLECT": filepath("insee", "insee-codelist-cl_time_collect.xml"),
         "CL_OBS_STATUS": filepath("insee", "insee-codelist-cl_obs_status.xml"),
+        "CL_FREQ": filepath("insee", "insee-codelist-cl_freq.xml"),
     },
     "dataset_code": "IPI-2010-A21",
     "dataset_name": "Industrial production index (base 2010) - NAF level A21",
@@ -298,7 +430,6 @@ DSD_INSEE = {
     },
 }
 
-
 DATA_FED_TERMS = {
     "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "fed", "fed-data-1.0.xml")),
     "klass": "XMLData_1_0_FED",
@@ -306,7 +437,6 @@ DATA_FED_TERMS = {
     "kwargs": {
         "provider_name": "FED",
         "dataset_code": "G19-TERMS",
-        #"field_frequency": "FREQ",
         "dsd_filepath": DSD_FED_TERMS["filepaths"]["datastructure"],
     },
     "series_accept": 11,
@@ -404,6 +534,54 @@ DATA_EUROSTAT = {
     }
 }
 
+DATA_IMF_DOT = {
+    "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "imf", "imf-dot-data-compact-2.0.xml")),
+    "klass": "XMLCompactData_2_0_IMF",
+    "DSD": DSD_IMF_DOT,
+    "kwargs": {
+        "provider_name": "IMF",
+        "dataset_code": "DOT",
+        "dsd_filepath": DSD_IMF_DOT["filepaths"]["datastructure"],
+    },
+    "series_accept": 2,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 126,
+    "series_key_first": 'DOT.122TMG_CIF_USD369.A',
+    "series_key_last": 'DOT.122TXG_FOB_USD369.A',
+    "series_sample": {
+        "provider_name": "IMF",
+        "dataset_code": "DOT",
+        'key': 'DOT.122TMG_CIF_USD369.A',
+        'name': 'Austria - Goods, Value of Imports, Cost, Insurance, Freight (CIF), US Dollars - Trinidad and Tobago - Annual - Millions',
+        'frequency': 'A',
+        'last_update': None,
+        'first_value': {
+            'value': '0',
+            'ordinal': -20,
+            'period': '1950',
+            'attributes': {},
+        },
+        'last_value': {
+            'value': '69900',
+            'ordinal': 44,
+            'period': '2014',
+            'attributes': {},
+        },
+        'dimensions': {
+            'FREQ': 'A',
+            'REF_AREA': '122',
+            'INDICATOR': 'TMG_CIF_USD',
+            'VIS_AREA': '369',
+            'SCALE': '6'
+        },
+        'attributes': {
+            'SERIESCODE': '122TMG_CIF_USD369.A', 
+            'TIME_FORMAT': 'P1Y'
+        },
+    }
+}
+
 DATA_DESTATIS = {
     "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "destatis", "destatis-data-compact-2.0.xml")),
     "klass": "XMLCompactData_2_0_DESTATIS",
@@ -455,6 +633,104 @@ DATA_DESTATIS = {
             'COUNTERPART_AREA': 'U2'
         },
         'attributes': {},
+    }
+}
+
+DATA_OECD_MEI = {
+    "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "oecd", "oecd-mei-data-generic.xml")),
+    "klass": "XMLGenericData_2_0_OECD",
+    "DSD": DSD_OECD_MEI,
+    "kwargs": {
+        "provider_name": "OECD",
+        "dataset_code": "MEI",
+        "dsd_filepath": DSD_OECD_MEI["filepaths"]["datastructure"],
+    },
+    "series_accept": 4,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 1569,
+    "series_key_first": 'AUT.PRMNTO01.IXOBSA.A',
+    "series_key_last": 'FRA.PRMNTO01.IXOBSA.M',
+    "series_sample": {
+        "provider_name": "OECD",
+        "dataset_code": "MEI",
+        'key': 'AUT.PRMNTO01.IXOBSA.A',
+        'name': 'Austria - Production > Manufacturing > Total manufacturing > Total manufacturing - Index 2010=100, s.a. - Annual',
+        'frequency': 'A',
+        'last_update': None,
+        'first_value': {
+            'value': '12.8770244930154',
+            'ordinal': -14,
+            'period': '1956',
+            'attributes': {},
+        },
+        'last_value': {
+            'value': '108.920383493122',
+            'ordinal': 44,
+            'period': '2014',
+            'period_o': '2014',
+            'attributes': {},
+        },
+        'dimensions': {
+            'LOCATION': 'AUT',
+            'SUBJECT': 'PRMNTO01',
+            'MEASURE': 'IXOBSA',
+            'FREQUENCY': 'A',
+        },
+        'attributes': {
+            'POWERCODE': '0',
+            'REFERENCEPERIOD': '2010_100',
+            'TIME_FORMAT': 'P1Y',
+            'UNIT': 'IDX'
+        },
+    }
+}
+
+DATA_OECD_EO = {
+    "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "oecd", "oecd-eo-data-generic.xml")),
+    "klass": "XMLGenericData_2_0_OECD",
+    "DSD": DSD_OECD_EO,
+    "kwargs": {
+        "provider_name": "OECD",
+        "dataset_code": "EO",
+        "dsd_filepath": DSD_OECD_EO["filepaths"]["datastructure"],
+    },
+    "series_accept": 4,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 465,
+    "series_key_first": 'FRA.CB.Q',
+    "series_key_last": 'FRA.CB.A',
+    "series_sample": {
+        "provider_name": "OECD",
+        "dataset_code": "EO",
+        'key': 'FRA.CB.Q',
+        'name': 'France - Current account balance, value - Quarterly',
+        'frequency': 'Q',
+        'last_update': None,
+        'first_value': {
+            'value': '4295445496.82796',
+            'ordinal': 12,
+            'period': '1973-Q1',
+            'attributes': {},
+        },
+        'last_value': {
+            'value': '9811246401.83801',
+            'ordinal': 191,
+            'period': '2017-Q4',
+            'period_o': '2017-Q4',
+            'attributes': {},
+        },
+        'dimensions': {
+            'LOCATION': 'FRA',
+            'VARIABLE': 'CB',
+            'FREQUENCY': 'Q',
+        },
+        'attributes': {
+            'TIME_FORMAT': 'P3M',
+            'POWERCODE': '0',
+            'UNIT': 'EUR'
+        },
     }
 }
 
@@ -529,8 +805,6 @@ _DATA_INSEE = {
     "kwargs": {
         "provider_name": "INSEE",
         "dataset_code": "IPI-2010-A21",
-        #"field_frequency": "FREQ",
-        #"dimension_keys": DSD_INSEE["dimension_keys"],
         "dsd_filepath": DSD_INSEE["filepaths"]["datastructure"],
     },
     "series_accept": 20,
@@ -543,8 +817,7 @@ _DATA_INSEE = {
         "provider_name": "INSEE",
         "dataset_code": "IPI-2010-A21",
         'key': '001654489',
-        'name': 'Indice brut de la production industrielle (base 100 en 2010) - Industries extractives (NAF rév. 2, niveau section, poste B)',
-        #'name': 'Monthly - B - Mining and quarrying - Raw index',
+        'name': 'Monthly - B - Mining and quarrying - Raw index',
         'frequency': 'M',
         'last_update': None,
         'first_value': {
