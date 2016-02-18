@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
+  <mes:Header>
+    <mes:ID>codelist_CL_FREQ_1455738891401</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-02-17T19:54:51.401Z</mes:Prepared>
+    <mes:Sender id="FR1">
+      <com:Name xml:lang="fr">Institut national de la statistique et des études économiques</com:Name>
+    </mes:Sender>
+    <mes:Receiver id="unknown"/>
+    <mes:Source xml:lang="fr">Banque de données macro-économiques</mes:Source>
+  </mes:Header>
+  <mes:Structures>
+    <str:Codelists>
+      <str:Codelist id="CL_FREQ" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_FREQ(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Périodicité</com:Name>
+        <com:Name xml:lang="en">Frequency</com:Name>
+        <str:Code id="A" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).A">
+          <com:Name xml:lang="fr">Annuelle</com:Name>
+          <com:Name xml:lang="en">Annual</com:Name>
+        </str:Code>
+        <str:Code id="T" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).T">
+          <com:Name xml:lang="fr">Trimestrielle</com:Name>
+          <com:Name xml:lang="en">Quarterly</com:Name>
+        </str:Code>
+        <str:Code id="M" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).M">
+          <com:Name xml:lang="fr">Mensuelle</com:Name>
+          <com:Name xml:lang="en">Monthly</com:Name>
+        </str:Code>
+        <str:Code id="B" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).B">
+          <com:Name xml:lang="fr">Bimestrielle</com:Name>
+          <com:Name xml:lang="en">Two-monthly</com:Name>
+        </str:Code>
+        <str:Code id="S" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).S">
+          <com:Name xml:lang="fr">Semestrielle</com:Name>
+          <com:Name xml:lang="en">Semi-annual</com:Name>
+        </str:Code>
+        <str:Code id="Q" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).Q">
+          <com:Name xml:lang="fr">Trimestrielle</com:Name>
+          <com:Name xml:lang="en">Quarterly</com:Name>
+        </str:Code>
+        <str:Code id="I" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_FREQ(1.0).I">
+          <com:Name xml:lang="fr">Irrégulière</com:Name>
+          <com:Name xml:lang="en">Irregular</com:Name>
+        </str:Code>
+      </str:Codelist>
+    </str:Codelists>
+  </mes:Structures>
+</mes:Structure>
