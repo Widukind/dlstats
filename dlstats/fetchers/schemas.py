@@ -69,10 +69,6 @@ dataset_schema = Schema({
     'dataset_code': All(str, Length(min=1)),
     'doc_href': Any(None, str),
     'last_update': typecheck(datetime),
-
-    'dimension_list': Any(None, {str: [All()]}),
-    'attribute_list': Any(None, {str: [(str,str)]}),
-    
     'dimension_keys': Any(None, list, Length(min=1)),
     'attribute_keys': Any(None, list, Length(min=1)),
     'codelists': Any(None, dict),
@@ -107,6 +103,8 @@ series_schema = Schema({
     'dataset_code': All(str, Length(min=1)),
     'start_date': int,
     'end_date': int,
+    'start_ts': typecheck(datetime),
+    'end_ts': typecheck(datetime),    
     'values': [series_value_schema],
     'attributes': Any(None, dict),
     'dimensions': {str: str},

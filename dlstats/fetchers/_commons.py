@@ -14,6 +14,7 @@ import pymongo
 from pymongo import ReturnDocument
 from pymongo import InsertOne, UpdateOne
 from slugify import slugify
+import pandas
 
 from widukind_common.utils import get_mongo_db, create_or_update_indexes
 
@@ -301,8 +302,8 @@ class DlstatsCollection(object):
             result = self.fetcher.db[collection].find_one_and_replace(key, bson, upsert=True,
                                                                       return_document=ReturnDocument.AFTER)
             result = result['_id']
-        except Exception as err:
-            logger.critical('%s.update_database() failed for %s error[%s]' % (collection, str(key), str(err)))
+        except Exception:
+            logger.critical('%s.update_database() failed for %s error[%s]' % (collection, str(key), last_error()))
             return None
         else:
             logger.debug(collection + ' ' + str(key) + ' updated.')
@@ -578,8 +579,8 @@ class Datasets(DlstatsCollection):
                 'dataset_code': self.dataset_code,
                 'slug': self.slug(),
                 
-                'dimension_list': self.dimension_list.get_list(),
-                'attribute_list': self.attribute_list.get_list(),
+                #'dimension_list': self.dimension_list.get_list(),
+                #'attribute_list': self.attribute_list.get_list(),
 
                 'dimension_keys': self.dimension_keys,
                 'attribute_keys': self.attribute_keys,
@@ -606,12 +607,22 @@ class Datasets(DlstatsCollection):
             self.metadata = dataset.get('metadata', {}) or {}
             self.download_first = dataset.get('download_first')
             self.last_update = dataset.get('last_update')
-            self.dimension_list.set_from_list(dataset['dimension_list'])
-            self.attribute_list.set_from_list(dataset['attribute_list'])
             self.dimension_keys = dataset.get("dimension_keys", [])
             self.attribute_keys = dataset.get("attribute_keys", [])
             self.codelists = dataset.get("codelists", {})
             self.concepts = dataset.get("concepts", {})
+            
+            dimension_list = {}
+            attribute_list = {}
+            for key in self.dimension_keys:
+                dimension_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
+
+            for key in self.attribute_keys:
+                attribute_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
+                
+            self.dimension_list.set_dict(dimension_list)
+            self.attribute_list.set_dict(attribute_list)
+            
         else:
             msg = "dataset not found for previous loading. provider[%s] - dataset[%s]"
             logger.warning(msg % (provider_name, dataset_code))
@@ -642,12 +653,13 @@ class Datasets(DlstatsCollection):
 
         return False
         
-    def update_database(self):
+    def update_database(self, save_only=False):
 
         self.fetcher.hook_before_dataset(self)
         
         try:
-            self.series.process_series_data()
+            if not save_only:
+                self.series.process_series_data()
         except Exception:
             self.fetcher.errors += 1
             logger.critical(last_error())
@@ -683,6 +695,9 @@ class Datasets(DlstatsCollection):
                                          self.series.count_inserts,
                                          self.series.count_updates))
             
+            if save_only:
+                self.series.reset_counters()
+                        
             result = self.update_mongo_collection(constants.COL_DATASETS,
                                                   ['provider_name', 
                                                    'dataset_code'],
@@ -731,8 +746,13 @@ class SeriesIterator:
             return err
 
     def clean_field(self, bson):
-        #for d in bson["values"]:            
-        #    d.pop("period_o", None)
+
+        if not "start_ts" in bson or not bson.get("start_ts"):
+            bson["start_ts"] = pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime()
+
+        if not "end_ts" in bson or not bson.get("end_ts"):
+            bson["end_ts"] = pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime()
+        
         return bson
 
     def build_series(self, bson):
@@ -994,7 +1014,13 @@ class Series:
         self.concepts = {}
         self.dimension_keys = []
         self.attribute_keys = []
-    
+
+    def reset_counters(self):
+        self.count_accepts = 0
+        self.count_rejects = 0
+        self.count_inserts = 0
+        self.count_updates = 0
+            
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code),
@@ -1066,36 +1092,57 @@ class Series:
             for k, v in value.get("attributes").items():
                 if not k in obs_attrs:
                     obs_attrs[k] = v
+                    if not k in self.dataset.concepts:
+                        self.dataset.concepts[k] = k 
+                    if not k in self.dataset.codelists:
+                        self.dataset.codelists[k] = {}
+                    if not v in self.dataset.codelists[k]:
+                        self.dataset.codelists[k] = {v: v}
 
         dimensions = bson.get("dimensions")
         attributes = bson.get("attributes")
-        for field, target in [(dimensions, self.dimension_keys), (attributes, self.attribute_keys), (obs_attrs, self.attribute_keys)]:
+        
+        for key in self.dataset.dimension_keys:
 
-            if not field:
+            if not key in dimensions:
                 continue
 
-            for key, value_key in field.items():
+            if not key in self.concepts and key in self.dataset.concepts:
+                self.concepts[key] = self.dataset.concepts[key]
 
-                if not key in target:
-                    target.append(key)
+            if not key in self.codelists:
+                self.codelists[key] = {}
 
-                if not key in self.concepts and key in self.dataset.concepts:
-                    self.concepts[key] = self.dataset.concepts[key]
+            value_key = dimensions[key]
+            
+            if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
+                self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
 
-                if key in self.dataset.codelists:
+        for key in self.dataset.attribute_keys:
 
-                    if not key in self.codelists:
-                        self.codelists[key] = {}
+            value_keys = []
+            if attributes and key in attributes:
+                value_keys.append(attributes[key])
+            
+            if obs_attrs and key in obs_attrs:
+                value_keys.append(obs_attrs[key])
 
-                    if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
-                        self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
+            '''Creation concept meme si aucune value'''
+            if not key in self.concepts and key in self.dataset.concepts:
+                self.concepts[key] = self.dataset.concepts[key]
 
+            '''Creation codelist meme si aucune value'''
+            if not key in self.codelists:
+                self.codelists[key] = {}
+                
+            for value_key in value_keys:
+                if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
+                    self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
+        
     def update_dataset_lists_finalize(self):
         self.dataset.concepts = self.concepts
         self.dataset.codelists = self.codelists
-        #self.dataset.dimension_keys = self.dimension_keys
-        #self.dataset.attribute_keys = self.attribute_keys
-
+        
     def update_series_list(self):
 
         keys = [s['key'] for s in self.series_list]
@@ -1177,32 +1224,32 @@ class CodeDict():
         if not IS_SCHEMAS_VALIDATION_DISABLE:
             schemas.codedict_schema(self.code_dict)
         
-    def update(self,arg):
+    def update(self, arg):
         if not IS_SCHEMAS_VALIDATION_DISABLE:
             schemas.codedict_schema(arg.code_dict)
         self.code_dict.update(arg.code_dict)
         
     def update_entry(self, dim_name, dim_short_id, dim_long_id):
-        if dim_name in self.code_dict:
-            if not dim_long_id:
-                dim_short_id = 'None'
-                if 'None' not in self.code_dict[dim_name]:
-                    self.code_dict[dim_name].update({'None': 'None'})
-            elif not dim_short_id:
-                # find the next (numerical) short id in self.code_dict[dim_name]
-                try:
-                    dim_short_id = next(key for key,value in self.code_dict[dim_name].items() if value == dim_long_id)
-                except StopIteration:
-                    dim_short_id = str(len(self.code_dict[dim_name]))
-                    self.code_dict[dim_name].update({dim_short_id: dim_long_id})
-            elif not dim_short_id in self.code_dict[dim_name]:
-                self.code_dict[dim_name].update({dim_short_id: dim_long_id})
-        else:
-            if not dim_short_id:
-                # numerical short id starts with 0
-                dim_short_id = '0'
-            self.code_dict[dim_name] = OrderedDict({dim_short_id: dim_long_id})
-        return(dim_short_id)
+
+        if not dim_name in self.code_dict:
+            self.code_dict[dim_name] = OrderedDict()
+            
+        for k, v in self.code_dict[dim_name].items():
+            if v == dim_long_id:
+                return k
+            
+        if not dim_short_id:
+            if dim_name in self.code_dict:
+                dim_short_id = str(len(self.code_dict[dim_name]))
+            else:
+                dim_short_id = '0' # numerical short id starts with 0
+
+        if not dim_long_id:
+            dim_short_id = 'None'
+
+        self.code_dict[dim_name].update({dim_short_id: dim_long_id})
+        
+        return dim_short_id
 
     def get_dict(self):
         return self.code_dict
@@ -1213,7 +1260,7 @@ class CodeDict():
     def set_dict(self,arg):
         self.code_dict = arg
         
-    def set_from_list(self,dimension_list):
-        self.code_dict = {d1: OrderedDict(d2) for d1,d2 in dimension_list.items()}
+    def set_from_list(self, **kwargs):
+        self.code_dict = {d1: OrderedDict(d2) for d1, d2 in kwargs.items()}
     
 
