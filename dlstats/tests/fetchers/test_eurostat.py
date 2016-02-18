@@ -8,6 +8,7 @@ from copy import deepcopy
 from dlstats.fetchers.eurostat import Eurostat as Fetcher, make_url
 
 import httpretty
+import unittest
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
@@ -28,20 +29,27 @@ def extract_zip_file(zipfilepath):
 
 LOCAL_DATASETS_UPDATE = {
     "nama_10_fcs": {
-        "concept_keys": ['FREQ', 'geo', 'unit', 'na_item', 'OBS_STATUS'], #'TIME_FORMAT', 
-        "codelist_keys": ['FREQ', 'geo', 'unit', 'na_item', 'OBS_STATUS'], #'TIME_FORMAT', 
+        "concept_keys": ['FREQ', 'OBS_STATUS', 'TIME_FORMAT', 'geo', 'na_item', 'unit'], 
+        "codelist_keys": ['FREQ', 'OBS_STATUS', 'TIME_FORMAT', 'geo', 'na_item', 'unit'], 
         "codelist_count": {
-            "FREQ": 9,
+            "FREQ": 1,
+            "OBS_STATUS": 4,
+            "TIME_FORMAT": 1,
             "geo": 33,
+            "na_item": 10,
+            "unit": 12,
+        },
+        "dimension_keys": ['FREQ', 'unit', 'na_item', 'geo'],
+        "dimension_count": {
+            "FREQ": 1,
             "unit": 12,
             "na_item": 10,
-            #"TIME_FORMAT": 7,
-            "OBS_STATUS": 12,                           
+            "geo": 33,
         },
-        "attribute_keys": ["OBS_STATUS"], #"TIME_FORMAT", 
+        "attribute_keys": ["TIME_FORMAT", "OBS_STATUS"],
         "attribute_count": {
-            #"TIME_FORMAT": 7,
-            "OBS_STATUS": 12,
+            "TIME_FORMAT": 1,
+            "OBS_STATUS": 4,
         }, 
     }
 }
@@ -51,12 +59,12 @@ class FetcherTestCase(BaseFetcherTestCase):
     # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase
     
     FETCHER_KLASS = Fetcher
-    DEBUG_MODE = False
     DATASETS = {
         'nama_10_fcs': deepcopy(xml_samples.DATA_EUROSTAT)
     }
     DATASET_FIRST = "bop_c6_m"
     DATASET_LAST = "nama_10_gdp"
+    DEBUG_MODE = False
     
     def _load_files_datatree(self):
         
@@ -81,6 +89,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files_datatree()
         
     @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):
 
         dataset_code = "nama_10_fcs"
@@ -88,6 +97,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertLoadDatasetsFirst([dataset_code])
 
     @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_update(self):
 
         dataset_code = "nama_10_fcs"

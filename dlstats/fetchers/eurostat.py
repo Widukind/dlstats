@@ -17,7 +17,7 @@ from lxml import etree
 
 from dlstats import errors
 from dlstats import constants
-from dlstats.utils import Downloader, remove_file_and_dir
+from dlstats.utils import Downloader
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLCompactData_2_0_EUROSTAT as XMLData,
@@ -109,7 +109,10 @@ class Eurostat(Fetcher):
             'bop', 
             'bop_6',
             'demo_pjanbroad', 
-            'lfsi_act_q'
+            'lfsi_act_q',
+            #TODO: 'euroind',
+            #TODO: 'pop',
+            #TODO: 'labour'
         ]
 
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
@@ -117,7 +120,7 @@ class Eurostat(Fetcher):
         
         self._concepts = OrderedDict()
         self._codelists = OrderedDict()        
-        
+
     def build_data_tree(self):
         """Builds the data tree
         
@@ -130,7 +133,8 @@ class Eurostat(Fetcher):
         
         download = Downloader(url=self.url_table_of_contents, 
                               filename="table_of_contents.xml",
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
         
         categories = []
@@ -193,7 +197,11 @@ class Eurostat(Fetcher):
                             
                             if not _category["category_code"] in categories_keys:
                                 categories_keys.append(_category["category_code"])
-                                categories.append(_category)    
+                                categories.append(_category)
+                            else:
+                                logger.critical("double provider[%s] - category_code[%s] - parent[%s]" % (self.provider_name, 
+                                                                                             _category["category_code"],
+                                                                                             _category["parent"]))
 
                         datasets = xpath_datasets(child)
 
@@ -235,7 +243,7 @@ class Eurostat(Fetcher):
                         child.clear()
                     element.clear()
 
-        remove_file_and_dir(filepath, let_root=True)
+        self.for_delete.append(filepath)
 
         return categories
         
@@ -253,7 +261,7 @@ class Eurostat(Fetcher):
         if doc and  doc['last_update'] >= dataset_settings['last_update']:
             comments = "update-date[%s]" % doc['last_update']
             raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
-                                              dataset_code=self.dataset_code,
+                                              dataset_code=dataset_code,
                                               comments=comments)            
 
         dataset = Datasets(provider_name=self.provider_name, 
@@ -308,22 +316,21 @@ class EurostatData(SeriesIterator):
         
         self.store_path = self.get_store_path()
         
-        self.exclude_attributes = ["TIME_FORMAT"]        
-        
         self._load()
 
     def _load(self):
         
         download = Downloader(url=self.dataset_url, 
                               filename="data-%s.zip" % self.dataset_code,
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.fetcher.use_existing_file)
         
         filepaths = (extract_zip_file(download.get_filepath()))
         dsd_fp = filepaths[self.dataset_code + ".dsd.xml"]        
         data_fp = filepaths[self.dataset_code + ".sdmx.xml"]
         
-        self.dataset.for_delete.append(dsd_fp)
-        self.dataset.for_delete.append(data_fp)        
+        self.fetcher.for_delete.append(dsd_fp)
+        self.fetcher.for_delete.append(data_fp)        
         
         self.xml_dsd.process(dsd_fp)
         self._set_dataset()
@@ -339,24 +346,9 @@ class EurostatData(SeriesIterator):
 
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
         self.dataset.dimension_keys = dataset["dimension_keys"] 
-        self.dataset.attribute_keys = [attr for attr in dataset.get("attribute_keys", []) if not attr in self.exclude_attributes] 
+        self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
-        
-        for attr in self.exclude_attributes:
-            self.dataset.concepts.pop(attr, None)
-            self.dataset.codelists.pop(attr, None)
-        
-        self.dataset.dimension_list.set_dict(dataset["dimensions"])
-        self.dataset.attribute_list.set_dict(dataset["attributes"])
-
-    def clean_field(self, bson):
-        bson = super().clean_field(bson)
-        #TODO: remove in dataset ?
-        #TODO: remove in values.*.attributes
-        for attr in self.exclude_attributes:
-            bson.get("attributes", {}).pop(attr, None)
-        return bson
 
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])
