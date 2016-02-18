@@ -12,11 +12,11 @@ cache:
   - apt
   
 env:
-  - MONGO_IMAGE=mongo:3.2.0 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test --link=mongodb:mongodb --rm"
+  - MONGO_IMAGE=mongo:3.2.1 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test --link=mongodb:mongodb --rm"
 
 before_install:
   - docker pull $MONGO_IMAGE
-  - docker run -d --name=mongodb $MONGO_IMAGE mongod --noauth
+  - docker run --privileged=true -d --name=mongodb $MONGO_IMAGE mongod --noauth
   - docker build -t widukind/dlstats -f DockerfileTests .
   - pip install coveralls
  
