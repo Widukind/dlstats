@@ -89,17 +89,16 @@ class ECB(Fetcher):
         if self._dataflows and not force:
             return
         
-        for_delete = []
-        
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)       
         
         url = "http://sdw-wsrest.ecb.int/service/dataflow/%s" % self.provider_name
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="dataflow.xml",
-                                    headers=SDMX_METADATA_HEADERS)
+                                    headers=SDMX_METADATA_HEADERS,
+                                    use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._dataflows = self.xml_dsd.dataflows
 
@@ -107,9 +106,10 @@ class ECB(Fetcher):
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="categoryscheme.xml",
-                                    headers=SDMX_METADATA_HEADERS)
+                                    headers=SDMX_METADATA_HEADERS,
+                                    use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categoryschemes = self.xml_dsd.categories
 
@@ -117,9 +117,10 @@ class ECB(Fetcher):
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="categorisation.xml",
-                                    headers=SDMX_METADATA_HEADERS)
+                                    headers=SDMX_METADATA_HEADERS,
+                                    use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categorisations = self.xml_dsd.categorisations
         
@@ -127,15 +128,14 @@ class ECB(Fetcher):
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="conceptscheme.xml",
-                                    headers=SDMX_METADATA_HEADERS)
+                                    headers=SDMX_METADATA_HEADERS,
+                                    use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
+        
         self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
         
-        for fp in for_delete:
-            utils.remove_file_and_dir(fp, True)
-
     def build_data_tree(self):
 
         self._load_structure()
@@ -194,8 +194,10 @@ class ECB(Fetcher):
         download = utils.Downloader(store_filepath=self.store_path,
                               url="http://www.ecb.europa.eu/press/calendars/statscal/html/index.en.html",
                               filename="statscall.html")
-        with open(download.get_filepath(), 'rb') as fp:
+        filepath = download.get_filepath()
+        with open(filepath, 'rb') as fp:
             agenda = lxml.html.parse(fp)
+        self.for_delete.append(filepath)
         
         regex_date = re.compile("Reference period: (.*)")
         regex_dataset = re.compile(".*Dataset: (.*)\)")
@@ -270,9 +272,10 @@ class ECB_Data(SeriesIterator):
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="dsd-%s.xml" % self.dataset_code,
-                                    headers=SDMX_METADATA_HEADERS)
+                                    headers=SDMX_METADATA_HEADERS,
+                                    use_existing_file=self.fetcher.use_existing_file)
         filepath = download.get_filepath()
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
@@ -287,7 +290,8 @@ class ECB_Data(SeriesIterator):
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="data-%s.xml" % self.dataset_code,
-                                    headers=headers)
+                                    headers=headers,
+                                    use_existing_file=self.fetcher.use_existing_file)
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
@@ -295,7 +299,7 @@ class ECB_Data(SeriesIterator):
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
         filepath, response = download.get_filepath_and_response()
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         
         if response.status_code == HTTP_ERROR_NOT_MODIFIED:
             comments = "update-date[%s]" % last_modified
@@ -313,33 +317,20 @@ class ECB_Data(SeriesIterator):
     def _set_dataset(self):
 
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
-        
-        self.dataset.dimension_list.set_dict(dataset["dimensions"])
-        self.dataset.attribute_list.set_dict(dataset["attributes"])
+
+    def clean_field(self, bson):
+        bson = super().clean_field(bson)
+        bson["attributes"].pop("TITLE", None)
+        bson["attributes"].pop("TITLE_COMPL", None)
+        return bson
 
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
-
-        """        
-        for key, dimension in bson.get('dimensions', {}).items():
-            dim_long_id = self.xml_dsd.codelists[key].get(dimension)
-            self.dimension_list.update_entry(key, dimension, dim_long_id)
-
-        for key, attribute in bson.get('attributes', {}).items():
-            dim_long_id = self.xml_dsd.codelists[key].get(attribute)
-            self.attribute_list.update_entry(key, dimension, dim_long_id)
-        
-        #TODO: attributes !!!
-        for value in bson["values"]:
-            pass
-        """
-        
         return bson
         
 
