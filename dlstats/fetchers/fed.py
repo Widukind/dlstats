@@ -5,11 +5,10 @@ import logging
 import zipfile
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats.utils import Downloader, clean_datetime
+from dlstats.utils import Downloader, clean_datetime, clean_dict, clean_key
 from dlstats.xml_utils import (XMLStructure_1_0 as XMLStructure, 
                                XMLData_1_0_FED as XMLData,
                                dataset_converter)
-from dlstats.tests.resources.xml_samples import filepath
 
 VERSION = 2
 
@@ -1140,25 +1139,6 @@ CATEGORIES = [
 ]
 
 
-MONGO_DENIED_KEY_CHARS = ["."]
-
-def clean_key(key):
-    if not key:
-        return key    
-    for k in MONGO_DENIED_KEY_CHARS:
-        key = key.replace(k, "_")
-    return key
-
-def clean_dict(dct):
-    if not dct:
-        return dct
-    new_dct = dct.copy()
-    for k, v in dct.items():
-        new_dct.pop(k)
-        key = clean_key(k)
-        new_dct[key] = v
-    return new_dct
-
 def extract_zip_file(zipfilepath):
     zfile = zipfile.ZipFile(zipfilepath)
     filepaths = {}
@@ -1211,12 +1191,9 @@ class FED(Fetcher):
 class FED_Data(SeriesIterator):
     
     def __init__(self, dataset, url=None):
-        """
-        :param Datasets dataset: Datasets instance
-        """
         super().__init__(dataset)
+        
         self.url = url
-
         self.store_path = self.get_store_path()
         self.xml_dsd = XMLStructure(provider_name=self.provider_name) 
         
@@ -1226,19 +1203,19 @@ class FED_Data(SeriesIterator):
 
         download = Downloader(url=self.url, 
                               store_filepath=self.store_path,
-                              filename="data-%s.zip" % self.dataset_code)
+                              filename="data-%s.zip" % self.dataset_code,
+                              use_existing_file=self.fetcher.use_existing_file)
         zip_filepath = download.get_filepath()
-        self.dataset.for_delete.append(zip_filepath)
+        self.fetcher.for_delete.append(zip_filepath)
         
         filepaths = (extract_zip_file(zip_filepath))
         dsd_fp = filepaths['struct.xml']
         data_fp = filepaths['data.xml']
 
         for filepath in filepaths.values():
-            self.dataset.for_delete.append(filepath)
+            self.fetcher.for_delete.append(filepath)
         
         self.xml_dsd.process(dsd_fp)
-        
         self._set_dataset()
 
         self.xml_data = XMLData(provider_name=self.provider_name,
@@ -1253,10 +1230,8 @@ class FED_Data(SeriesIterator):
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
 
         self.dataset.dimension_keys = dataset["dimension_keys"] 
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
-        self.dataset.dimension_list.set_dict(dataset["dimensions"])
-        self.dataset.attribute_list.set_dict(dataset["attributes"])
-
+        self.dataset.attribute_keys = dataset["attribute_keys"]
+        
         '''Fixe key names'''
         units = dataset["codelists"].pop("UNIT", None)
         if units:
@@ -1267,13 +1242,24 @@ class FED_Data(SeriesIterator):
         if units:
             new_units = clean_dict(units)
             dataset["codelists"]["UNIT_MULT"] = new_units
+
+        for key in self.dataset.dimension_keys:
+            if key in dataset["concepts"]:
+                self.dataset.concepts[key] = dataset["concepts"][key]
+            if key in dataset["codelists"]:
+                self.dataset.codelists[key] = dataset["codelists"][key]
         
-        for key in self.dataset.dimension_keys + self.dataset.attribute_keys:
+        for key in self.dataset.attribute_keys:
             if key in dataset["concepts"]:
                 self.dataset.concepts[key] = dataset["concepts"][key]
             if key in dataset["codelists"]:
                 self.dataset.codelists[key] = dataset["codelists"][key]
 
+    def clean_field(self, bson):
+        bson = super().clean_field(bson)
+        bson["attributes"].pop("SERIES_NAME", None)
+        return bson
+        
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
@@ -1286,414 +1272,4 @@ class FED_Data(SeriesIterator):
             bson["attributes"] = new_attributes
                             
         return bson
-
-def extract_sub_datasets():
-    
-    xml_dsd = XMLStructure(provider_name="FED")
-    
-    import tempfile
-
-    store_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), "FED"))
-    
-    _datasets = []
-    _datasets_codes = []
-    
-    for dataset_code, dataset in DATASETS.items():
-        
-        if "-" in dataset_code:
-            continue
-        
-        url = dataset['url']
-        
-        download = Downloader(url=url, filename="data-%s.zip" % dataset_code,
-                              store_filepath=store_filepath)
-        zip_filepath = download.get_filepath()
-        
-        filepaths = (extract_zip_file(zip_filepath))
-        dsd_fp = filepaths['struct.xml']
-        print(dsd_fp, dataset_code)
-        xml_dsd.process(dsd_fp)
-
-        for dsd in xml_dsd.datastructures.values():
-            if not dsd["id"] in _datasets_codes:
-                datas = {
-                    "id": dsd["id"], 
-                    "name": dsd["name"],
-                    "url": url,
-                    "fed_code": dataset_code, #dsd["name"].split()[0],
-                    "original_code": dataset_code
-                }
-                _datasets.append(datas)
-                _datasets_codes.append(dsd["id"])
-    #pprint(_datasets, width=150, compact=True)
-    for d in _datasets:
-        print("""'%(id)s': {
-    'name': '%(name)s',
-    'doc_href': 'http://www.federalreserve.gov/releases/%(original_code)s/current/default.htm',
-    'url': "%(url)s',
-    'fed_code': '%(fed_code)s',
-    'original_code': '%(original_code)s',
-},""" % d)
-
-    NEW_CATEGORIES = {}
-        
-    for datas in _datasets:
-        for c in CATEGORIES:
-            #if not c in NEW_CATEGORIES:
-            #    NEW_CATEGORIES.append(c)
-            if not c["category_code"] in NEW_CATEGORIES:
-                NEW_CATEGORIES[c["category_code"]] = []
-            
-            for i, dataset in enumerate(c["datasets"]):
-                if datas["original_code"] == dataset["dataset_code"]:
-                    NEW_CATEGORIES[c["category_code"]].append(datas)
-
-    for category_code, datasets in NEW_CATEGORIES.items():
-        print("%s :" % category_code)
-        for dataset in datasets:
-            print("""
-            {
-                "dataset_code": "%(id)s",
-                "name": DATASETS["%(id)s"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["%(id)s"]["doc_href"]
-                }
-            },
-            """ % dataset)
-
-if __name__ == "__main__":
-    pass
-    #extract_sub_datasets()        
-
-"""
-OLD_DATASETS = {
-    'G19': {
-        "name": "G.19 - Consumer Credit",
-        "doc_href": 'http://www.federalreserve.gov/releases/G19/current/default.htm',
-        'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=G19&filetype=zip',
-        'original_code': 'G19',
-        'fed_code': 'G.19',
-    },
-    'G19-TERMS': {
-        "name": "G.19 - Consumer Credit - Terms of Credit Outstanding",
-        "doc_href": 'http://www.federalreserve.gov/releases/G19/current/default.htm',
-        'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=G19&filetype=zip',
-        'fed_code': 'G.19',
-    },
-    'G17':{
-        "name": "G.17 - Industrial Production and Capacity Utilization",
-        "doc_href": 'http://www.federalreserve.gov/releases/G17/Current/default.htm',
-        'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=G17&filetype=zip',
-        'fed_code': 'G.17',
-    },
-    'H3':{
-         "name": "H.3 - Aggregate Reserves of Depository Institution and the Monetary Base",
-         "doc_href": 'http://www.federalreserve.gov/releases/H3/current/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H3&filetype=zip',
-    },    
-    'H8':{
-         "name": "H.8 - Assets and Liabilities of Commercial Banks in the U.S.",
-         "doc_href": 'http://www.federalreserve.gov/releases/H8/current/',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H8&filetype=zip',
-    },
-    'E2':{
-         "name": "E.2 - Survey of Terms of Business Lending",
-         "doc_href": 'http://www.federalreserve.gov/releases/E2/Current/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=E2&filetype=zip',
-    },
-    'G20':{
-         "name": "G.20 - Finance Companies",
-         "doc_href": 'http://www.federalreserve.gov/releases/G20/current/',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=G20&filetype=zip',
-    },
-    'H10':{
-         "name": "G.5 / H.10 - Foreign Exchange Rates",
-         "doc_href": 'http://www.federalreserve.gov/releases/H10/current/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&filetype=zip',
-    },
-    'Z1': {
-        "name": "Z.1 - Financial Accounts of the United States",
-        "doc_href": 'http://www.federalreserve.gov/releases/Z1/default.htm',
-        'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=Z1&filetype=zip',
-    },    
-    'H15':{
-         "name": "H.15 - Selected Interest Rates",
-         "doc_href": 'http://www.federalreserve.gov/releases/H15/current/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&filetype=zip',
-    },
-    'H41':{
-         "name": "H.4.1 - Factors Affecting Reserve Balances",
-         "doc_href": 'http://www.federalreserve.gov/releases/H41/Current/',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H41&filetype=zip',
-         'fed_code': 'H.4.1',
-    },
-    'H6':{
-         "name": "H.6 - Money Stock Measures",
-         "doc_href": 'http://www.federalreserve.gov/releases/H6/current/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H6&filetype=zip',
-    },
-    'SLOOS':{
-         "name": "SLOOS - Senior Loan Officer Opinion Survey on Bank Lending Practices",
-         "doc_href": 'http://www.federalreserve.gov/boarddocs/SnLoanSurvey/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=SLOOS&filetype=zip',
-    },    
-    'CP':{
-         "name": "CP - Commercial Paper",
-         "doc_href": 'http://www.federalreserve.gov/releases/CP/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=CP&filetype=zip',
-    },    
-    'PRATES':{
-         "name": "PRATES - Policy Rates",
-         "doc_href": 'http://www.federalreserve.gov/monetarypolicy/reqresbalances.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=PRATES&filetype=zip',
-    },
-    'FOR':{
-         "name": "FOR - Household Debt Service and Financial Obligations Ratios",
-         "doc_href": 'http://www.federalreserve.gov/releases/housedebt/default.htm',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=FOR&filetype=zip',
-    }, 
-    'CHGDEL':{
-         "name": "CHGDEL - Charge-off and Delinquency Rates",
-         "doc_href": 'http://www.federalreserve.gov/releases/chargeoff/',
-         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=CHGDEL&filetype=zip',
-    },           
-}
-
-CATEGORIES = [
-    {
-        "category_code": "PEI",
-        "name": "Principal Economic Indicators",
-        "position": 1,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "G19-TERMS",
-                "name": DATASETS["G19-TERMS"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["G19-TERMS"]["doc_href"]
-                }
-            },
-            {
-                "dataset_code": "G17",
-                "name": DATASETS["G17"]["name"], 
-                "last_update": None,
-                "metadata": {
-                    "doc_href": DATASETS["G17"]["doc_href"], 
-                }
-            },
-        ]
-    },
-    {
-        "category_code": "BAL",
-        "name": "Bank Assets & Liabilities",
-        "position": 2,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "H3",
-                "name": DATASETS["H3"]["name"], 
-                "last_update": None,
-                "metadata": {
-                    "doc_href": DATASETS["H3"]["doc_href"], 
-                }
-            },
-            {
-                "dataset_code": "H8",
-                "name": DATASETS["H8"]["name"], 
-                "last_update": None,
-                "metadata": {
-                    "doc_href": DATASETS["H8"]["doc_href"], 
-                }
-            },
-            {
-                "dataset_code": "CHGDEL",
-                "name": DATASETS["CHGDEL"]["name"], 
-                "last_update": None,
-                "metadata": {
-                    "doc_href": DATASETS["CHGDEL"]["doc_href"], 
-                }
-            },              
-            {
-                "dataset_code": "SLOOS",
-                "name": DATASETS["SLOOS"]["name"], 
-                "last_update": None,
-                "metadata": {
-                    "doc_href": DATASETS["SLOOS"]["doc_href"], 
-                }
-            },  
-            {
-                "dataset_code": "E2",
-                "name": DATASETS["E2"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["E2"]["doc_href"], 
-                }
-            },          
-        ]
-    },
-    {
-        "category_code": "BF",
-        "name": "Business Finance",
-        "position": 3,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "CP",
-                "name": DATASETS["CP"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["CP"]["doc_href"], 
-                }
-            },
-            {
-                "dataset_code": "G20",
-                "name": DATASETS["G20"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["G20"]["doc_href"], 
-                }
-            },            
-        ]
-    },
-    {
-        "category_code": "ERID",
-        "name": "Exchange Rates and International Data",
-        "position": 4,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "H10",
-                "name": DATASETS["H10"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["H10"]["doc_href"], 
-                }
-            },           
-        ]
-    },
-    {
-        "category_code": "FA",
-        "name": "Financial Accounts",
-        "position": 5,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "Z1",
-                "name": DATASETS["Z1"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["Z1"]["doc_href"], 
-                }
-            },
-        ]
-    },    
-    {
-        "category_code": "HF",
-        "name": "Household Finance",
-        "position": 6,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "G19-TERMS",
-                "name": DATASETS["G19-TERMS"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["G19-TERMS"]["doc_href"], 
-                }
-            },  
-            {
-                "dataset_code": "G20",
-                "name": DATASETS["G20"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["G20"]["doc_href"], 
-                }
-            }, 
-            {
-                "dataset_code": "FOR",
-                "name": DATASETS["FOR"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["FOR"]["doc_href"], 
-                }
-            },             
-        ]
-    }, 
-    {
-        "category_code": "IA",
-        "name": "Industrial Activity",
-        "position": 7,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "G17",
-                "name": DATASETS["G17"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["G17"]["doc_href"], 
-                }
-            },           
-        ]
-    },   
-    {
-        "category_code": "IR",
-        "name": "Interest Rates",
-        "position": 8,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "H15",
-                "name": DATASETS["H15"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["H15"]["doc_href"], 
-                }
-            },  
-            {
-                "dataset_code": "PRATES",
-                "name": DATASETS["PRATES"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["PRATES"]["doc_href"], 
-                }
-            },             
-        ]
-    }, 
-    {
-        "category_code": "MSRB",
-        "name": "Money Stock and Reserve Balances",
-        "position": 9,
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "H3",
-                "name": DATASETS["H3"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["H3"]["doc_href"], 
-                }
-            },  
-            {
-                "dataset_code": "H41",
-                "name": DATASETS["H41"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["H41"]["doc_href"], 
-                }
-            },   
-            {
-                "dataset_code": "H6",
-                "name": DATASETS["H6"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["H6"]["doc_href"], 
-                }
-            },
-        ]
-    }      
-
-]
-"""
 

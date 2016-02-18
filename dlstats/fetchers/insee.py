@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats.utils import Downloader, clean_datetime, remove_file_and_dir
+from dlstats.utils import Downloader, clean_datetime
 from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
@@ -64,8 +64,6 @@ class INSEE(Fetcher):
         if self._dataflows and not force:
             return
 
-        for_delete = []
-
         self.xml_sdmx = XMLSDMX(agencyID=self.provider_name)
         
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
@@ -75,9 +73,10 @@ class INSEE(Fetcher):
         download = Downloader(url=url, 
                               filename="dataflow.xml",
                               store_filepath=self.store_path,
-                              headers=SDMX_METADATA_HEADERS)
+                              headers=SDMX_METADATA_HEADERS,
+                              use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._dataflows = self.xml_dsd.dataflows
 
@@ -85,9 +84,10 @@ class INSEE(Fetcher):
         download = Downloader(url=url, 
                               filename="categoryscheme.xml",
                               store_filepath=self.store_path,
-                              headers=SDMX_METADATA_HEADERS)
+                              headers=SDMX_METADATA_HEADERS,
+                              use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categoryschemes = self.xml_dsd.categories
 
@@ -95,9 +95,10 @@ class INSEE(Fetcher):
         download = Downloader(url=url, 
                               filename="categorisation.xml",
                               store_filepath=self.store_path,
-                              headers=SDMX_METADATA_HEADERS)
+                              headers=SDMX_METADATA_HEADERS,
+                              use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._categorisations = self.xml_dsd.categorisations
         
@@ -105,14 +106,12 @@ class INSEE(Fetcher):
         download = Downloader(url=url, 
                               filename="conceptscheme.xml",
                               store_filepath=self.store_path,
-                              headers=SDMX_METADATA_HEADERS)
+                              headers=SDMX_METADATA_HEADERS,
+                              use_existing_file=self.use_existing_file)
         filepath = download.get_filepath()
-        for_delete.append(filepath)
+        self.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._concepts = self.xml_dsd.concepts
-
-        for fp in for_delete:
-            remove_file_and_dir(fp, let_root=True)
         
     def load_datasets_first(self):
         self._load_structure()
@@ -225,10 +224,11 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="datastructure-%s.xml" % self.dsd_id,
                               headers=SDMX_METADATA_HEADERS,
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.fetcher.use_existing_file)
         
         filepath = download.get_filepath()
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
@@ -243,7 +243,8 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="dsd-%s.xml" % self.dsd_id,
                               headers=SDMX_METADATA_HEADERS,
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.fetcher.use_existing_file)
         
         filepath, response = download.get_filepath_and_response()
         
@@ -253,7 +254,7 @@ class INSEE_Data(SeriesIterator):
         elif response.status_code >= 400:
             raise response.raise_for_status()
         
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
@@ -265,12 +266,8 @@ class INSEE_Data(SeriesIterator):
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
-        
-        self.dataset.dimension_list.set_dict(dataset["dimensions"])
-        self.dataset.attribute_list.set_dict(dataset["attributes"])
 
         self.fetcher._codelists.update(self.xml_dsd.codelists)
-
 
     def _load_data(self):
         
@@ -278,7 +275,8 @@ class INSEE_Data(SeriesIterator):
         download = Downloader(url=url, 
                               filename="data-%s.xml" % self.dataset_code,
                               headers=SDMX_DATA_HEADERS,
-                              store_filepath=self.store_path)
+                              store_filepath=self.store_path,
+                              use_existing_file=self.fetcher.use_existing_file)
 
         #TODO: ?startperiod="2008"
         self.xml_data = XMLData(provider_name=self.provider_name,
@@ -293,7 +291,7 @@ class INSEE_Data(SeriesIterator):
         elif response.status_code >= 400:
             raise response.raise_for_status()
 
-        self.dataset.for_delete.append(filepath)
+        self.fetcher.for_delete.append(filepath)
         self.rows = self.xml_data.process(filepath)
 
     def _select_short_dimension(self):
@@ -338,7 +336,8 @@ class INSEE_Data(SeriesIterator):
             download = Downloader(url=url, 
                                   filename="data-%s.xml" % self.dataset_code,
                                   headers=SDMX_DATA_HEADERS,
-                                  store_filepath=self.store_path)
+                                  store_filepath=self.store_path,
+                                  use_existing_file=self.fetcher.use_existing_file)
             filepath, response = download.get_filepath_and_response()
             
             if response.status_code == HTTP_ERROR_NO_RESULT:
@@ -346,7 +345,7 @@ class INSEE_Data(SeriesIterator):
             elif response.status_code >= 400:
                 raise response.raise_for_status()
 
-            self.dataset.for_delete.append(filepath)
+            self.fetcher.for_delete.append(filepath)
             
             for row in self.xml_data.process(filepath):
                 yield row
@@ -367,6 +366,11 @@ class INSEE_Data(SeriesIterator):
             return True
 
         return False
+
+    def clean_field(self, bson):
+        bson = super().clean_field(bson)
+        bson["attributes"].pop("IDBANK", None)
+        return bson
 
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])

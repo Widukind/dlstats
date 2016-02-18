@@ -1,0 +1,1078 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
+  <mes:Header>
+    <mes:ID>conceptscheme_1455734039864</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-02-17T18:33:59.864Z</mes:Prepared>
+    <mes:Sender id="FR1">
+      <com:Name xml:lang="fr">Institut national de la statistique et des études économiques</com:Name>
+    </mes:Sender>
+    <mes:Receiver id="unknown"/>
+    <mes:Source xml:lang="fr">Banque de données macro-économiques</mes:Source>
+  </mes:Header>
+  <mes:Structures>
+    <str:Codelists>
+      <str:Codelist id="CL_AGE" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_AGE(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Nomenclature générale de tranches d'âge</com:Name>
+        <str:Code id="21-24" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).21-24">
+          <com:Name xml:lang="fr">De 21 à 24 ans</com:Name>
+          <com:Name xml:lang="en">From 21 to 24 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-64">
+          <com:Name xml:lang="fr">De 0 à 64 ans</com:Name>
+          <com:Name xml:lang="en">From 0 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-59">
+          <com:Name xml:lang="fr">De 15 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-01" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-01">
+          <com:Name xml:lang="fr">Moins d'un an</com:Name>
+          <com:Name xml:lang="en">Below one year old</com:Name>
+        </str:Code>
+        <str:Code id="01-04" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).01-04">
+          <com:Name xml:lang="fr">De 1 à 4 ans</com:Name>
+          <com:Name xml:lang="en">From 1 to 4 years old</com:Name>
+        </str:Code>
+        <str:Code id="70-79" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).70-79">
+          <com:Name xml:lang="fr">De 70 à 79 ans</com:Name>
+          <com:Name xml:lang="en">From 70 to 79 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-19" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-19">
+          <com:Name xml:lang="fr">Moins de 20 ans</com:Name>
+          <com:Name xml:lang="en">Below 20 years old</com:Name>
+        </str:Code>
+        <str:Code id="20-39" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).20-39">
+          <com:Name xml:lang="fr">De 20 à 39 ans</com:Name>
+          <com:Name xml:lang="en">From 20 to 39 years old</com:Name>
+        </str:Code>
+        <str:Code id="40-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).40-59">
+          <com:Name xml:lang="fr">De 40 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 40 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="60-74" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).60-74">
+          <com:Name xml:lang="fr">De 60 à 74 ans</com:Name>
+          <com:Name xml:lang="en">From 60 to 74 years old</com:Name>
+        </str:Code>
+        <str:Code id="06-18" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).06-18">
+          <com:Name xml:lang="fr">De 6 à 18 ans</com:Name>
+          <com:Name xml:lang="en">From 6 to 18 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-50" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-50">
+          <com:Name xml:lang="fr">De 15 à 50 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 50 years old</com:Name>
+        </str:Code>
+        <str:Code id="18-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).18-">
+          <com:Name xml:lang="fr">18 ans et plus</com:Name>
+          <com:Name xml:lang="en">18 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="00-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-">
+          <com:Name xml:lang="fr">Ensemble</com:Name>
+          <com:Name xml:lang="en">All ages</com:Name>
+        </str:Code>
+        <str:Code id="65-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).65-">
+          <com:Name xml:lang="fr">65 ans et plus</com:Name>
+          <com:Name xml:lang="en">65 years and over</com:Name>
+        </str:Code>
+        <str:Code id="00-14" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-14">
+          <com:Name xml:lang="fr">Moins de 15 ans</com:Name>
+          <com:Name xml:lang="en">Below 15 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-17" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-17">
+          <com:Name xml:lang="fr">Moins de 18 ans</com:Name>
+          <com:Name xml:lang="en">Below 18 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-29" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-29">
+          <com:Name xml:lang="fr">Moins de 30 ans</com:Name>
+          <com:Name xml:lang="en">Below 30 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-19" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-19">
+          <com:Name xml:lang="fr">De 15 à 19 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 19 years old</com:Name>
+        </str:Code>
+        <str:Code id="18-21" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).18-21">
+          <com:Name xml:lang="fr">De 18 à 21 ans</com:Name>
+          <com:Name xml:lang="en">From 18 to 21 years old</com:Name>
+        </str:Code>
+        <str:Code id="20-24" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).20-24">
+          <com:Name xml:lang="fr">De 20 à 24 ans</com:Name>
+          <com:Name xml:lang="en">From 20 to 24 years old</com:Name>
+        </str:Code>
+        <str:Code id="22-24" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).22-24">
+          <com:Name xml:lang="fr">De 22 à 24 ans</com:Name>
+          <com:Name xml:lang="en">From 22 to 24 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-">
+          <com:Name xml:lang="fr">25 ans et plus</com:Name>
+          <com:Name xml:lang="en">25 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="25-29" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-29">
+          <com:Name xml:lang="fr">De 25 à 29 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 29 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-49" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-49">
+          <com:Name xml:lang="fr">De 25 à 49 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 49 years old</com:Name>
+        </str:Code>
+        <str:Code id="50-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).50-">
+          <com:Name xml:lang="fr">50 ans et plus</com:Name>
+          <com:Name xml:lang="en">50 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="50-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).50-59">
+          <com:Name xml:lang="fr">De 50 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 50 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="60-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).60-">
+          <com:Name xml:lang="fr">60 ans et plus</com:Name>
+          <com:Name xml:lang="en">60 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="60-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).60-64">
+          <com:Name xml:lang="fr">De 60 à 64 ans</com:Name>
+          <com:Name xml:lang="en">From 60 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="75-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).75-">
+          <com:Name xml:lang="fr">75 ans et plus</com:Name>
+          <com:Name xml:lang="en">75 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="15-24" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-24">
+          <com:Name xml:lang="fr">De 15 à 24 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 24 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-75" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-75">
+          <com:Name xml:lang="fr">De 25 à 75 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 75 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-64">
+          <com:Name xml:lang="fr">De 15 à 64 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="50-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).50-64">
+          <com:Name xml:lang="fr">De 50 à 64 ans</com:Name>
+          <com:Name xml:lang="en">From 50 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-">
+          <com:Name xml:lang="fr">15 ans et plus</com:Name>
+          <com:Name xml:lang="en">15 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="dont55-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).dont55-64">
+          <com:Name xml:lang="fr">Dont de 55 à 64 ans</com:Name>
+          <com:Name xml:lang="en">Of which from 55 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="55-64" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).55-64">
+          <com:Name xml:lang="fr">De 55 à 64 ans</com:Name>
+          <com:Name xml:lang="en">From 55 to 64 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-20" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-20">
+          <com:Name xml:lang="fr">Moins de 21 ans</com:Name>
+          <com:Name xml:lang="en">Below 21 years old</com:Name>
+        </str:Code>
+        <str:Code id="05-09" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).05-09">
+          <com:Name xml:lang="fr">De 5 à 9 ans</com:Name>
+          <com:Name xml:lang="en">From 5 to 9 years old</com:Name>
+        </str:Code>
+        <str:Code id="10-14" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).10-14">
+          <com:Name xml:lang="fr">De 10 à 14 ans</com:Name>
+          <com:Name xml:lang="en">From 10 to 14 years old</com:Name>
+        </str:Code>
+        <str:Code id="30-34" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).30-34">
+          <com:Name xml:lang="fr">De 30 à 34 ans</com:Name>
+          <com:Name xml:lang="en">From 30 to 34 years old</com:Name>
+        </str:Code>
+        <str:Code id="35-39" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).35-39">
+          <com:Name xml:lang="fr">De 35 à 39 ans</com:Name>
+          <com:Name xml:lang="en">From 35 to 39 years old</com:Name>
+        </str:Code>
+        <str:Code id="40-44" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).40-44">
+          <com:Name xml:lang="fr">De 40 à 44 ans</com:Name>
+          <com:Name xml:lang="en">From 40 to 44 years old</com:Name>
+        </str:Code>
+        <str:Code id="45-49" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).45-49">
+          <com:Name xml:lang="fr">De 45 à 49 ans</com:Name>
+          <com:Name xml:lang="en">From 45 to 49 years old</com:Name>
+        </str:Code>
+        <str:Code id="50-54" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).50-54">
+          <com:Name xml:lang="fr">De 50 à 54 ans</com:Name>
+          <com:Name xml:lang="en">From 50 to 54 years old</com:Name>
+        </str:Code>
+        <str:Code id="55-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).55-59">
+          <com:Name xml:lang="fr">De 55 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 55 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="65-69" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).65-69">
+          <com:Name xml:lang="fr">De 65 à 69 ans</com:Name>
+          <com:Name xml:lang="en">From 65 to 69 years old</com:Name>
+        </str:Code>
+        <str:Code id="70-74" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).70-74">
+          <com:Name xml:lang="fr">De 70 à 74 ans</com:Name>
+          <com:Name xml:lang="en">From 70 to 74 years old</com:Name>
+        </str:Code>
+        <str:Code id="75-79" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).75-79">
+          <com:Name xml:lang="fr">De 75 à 79 ans</com:Name>
+          <com:Name xml:lang="en">From 75 to 79 years old</com:Name>
+        </str:Code>
+        <str:Code id="80-84" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).80-84">
+          <com:Name xml:lang="fr">De 80 à 84 ans</com:Name>
+          <com:Name xml:lang="en">From 80 to 84 years old</com:Name>
+        </str:Code>
+        <str:Code id="85-89" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).85-89">
+          <com:Name xml:lang="fr">De 85 à 89 ans</com:Name>
+          <com:Name xml:lang="en">From 85 to 89 years old</com:Name>
+        </str:Code>
+        <str:Code id="20-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).20-59">
+          <com:Name xml:lang="fr">De 20 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 20 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-49" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-49">
+          <com:Name xml:lang="fr">De 15 à 49 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 49 years old</com:Name>
+        </str:Code>
+        <str:Code id="40-50" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).40-50">
+          <com:Name xml:lang="fr">De 40 à 50 ans</com:Name>
+          <com:Name xml:lang="en">From 40 to 50 years old</com:Name>
+        </str:Code>
+        <str:Code id="80-89" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).80-89">
+          <com:Name xml:lang="fr">De 80 à 89 ans</com:Name>
+          <com:Name xml:lang="en">From 80 to 89 years old</com:Name>
+        </str:Code>
+        <str:Code id="90-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).90-">
+          <com:Name xml:lang="fr">90 ans et plus</com:Name>
+          <com:Name xml:lang="en">90 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="00" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00">
+          <com:Name xml:lang="fr">0 an</com:Name>
+          <com:Name xml:lang="en">0 years old</com:Name>
+        </str:Code>
+        <str:Code id="01" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).01">
+          <com:Name xml:lang="fr">1 an</com:Name>
+          <com:Name xml:lang="en">1 year old</com:Name>
+        </str:Code>
+        <str:Code id="20" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).20">
+          <com:Name xml:lang="fr">20 ans</com:Name>
+          <com:Name xml:lang="en">20 years old</com:Name>
+        </str:Code>
+        <str:Code id="40" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).40">
+          <com:Name xml:lang="fr">40 ans</com:Name>
+          <com:Name xml:lang="en">40 years old</com:Name>
+        </str:Code>
+        <str:Code id="60" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).60">
+          <com:Name xml:lang="fr">60 ans</com:Name>
+          <com:Name xml:lang="en">60 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-54" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-54">
+          <com:Name xml:lang="fr">De 25 à 54 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 54 years old</com:Name>
+        </str:Code>
+        <str:Code id="55-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).55-">
+          <com:Name xml:lang="fr">55 ans et plus</com:Name>
+          <com:Name xml:lang="en">55 years old and over</com:Name>
+        </str:Code>
+        <str:Code id="00-24" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-24">
+          <com:Name xml:lang="fr">Moins de 25 ans</com:Name>
+          <com:Name xml:lang="en">Below 25 years old</com:Name>
+        </str:Code>
+        <str:Code id="15-29" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).15-29">
+          <com:Name xml:lang="fr">De 15 à 29 ans</com:Name>
+          <com:Name xml:lang="en">From 15 to 29 years old</com:Name>
+        </str:Code>
+        <str:Code id="30-44" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).30-44">
+          <com:Name xml:lang="fr">De 30 à 44 ans</com:Name>
+          <com:Name xml:lang="en">From 30 to 44 years old</com:Name>
+        </str:Code>
+        <str:Code id="30-39" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).30-39">
+          <com:Name xml:lang="fr">De 30 à 39 ans</com:Name>
+          <com:Name xml:lang="en">From 30 to 39 years old</com:Name>
+        </str:Code>
+        <str:Code id="40-49" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).40-49">
+          <com:Name xml:lang="fr">De 40 à 49 ans</com:Name>
+          <com:Name xml:lang="en">From 40 to 49 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-34" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-34">
+          <com:Name xml:lang="fr">De 25 à 34 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 34 years old</com:Name>
+        </str:Code>
+        <str:Code id="45-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).45-59">
+          <com:Name xml:lang="fr">De 45 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 45 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="25-59" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).25-59">
+          <com:Name xml:lang="fr">De 25 à 59 ans</com:Name>
+          <com:Name xml:lang="en">From 25 to 59 years old</com:Name>
+        </str:Code>
+        <str:Code id="35-49" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).35-49">
+          <com:Name xml:lang="fr">De 35 à 49 ans</com:Name>
+          <com:Name xml:lang="en">From 35 to 49 years old</com:Name>
+        </str:Code>
+        <str:Code id="00-04" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).00-04">
+          <com:Name xml:lang="fr">De 0 à 4 ans</com:Name>
+          <com:Name xml:lang="en">From 0 to 4 years old</com:Name>
+        </str:Code>
+        <str:Code id="90-94" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).90-94">
+          <com:Name xml:lang="fr">De 90 à 94 ans</com:Name>
+          <com:Name xml:lang="en">From 90 to 94 years old</com:Name>
+        </str:Code>
+        <str:Code id="95-" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_AGE(1.0).95-">
+          <com:Name xml:lang="fr">95 ans et plus</com:Name>
+          <com:Name xml:lang="en">95 years old and over</com:Name>
+        </str:Code>
+      </str:Codelist>
+      <str:Codelist id="CL_INDIC_GEN" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_INDIC_GEN(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Nomenclature indicateurs généraux</com:Name>
+        <str:Code id="MOY" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).MOY">
+          <com:Name xml:lang="fr">Moyenne</com:Name>
+          <com:Name xml:lang="en">Average</com:Name>
+        </str:Code>
+        <str:Code id="MONTANT-TOT" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).MONTANT-TOT">
+          <com:Name xml:lang="fr">Montant total</com:Name>
+          <com:Name xml:lang="en">Total amount</com:Name>
+        </str:Code>
+        <str:Code id="Part" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).Part">
+          <com:Name xml:lang="fr">Part</com:Name>
+          <com:Name xml:lang="en">Proportion</com:Name>
+        </str:Code>
+        <str:Code id="Tx" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).Tx">
+          <com:Name xml:lang="fr">Taux</com:Name>
+          <com:Name xml:lang="en">Rate</com:Name>
+        </str:Code>
+        <str:Code id="Nbre" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).Nbre">
+          <com:Name xml:lang="fr">Nombre</com:Name>
+          <com:Name xml:lang="en">Number</com:Name>
+        </str:Code>
+        <str:Code id="IND-REV" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).IND-REV">
+          <com:Name xml:lang="fr">Indicateur de révision</com:Name>
+          <com:Name xml:lang="en">Indicator of revision</com:Name>
+        </str:Code>
+        <str:Code id="Pourcent" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).Pourcent">
+          <com:Name xml:lang="fr">Pourcentages</com:Name>
+          <com:Name xml:lang="en">Percentages</com:Name>
+        </str:Code>
+        <str:Code id="EFF" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).EFF">
+          <com:Name xml:lang="fr">Effectif</com:Name>
+          <com:Name xml:lang="en">Headcount</com:Name>
+        </str:Code>
+        <str:Code id="PROP" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_INDIC_GEN(1.0).PROP">
+          <com:Name xml:lang="fr">Proportion</com:Name>
+          <com:Name xml:lang="en">Proportion</com:Name>
+        </str:Code>
+      </str:Codelist>
+      <str:Codelist id="CL_SEXE" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_SEXE(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Nomenclature des sexes</com:Name>
+        <str:Code id="1" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_SEXE(1.0).1">
+          <com:Name xml:lang="fr">Hommes</com:Name>
+          <com:Name xml:lang="en">Men</com:Name>
+        </str:Code>
+        <str:Code id="0" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_SEXE(1.0).0">
+          <com:Name xml:lang="fr">Ensemble</com:Name>
+          <com:Name xml:lang="en">All</com:Name>
+        </str:Code>
+        <str:Code id="2" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_SEXE(1.0).2">
+          <com:Name xml:lang="fr">Femmes</com:Name>
+          <com:Name xml:lang="en">Women</com:Name>
+        </str:Code>
+      </str:Codelist>
+    </str:Codelists>
+    <str:Concepts>
+      <str:ConceptScheme id="CONCEPTS_INSEE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.ConceptScheme=FR1:CONCEPTS_INSEE(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Concepts Insee</com:Name>
+        <com:Name xml:lang="en">Insee concepts</com:Name>
+        <str:Concept id="FREQ" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FREQ">
+          <com:Name xml:lang="fr">Périodicité</com:Name>
+          <com:Name xml:lang="en">Frequency</com:Name>
+        </str:Concept>
+        <str:Concept id="ACTIVITE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ACTIVITE">
+          <com:Name xml:lang="fr">Secteur d'activité</com:Name>
+          <com:Name xml:lang="en">Economic activity</com:Name>
+        </str:Concept>
+        <str:Concept id="FINANCEMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FINANCEMENT">
+          <com:Name xml:lang="fr">Secteurs de financement</com:Name>
+          <com:Name xml:lang="en">Financing sectors</com:Name>
+        </str:Concept>
+        <str:Concept id="SECT-INST" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).SECT-INST">
+          <com:Name xml:lang="fr">Secteurs institutionnels</com:Name>
+          <com:Name xml:lang="en">Institutional sectors</com:Name>
+        </str:Concept>
+        <str:Concept id="COMPTE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).COMPTE">
+          <com:Name xml:lang="fr">Nature de l'opération</com:Name>
+          <com:Name xml:lang="en">Nature of the transaction</com:Name>
+        </str:Concept>
+        <str:Concept id="OPERATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).OPERATION">
+          <com:Name xml:lang="fr">Nature d'opération</com:Name>
+          <com:Name xml:lang="en">Nature of the transaction</com:Name>
+        </str:Concept>
+        <str:Concept id="NATURE-FLUX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).NATURE-FLUX">
+          <com:Name xml:lang="fr">Nature du flux</com:Name>
+          <com:Name xml:lang="en">Nature of flow</com:Name>
+        </str:Concept>
+        <str:Concept id="INDEX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).INDEX">
+          <com:Name xml:lang="fr">Index</com:Name>
+          <com:Name xml:lang="en">Index</com:Name>
+        </str:Concept>
+        <str:Concept id="FORME-VENTE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FORME-VENTE">
+          <com:Name xml:lang="fr">Formes de vente de la grande distribution</com:Name>
+          <com:Name xml:lang="en">Trading forms of the large retail sector</com:Name>
+        </str:Concept>
+        <str:Concept id="MARCHANDISE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).MARCHANDISE">
+          <com:Name xml:lang="fr">Type de marchandises</com:Name>
+          <com:Name xml:lang="en">Type of goods</com:Name>
+        </str:Concept>
+        <str:Concept id="INSTRUMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).INSTRUMENT">
+          <com:Name xml:lang="fr">Rubriques ou postes</com:Name>
+          <com:Name xml:lang="en">Headings or items</com:Name>
+        </str:Concept>
+        <str:Concept id="QUESTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).QUESTION">
+          <com:Name xml:lang="fr">Questions posées à l'enquête</com:Name>
+          <com:Name xml:lang="en">Questions asked in the survey</com:Name>
+        </str:Concept>
+        <str:Concept id="PRODUIT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).PRODUIT">
+          <com:Name xml:lang="fr">Grands groupes de produits</com:Name>
+          <com:Name xml:lang="en">Main product groups</com:Name>
+        </str:Concept>
+        <str:Concept id="NATURE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).NATURE">
+          <com:Name xml:lang="fr">Nature de la série</com:Name>
+          <com:Name xml:lang="en">Nature of the series</com:Name>
+        </str:Concept>
+        <str:Concept id="BRANCHE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).BRANCHE">
+          <com:Name xml:lang="fr">Grandes branches (produits)</com:Name>
+          <com:Name xml:lang="en">Main branches (products)</com:Name>
+        </str:Concept>
+        <str:Concept id="PRATIQUE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).PRATIQUE">
+          <com:Name xml:lang="fr">Pratique</com:Name>
+          <com:Name xml:lang="en">Activity</com:Name>
+        </str:Concept>
+        <str:Concept id="METIER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).METIER">
+          <com:Name xml:lang="fr">Qualification</com:Name>
+          <com:Name xml:lang="en">Qualification</com:Name>
+        </str:Concept>
+        <str:Concept id="CAT-DE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CAT-DE">
+          <com:Name xml:lang="fr">Catégorie</com:Name>
+          <com:Name xml:lang="en">Category</com:Name>
+        </str:Concept>
+        <str:Concept id="CAUSE-DECES" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CAUSE-DECES">
+          <com:Name xml:lang="fr">Causes de décès</com:Name>
+          <com:Name xml:lang="en">Causes of death</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-ENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-ENT">
+          <com:Name xml:lang="fr">Type d'entreprise</com:Name>
+          <com:Name xml:lang="en">Type of enterprise</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-ETAB" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-ETAB">
+          <com:Name xml:lang="fr">Établissements hospitaliers</com:Name>
+          <com:Name xml:lang="en">Health institutions</com:Name>
+        </str:Concept>
+        <str:Concept id="FONCTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FONCTION">
+          <com:Name xml:lang="fr">Fonctions</com:Name>
+          <com:Name xml:lang="en">Functions</com:Name>
+        </str:Concept>
+        <str:Concept id="FACTEUR-INV" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FACTEUR-INV">
+          <com:Name xml:lang="fr">Type d'influence</com:Name>
+          <com:Name xml:lang="en">Type of influence</com:Name>
+        </str:Concept>
+        <str:Concept id="DEST-INV" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DEST-INV">
+          <com:Name xml:lang="fr">Destination</com:Name>
+          <com:Name xml:lang="en">Destination</com:Name>
+        </str:Concept>
+        <str:Concept id="ETAT-CONSTRUCTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ETAT-CONSTRUCTION">
+          <com:Name xml:lang="fr">État d'avancement de la construction</com:Name>
+          <com:Name xml:lang="en">State of progress of the construction</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-RESEAU" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-RESEAU">
+          <com:Name xml:lang="fr">Nature de réseau</com:Name>
+          <com:Name xml:lang="en">Nature of the network</com:Name>
+        </str:Concept>
+        <str:Concept id="DEMOGRAPHIE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DEMOGRAPHIE">
+          <com:Name xml:lang="fr">Indicateurs démographiques</com:Name>
+          <com:Name xml:lang="en">Demographic indicators</com:Name>
+        </str:Concept>
+        <str:Concept id="INDICATEUR" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).INDICATEUR">
+          <com:Name xml:lang="fr">Indicateurs</com:Name>
+          <com:Name xml:lang="en">Indicators</com:Name>
+        </str:Concept>
+        <str:Concept id="TOURISME-INDIC" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TOURISME-INDIC">
+          <com:Name xml:lang="fr">Type d'indicateur</com:Name>
+          <com:Name xml:lang="en">Type of indicator</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-SAL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-SAL">
+          <com:Name xml:lang="fr">Type d'indices</com:Name>
+          <com:Name xml:lang="en">Type of index</com:Name>
+        </str:Concept>
+        <str:Concept id="COTISATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).COTISATION">
+          <com:Name xml:lang="fr">Type de cotisation (patronale ou salariale)</com:Name>
+          <com:Name xml:lang="en">Category of the contribution (payed by the employer or by the employee)</com:Name>
+        </str:Concept>
+        <str:Concept id="CLIENTELE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CLIENTELE">
+          <com:Name xml:lang="fr">Type de clientèle</com:Name>
+          <com:Name xml:lang="en">Type of clientele</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-CREAT-ENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-CREAT-ENT">
+          <com:Name xml:lang="fr">Types de création</com:Name>
+          <com:Name xml:lang="en">Type of business start-ups</com:Name>
+        </str:Concept>
+        <str:Concept id="FORME-EMP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FORME-EMP">
+          <com:Name xml:lang="fr">Forme d'emploi</com:Name>
+          <com:Name xml:lang="en">Form of employment</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-EMP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-EMP">
+          <com:Name xml:lang="fr">Nature d'emploi</com:Name>
+          <com:Name xml:lang="en">Nature of the employment</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-OE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-OE">
+          <com:Name xml:lang="fr">Type d'offre</com:Name>
+          <com:Name xml:lang="en">Type of job offers</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-CESS-ENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-CESS-ENT">
+          <com:Name xml:lang="fr">Type de cessation d'entreprise</com:Name>
+          <com:Name xml:lang="en">Type of enterprise death</com:Name>
+        </str:Concept>
+        <str:Concept id="LOCAL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).LOCAL">
+          <com:Name xml:lang="fr">Type de local d'activité</com:Name>
+          <com:Name xml:lang="en">Type of premises for professional use</com:Name>
+        </str:Concept>
+        <str:Concept id="CARAC-LOG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CARAC-LOG">
+          <com:Name xml:lang="fr">Caractéristique du logement</com:Name>
+          <com:Name xml:lang="en">Dwelling characteristic</com:Name>
+        </str:Concept>
+        <str:Concept id="LOGEMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).LOGEMENT">
+          <com:Name xml:lang="fr">Nature du logement</com:Name>
+          <com:Name xml:lang="en">Nature of the dwelling</com:Name>
+        </str:Concept>
+        <str:Concept id="CHAMP-GEO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CHAMP-GEO">
+          <com:Name xml:lang="fr">Champ géographique</com:Name>
+          <com:Name xml:lang="en">Geographical area</com:Name>
+        </str:Concept>
+        <str:Concept id="POPULATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).POPULATION">
+          <com:Name xml:lang="fr">Population</com:Name>
+          <com:Name xml:lang="en">Population</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-FAMILLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-FAMILLE">
+          <com:Name xml:lang="fr">Type de famille</com:Name>
+          <com:Name xml:lang="en">Type of family</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-MENAGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-MENAGE">
+          <com:Name xml:lang="fr">Type de ménage</com:Name>
+          <com:Name xml:lang="en">Type of household</com:Name>
+        </str:Concept>
+        <str:Concept id="CARBURANT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CARBURANT">
+          <com:Name xml:lang="fr">Type de carburant</com:Name>
+          <com:Name xml:lang="en">Type of fuel</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-VEHICULE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-VEHICULE">
+          <com:Name xml:lang="fr">Type de véhicule</com:Name>
+          <com:Name xml:lang="en">Type of vehicle</com:Name>
+        </str:Concept>
+        <str:Concept id="FORMATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FORMATION">
+          <com:Name xml:lang="fr">Niveau de formation</com:Name>
+          <com:Name xml:lang="en">Level of education</com:Name>
+        </str:Concept>
+        <str:Concept id="EFFOPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).EFFOPE">
+          <com:Name xml:lang="fr">Effectifs des organismes publics et des entreprises</com:Name>
+          <com:Name xml:lang="en">Public bodies and business headcounts</com:Name>
+        </str:Concept>
+        <str:Concept id="UNITE-URBAINE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).UNITE-URBAINE">
+          <com:Name xml:lang="fr">Tranche d'unité urbaine</com:Name>
+          <com:Name xml:lang="en">Type of urban unit</com:Name>
+        </str:Concept>
+        <str:Concept id="SPECIALITE-SANTE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).SPECIALITE-SANTE">
+          <com:Name xml:lang="fr">Spécialités hospitalières</com:Name>
+          <com:Name xml:lang="en">Medical speciality</com:Name>
+        </str:Concept>
+        <str:Concept id="ACCUEIL-PERS-AGEES" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ACCUEIL-PERS-AGEES">
+          <com:Name xml:lang="fr">Type d'accueil des personnes âgées</com:Name>
+          <com:Name xml:lang="en">Type of accomodation for the elderly</com:Name>
+        </str:Concept>
+        <str:Concept id="DIPLOME" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DIPLOME">
+          <com:Name xml:lang="fr">Diplôme</com:Name>
+          <com:Name xml:lang="en">Diploma</com:Name>
+        </str:Concept>
+        <str:Concept id="ETAB-SCOL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ETAB-SCOL">
+          <com:Name xml:lang="fr">Établissement</com:Name>
+          <com:Name xml:lang="en">Educational establishment</com:Name>
+        </str:Concept>
+        <str:Concept id="GEOGRAPHIE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).GEOGRAPHIE">
+          <com:Name xml:lang="fr">Zones économiques</com:Name>
+          <com:Name xml:lang="en">Economic areas</com:Name>
+        </str:Concept>
+        <str:Concept id="LOCALISATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).LOCALISATION">
+          <com:Name xml:lang="fr">Localisation</com:Name>
+          <com:Name xml:lang="en">Location</com:Name>
+        </str:Concept>
+        <str:Concept id="RESIDENCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).RESIDENCE">
+          <com:Name xml:lang="fr">Pays de résidence des touristes</com:Name>
+          <com:Name xml:lang="en">Tourists' country of residence</com:Name>
+        </str:Concept>
+        <str:Concept id="ZONE-GEO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ZONE-GEO">
+          <com:Name xml:lang="fr">Zones de réalisation du chiffre d'affaires</com:Name>
+          <com:Name xml:lang="en">Areas of the turnover achievement</com:Name>
+        </str:Concept>
+        <str:Concept id="HALO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).HALO">
+          <com:Name xml:lang="fr">Disponibilité</com:Name>
+          <com:Name xml:lang="en">Availability</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-EVO" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-EVO">
+          <com:Name xml:lang="fr">Type d'évolution</com:Name>
+          <com:Name xml:lang="en">Type of evolution</com:Name>
+        </str:Concept>
+        <str:Concept id="SEXE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).SEXE">
+          <com:Name xml:lang="fr">Sexe</com:Name>
+          <com:Name xml:lang="en">Gender</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-FLUX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-FLUX">
+          <com:Name xml:lang="fr">Types de flux</com:Name>
+          <com:Name xml:lang="en">Type of flow</com:Name>
+        </str:Concept>
+        <str:Concept id="CAT-FP" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CAT-FP">
+          <com:Name xml:lang="fr">Catégories dans la Fonction Publique</com:Name>
+          <com:Name xml:lang="en">Categories in the civil service</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-COTIS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-COTIS">
+          <com:Name xml:lang="fr">Type de cotisation</com:Name>
+          <com:Name xml:lang="en">Type of contribution</com:Name>
+        </str:Concept>
+        <str:Concept id="PERIODE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).PERIODE">
+          <com:Name xml:lang="fr">Moment d'enquête</com:Name>
+          <com:Name xml:lang="en">Timing of the survey</com:Name>
+        </str:Concept>
+        <str:Concept id="AGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).AGE">
+          <com:Name xml:lang="fr">Tranche d'âge</com:Name>
+          <com:Name xml:lang="en">Age group</com:Name>
+        </str:Concept>
+        <str:Concept id="TAILLE-MENAGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TAILLE-MENAGE">
+          <com:Name xml:lang="fr">Taille du ménage</com:Name>
+          <com:Name xml:lang="en">Size of household</com:Name>
+        </str:Concept>
+        <str:Concept id="TAILLE-ENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TAILLE-ENT">
+          <com:Name xml:lang="fr">Tailles de l'entreprise</com:Name>
+          <com:Name xml:lang="en">Size of enterprises</com:Name>
+        </str:Concept>
+        <str:Concept id="ANCIENNETE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).ANCIENNETE">
+          <com:Name xml:lang="fr">Ancienneté sur les listes</com:Name>
+          <com:Name xml:lang="en">Seniority of registration</com:Name>
+        </str:Concept>
+        <str:Concept id="QUOTITE-TRAV" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).QUOTITE-TRAV">
+          <com:Name xml:lang="fr">Quotité de temps de travail</com:Name>
+          <com:Name xml:lang="en">Amount of working time</com:Name>
+        </str:Concept>
+        <str:Concept id="PRIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).PRIX">
+          <com:Name xml:lang="fr">Concept de prix</com:Name>
+          <com:Name xml:lang="en">Price concept</com:Name>
+        </str:Concept>
+        <str:Concept id="UNITE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).UNITE">
+          <com:Name xml:lang="fr">Unité</com:Name>
+          <com:Name xml:lang="en">Unit</com:Name>
+        </str:Concept>
+        <str:Concept id="CORRECTION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CORRECTION">
+          <com:Name xml:lang="fr">Correction temporelle</com:Name>
+          <com:Name xml:lang="en">Time adjustement</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-SURF-ALIM" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-SURF-ALIM">
+          <com:Name xml:lang="fr">Type de surface alimentaire</com:Name>
+          <com:Name xml:lang="en">Type of food store</com:Name>
+        </str:Concept>
+        <str:Concept id="DATE-DEF-ENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DATE-DEF-ENT">
+          <com:Name xml:lang="fr">Date de prise en compte</com:Name>
+          <com:Name xml:lang="en">Date of consideration</com:Name>
+        </str:Concept>
+        <str:Concept id="DEVISE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DEVISE">
+          <com:Name xml:lang="fr">Devises étrangères</com:Name>
+          <com:Name xml:lang="en">Foreign currencies</com:Name>
+        </str:Concept>
+        <str:Concept id="MONNAIE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).MONNAIE">
+          <com:Name xml:lang="fr">Monnaie de valorisation</com:Name>
+          <com:Name xml:lang="en">Currency of valuation</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-TX-CHANGE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-TX-CHANGE">
+          <com:Name xml:lang="fr">Types de taux de change de l'euro</com:Name>
+          <com:Name xml:lang="en">Types of euro exchange rate</com:Name>
+        </str:Concept>
+        <str:Concept id="TYPE-PRIX" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TYPE-PRIX">
+          <com:Name xml:lang="fr">Type de prix</com:Name>
+          <com:Name xml:lang="en">Type of price</com:Name>
+        </str:Concept>
+        <str:Concept id="BASIND" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).BASIND">
+          <com:Name xml:lang="fr">Période de référence</com:Name>
+          <com:Name xml:lang="en">Reference period</com:Name>
+        </str:Concept>
+        <str:Concept id="FREQUENCE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FREQUENCE">
+          <com:Name xml:lang="fr">Fréquence</com:Name>
+          <com:Name xml:lang="en">Frequency</com:Name>
+        </str:Concept>
+        <str:Concept id="REPARTITION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).REPARTITION">
+          <com:Name xml:lang="fr">Distribution</com:Name>
+          <com:Name xml:lang="en">Distribution</com:Name>
+        </str:Concept>
+        <str:Concept id="REVENU" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).REVENU">
+          <com:Name xml:lang="fr">Décomposition du revenu disponible</com:Name>
+          <com:Name xml:lang="en">Breakdown of disposable income</com:Name>
+        </str:Concept>
+        <str:Concept id="MIN-FPE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).MIN-FPE">
+          <com:Name xml:lang="fr">Ministères</com:Name>
+          <com:Name xml:lang="en">Ministries</com:Name>
+        </str:Concept>
+        <str:Concept id="EXPAGRI" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).EXPAGRI">
+          <com:Name xml:lang="fr">Exploitations agricoles</com:Name>
+        </str:Concept>
+        <str:Concept id="OCC-SOL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).OCC-SOL">
+          <com:Name xml:lang="fr">Occupation du sol</com:Name>
+        </str:Concept>
+        <str:Concept id="CHEPTEL" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).CHEPTEL">
+          <com:Name xml:lang="fr">Cheptel</com:Name>
+        </str:Concept>
+        <str:Concept id="PROD-VEG" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).PROD-VEG">
+          <com:Name xml:lang="fr">Productions végétales</com:Name>
+        </str:Concept>
+        <str:Concept id="FEDERATION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).FEDERATION">
+          <com:Name xml:lang="fr">Fédérations</com:Name>
+          <com:Name xml:lang="en">Federations</com:Name>
+        </str:Concept>
+        <str:Concept id="DEPARTEMENT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DEPARTEMENT">
+          <com:Name xml:lang="fr">Départements</com:Name>
+          <com:Name xml:lang="en">Departments</com:Name>
+        </str:Concept>
+        <str:Concept id="REGION" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).REGION">
+          <com:Name xml:lang="fr">Régions</com:Name>
+          <com:Name xml:lang="en">Regions</com:Name>
+        </str:Concept>
+        <str:Concept id="INDICE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).INDICE">
+          <com:Name xml:lang="fr">Indice</com:Name>
+          <com:Name xml:lang="en">Index</com:Name>
+        </str:Concept>
+        <str:Concept id="IDBANK" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).IDBANK">
+          <com:Name xml:lang="fr">Identifiant numérique utilisé sur le site internet BDM</com:Name>
+          <com:Name xml:lang="en">Numerical identifier used in the BDM website</com:Name>
+        </str:Concept>
+        <str:Concept id="TITLE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TITLE">
+          <com:Name xml:lang="fr">Libellé de la série</com:Name>
+          <com:Name xml:lang="en">Title</com:Name>
+        </str:Concept>
+        <str:Concept id="LAST_UPDATE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).LAST_UPDATE">
+          <com:Name xml:lang="fr">Date de dernière mise à jour</com:Name>
+          <com:Name xml:lang="en">Last update date</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_MEASURE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).UNIT_MEASURE">
+          <com:Name xml:lang="fr">Unité</com:Name>
+          <com:Name xml:lang="en">Unit</com:Name>
+        </str:Concept>
+        <str:Concept id="UNIT_MULT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).UNIT_MULT">
+          <com:Name xml:lang="fr">Puissance</com:Name>
+          <com:Name xml:lang="en">Unit multiplier</com:Name>
+        </str:Concept>
+        <str:Concept id="REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).REF_AREA">
+          <com:Name xml:lang="fr">Zone géographique</com:Name>
+          <com:Name xml:lang="en">Reference area</com:Name>
+        </str:Concept>
+        <str:Concept id="DECIMALS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).DECIMALS">
+          <com:Name xml:lang="fr">Nombre de décimales</com:Name>
+          <com:Name xml:lang="en">Decimals</com:Name>
+        </str:Concept>
+        <str:Concept id="BASE_PER" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).BASE_PER">
+          <com:Name xml:lang="fr">Base de l'indice</com:Name>
+          <com:Name xml:lang="en">Base period</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_PER_COLLECT" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TIME_PER_COLLECT">
+          <com:Name xml:lang="fr">Moment de l'observation</com:Name>
+          <com:Name xml:lang="en">Time period collection</com:Name>
+        </str:Concept>
+        <str:Concept id="TIME_PERIOD" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).TIME_PERIOD">
+          <com:Name xml:lang="fr">Date d'observation</com:Name>
+          <com:Name xml:lang="en">Time period</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_VALUE" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).OBS_VALUE">
+          <com:Name xml:lang="fr">Valeur de l'observation</com:Name>
+          <com:Name xml:lang="en">Observation Value</com:Name>
+        </str:Concept>
+        <str:Concept id="OBS_STATUS" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).OBS_STATUS">
+          <com:Name xml:lang="fr">Statut de l'observation</com:Name>
+          <com:Name xml:lang="en">Observation Status</com:Name>
+        </str:Concept>
+        <str:Concept id="EMBARGO_TIME" urn="urn:sdmx:org.sdmx.infomodel.conceptscheme.Concept=FR1:CONCEPTS_INSEE(1.0).EMBARGO_TIME">
+          <com:Name xml:lang="fr">Date de levée d'embargo</com:Name>
+          <com:Name xml:lang="en">Embargo date</com:Name>
+        </str:Concept>
+      </str:ConceptScheme>
+    </str:Concepts>
+    <str:DataStructures>
+      <str:DataStructure id="CHO-AN-AGE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=FR1:CHO-AN-AGE(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Chômage au sens du BIT en moyenne annuelle - Par sexe et âge</com:Name>
+        <com:Name xml:lang="en">Unemployment according to the ILO standard (annual average) - By gender and age</com:Name>
+        <str:DataStructureComponents>
+          <str:DimensionList id="DimensionDescriptor" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DimensionDescriptor=FR1:CHO-AN-AGE(1.0).DimensionDescriptor">
+            <str:Dimension id="INDICATEUR" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=FR1:CHO-AN-AGE(1.0).INDICATEUR" position="1">
+              <str:ConceptIdentity>
+                <Ref id="INDICATEUR" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_INDIC_GEN" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+            </str:Dimension>
+            <str:Dimension id="SEXE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=FR1:CHO-AN-AGE(1.0).SEXE" position="2">
+              <str:ConceptIdentity>
+                <Ref id="SEXE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_SEXE" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+            </str:Dimension>
+            <str:Dimension id="AGE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.Dimension=FR1:CHO-AN-AGE(1.0).AGE" position="3">
+              <str:ConceptIdentity>
+                <Ref id="AGE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_AGE" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+            </str:Dimension>
+            <str:TimeDimension id="TIME_PERIOD" urn="urn:sdmx:org.sdmx.infomodel.datastructure.TimeDimension=FR1:CHO-AN-AGE(1.0).TIME_PERIOD" position="4">
+              <str:ConceptIdentity>
+                <Ref id="TIME_PERIOD" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="ObservationalTimePeriod"/>
+              </str:LocalRepresentation>
+            </str:TimeDimension>
+          </str:DimensionList>
+          <str:AttributeList id="AttributeDescriptor" urn="urn:sdmx:org.sdmx.infomodel.datastructure.AttributeDescriptor=FR1:CHO-AN-AGE(1.0).AttributeDescriptor">
+            <str:Attribute id="FREQ" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).FREQ" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="FREQ" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_FREQ" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="IDBANK" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).IDBANK" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="IDBANK" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="String" maxLength="9" pattern="[0-9]{9}"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="TITLE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).TITLE" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="TITLE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="String" maxLength="240"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="LAST_UPDATE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).LAST_UPDATE" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="LAST_UPDATE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="GregorianTimePeriod"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="UNIT_MEASURE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).UNIT_MEASURE" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="UNIT_MEASURE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_UNIT" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="UNIT_MULT" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).UNIT_MULT" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="UNIT_MULT" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="Integer" minValue="0" maxValue="9"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="REF_AREA" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).REF_AREA" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="REF_AREA" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_AREA" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="DECIMALS" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).DECIMALS" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="DECIMALS" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="Integer" minValue="0" maxValue="9"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="BASE_PER" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).BASE_PER" assignmentStatus="Conditional">
+              <str:ConceptIdentity>
+                <Ref id="BASE_PER" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="String" maxLength="30"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="TIME_PER_COLLECT" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).TIME_PER_COLLECT" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="TIME_PER_COLLECT" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_TIME_COLLECT" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:Dimension>
+                  <Ref id="INDICATEUR"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="SEXE"/>
+                </str:Dimension>
+                <str:Dimension>
+                  <Ref id="AGE"/>
+                </str:Dimension>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="OBS_STATUS" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).OBS_STATUS" assignmentStatus="Mandatory">
+              <str:ConceptIdentity>
+                <Ref id="OBS_STATUS" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:Enumeration>
+                  <Ref id="CL_OBS_STATUS" version="1.0" agencyID="FR1" package="codelist" class="Codelist"/>
+                </str:Enumeration>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:PrimaryMeasure>
+                  <Ref id="OBS_VALUE"/>
+                </str:PrimaryMeasure>
+              </str:AttributeRelationship>
+            </str:Attribute>
+            <str:Attribute id="EMBARGO_TIME" urn="urn:sdmx:org.sdmx.infomodel.datastructure.DataAttribute=FR1:CHO-AN-AGE(1.0).EMBARGO_TIME" assignmentStatus="Conditional">
+              <str:ConceptIdentity>
+                <Ref id="EMBARGO_TIME" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="GregorianTimePeriod"/>
+              </str:LocalRepresentation>
+              <str:AttributeRelationship>
+                <str:PrimaryMeasure>
+                  <Ref id="OBS_VALUE"/>
+                </str:PrimaryMeasure>
+              </str:AttributeRelationship>
+            </str:Attribute>
+          </str:AttributeList>
+          <str:MeasureList id="MeasureDescriptor" urn="urn:sdmx:org.sdmx.infomodel.datastructure.MeasureDescriptor=FR1:CHO-AN-AGE(1.0).MeasureDescriptor">
+            <str:PrimaryMeasure id="OBS_VALUE" urn="urn:sdmx:org.sdmx.infomodel.datastructure.PrimaryMeasure=FR1:CHO-AN-AGE(1.0).OBS_VALUE">
+              <str:ConceptIdentity>
+                <Ref id="OBS_VALUE" maintainableParentID="CONCEPTS_INSEE" maintainableParentVersion="1.0" agencyID="FR1" package="conceptscheme" class="Concept"/>
+              </str:ConceptIdentity>
+              <str:LocalRepresentation>
+                <str:TextFormat textType="Double"/>
+              </str:LocalRepresentation>
+            </str:PrimaryMeasure>
+          </str:MeasureList>
+        </str:DataStructureComponents>
+      </str:DataStructure>
+    </str:DataStructures>
+  </mes:Structures>
+</mes:Structure>

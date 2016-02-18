@@ -20,12 +20,14 @@ RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "xmlutils"))
 
 SAMPLES_DSD_1_0 = {
     'FED': xml_samples.DSD_FED_TERMS,
-    #'FED-TERMS': xml_samples.DSD_FED_TERMS,
 }
 
 SAMPLES_DSD_2_0 = {
     "EUROSTAT": xml_samples.DSD_EUROSTAT, 
     #"DESTATIS": xml_samples.DSD_DESTATIS,
+    "OECD-MEI": xml_samples.DSD_OECD_MEI,
+    "OECD-EO": xml_samples.DSD_OECD_EO,
+    "DSD_IMF_DOT": xml_samples.DSD_IMF_DOT,
 }
 
 SAMPLES_DSD_2_1 = {
@@ -40,6 +42,12 @@ SAMPLES_DATA_1_0 = {
 SAMPLES_DATA_COMPACT_2_0 = {
     "EUROSTAT": xml_samples.DATA_EUROSTAT, 
     #"DESTATIS": xml_samples.DATA_DESTATIS, 
+    "IMF-DOT": xml_samples.DATA_IMF_DOT, 
+}
+
+SAMPLES_DATA_GENERIC_2_0 = {
+    "OECD-MEI": xml_samples.DATA_OECD_MEI, 
+    "OECD-EO": xml_samples.DATA_OECD_EO, 
 }
 
 SAMPLES_DATA_GENERIC_2_1 = {
@@ -402,6 +410,7 @@ class XMLStructure_2_0_TestCase(BaseXMLStructureTestCase):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_datastructure
         self._test_datastructure()    
 
+@unittest.skipIf(True, "FIXME")
 class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
     
     # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase
@@ -425,7 +434,7 @@ class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_categorisation
         self._test_categorisation()
 
-    @unittest.skipIf(True, "TODO")
+    @unittest.skipIf(True, "FIXME")
     def test_dataflow(self):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase.test_dataflow
         self._test_dataflow()
@@ -602,11 +611,21 @@ class XMLData_1_0_TestCase(BaseXMLDataTestCase):
     def test_series(self):
         self._test_series()
 
-class XMLData_2_0_TestCase(BaseXMLDataTestCase):
+class XMLData_2_0_COMPACT_TestCase(BaseXMLDataTestCase):
 
-    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_0_TestCase
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_0_COMPACT_TestCase
     
     SAMPLES = SAMPLES_DATA_COMPACT_2_0
+    DEBUG_MODE = False
+    
+    def test_series(self):
+        self._test_series()
+
+class XMLData_2_0_GENERIC_TestCase(BaseXMLDataTestCase):
+
+    # nosetests -s -v dlstats.tests.test_xml_utils:XMLData_2_0_GENERIC_TestCase
+    
+    SAMPLES = SAMPLES_DATA_GENERIC_2_0
     DEBUG_MODE = False
     
     def test_series(self):

@@ -6,6 +6,7 @@ import os
 from dlstats.fetchers.esri import Esri as Fetcher
 
 import httpretty
+import unittest
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
@@ -152,7 +153,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     }    
     DATASET_FIRST = "def-cy"
     DATASET_LAST = "ritu-mk"
-    DEBUG_MODE = True
+    #DEBUG_MODE = False
     
     def _load_files(self, dataset_code=None):
         
@@ -167,6 +168,7 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type='text/html')
 
     @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):
 
         dataset_code = "kdef-cy"
@@ -175,6 +177,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertLoadDatasetsFirst([dataset_code])
 
     @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_update(self):
 
         dataset_code = "kdef-cy"

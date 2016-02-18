@@ -130,6 +130,7 @@ class XMLSDMX_2_1:
 
 def dataset_converter(xml, dataset_code):
     bson = {}
+    
     dsd_id = xml.get_dsd_id(dataset_code)
     bson["provider_name"] = xml.provider_name
     bson["dataset_code"] = dataset_code
@@ -294,11 +295,22 @@ class XMLStructure_1_0(XMLStructureBase):
         return element[0].text
 
     def process_dsd_id(self, element):
+        """
+        <structure:KeyFamily id="CCOUT" agency="FRB">
+        """
         _id = element.xpath('//message:Header/message:ID/text()', namespaces=self.nsmap)[0]
         short_id = element.attrib.get('id')
         return "%s-%s" % (_id, short_id)
 
     def process_dataset_name(self, element):
+        """
+        Normal: self.get_name_element(element)
+        
+        For FED: compose HEADER NAME + Name text in KeyFamily 
+        
+        <structure:KeyFamily id="CCOUT" agency="FRB">
+            <structure:Name>Consumer Credit Outstanding</structure:Name>        
+        """
         name = element.xpath('//message:Header/message:Name/text()', namespaces=self.nsmap)[0]
         return "%s - %s" % (name, self.get_name_element(element))
     
@@ -395,6 +407,7 @@ class XMLStructure_1_0(XMLStructureBase):
         
         if not _id in self.dimensions_by_dsd[dsd_id]:
             codelist = element.attrib.get('codelist')
+            #FIXME: Specific FED
             codelist = self.fixe_codelist_fed(codelist)
             
             if codelist:
@@ -478,12 +491,10 @@ class XMLStructure_2_0(XMLStructure_1_0):
         return xml_get_name(element)
 
     def process_dsd_id(self, element):
-        _id = element.xpath('//message:Header/message:ID/text()', namespaces=self.nsmap)[0]
-        return _id.replace("_DSD", "")
+        return element.attrib.get('id').replace("_DSD", "").strip()
 
     def process_dataset_name(self, element):
-        name = element.xpath('//message:Header/message:Name/text()', namespaces=self.nsmap)[0]
-        return name.replace("_DSD", "")
+        return self.get_name_element(element).replace("_DSD", "").strip()
 
     def get_concept_ref_id(self, element): 
         return element.attrib.get('conceptRef')   
@@ -496,7 +507,7 @@ class XMLStructure_2_0(XMLStructure_1_0):
             self.nsmap = get_nsmap(tree_iterator)
         else:
             self.nsmap = self.NSMAP
-        
+
         for event, element in tree_iterator:
             if event == 'end':
                 
@@ -525,7 +536,7 @@ class XMLStructure_2_1(XMLStructure_2_0):
     def get_codelist(self, cl_code):
         """If not cl_code self.codelists, load with remote SDMX
         """
-        if not cl_code in self.codelists:
+        if not cl_code in self.codelists or not self.codelists.get(cl_code):
             logger.warning("codelist not found [%s] for provider[%s]" % (cl_code, self.provider_name))
             
             try:
@@ -712,7 +723,6 @@ class XMLStructure_2_1(XMLStructure_2_0):
             "enum": values,
             "attrs": dict(element.attrib)
         }
-        #if not _id in self.dimension_keys:
         self.dimension_keys_by_dsd[dsd_id].append(_id)
         
         element.clear()
@@ -897,6 +907,8 @@ class XMLDataBase:
         for event, element in self.tree_iterator:
             if event == 'end':
                 
+                #print(element)
+                
                 if self.is_series_tag(element):
                     try:
                         yield self.one_series(element), None
@@ -924,7 +936,10 @@ class XMLDataBase:
         if self.dimensions:
             for key in self.dimension_keys:
                 search_value = dimensions[key]
-                values.append(self.dimensions[key][search_value])
+                if key in self.dimensions and search_value in self.dimensions[key]: 
+                    values.append(self.dimensions[key][search_value])
+                else:
+                    values.append(search_value)
         else:
             values = [dimensions[key] for key in self.dimension_keys]
         
@@ -1003,8 +1018,11 @@ class XMLDataMixIn:
         for obs in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
-            
-            if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
+        
+            localname = etree.QName(obs.tag).localname
+                
+            #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
+            if localname == "Obs":
                 item["period"] = obs.attrib["TIME_PERIOD"]
                 #item["period_o"] = item["period"]
                 item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
@@ -1094,8 +1112,8 @@ class XMLData_1_0_FED(XMLData_1_0):
         return {'common': 'http://www.SDMX.org/resources/SDMXML/schemas/v1_0/common',
                 'frb': 'http://www.federalreserve.gov/structure/compact/common',
                 'message': 'http://www.SDMX.org/resources/SDMXML/schemas/v1_0/message',
-                'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}        
-
+                'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
+        
     def process(self, filepath):
         
         self._load_data(filepath)
@@ -1162,6 +1180,66 @@ class XMLCompactData_2_0_DESTATIS(XMLCompactData_2_0):
 
     NS_TAG_DATA = "ns1"
     PROVIDER_NAME = "DESTATIS"
+
+class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
+
+    PROVIDER_NAME = "IMF"
+    
+    def get_key(self, series, dimensions, attributes):
+        return "%s.%s" % (self.dataset_code, attributes["SERIESCODE"])
+    
+    def is_series_tag(self, element):
+        localname = etree.QName(element.tag).localname
+        return localname == 'Series'
+
+    def finalize_bson(self, bson):
+        """Insee Fixe for reverse dates and values
+        """
+        bson = super().finalize_bson(bson)
+        
+        keyfunc = lambda x: x["ordinal"]
+        bson["values"] = sorted(bson["values"], key=keyfunc)
+        bson["start_date"] = bson["values"][0]["ordinal"]
+        bson["end_date"] = bson["values"][-1]["ordinal"]
+        
+        
+        return bson
+
+    
+    def get_observations(self, series, frequency):
+        """
+        <Series FREQ="A" REF_AREA="122" INDICATOR="TMG_CIF_USD" VIS_AREA="369" SCALE="6" SERIESCODE="122TMG_CIF_USD369.A" TIME_FORMAT="P1Y">
+            <Obs TIME_PERIOD="1950" VALUE="0"/>
+            <Obs TIME_PERIOD="1951" VALUE="0"/>
+        </Series>
+        
+        """
+        observations = []
+        for obs in series.iterchildren():
+
+            item = {"period": None, "value": None, "attributes": {}}
+        
+            localname = etree.QName(obs.tag).localname
+                
+            #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
+            if localname == "Obs":
+                item["period"] = obs.attrib["TIME_PERIOD"]
+                #item["period_o"] = item["period"]
+                item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
+                #TODO: value manquante
+                item["value"] = obs.attrib.get("VALUE", "")
+                
+                for key, value in obs.attrib.items():
+                    if not key in ['TIME_PERIOD', 'VALUE']:
+                        item["attributes"][key] = value
+                
+                observations.append(item)
+            
+                obs.clear()
+
+        return observations
+    
+    
     
 class XMLCompactData_2_0_EUROSTAT(XMLCompactData_2_0):
 
@@ -1184,7 +1262,121 @@ class XMLCompactData_2_0_EUROSTAT(XMLCompactData_2_0):
         period = observations[-1]["period"]        
         (date_string, freq) = parse_special_date(period, time_format, self.dataset_code)
         return get_ordinal_from_period(date_string, freq=freq)
+
+class XMLGenericData_2_0(XMLDataBase):
+    """SDMX 2.0 application/vnd.sdmx.genericdata+xml;version=2.1
+    """
+
+    NS_TAG_DATA = "common"
+    XMLStructureKlass = XMLStructure_2_0
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.field_frequency = "FREQUENCY"                
+
+    def is_series_tag(self, element):
+        return etree.QName(element.tag).localname == 'Series'
+    
+    def _get_values(self, element):
+        """
+        <SeriesKey>
+            <Value concept="LOCATION" value="AUT"/>
+            <Value concept="SUBJECT" value="PRMNTO01"/>
+        </SeriesKey>        
+        """
+        d = OrderedDict()
+        for value in element.iterchildren():
+            key = value.attrib["concept"]
+            value =value.attrib["value"]
+            d[key] = value
+        return d
+    
+    def get_observations(self, series, frequency):
         
+        observations = []
+        
+        for element in series.xpath("./*[local-name()='Obs']"):
+
+            item = {"period": None, "value": None, "attributes": {}}
+            
+            for child in element.getchildren():
+                
+                if etree.QName(child.tag).localname == "Time":
+                    item["period"] = child.text
+                    #item["period_o"] = item["period"]
+                    item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
+                
+                elif etree.QName(child.tag).localname == 'ObsValue':
+                    #TODO: valeur manquante
+                    item["value"] = child.attrib["value"]
+                
+                #TODO:
+                elif etree.QName(child.tag).localname == 'Attributes':
+                    """
+                    <Attributes><Value concept="OBS_STATUS" value="M"/></Attributes>                    
+                    AUS.LCEATT02.ST.Q                
+                    """ 
+                    for key, value in self._get_values(child).items():
+                        item["attributes"][key] = value
+                
+                child.clear()
+            
+            observations.append(item)
+            element.clear()
+            
+        return observations
+
+    def get_dimensions(self, series):
+        _dimensions = series.xpath("./*[local-name()='SeriesKey']")[0]
+        
+        dimensions = self._get_values(_dimensions)
+        if self.dimension_keys:
+            return OrderedDict([(k, v) for k, v in dimensions.items() if k in self.dimension_keys])
+        else:
+            return OrderedDict([(k, v) for k, v in dimensions.items()])
+
+    def get_attributes(self, series):
+        _attributes = series.xpath("./*[local-name()='Attributes']")[0]
+
+        attributes = self._get_values(_attributes)        
+        if self.dimension_keys:
+            return OrderedDict([(k, v) for k, v in attributes.items() if not k in self.dimension_keys])
+        else:
+            return {}
+
+    def build_series(self, series):
+        dimensions = self.get_dimensions(series)
+        attributes = self.get_attributes(series)
+        frequency = self.get_frequency(series, dimensions, attributes)
+        observations = self.get_observations(series, frequency)
+
+        if not observations:
+            msg = {"provider_name": self.provider_name, 
+                   "dataset_code": self.dataset_code}            
+            raise errors.RejectEmptySeries(**msg)                
+        
+        bson = {
+            "provider_name": self.provider_name,
+            "dataset_code": self.dataset_code,
+            "dimensions": dimensions,
+            "frequency": frequency,
+            "name": self.get_name(series, dimensions, attributes),
+            "key": self.get_key(series, dimensions, attributes), 
+            "observations": observations,
+            "series_keys": dimensions,
+            "series_attributes": attributes,
+        }
+
+        bson["start_date"] = self.start_date(series, frequency, observations, bson)
+        bson["end_date"] = self.end_date(series, frequency, observations, bson)
+        bson["last_update"] = self.get_last_update(series, dimensions, attributes, bson)
+        
+        return bson
+    
+class XMLGenericData_2_0_OECD(XMLGenericData_2_0):
+    
+    PROVIDER_NAME = "OECD"    
+    
 class XMLGenericData_2_1(XMLDataBase):
     """SDMX 2.1 application/vnd.sdmx.genericdata+xml;version=2.1
     """
@@ -1253,6 +1445,11 @@ class XMLGenericData_2_1(XMLDataBase):
         attributes = self.get_attributes(series)
         frequency = self.get_frequency(series, dimensions, attributes)
         observations = self.get_observations(series, frequency)
+
+        if not observations:
+            msg = {"provider_name": self.provider_name, 
+                   "dataset_code": self.dataset_code}            
+            raise errors.RejectEmptySeries(**msg)                
         
         bson = {
             "provider_name": self.provider_name,
@@ -1307,14 +1504,17 @@ class DataMixIn_INSEE:
         attributes_keys = "|".join(list(attributes.keys())) if attributes else ""
         dimensions_keys = "|".join(list(dimensions.keys())) if dimensions else ""
         return "DIMENSIONS[%s] - ATTRIBUTES[%s]" % (attributes_keys, dimensions_keys)
-    
+
+    """
+    USE title English by concat dimension + add title ?    
     def get_name(self, series, dimensions, attributes):
         if "TITLE" in attributes:            
             return attributes["TITLE"]
         elif "TITLE" in dimensions:
             return dimensions["TITLE"]
-        
+
         return super().get_name(series, dimensions, attributes)
+    """
     
     def get_key(self, series, dimensions, attributes):
         return attributes["IDBANK"]
@@ -1341,7 +1541,7 @@ class DataMixIn_INSEE:
         bson["end_date"] = end_date
         bson["start_date"] = start_date
         bson["values"].reverse()
-        
+
         return bson
 
 class XMLGenericData_2_1_ECB(DataMixIn_ECB, XMLGenericData_2_1):
@@ -1399,6 +1599,11 @@ class XMLSpecificData_2_1(XMLDataBase):
         attributes = self.get_attributes(series)
         frequency = self.get_frequency(series, dimensions, attributes)
         observations = self.get_observations(series, frequency)
+
+        if not observations:
+            msg = {"provider_name": self.provider_name, 
+                   "dataset_code": self.dataset_code}            
+            raise errors.RejectEmptySeries(**msg)                
         
         bson = {
             "provider_name": self.provider_name,
@@ -1437,9 +1642,12 @@ XML_STRUCTURE_KLASS = {
     "XMLStructure_2_1": XMLStructure_2_1,
     "XMLData_1_0": XMLData_1_0,
     "XMLData_1_0_FED": XMLData_1_0_FED,
+    "XMLGenericData_2_0": XMLGenericData_2_0,
+    "XMLGenericData_2_0_OECD": XMLGenericData_2_0_OECD,
     "XMLCompactData_2_0": XMLCompactData_2_0,
     "XMLCompactData_2_0_EUROSTAT": XMLCompactData_2_0_EUROSTAT,
     "XMLCompactData_2_0_DESTATIS": XMLCompactData_2_0_DESTATIS,
+    "XMLCompactData_2_0_IMF": XMLCompactData_2_0_IMF,    
     "XMLGenericData_2_1": XMLGenericData_2_1,
     "XMLGenericData_2_1_ECB": XMLGenericData_2_1_ECB,
     "XMLGenericData_2_1_INSEE": XMLGenericData_2_1_INSEE,

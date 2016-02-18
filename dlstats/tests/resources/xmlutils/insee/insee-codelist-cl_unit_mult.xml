@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mes:Structure xmlns:mes="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:com="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common" xmlns:str="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure">
+  <mes:Header>
+    <mes:ID>codelist_CL_UNIT_MULT_1455735313237</mes:ID>
+    <mes:Test>false</mes:Test>
+    <mes:Prepared>2016-02-17T18:55:13.237Z</mes:Prepared>
+    <mes:Sender id="FR1">
+      <com:Name xml:lang="fr">Institut national de la statistique et des études économiques</com:Name>
+    </mes:Sender>
+    <mes:Receiver id="unknown"/>
+    <mes:Source xml:lang="fr">Banque de données macro-économiques</mes:Source>
+  </mes:Header>
+  <mes:Structures>
+    <str:Codelists>
+      <str:Codelist id="CL_UNIT_MULT" urn="urn:sdmx:org.sdmx.infomodel.codelist.Codelist=FR1:CL_UNIT_MULT(1.0)" agencyID="FR1" version="1.0">
+        <com:Name xml:lang="fr">Puissance</com:Name>
+        <com:Name xml:lang="en">Unit Multiplier</com:Name>
+        <str:Code id="0" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_UNIT_MULT(1.0).0">
+          <com:Name xml:lang="fr">Unités</com:Name>
+          <com:Name xml:lang="en">Units</com:Name>
+        </str:Code>
+        <str:Code id="3" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_UNIT_MULT(1.0).3">
+          <com:Name xml:lang="fr">Milliers</com:Name>
+          <com:Name xml:lang="en">Thousands</com:Name>
+        </str:Code>
+        <str:Code id="6" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_UNIT_MULT(1.0).6">
+          <com:Name xml:lang="fr">Millions</com:Name>
+          <com:Name xml:lang="en">Millions</com:Name>
+        </str:Code>
+        <str:Code id="9" urn="urn:sdmx:org.sdmx.infomodel.codelist.Code=FR1:CL_UNIT_MULT(1.0).9">
+          <com:Name xml:lang="fr">Milliards</com:Name>
+          <com:Name xml:lang="en">Billions</com:Name>
+        </str:Code>
+      </str:Codelist>
+    </str:Codelists>
+  </mes:Structures>
+</mes:Structure>

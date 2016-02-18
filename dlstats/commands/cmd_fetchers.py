@@ -9,6 +9,7 @@ from widukind_common import tags
 from dlstats import constants
 from dlstats.fetchers import FETCHERS
 from dlstats import client
+from dlstats.utils import last_error
 
 opt_fetcher = click.option('--fetcher', '-f', 
               required=True, type=click.Choice(FETCHERS.keys()), 
@@ -84,9 +85,14 @@ def cmd_dataset_list(fetcher, **kwargs):
 @client.opt_requests_cache_enable
 @client.opt_requests_cache_path
 @client.opt_requests_cache_expire
+@click.option('--use-files', is_flag=True,
+              help='Use existing files in tmpdir')
+@click.option('--not-remove', is_flag=True,
+              help='Not remove files after process')
 @click.option('--force', is_flag=True, help="Force update")
 @opt_fetcher
-def datatree(fetcher=None, force=False, **kwargs):
+def cmd_datatree(fetcher=None, force=False, 
+                 use_files=False, not_remove=False, **kwargs):
     """Create or Update fetcher Data-Tree"""
 
     ctx = client.Context(**kwargs)
@@ -95,7 +101,10 @@ def datatree(fetcher=None, force=False, **kwargs):
 
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
 
-        f = FETCHERS[fetcher](db=ctx.mongo_database())
+        f = FETCHERS[fetcher](db=ctx.mongo_database(),
+                              use_existing_file=use_files,
+                              not_remove_files=not_remove)
+        
         f.upsert_data_tree(force_update=force)
         #TODO: lock commun avec tasks ?
 
@@ -177,10 +186,15 @@ def cmd_calendar(fetcher=None, **kwargs):
               show_default=True, help='Max errors accepted.')
 @click.option('--datatree', is_flag=True,
               help='Update data-tree before run.')
+@click.option('--use-files', is_flag=True,
+              help='Use existing files in tmpdir')
+@click.option('--not-remove', is_flag=True,
+              help='Not remove files after process')
 @opt_fetcher
 @opt_dataset
 def cmd_run(fetcher=None, dataset=None, 
-            max_errors=0, datatree=False, **kwargs):
+            max_errors=0, datatree=False, 
+            use_files=False, not_remove=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
     ctx = client.Context(**kwargs)
@@ -189,7 +203,10 @@ def cmd_run(fetcher=None, dataset=None,
     
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
-        f = FETCHERS[fetcher](db=ctx.mongo_database(), max_errors=max_errors)
+        f = FETCHERS[fetcher](db=ctx.mongo_database(),
+                              max_errors=max_errors,
+                              use_existing_file=use_files,
+                              not_remove_files=not_remove)
         
         if not dataset and not hasattr(f, "upsert_all_datasets"):
             ctx.log_error("upsert_all_datasets method is not implemented for this fetcher.")
@@ -295,9 +312,6 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
     dlstats fetchers tag -f OECD -d MEI -S
     
     """
-    if async_mode == "gevent":
-        from gevent import monkey
-        monkey.patch_all()
 
     ctx = client.Context(**kwargs)
 
@@ -309,8 +323,7 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
         
         db = ctx.mongo_database()
 
-        f = FETCHERS[fetcher](db=db)        
-        provider_name = f.provider_name        
+        provider_name = fetcher        
 
         ctx.log("Update provider[%s] Categories tags..." % provider_name)
         try:
@@ -346,8 +359,8 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
                                       dry_mode=dry_mode)
             if not async_mode:
                 ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
-        except Exception as err:
-            ctx.log_error("Update Series tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
+        except Exception:
+            ctx.log_error("Update Series tags Fail - provider[%s]: %s" % (provider_name, last_error()))
         
         end = time.time() - start
         

@@ -13,7 +13,7 @@ import pytz
 from lxml import etree
 
 from dlstats import constants
-from dlstats.utils import Downloader, get_ordinal_from_period, remove_file_and_dir
+from dlstats.utils import Downloader, get_ordinal_from_period
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import errors
 
@@ -119,7 +119,7 @@ DATASETS = {
         'name': 'Consolidated banking statistics',
         'agenda_titles': ['Banking statistics Consolidated'],
         'doc_href': 'http://www.bis.org/statistics/consstats.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_cbs_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_cbs_csv.zip',
         'filename': 'full_bis_cbs_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -132,7 +132,7 @@ DATASETS = {
         # same data set for 'Internationa' and 'Domestic and total'
         'agenda_titles': ['Debt securities statistics International', 'Debt securities statistics Domestic and total'],
         'doc_href': 'http://www.bis.org/statistics/secstats.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_debt_sec2_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_debt_sec2_csv.zip',
         'filename': 'full_bis_debt_sec2_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -144,7 +144,7 @@ DATASETS = {
         'name': 'Credit to the non-financial sector',
         'agenda_titles': ['Credit to non-financial sector'],
         'doc_href': 'http://www.bis.org/statistics/credtopriv.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_total_credit_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_total_credit_csv.zip',
         'filename': 'full_bis_total_credit_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -156,7 +156,7 @@ DATASETS = {
         'name': 'Debt service ratios for the private non-financial sector',
         'agenda_titles': ['Debt service ratio'],
         'doc_href': 'http://www.bis.org/statistics/dsr.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_dsr_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_dsr_csv.zip',
         'filename': 'full_bis_dsr_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -168,7 +168,7 @@ DATASETS = {
         'name': 'Property prices - selected series',
         'agenda_titles': ['Property prices Selected'],
         'doc_href': 'http://www.bis.org/statistics/pp_detailed.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_selected_pp_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_selected_pp_csv.zip',
         'filename': 'full_bis_selected_pp_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -180,7 +180,7 @@ DATASETS = {
         'name': 'Property prices - long series',
         'agenda_titles': ['Property prices long'],
         'doc_href': 'http://www.bis.org/statistics/pp_long.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_long_pp_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_long_pp_csv.zip',
         'filename': 'full_bis_long_pp_csv.zip',
         'frequency': 'Q',
         'lines': {
@@ -192,7 +192,7 @@ DATASETS = {
         'name': 'Effective exchange rate indices',
         'agenda_titles': ['Effective exchange rates'],
         'doc_href': 'http://www.bis.org/statistics/eer/index.htm',
-        'url': 'https://www.bis.org/statistics/full_bis_eer_csv.zip',
+        'url': 'http://www.bis.org/statistics/full_bis_eer_csv.zip',
         'filename': 'full_bis_eer_csv.zip',
         'frequency': 'M',
         'lines': {
@@ -241,7 +241,7 @@ class BIS(Fetcher):
         else:
             comments = "update-date[%s]" % fetcher_data.release_date
             raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
-                                              dataset_code=self.dataset_code,
+                                              dataset_code=dataset_code,
                                               comments=comments)
             
     def build_data_tree(self):
@@ -272,7 +272,7 @@ class BIS(Fetcher):
 
         with open(filepath, 'rb') as fp:
             content = fp.read()
-            remove_file_and_dir(filepath, let_root=True)
+            self.for_delete.append(filepath)
             return content
     
     def _parse_agenda(self):
@@ -422,12 +422,13 @@ class BIS_Data(SeriesIterator):
             # TODO: timeout, replace
             download = Downloader(url=self.url,
                                   store_filepath=self.store_path, 
-                                  filename=self.filename)
+                                  filename=self.filename,
+                                  use_existing_file=self.fetcher.use_existing_file)
             
             zip_filepath = download.get_filepath()
-            self.dataset.for_delete.append(zip_filepath)
+            self.fetcher.for_delete.append(zip_filepath)
             filepath = extract_zip_file(zip_filepath)
-            self.dataset.for_delete.append(zip_filepath)
+            self.fetcher.for_delete.append(zip_filepath)
             
             kwargs['filepath'] = filepath
         else:
@@ -463,8 +464,8 @@ class BIS_Data(SeriesIterator):
 
         self.dataset.concepts = dict(zip(self.dimension_keys, self.dimension_keys))
 
-        for k, dimensions in self.dimension_list.get_dict().items():
-            self.dataset.codelists[k] = dimensions
+        #for k, dimensions in self.dimension_list.get_dict().items():
+        #    self.dataset.codelists[k] = dimensions
 
         #for k, attributes in self.attribute_list.get_dict().items():
         #    self.dataset.codelists[k] = attributes
@@ -477,7 +478,11 @@ class BIS_Data(SeriesIterator):
         for d in self.dimension_keys:
             dim_short_id = row[d].split(":")[0]
             dim_long_id = row[d].split(":")[1]
-            dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
+            dimensions[d] = dim_short_id
+            if not d in self.dataset.codelists:
+                self.dataset.codelists[d] = {}
+            self.dataset.codelists[d][dim_short_id] = dim_long_id
+            #dimensions[d] = self.dimension_list.update_entry(d, dim_short_id, dim_long_id)
 
         series_name = " - ".join([row[d].split(":")[1] for d in self.dimension_keys])
 

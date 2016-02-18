@@ -29,6 +29,12 @@ http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_AREA" > xmlutils/ins
 http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_OBS_STATUS" > xmlutils/insee/insee-codelist-cl_obs_status.xml
 http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_TIME_COLLECT" > xmlutils/insee/insee-codelist-cl_time_collect.xml
 http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_UNIT" > xmlutils/insee/insee-codelist-cl_unit.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_UNIT_MULT" > xmlutils/insee/insee-codelist-cl_unit_mult.xml
+http "http://www.bdm.insee.fr/series/sdmx/codelist/INSEE/CL_FREQ" > xmlutils/insee/insee-codelist-cl_freq.xml
+
+#INSEE - fetcher tests:
+http "http://www.bdm.insee.fr/series/sdmx/data/CHO-AN-AGE" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > insee/insee-data-CHO-AN-AGE.xml
+http "http://www.bdm.insee.fr/series/sdmx/datastructure/FR1/CHO-AN-AGE?references=children" > insee/insee-datastructure-CHO-AN-AGE.xml
     
 #DESTATIS
 http "https://www.destatis.de/sddsplus/DCS.xml" > xmlutils/destatis/destatis-data-compact-2.0.xml
@@ -130,15 +136,21 @@ http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mg1532.csv" >   ritu-mg1532.csv		
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mk1532.csv" >   ritu-mk1532.csv            
 
+# IMF - xmlutils test
+http "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/DOT" > xmlutils/imf/imf-dot-datastructure-2.0.xml
+http "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/DOT/122..369.A." > xmlutils/imf/imf-dot-data-compact-2.0.xml
+
 # IMF - fetcher tests
 http "http://www.imf.org/external/ns/cs.aspx?id=28" > imf/weo-index.html
+http "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls" > imf/WEOApr2009all.xls
+http "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009alla.xls" > imf/WEOApr2009alla.xls
+http "http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls" > imf/WEOOct2009all.xls
+http "http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009alla.xls" > imf/WEOOct2009alla.xls
 
-# OECD - xmlutils tests
-http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/AUS.CCRETT02..A" > xmlutils/oecd/oecd-data-compact-2.0.xml
-http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/MEI" > xmlutils/oecd/oecd-datastructure-2.0.xml
+# OECD - xmlutils test
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/MEI" > xmlutils/oecd/oecd-mei-datastructure-2.0.xml
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/AUT+FRA.PRMNTO01.IXOBSA.M+A" > xmlutils/oecd/oecd-mei-data-generic.xml
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/EO" > xmlutils/oecd/oecd-eo-datastructure-2.0.xml
+http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/EO/AUT+FRA.CB.A+Q" > xmlutils/oecd/oecd-eo-data-generic.xml
 
-# OECD - fetcher tests
-http "http://stats.oecd.org/sdmx-json/dataflow/MEI" > oecd/oecd-mei-dataflow.json
-http "http://stats.oecd.org/sdmx-json/dataflow/EO" > oecd/oecd-eo-dataflow.json
-http "http://stats.oecd.org/sdmx-json/data/MEI/FRA.XTNTVA01..A" > oecd/oecd-mei-FRA.XTNTVA01.x.A.json
-http "http://stats.oecd.org/sdmx-json/data/EO/AUS.CB." > oecd/oecd-eo-AUS.CB.x.json
+

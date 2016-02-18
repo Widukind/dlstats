@@ -25,7 +25,8 @@ class BaseFetcherTestCase(BaseDBTestCase):
     
     def setUp(self):
         super().setUp()
-        self.fetcher = self.FETCHER_KLASS(db=self.db)
+        self.fetcher = self.FETCHER_KLASS(db=self.db, use_existing_file=False,
+                                          not_remove_files=True)
         self.is_debug = self.DEBUG_MODE
         if self.is_debug:
             logger = logging.getLogger("dlstats")
@@ -71,7 +72,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
         print("-------------- DIMENSIONS -----------------------")
         print(dataset["dimension_keys"])
         for key in dataset["dimension_keys"]:
-            print('"%s": %s,' % (key, len(dataset["codelists"][key])))
+            print('"%s": %s,' % (key, len(dataset["codelists"].get(key, []))))
         print("-------------------------------------------------")
 
     def _debug_dataset_attributes(self, dataset):
@@ -79,7 +80,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
         print("-------------- ATTRIBUTES ------------------------")
         print(dataset["attribute_keys"])
         for key in dataset["attribute_keys"]:
-            print('"%s": %s,' % (key, len(dataset["codelists"][key])))
+            print('"%s": %s,' % (key, len(dataset["codelists"].get(key, []))))
         print("-------------------------------------------------")
     
     def _debug_dataset(self, dataset):
@@ -221,6 +222,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
 
         if dsd["attribute_keys"]:
             
+            #self.assertEqual(sorted(dataset["attribute_keys"]), sorted(dsd["attribute_keys"]))
             self.assertEqual(dataset["attribute_keys"], dsd["attribute_keys"])
 
             for key in dataset["attribute_keys"]:
@@ -289,9 +291,11 @@ class BaseFetcherTestCase(BaseDBTestCase):
         if dsd["is_completed"]:
             
             for key in series_db["dimensions"].keys():
-                self.assertTrue(key in dsd["dimension_keys"])
+                self.assertTrue(key in dsd["dimension_keys"], 
+                                "not key[%s] in dimension_keys" % key)
             
             if series_db["attributes"]:
                 for key in series_db["attributes"].keys():
-                    self.assertTrue(key in dsd["attribute_keys"])
+                    self.assertTrue(key in dsd["attribute_keys"],
+                                    "not key[%s] in attribute_keys" % key)
 
