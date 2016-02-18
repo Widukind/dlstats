@@ -12,6 +12,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+MONGO_DENIED_KEY_CHARS = ["."]
+
 def last_error():
     f = StringIO() 
     traceback.print_exc(file=f)
@@ -178,7 +180,7 @@ def clean_datetime(dt=None,
     
 def remove_file_and_dir(filepath, let_root=False):
     if not os.path.exists(filepath):
-        logger.warning("file not found [%s]" % filepath)
+        #logger.warning("file not found [%s]" % filepath)
         return
     
     if not os.path.isfile(filepath):
@@ -188,18 +190,18 @@ def remove_file_and_dir(filepath, let_root=False):
     dirname = os.path.dirname(filepath)
 
     if not os.path.isdir(dirname) or not os.path.exists(dirname):
-        logger.warning("dir is not dir or not found [%s]" % dirname)
+        #logger.warning("dir is not dir or not found [%s]" % dirname)
         return
     if os.path.ismount(dirname):
         logger.critical("dir is protected [%s]" % dirname)
         return
 
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("remove file[%s]" % filepath)    
-    os.remove(filepath)
+    #if logger.isEnabledFor(logging.DEBUG):
+    #    logger.debug("remove file[%s]" % filepath)    
+    #os.remove(filepath)
     
-    if logger.isEnabledFor(logging.DEBUG):
-        logger.debug("remove dir[%s]" % dirname)
+    #if logger.isEnabledFor(logging.DEBUG):
+    #    logger.debug("remove dir[%s]" % dirname)
 
     for root, dirs, files in os.walk(dirname, topdown=False):
         for name in files:
@@ -244,3 +246,21 @@ def get_ordinal_from_period(date_str, freq=None):
     cache.set(key, period_ordinal)
     
     return period_ordinal
+
+def clean_key(key):
+    if not key:
+        return key    
+    for k in MONGO_DENIED_KEY_CHARS:
+        key = key.replace(k, "_")
+    return key
+
+def clean_dict(dct):
+    if not dct:
+        return dct
+    new_dct = dct.copy()
+    for k, v in dct.items():
+        new_dct.pop(k)
+        key = clean_key(k)
+        new_dct[key] = v
+    return new_dct
+
