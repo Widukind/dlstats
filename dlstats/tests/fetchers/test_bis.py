@@ -128,7 +128,8 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.register_url(url, 
                           self.DATASETS[dataset_code]["filepath"])
 
-    @httpretty.activate     
+    @httpretty.activate
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):
 
         dataset_code = "DSRP"
@@ -136,6 +137,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertLoadDatasetsFirst([dataset_code])
 
     @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_update(self):
 
         dataset_code = "DSRP"
