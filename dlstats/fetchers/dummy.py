@@ -59,20 +59,20 @@ DUMMY_SAMPLE_SERIES = [
         "slug": "dummy-ds1-key1",             
         'attributes': None,
         'dimensions': {"COUNTRY": "FRA"},
-        'start_date': 10, 
-        'end_date': 20,
+        'start_date': 30, 
+        'end_date': 31,
         'frequency': "A",
         'values': [
             {
              "period": "2000", 
              "value": "1", 
-             "ordinal": 10, 
+             "ordinal": 30, 
              "attributes": {"OBS_STATUS": "A"}
             },
             {
              "period": "2001", 
              "value": "10", 
-             "ordinal": 20, 
+             "ordinal": 31, 
              "attributes": None
             },
         ],                
