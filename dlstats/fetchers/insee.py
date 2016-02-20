@@ -1,6 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import re
+import requests
+import pytz
+from datetime import datetime
+from lxml import etree
+from urllib.parse import urljoin
+
 from collections import OrderedDict
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
@@ -17,7 +24,7 @@ HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 3
+VERSION = 4
 
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
@@ -26,6 +33,31 @@ FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
 FREQUENCIES_REJECTED = ["S", "B", "I"]
 
 logger = logging.getLogger(__name__)
+
+def download_page(url):
+        try:
+            response = requests.get(url)
+
+            if not response.ok:
+                msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
+                                                                           response.status_code, 
+                                                                           response.reason)
+                logger.error(msg)
+                raise Exception(msg)
+            
+            return response.content
+                
+            #TODO: response.close() ?
+            
+        except requests.exceptions.ConnectionError as err:
+            raise Exception("Connection Error")
+        except requests.exceptions.ConnectTimeout as err:
+            raise Exception("Connect Timeout")
+        except requests.exceptions.ReadTimeout as err:
+            raise Exception("Read Timeout")
+        except Exception as err:
+            raise Exception("Not captured exception : %s" % str(err))            
+
 
 class INSEE(Fetcher):
     
@@ -187,6 +219,58 @@ class INSEE(Fetcher):
                                 dataset_doc=dataset_doc)
         dataset.series.data_iterator = insee_data
         return dataset.update_database()
+
+    def _parse_agenda(self):
+        """Parse agenda of new releases and schedule jobs"""
+        
+        name_list = {d['name']: d['dataset_code'] for d in self.datasets_list()}
+        DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
+        url = 'http://www.insee.fr/en/service/agendas/agenda.asp'
+        page = download_page(url)
+        agenda = etree.HTML(page)
+        ul = agenda.find('.//div[@id="contenu"]').find('.//ul[@class="liens"]')
+        for li in ul.iterfind('li'):
+            text = li.find('p[@class="info"]').text
+            _date = datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
+            href = li.find('.//a').get('href')
+            groups = self._parse_theme(urljoin('http://www.insee.fr',href))
+            for group in groups:
+                group_info = self._parse_group_page(group['url'])
+                yield {'action': "update_node",
+                       "kwargs": {"provider_name": self.provider_name,
+                                  "dataset_code": name_list[group_info['name']]},
+                       "period_type": "date",
+                       "period_kwargs": {"run_date": datetime(_date.year,
+                                                              _date.month,
+                                                              _date.day,
+                                                              _date.hour,
+                                                              _date.minute+5,
+                                                              0),
+                                         "timezone": pytz.country_timezones('fr')}
+                     }
+
+    def _parse_theme(self,url):
+        """Find updated code group and url"""
+
+        page = download_page(url)
+        theme = etree.HTML(page)
+        p = theme.find('.//div[@id="savoirplus"]').find('p')
+        groups = []
+        for a in p.iterfind('.//a'):
+            groups.append({'code': a.text[1:],
+                           'url': a.get('href')})
+        return groups
+
+    def _parse_group_page(self,url):
+        """Find updated dataset code"""
+
+        page = download_page(url)
+        group = etree.HTML(page)
+        div = group.find('.//div[@id="contenu"]')
+        name = div.find('.//h1').text
+        # this will be useful if we change the way to download INSEE data
+        url = div.find('.//a[@id="exportSDMX"]').get('href')
+        return({'name': name, 'url': url})
 
 class INSEE_Data(SeriesIterator):
     
@@ -380,4 +464,3 @@ class INSEE_Data(SeriesIterator):
                                              dataset_code=self.dataset_code,
                                              key=bson.get('key'))
         return bson
-
