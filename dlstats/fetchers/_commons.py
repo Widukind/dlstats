@@ -614,12 +614,16 @@ class Datasets(DlstatsCollection):
             
             dimension_list = {}
             attribute_list = {}
+            
+            if not self.codelists:
+                return
+
             for key in self.dimension_keys:
                 dimension_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
 
             for key in self.attribute_keys:
                 attribute_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
-                
+            
             self.dimension_list.set_dict(dimension_list)
             self.attribute_list.set_dict(attribute_list)
             

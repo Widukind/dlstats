@@ -12,7 +12,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-MONGO_DENIED_KEY_CHARS = ["."]
+MONGO_DENIED_KEY_CHARS = [".", "$"]
 
 def last_error():
     f = StringIO() 

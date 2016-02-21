@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import logging
 from collections import OrderedDict
 
@@ -202,10 +203,11 @@ class INSEE_Data(SeriesIterator):
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
         
-        self.last_update = self.dataset.download_last #self.dataset.last_update
-        if self.dataset_doc:
+        if self.dataset_doc and self.dataset_doc["enable"]:
             #self.last_update = self.dataset_doc["last_update"]
             self.last_update = self.dataset_doc["download_last"]
+        else:
+            self.last_update = self.dataset.download_last #self.dataset.last_update
 
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
                                     sdmx_client=self.fetcher.xml_sdmx)        
@@ -248,11 +250,12 @@ class INSEE_Data(SeriesIterator):
         
         filepath, response = download.get_filepath_and_response()
         
-        if response.status_code == HTTP_ERROR_LONG_RESPONSE:
-            self._load_dsd_by_element()
-            return
-        elif response.status_code >= 400:
-            raise response.raise_for_status()
+        if response:
+            if response.status_code == HTTP_ERROR_LONG_RESPONSE:
+                self._load_dsd_by_element()
+                return
+            elif response.status_code >= 400:
+                raise response.raise_for_status()
         
         self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -285,11 +288,17 @@ class INSEE_Data(SeriesIterator):
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
         filepath, response = download.get_filepath_and_response()
-        if response.status_code == HTTP_ERROR_LONG_RESPONSE:
+
+        if response:
+            if response.status_code == HTTP_ERROR_LONG_RESPONSE:
+                self.rows = self._get_data_by_dimension()
+                return
+            elif response.status_code >= 400:
+                raise response.raise_for_status()
+            
+        if not os.path.exists(filepath):
             self.rows = self._get_data_by_dimension()
             return
-        elif response.status_code >= 400:
-            raise response.raise_for_status()
 
         self.fetcher.for_delete.append(filepath)
         self.rows = self.xml_data.process(filepath)
@@ -306,8 +315,12 @@ class INSEE_Data(SeriesIterator):
         for dim_id, dim in dimensions.items():
             _dimensions[dim_id] = len(dim["enum"].keys())
         
-        _key = min(_dimensions, key=_dimensions.get)
-        
+        #FIXME: temporaire
+        if self.dataset_code == "IPC-2015-COICOP":
+            _key = max(_dimensions, key=_dimensions.get)
+        else:
+            _key = min(_dimensions, key=_dimensions.get)
+            
         position = dimension_keys.index(_key)         
         dimension_values = list(dimensions[_key]["enum"].keys())
         return (position, 
@@ -334,10 +347,11 @@ class INSEE_Data(SeriesIterator):
                                                                       key)
             
             download = Downloader(url=url, 
-                                  filename="data-%s.xml" % self.dataset_code,
+                                  filename="data-%s-%s.xml" % (self.dataset_code, key),
                                   headers=SDMX_DATA_HEADERS,
                                   store_filepath=self.store_path,
-                                  use_existing_file=self.fetcher.use_existing_file)
+                                  #use_existing_file=self.fetcher.use_existing_file
+                                  )
             filepath, response = download.get_filepath_and_response()
             
             if response.status_code == HTTP_ERROR_NO_RESULT:
