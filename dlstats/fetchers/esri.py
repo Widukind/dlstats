@@ -5,6 +5,7 @@ Created on Fri Oct 16 10:59:20 2015
 @author: salimeh
 """
 
+import time
 from datetime import datetime
 from urllib.parse import urljoin
 import logging
@@ -28,6 +29,25 @@ INDEX_URL = 'http://www.esri.cao.go.jp/index-e.html'
 
 FREQUENCIES_SUPPORTED = ["A", "Q"]
 FREQUENCIES_REJECTED = []
+
+def retry(tries=1, sleep_time=2):
+    """Retry calling the decorated function
+    :param tries: number of times to try
+    :type tries: int
+    """
+    def try_it(func):
+        def f(*args,**kwargs):
+            attempts = 0
+            while True:
+                try:
+                    return func(*args,**kwargs)
+                except Exception as e:
+                    attempts += 1
+                    if attempts > tries:
+                        raise e
+                    time.sleep(sleep_time)
+        return f
+    return try_it
 
 def parse_quarter(quarter_str):
     if quarter_str == '1- 3':
@@ -119,30 +139,23 @@ def parse_dates(column):
 
     return (freq, start_date, end_date, first_row, last_row)
 
+@retry(tries=3, sleep_time=2)
 def download_page(url):
-        try:
-            response = requests.get(url)
+    
+    url = url.strip()
+    
+    response = requests.get(url)
 
-            if not response.ok:
-                msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
-                                                                           response.status_code, 
-                                                                           response.reason)
-                logger.error(msg)
-                raise Exception(msg)
-            
-            return response.content
-                
-            #TODO: response.close() ?
-            
-        except requests.exceptions.ConnectionError as err:
-            raise Exception("Connection Error")
-        except requests.exceptions.ConnectTimeout as err:
-            raise Exception("Connect Timeout")
-        except requests.exceptions.ReadTimeout as err:
-            raise Exception("Read Timeout")
-        except Exception as err:
-            raise Exception("Not captured exception : %s" % str(err))            
-
+    if not response.ok:
+        msg = "download url[%s] - status_code[%s] - reason[%s]" % (url, 
+                                                                   response.status_code, 
+                                                                   response.reason)
+        logger.error(msg)
+        response.raise_for_status()
+        #raise Exception(msg)
+    
+    return response.content
+    
 def make_dataset(anchor, url):
     url = urljoin(url,anchor.get('href'))
     dirs = url.split('/')
