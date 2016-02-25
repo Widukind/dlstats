@@ -85,8 +85,49 @@ class UtilsTestCase(BaseTestCase):
         (string_date,freq) = xml_utils.parse_special_date("20040906", "P1D")
         self.assertEqual(string_date, '2004-09-06')
         self.assertEqual(freq, 'D')
-
         
+    def test_select_dimension(self):
+
+        dimensions = {}
+        dimension_keys = ["A", "B", "C"]
+        dimensions["A"] = {"a1": "a1 lib"}
+        dimensions["B"] = {"b1": "b1 lib", "b2": "b2 lib"}
+        dimensions["C"] = {"c1": "c1 lib", "c2": "c2 lib", "c3": "c3 lib"}
+        
+        position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
+                                                                      dimensions, 
+                                                                      choice="max")
+        self.assertEqual(key, "C")
+        self.assertEqual(position, 2)
+        self.assertEqual(sorted(dimension_values), ["c1", "c2", "c3"])
+        
+        position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
+                                                                      dimensions, 
+                                                                      choice="min")
+        self.assertEqual(key, "A")
+        self.assertEqual(position, 0)
+        self.assertEqual(sorted(dimension_values), ["a1"])
+
+        position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
+                                                                      dimensions, 
+                                                                      choice="avg")
+        self.assertEqual(key, "B")
+        self.assertEqual(position, 1)
+        self.assertEqual(sorted(dimension_values), ["b1", "b2"])
+
+        position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
+                                                                      dimensions, 
+                                                                      choice=None)
+        self.assertEqual(key, "B")
+        self.assertEqual(position, 1)
+        self.assertEqual(sorted(dimension_values), ["b1", "b2"])
+
+        position, key, dimension_values = xml_utils.select_dimension([], 
+                                                                     {}, 
+                                                                     choice="min")
+        self.assertEqual(key, None)
+        self.assertEqual(position, 0)
+        self.assertEqual(sorted(dimension_values), [])
 
 class BaseXMLStructureTestCase(BaseTestCase):
     
@@ -535,6 +576,9 @@ class BaseXMLDataTestCase(BaseTestCase):
         print("------------------------------------------------")        
 
     def assert_series(self, xml, provider, provider_name):
+                
+        self.assertTrue(len(xml.dimension_keys) > 0)
+        self.assertTrue(len(xml.dimensions) > 0)
         
         self.assertEqual(provider["series_accept"], len(self.series_list))
         self.assertEqual(provider["series_reject_frequency"], self.reject_frequency)

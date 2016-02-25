@@ -56,6 +56,48 @@ def parse_special_date(period, time_format, dataset_code=None):
         logger.critical(msg)
         raise Exception(msg)    
 
+def select_dimension(dimension_keys, dimensions, choice=None):
+    """Renvoi le nom de la dimension qui contiens le moins de valeur
+    pour servir ensuite de filtre dans le chargement des données (..A.)
+    en tenant compte du nombre de dimension et de la position 
+    """
+
+    _dimensions = {}
+    _min = None
+    _max = None
+    _avg = None
+    
+    if not dimension_keys or not dimensions:
+        return (0, None, [])
+    
+    for key, values in dimensions.items():
+        count = len(values)
+        if not _min:
+            _min = (key, count)
+            _max = (key, count)
+            _avg = (key, count)
+            continue
+        
+        if count < _min[1]:
+            _min = (key, count)
+        if count > _max[1]:
+            _max = (key, count)
+        if count > _min[1] and count < _max[1]:
+            _avg = (key, count)
+        
+    if choice == "max":
+        _key = _max[0]
+    elif choice == "min":        
+        _key = _min[0]
+    else:
+        _key = _avg[0]
+        
+    position = dimension_keys.index(_key)         
+    dimension_values = list(dimensions[_key])
+    return (position, 
+            _key, 
+            dimension_values)
+
 #TODO: url diff for data and structure
 SDMX_PROVIDERS = {
     'ECB': {
@@ -98,12 +140,11 @@ SDMX_PROVIDERS = {
         }
     }
 }
-
-class XMLSDMX_2_1:
+class XMLSDMX:
 
     def __init__(self, 
                  sdmx_url=None, agencyID=None, data_headers={}, structure_headers={},
-                 client=None, cache=None, 
+                 client=None, cache=None, store_filepath=None,  
                  **http_cfg):
         
         self.sdmx_url = sdmx_url
@@ -112,13 +153,17 @@ class XMLSDMX_2_1:
             self.sdmx_url = SDMX_PROVIDERS[self.agencyID]["url"]        
         self.data_headers = data_headers
         self.structure_headers = structure_headers
+        self.store_filepath = store_filepath
 
     def query_rest(self, url, **kwargs):
         logger.info('Requesting %s', url)
-        download = Downloader(url, filename="sdmx.xml", **kwargs)
+        download = Downloader(url, filename="sdmx.xml",
+                              store_filepath=self.store_filepath, 
+                              **kwargs)
         filepath, response = download.get_filepath_and_response()
+        #FIXME: remove !
         return filepath, url, response.headers, response.status_code
-    
+
     def codelist(self, cl_code=None, headers={}, url=None, references=None):
         if not url:
             url = "%s/codelist/%s/%s" % (self.sdmx_url, self.agencyID, cl_code)
@@ -127,6 +172,10 @@ class XMLSDMX_2_1:
         logger.info('Requesting %s', url)
         source, final_url, headers, status_code = self.query_rest(url, headers=headers)
         return source
+
+class XMLSDMX_2_1(XMLSDMX):
+    pass
+    
 
 def dataset_converter(xml, dataset_code):
     bson = {}
@@ -172,6 +221,22 @@ def dataset_converter(xml, dataset_code):
             bson["concepts"][key] = xml.concepts[key]["name"]    
     
     return bson
+
+def get_dimensions_from_dsd(xml_dsd=None, provider_name=None, dataset_code=None):
+    
+    dataset = dataset_converter(xml_dsd, dataset_code)
+    
+    dimension_keys = dataset["dimension_keys"]
+    
+    dimensions = {}
+    for key in dimension_keys:
+        if key in dataset["codelists"]:
+            dimensions[key] = dataset["codelists"][key]
+        else:
+            msg = "dimension key[%s] is not in codelists - provider[%s] - dataset[%s]"
+            logger.warning(msg % (key, provider_name, dataset_code))
+            dimensions[key] = {}
+    return dimension_keys, dimensions
 
 class XMLStructureBase:
     
@@ -847,19 +912,15 @@ class XMLDataBase:
             self.xml_dsd.process(dsd_filepath)
         
         if self.xml_dsd:
-            dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-            self.dimension_keys = dataset["dimension_keys"]
-            self.dimensions = {}
-            for key in self.dimension_keys:
-                if key in dataset["codelists"]:
-                    self.dimensions[key] = dataset["codelists"][key]
-                else:
-                    msg = "dimension key[%s] is not in codelists - provider[%s] - dataset[%s]"
-                    logger.warning(msg % (key, self.provider_name, self.dataset_code))
-                    self.dimensions[key] = {}
+            self.dimension_keys, self.dimensions = get_dimensions_from_dsd(xml_dsd=self.xml_dsd, 
+                                                                           provider_name=self.provider_name, 
+                                                                           dataset_code=self.dataset_code)
 
         if not self.dimension_keys:
             raise Exception("required dimension_keys")
+        
+        if not self.dimensions:
+            raise Exception("required dimensions")
         
         self.frequencies_supported = frequencies_supported
         self.frequencies_rejected = frequencies_rejected
@@ -867,7 +928,7 @@ class XMLDataBase:
         self.field_frequency = field_frequency
         self.field_obs_time_period = field_obs_time_period
         self.field_obs_value = field_obs_value
-        
+
         self.series_converter = SERIES_CONVERTERS[series_converter]
 
         self.nsmap = {}
@@ -1123,7 +1184,7 @@ class XMLData_1_0_FED(XMLData_1_0):
             if event == 'end':
                 
                 if element.tag == self.fixtag("frb", "DataSet"):
-
+                
                     _id = element.xpath('//message:Header/message:ID/text()', 
                                         namespaces=self.nsmap)[0]
 
