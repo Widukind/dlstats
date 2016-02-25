@@ -101,7 +101,7 @@ class Context(object):
         self.log_config = log_config
         self.log_file = log_file
         
-        if self.verbose:
+        if self.verbose and log_level != "DEBUG":
             self.log_level = 'INFO'
         
         self.client_mongo = None
@@ -154,42 +154,39 @@ class Context(object):
             
     def log(self, msg, *args):
         """Logs a message to stderr."""
-        if self.quiet:
-            return
         if args:
             msg %= args
+        if self.quiet:
+            self.logger.info(msg)
+            return
         click.echo(msg, file=sys.stderr)
 
     def log_error(self, msg, *args):
         """Logs a message to stderr."""
-        if self.quiet:
-            return
         if args:
             msg %= args
+        if self.quiet:
+            self.logger.error(msg)
+            return
         click.echo(click.style(msg, fg='red'), file=sys.stderr)
 
     def log_ok(self, msg, *args):
         """Logs a message to stdout."""
-        if self.quiet:
-            return
         if args:
             msg %= args
+        if self.quiet:
+            self.logger.info(msg)
+            return
         click.echo(click.style(msg, fg='green'), file=sys.stdout)
 
     def log_warn(self, msg, *args):
         """Logs a message to stdout."""
-        if self.quiet:
-            return
         if args:
             msg %= args
-        click.echo(click.style(msg, fg='yellow'), file=sys.stdout)
-
-    def vlog(self, msg, *args):
-        """Logs a message to stderr only if verbose is enabled."""
         if self.quiet:
+            self.logger.warn(msg)
             return
-        if self.verbose:
-            self.log(msg, *args)
+        click.echo(click.style(msg, fg='yellow'), file=sys.stdout)
 
     def pretty_print(self, obj):
         pprint.pprint(obj)
