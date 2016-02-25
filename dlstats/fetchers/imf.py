@@ -82,7 +82,6 @@ DATASETS = {
         'name': 'GFSE',
         'doc_href': 'http://data.imf.org/GFSE',
     },
-
     'FSI': { 
         'name': 'FSI',
         'doc_href': 'http://data.imf.org/FSI',
@@ -131,10 +130,10 @@ DATASETS = {
     #    'name': 'WCED',
     #    'doc_href': 'http://data.imf.org/WCED',
     #},
-    #'CPI': {                                      # bug OBS_STATUS=n.a
-    #    'name': 'CPI',
-    #    'doc_href': 'http://data.imf.org/CPI',
-    #},
+    'CPI': {
+        'name': 'CPI',
+        'doc_href': 'http://data.imf.org/CPI',
+    },
     #'COFR': {                                     # Erreur 500
     #    'name': 'COFR',
     #    'doc_href': 'http://data.imf.org/COFR',
