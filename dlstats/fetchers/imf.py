@@ -9,12 +9,14 @@ import logging
 import requests
 from lxml import etree
 
-from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime
+from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime, clean_key, clean_dict
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLCompactData_2_0_IMF as XMLData,
-                               dataset_converter)
+                               dataset_converter,
+                               select_dimension,
+                               get_dimensions_from_dsd)
 
 VERSION = 2
 
@@ -185,6 +187,8 @@ class IMF(Fetcher):
                                   region='World', 
                                   website='http://www.imf.org/', 
                                   fetcher=self)
+        
+        self.requests_client = requests.Session()
 
     def build_data_tree(self):
         
@@ -239,9 +243,16 @@ class IMF_XML_Data(SeriesIterator):
         self.dataset.last_update = clean_datetime()        
         self.store_path = self.get_store_path()
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
-        
+
         self._load_dsd()
-        self._load_data()
+
+        self.xml_data = XMLData(provider_name=self.provider_name,
+                                dataset_code=self.dataset_code,
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
+        
+        #self._load_data()
+        self.rows = self._get_data_by_dimension()
 
     def _get_url_dsd(self):
         return "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/%s" % self.dataset_code 
@@ -254,7 +265,8 @@ class IMF_XML_Data(SeriesIterator):
         download = Downloader(store_filepath=self.store_path,
                               url=url, 
                               filename="dsd-%s.xml" % self.dataset_code,
-                              use_existing_file=self.fetcher.use_existing_file)
+                              use_existing_file=self.fetcher.use_existing_file,
+                              client=self.fetcher.requests_client)
         filepath = download.get_filepath()
         self.fetcher.for_delete.append(filepath)
         
@@ -270,26 +282,55 @@ class IMF_XML_Data(SeriesIterator):
         self.dataset.codelists = dataset["codelists"]
         
         if "OBS_STATUS" in self.dataset.codelists:
-            if "n.a" in self.dataset.codelists["OBS_STATUS"]:
-                value = self.dataset.codelists["OBS_STATUS"].pop("n.a")
-                self.dataset.codelists["OBS_STATUS"]["na"] = value
+            self.dataset.codelists["OBS_STATUS"] = clean_dict(self.dataset.codelists["OBS_STATUS"])
 
-    def _load_data(self):
-        url = self._get_url_data()
-        download = Downloader(store_filepath=self.store_path,
-                              url=url, 
-                              filename="data-%s.xml" % self.dataset_code,
-                              use_existing_file=self.fetcher.use_existing_file)
-
-        self.xml_data = XMLData(provider_name=self.provider_name,
-                                dataset_code=self.dataset_code,
-                                xml_dsd=self.xml_dsd,
-                                frequencies_supported=FREQUENCIES_SUPPORTED)
+    def _get_data_by_dimension(self):
         
-        filepath = download.get_filepath()
-        self.fetcher.for_delete.append(filepath)
+        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
+                                                                       self.provider_name,
+                                                                       self.dataset_code)
+        
+        position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
+        
+        count_dimensions = len(dimension_keys)
+        
+        for dimension_value in dimension_values:
+            '''Pour chaque valeur de la dimension, generer une key d'url'''
+            
+            local_count = 0
+                        
+            sdmx_key = []
+            for i in range(count_dimensions):
+                if i == position:
+                    sdmx_key.append(dimension_value)
+                else:
+                    sdmx_key.append(".")
+            key = "".join(sdmx_key)
 
-        self.rows = self.xml_data.process(filepath)
+            url = "%s/%s" % (self._get_url_data(), key)
+            download = Downloader(url=url, 
+                                  filename="data-%s-%s.xml" % (self.dataset_code, key),
+                                  store_filepath=self.store_path,
+                                  client=self.fetcher.requests_client)
+            filepath, response = download.get_filepath_and_response()
+
+            if filepath:
+                self.fetcher.for_delete.append(filepath)
+            
+            if response.status_code >= 400 and response.status_code < 500:
+                continue
+            elif response.status_code >= 500:
+                raise response.raise_for_status()
+            
+            for row, err in self.xml_data.process(filepath):
+                yield row, err
+                local_count += 1
+                if local_count > 2500:
+                    logger.warning("TODO: VRFY - series > 2500 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
+
+            self.dataset.update_database(save_only=True)
+        
+        yield None, None
         
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update
@@ -297,8 +338,7 @@ class IMF_XML_Data(SeriesIterator):
         
         for value in bson["values"]:
             if value.get("attributes") and "OBS_STATUS" in value.get("attributes"):
-                if value["attributes"]["OBS_STATUS"] == "n.a":
-                    value["attributes"]["OBS_STATUS"] = "na"
+                value["attributes"]["OBS_STATUS"] = clean_key(value["attributes"]["OBS_STATUS"])
         
         return bson
         
