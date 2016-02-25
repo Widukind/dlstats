@@ -30,19 +30,23 @@ FREQUENCIES_REJECTED = []
 logger = logging.getLogger(__name__)
 
 DATASETS = {
-    'H15-H15': {
+    'H15': {
         'name': 'H.15 Selected Interest Rates - Selected Interest Rates',
         'doc_href': 'http://www.federalreserve.gov/releases/H15/current/default.htm',
         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&filetype=zip',
+        'dsd_id': 'H15-H15',
         'fed_code': 'H15',
         'original_code': 'H15',
+        'display_code': 'H15',
     },
     'H15-discontinued': {
         'name': 'H.15 Selected Interest Rates - Discontinued series from the H.15',
         'doc_href': 'http://www.federalreserve.gov/releases/H15/current/default.htm',
         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=H15&filetype=zip',
+        'dsd_id': 'H15-discontinued',
         'fed_code': 'H15',
         'original_code': 'H15',
+        'display_code': 'H15-DIS',
     },
     'CHGDEL-CHGDEL': {
         'name': 'Charge-off and Delinquency Rates - Charge-off and delinquency rates',
@@ -114,17 +118,19 @@ DATASETS = {
         'fed_code': 'H3',
         'original_code': 'H3',
     },
-    'Z.1-Z1': {
+    'Z1': {
         'name': 'Flow of Funds Z.1 - Financial Accounts of the United States - Z.1',
         'doc_href': 'http://www.federalreserve.gov/releases/Z1/current/default.htm',
         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=Z1&filetype=zip',
+        'dsd_id': 'Z.1-Z1',
         'fed_code': 'Z1',
         'original_code': 'Z1',
     },
-    'Z.1-OTHER': {
+    'Z1-OTHER': {
         'name': 'Flow of Funds Z.1 - Z.1 Underlying Detail; OTHER',
         'doc_href': 'http://www.federalreserve.gov/releases/Z1/current/default.htm',
         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=Z1&filetype=zip',
+        'dsd_id': 'Z.1-OTHER',
         'fed_code': 'Z1',
         'original_code': 'Z1',
     },
@@ -800,21 +806,21 @@ CATEGORIES = [
         "doc_href": None,
         "datasets": [
             {
-                "dataset_code": "Z.1-Z1",
-                "name": DATASETS["Z.1-Z1"]["name"], 
+                "dataset_code": "Z1",
+                "name": DATASETS["Z1"]["name"], 
                 "last_update": None,                 
                 "metadata": {
-                    "doc_href": DATASETS["Z.1-Z1"]["doc_href"]
+                    "doc_href": DATASETS["Z1"]["doc_href"]
                 }
             },
             
 
             {
-                "dataset_code": "Z.1-OTHER",
-                "name": DATASETS["Z.1-OTHER"]["name"], 
+                "dataset_code": "Z1-OTHER",
+                "name": DATASETS["Z1-OTHER"]["name"], 
                 "last_update": None,                 
                 "metadata": {
-                    "doc_href": DATASETS["Z.1-OTHER"]["doc_href"]
+                    "doc_href": DATASETS["Z1-OTHER"]["doc_href"]
                 }
             },
         ]
@@ -1029,11 +1035,11 @@ CATEGORIES = [
         "doc_href": None,
         "datasets": [
             {
-                "dataset_code": "H15-H15",
-                "name": DATASETS["H15-H15"]["name"], 
+                "dataset_code": "H15",
+                "name": DATASETS["H15"]["name"], 
                 "last_update": None,                 
                 "metadata": {
-                    "doc_href": DATASETS["H15-H15"]["doc_href"]
+                    "doc_href": DATASETS["H15"]["doc_href"]
                 }
             },
             
@@ -1183,6 +1189,11 @@ class FED(Fetcher):
                            last_update=clean_datetime(),
                            fetcher=self)
         
+        if "display_code" in DATASETS[dataset_code]:
+            dataset.metadata["display_code"] = DATASETS[dataset_code]
+        else:
+            dataset.metadata["display_code"] = dataset_code
+        
         dataset.series.data_iterator = FED_Data(dataset, 
                                                 url=DATASETS[dataset_code]['url'])
         
@@ -1196,6 +1207,10 @@ class FED_Data(SeriesIterator):
         self.url = url
         self.store_path = self.get_store_path()
         self.xml_dsd = XMLStructure(provider_name=self.provider_name) 
+
+        self.dsd_id = self.dataset_code
+        if "dsd_id" in DATASETS[self.dataset_code]:
+            self.dsd_id = DATASETS[self.dataset_code]["dsd_id"]
         
         self._load()
         
@@ -1211,7 +1226,7 @@ class FED_Data(SeriesIterator):
         filepaths = (extract_zip_file(zip_filepath))
         dsd_fp = filepaths['struct.xml']
         data_fp = filepaths['data.xml']
-
+        
         for filepath in filepaths.values():
             self.fetcher.for_delete.append(filepath)
         
@@ -1220,14 +1235,15 @@ class FED_Data(SeriesIterator):
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
-                                xml_dsd=self.xml_dsd,                                
+                                xml_dsd=self.xml_dsd,
+                                dsd_id=self.dsd_id,          
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
         self.rows = self.xml_data.process(data_fp)
 
     def _set_dataset(self):
-
-        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+        
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code, self.dsd_id)
 
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"]

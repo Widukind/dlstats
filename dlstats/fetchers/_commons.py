@@ -552,6 +552,7 @@ class Datasets(DlstatsCollection):
 
         self.for_delete = []
 
+        self.from_db = False
         if is_load_previous_version:
             self.load_previous_version(provider_name, dataset_code)
             
@@ -578,15 +579,10 @@ class Datasets(DlstatsCollection):
                 'name': self.name,
                 'dataset_code': self.dataset_code,
                 'slug': self.slug(),
-                
-                #'dimension_list': self.dimension_list.get_list(),
-                #'attribute_list': self.attribute_list.get_list(),
-
                 'dimension_keys': self.dimension_keys,
                 'attribute_keys': self.attribute_keys,
                 'codelists': self.codelists,
                 'concepts': self.concepts,
-                
                 'metadata': self.metadata,
                 'doc_href': self.doc_href,
                 'last_update': self.last_update,
@@ -616,7 +612,8 @@ class Datasets(DlstatsCollection):
             attribute_list = {}
             
             if not self.codelists:
-                return
+                msg = "load previous version fail. provider[%s] - dataset[%s]"
+                raise Exception(msg % (self.provider_name, self.dataset_code))
 
             for key in self.dimension_keys:
                 dimension_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
@@ -626,6 +623,8 @@ class Datasets(DlstatsCollection):
             
             self.dimension_list.set_dict(dimension_list)
             self.attribute_list.set_dict(attribute_list)
+            
+            self.from_db = True
             
         else:
             msg = "dataset not found for previous loading. provider[%s] - dataset[%s]"
@@ -936,6 +935,18 @@ def series_update(new_bson, old_bson=None, last_update=None):
                                          dataset_code=new_bson["dataset_code"],
                                          bson=new_bson) 
 
+    #FIXME:
+    """
+    if new_bson["frequency"] != "D" and len(new_bson["values"]) > 1:
+        count_obs = (new_bson["end_date"] - new_bson["start_date"]) +1
+        if len(new_bson["values"]) != count_obs:
+            msg = "Missing values for provider[%s] - dataset[%s] - current[%s] - attempt[%s]" % (new_bson["provider_name"],
+                                                                     new_bson["dataset_code"],
+                                                                     len(new_bson["values"]),
+                                                                     count_obs)
+            raise Exception(msg)
+    """
+
     _last_update = None
     if new_bson.get('last_update'):
         _last_update = clean_datetime(new_bson.pop('last_update', None))
@@ -1086,9 +1097,9 @@ class Series:
     def slug(self, key):
         txt = "-".join([self.provider_name, self.dataset_code, key])
         return slugify(txt, word_boundary=False, save_order=True)
-    
-    def update_dataset_lists(self, bson):
 
+    def update_dataset_lists(self, bson):
+        
         obs_attrs = {}
         for value in bson["values"]:
             if not value.get("attributes"):
@@ -1107,9 +1118,6 @@ class Series:
         attributes = bson.get("attributes")
         
         for key in self.dataset.dimension_keys:
-
-            if not key in dimensions:
-                continue
 
             if not key in self.concepts and key in self.dataset.concepts:
                 self.concepts[key] = self.dataset.concepts[key]
@@ -1142,10 +1150,23 @@ class Series:
             for value_key in value_keys:
                 if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
                     self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
-        
+
     def update_dataset_lists_finalize(self):
-        self.dataset.concepts = self.concepts
-        self.dataset.codelists = self.codelists
+        if not self.dataset.from_db:
+            self.dataset.concepts = self.concepts
+            self.dataset.codelists = self.codelists
+        else:
+            for key, value in self.concepts.items():
+                if not key in self.dataset.concepts:
+                    self.dataset.concepts[key] = value
+                    
+            for key, values in self.codelists.items():
+                if not key in self.dataset.codelists:
+                    self.dataset.codelists[key] = values
+                elif values:
+                    for k, v in values.items():
+                        if not k in self.dataset.codelists[key]:
+                            self.dataset.codelists[key][k] = v
         
     def update_series_list(self):
 

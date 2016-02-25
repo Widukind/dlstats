@@ -158,6 +158,7 @@ class UtilsTestCase(BaseTestCase):
         _date = (release_date.year, release_date.month, release_date.day)
         self.assertEqual(_date, (2006, 9, 1))
         
+@unittest.skipIf(True, "TODO")
 class FetcherTestCase(BaseFetcherTestCase):
 
     # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase

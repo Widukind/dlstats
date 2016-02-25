@@ -16,6 +16,7 @@ setup(name='dlstats',
       entry_points={
         'console_scripts': [
           'dlstats = dlstats.client:main',
+          'dlstats-gevent = dlstats.client_gevent:main',
         ],
       },
       test_suite='nose.collector',
