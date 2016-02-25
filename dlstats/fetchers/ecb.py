@@ -6,13 +6,17 @@ import re
 
 import lxml.html
 import pytz
+import requests
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import utils
+from dlstats.utils import Downloader
 from dlstats import errors
 from dlstats.xml_utils import (XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_ECB as XMLData,
-                               dataset_converter)
+                               dataset_converter,
+                               select_dimension,
+                               get_dimensions_from_dsd)
 
 HTTP_ERROR_NOT_MODIFIED = 304
 HTTP_ERROR_LONG_RESPONSE = 413
@@ -81,6 +85,8 @@ class ECB(Fetcher):
         self._categoryschemes = None
         self._categorisations = None
         self._concepts = None
+        
+        self.requests_client = requests.Session()
 
     def _load_structure(self, force=False):
         """Load structure and build data_tree
@@ -265,6 +271,8 @@ class ECB_Data(SeriesIterator):
         self.xml_dsd.concepts = self.fetcher._concepts
         
         self._load()
+        
+        self.rows = self._get_data_by_dimension()        
                 
     def _load(self):
 
@@ -279,6 +287,8 @@ class ECB_Data(SeriesIterator):
         self.xml_dsd.process(filepath)
         self._set_dataset()
         
+        """
+        
         headers = SDMX_DATA_HEADERS
         url = "http://sdw-wsrest.ecb.int/service/data/%s" % self.dataset_code
         last_modified = None
@@ -292,7 +302,7 @@ class ECB_Data(SeriesIterator):
                                     filename="data-%s.xml" % self.dataset_code,
                                     headers=headers,
                                     use_existing_file=self.fetcher.use_existing_file)
-
+        
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
@@ -313,13 +323,90 @@ class ECB_Data(SeriesIterator):
             self.dataset.metadata["Last-Modified"] = response.headers["Last-Modified"]
         
         self.rows = self.xml_data.process(filepath)
+        """
 
+    def _get_data_by_dimension(self):
+
+        self.xml_data = XMLData(provider_name=self.provider_name,
+                                dataset_code=self.dataset_code,
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
+        
+        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
+                                                             self.provider_name,
+                                                             self.dataset_code)
+        
+        position, _key, dimension_values = select_dimension(dimension_keys, dimensions)
+        
+        count_dimensions = len(dimension_keys)
+        
+        for dimension_value in dimension_values:
+                        
+            sdmx_key = []
+            for i in range(count_dimensions):
+                if i == position:
+                    sdmx_key.append(dimension_value)
+                else:
+                    sdmx_key.append(".")
+            key = "".join(sdmx_key)
+
+            url = "http://sdw-wsrest.ecb.int/service/data/%s/%s" % (self.dataset_code, key)
+            headers = SDMX_DATA_HEADERS
+            
+            last_modified = None
+            if self.dataset.metadata and "Last-Modified" in self.dataset.metadata:
+                headers["If-Modified-Since"] = self.dataset.metadata["Last-Modified"]
+                last_modified = self.dataset.metadata["Last-Modified"]
+        
+            filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))               
+            download = Downloader(url=url, 
+                                  filename=filename,
+                                  store_filepath=self.store_path,
+                                  headers=headers,
+                                  client=self.fetcher.requests_client)
+            filepath, response = download.get_filepath_and_response()
+
+            if filepath:
+                self.fetcher.for_delete.append(filepath)
+
+            if response.status_code == HTTP_ERROR_NOT_MODIFIED:
+                comments = "update-date[%s]" % last_modified
+                raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                                  dataset_code=self.dataset_code,
+                                                  comments=comments)
+            
+            elif response.status_code == HTTP_ERROR_NO_RESULT:
+                continue
+            
+            elif response.status_code >= 400:
+                raise response.raise_for_status()
+    
+            if "Last-Modified" in response.headers:
+                if not self.dataset.metadata:
+                    self.dataset.metadata = {}
+                self.dataset.metadata["Last-Modified"] = response.headers["Last-Modified"]
+            
+            for row, err in self.xml_data.process(filepath):
+                yield row, err
+
+            self.dataset.update_database(save_only=True)
+        
+        yield None, None
+                        
     def _set_dataset(self):
 
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
+        #self.dataset.codelists = dataset["codelists"]
+        
+        '''Fixe key names'''
+        field = dataset["codelists"].pop("OBS_PRE_BREAK", None)
+        if field:
+            new_field = utils.clean_dict(field)
+            dataset["codelists"]["OBS_PRE_BREAK"] = new_field
+
         self.dataset.codelists = dataset["codelists"]
 
     def clean_field(self, bson):
@@ -331,6 +418,11 @@ class ECB_Data(SeriesIterator):
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
+        
+        for value in bson["values"]:
+            if value.get("attributes") and "OBS_PRE_BREAK" in value.get("attributes"):
+                value["attributes"]["OBS_PRE_BREAK"] = utils.clean_key(value["attributes"]["OBS_PRE_BREAK"])
+        
         return bson
         
 
