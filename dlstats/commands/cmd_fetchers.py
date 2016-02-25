@@ -16,8 +16,12 @@ opt_fetcher = click.option('--fetcher', '-f',
               help='Fetcher choice')
 
 opt_dataset = click.option('--dataset', '-d', 
-              required=False, 
+              required=False,
               help='Run selected dataset only')
+
+opt_dataset_multiple = click.option('--dataset', '-d', 
+              required=False, multiple=True,
+              help='Run selected dataset(s) only')
 
 opt_fetcher_not_required = click.option('--fetcher', '-f', 
                type=click.Choice(FETCHERS.keys()), 
@@ -191,7 +195,7 @@ def cmd_calendar(fetcher=None, **kwargs):
 @click.option('--not-remove', is_flag=True,
               help='Not remove files after process')
 @opt_fetcher
-@opt_dataset
+@opt_dataset_multiple
 def cmd_run(fetcher=None, dataset=None, 
             max_errors=0, datatree=False, 
             use_files=False, not_remove=False, **kwargs):
@@ -218,7 +222,8 @@ def cmd_run(fetcher=None, dataset=None,
             f.upsert_data_tree(force_update=True)
         
         if dataset:
-            f.wrap_upsert_dataset(dataset)
+            for ds in dataset:
+                f.wrap_upsert_dataset(ds)
         else:
             f.upsert_all_datasets()
         
@@ -323,7 +328,7 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
         
         db = ctx.mongo_database()
 
-        provider_name = fetcher        
+        provider_name = fetcher
 
         ctx.log("Update provider[%s] Categories tags..." % provider_name)
         try:
@@ -479,3 +484,63 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
         print(fields)
             
     
+@cli.command('purge', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_quiet
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_mongo_url
+@opt_fetcher
+@opt_dataset_multiple
+@click.option('--purge-all', is_flag=True,
+              help='Use existing files in tmpdir')
+def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
+    """Purge one or more dataset"""
+    
+    """
+    dlstats fetchers purge -f INSEE --purge-all
+    dlstats fetchers purge -f INSEE -d IPCH-2015-FR-COICOP
+    dlstats fetchers purge -f INSEE -d IPCH-2015-FR-COICOP -d IPC-2015-COICOP
+    """
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log("START purge for [%s]" % fetcher)
+    
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        start = time.time()
+        
+        db = ctx.mongo_database()
+        
+        from pymongo import DeleteMany
+        
+        if purge_all:
+            query = {"name": fetcher}
+            result = db[constants.COL_PROVIDERS].bulk_write([DeleteMany(query)],
+                                                            ordered=False)
+            ctx.log("Provider [%s] deleted" % fetcher)
+            
+            query = {"provider_name": fetcher}
+            result = db[constants.COL_CATEGORIES].bulk_write([DeleteMany(query)],
+                                                             ordered=False)
+        
+        query = {"provider_name": fetcher}
+        if not purge_all and dataset:
+            query["dataset_code"] = {"$in": dataset}
+        
+        bulk_requests = [DeleteMany(query)]
+
+        result = db[constants.COL_DATASETS].bulk_write(bulk_requests,
+                                                       ordered=False)
+        ctx.log("Datasets deleted: %s" % result.deleted_count)
+        
+        result = db[constants.COL_SERIES].bulk_write(bulk_requests,
+                                                     ordered=False)
+        ctx.log("Series deleted: %s" % result.deleted_count)
+
+        end = time.time() - start
+        
+        ctx.log("END purge for [%s] - time[%.3f]" % (fetcher, end))
