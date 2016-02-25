@@ -18,7 +18,9 @@ from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_INSEE as XMLData,
-                               dataset_converter)
+                               dataset_converter,
+                               select_dimension,
+                               get_dimensions_from_dsd)
 
 HTTP_ERROR_LONG_RESPONSE = 413
 HTTP_ERROR_NO_RESULT = 404
@@ -80,6 +82,8 @@ class INSEE(Fetcher):
         self._categorisations = None
         self._concepts = None
         self._codelists = OrderedDict()
+        
+        self.requests_client = requests.Session()
                 
     def _add_metadata(self):
         return
@@ -219,9 +223,10 @@ class INSEE(Fetcher):
         insee_data = INSEE_Data(dataset,
                                 dataset_doc=dataset_doc)
         dataset.series.data_iterator = insee_data
+        
         return dataset.update_database()
 
-    def _parse_agenda(self):
+    def get_calendar(self):
         """Parse agenda of new releases and schedule jobs"""
         
         name_list = {d['name']: d['dataset_code'] for d in self.datasets_list()}
@@ -284,6 +289,7 @@ class INSEE_Data(SeriesIterator):
         self.dataset_doc = dataset_doc
         self.store_path = self.get_store_path()
         
+        #TODO: prendre cette info dans la DSD sans utiliser dataflows
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
         
@@ -298,13 +304,18 @@ class INSEE_Data(SeriesIterator):
         self.xml_dsd.concepts = self.fetcher._concepts
         self.xml_dsd.codelists = self.fetcher._codelists
 
-        self._load()
-
-    def _load(self):
         self._load_dsd()
-        self._load_data()
         
+        self.xml_data = XMLData(provider_name=self.provider_name,
+                                dataset_code=self.dataset_code,
+                                xml_dsd=self.xml_dsd,
+                                frequencies_supported=FREQUENCIES_SUPPORTED)
+        
+        self.rows = self._get_data_by_dimension()
+
     def _load_dsd_by_element(self):
+        
+        #FIXME: Manque codelist et concepts ?
         
         url = "http://www.bdm.insee.fr/series/sdmx/datastructure/INSEE/%s" % self.dsd_id
         download = Downloader(url=url, 
@@ -340,6 +351,10 @@ class INSEE_Data(SeriesIterator):
                 return
             elif response.status_code >= 400:
                 raise response.raise_for_status()
+
+        if not os.path.exists(filepath):
+            self._load_dsd_by_element()
+            return
         
         self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
@@ -348,77 +363,30 @@ class INSEE_Data(SeriesIterator):
     def _set_dataset(self):
 
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
-
-        self.fetcher._codelists.update(self.xml_dsd.codelists)
-
-    def _load_data(self):
         
-        url = "http://www.bdm.insee.fr/series/sdmx/data/%s" % self.dataset_code
-        download = Downloader(url=url, 
-                              filename="data-%s.xml" % self.dataset_code,
-                              headers=SDMX_DATA_HEADERS,
-                              store_filepath=self.store_path,
-                              use_existing_file=self.fetcher.use_existing_file)
-
-        #TODO: ?startperiod="2008"
-        self.xml_data = XMLData(provider_name=self.provider_name,
-                                dataset_code=self.dataset_code,
-                                xml_dsd=self.xml_dsd,
-                                frequencies_supported=FREQUENCIES_SUPPORTED)
-        
-        filepath, response = download.get_filepath_and_response()
-
-        if response:
-            if response.status_code == HTTP_ERROR_LONG_RESPONSE:
-                self.rows = self._get_data_by_dimension()
-                return
-            elif response.status_code >= 400:
-                raise response.raise_for_status()
-            
-        if not os.path.exists(filepath):
-            self.rows = self._get_data_by_dimension()
-            return
-
-        self.fetcher.for_delete.append(filepath)
-        self.rows = self.xml_data.process(filepath)
-
-    def _select_short_dimension(self):
-        """Renvoi le nom de la dimension qui contiens le moins de valeur
-        pour servir ensuite de filtre dans le chargement des données (..A.)
-        en tenant compte du nombre de dimension et de la position 
-        """
-        dimension_keys = self.xml_dsd.dimension_keys_by_dsd[self.dsd_id]
-        dimensions = self.xml_dsd.dimensions_by_dsd[self.dsd_id]
-
-        _dimensions = {}        
-        for dim_id, dim in dimensions.items():
-            _dimensions[dim_id] = len(dim["enum"].keys())
-        
-        #FIXME: temporaire
-        if self.dataset_code == "IPC-2015-COICOP":
-            _key = max(_dimensions, key=_dimensions.get)
-        else:
-            _key = min(_dimensions, key=_dimensions.get)
-            
-        position = dimension_keys.index(_key)         
-        dimension_values = list(dimensions[_key]["enum"].keys())
-        return (position, 
-                len(dimension_keys), 
-                _key, 
-                dimension_values)
-            
     def _get_data_by_dimension(self):
-
-        position, count_dimensions, _key, dimension_values = self._select_short_dimension()
+        
+        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
+                                                                       self.provider_name,
+                                                                       self.dataset_code)
+        
+        choice = "avg" 
+        if self.dataset_code in ["IPC-2015-COICOP"]:
+            choice = "max"        
+        
+        position, _key, dimension_values = select_dimension(dimension_keys, 
+                                                            dimensions, 
+                                                            choice=choice)
+        
+        count_dimensions = len(dimension_keys)
         
         for dimension_value in dimension_values:
             '''Pour chaque valeur de la dimension, generer une key d'url'''
-                        
+            
             sdmx_key = []
             for i in range(count_dimensions):
                 if i == position:
@@ -427,26 +395,28 @@ class INSEE_Data(SeriesIterator):
                     sdmx_key.append(".")
             key = "".join(sdmx_key)
 
-            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, 
-                                                                      key)
-            
+            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, key)
             download = Downloader(url=url, 
                                   filename="data-%s-%s.xml" % (self.dataset_code, key),
-                                  headers=SDMX_DATA_HEADERS,
                                   store_filepath=self.store_path,
-                                  #use_existing_file=self.fetcher.use_existing_file
+                                  #client=self.fetcher.requests_client
                                   )
             filepath, response = download.get_filepath_and_response()
-            
+
+            if filepath:
+                self.fetcher.for_delete.append(filepath)
+
             if response.status_code == HTTP_ERROR_NO_RESULT:
                 continue
             elif response.status_code >= 400:
                 raise response.raise_for_status()
-
-            self.fetcher.for_delete.append(filepath)
             
-            for row in self.xml_data.process(filepath):
-                yield row
+            for row, err in self.xml_data.process(filepath):
+                yield row, err
+
+            self.dataset.update_database(save_only=True)
+        
+        yield None, None
     
     def _is_updated(self, bson):
         """Verify if series changes
