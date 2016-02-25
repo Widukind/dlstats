@@ -26,9 +26,6 @@ from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure,
 TABLE_OF_CONTENT_NSMAP = {'nt': 'urn:eu.europa.ec.eurostat.navtree',
                           'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
 
-xpath_datasets = etree.XPath("descendant::nt:leaf[@type='dataset']", namespaces=TABLE_OF_CONTENT_NSMAP)
-xpath_parent_codes = etree.XPath("ancestor::nt:branch/nt:code/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
-xpath_ancestor_branch = etree.XPath("ancestor::nt:branch", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_title = etree.XPath("nt:title[@language='en']/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_code = etree.XPath("nt:code/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_last_update = etree.XPath("nt:lastUpdate/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
@@ -123,12 +120,6 @@ class Eurostat(Fetcher):
 
     def build_data_tree(self):
         """Builds the data tree
-        
-        Pour créer les categories, ne prend que les branch dont l'un des <code> 
-        de la branch se trouvent dans categories_filter
-        
-        Même chose pour les datasets. Prend le category_code du parent
-        et verifie si il est dans categories_filter
         """
         
         download = Downloader(url=self.url_table_of_contents, 
@@ -139,8 +130,8 @@ class Eurostat(Fetcher):
         
         categories = []
         categories_keys = []
-
-        it = etree.iterparse(filepath, events=['end'])
+        
+        it = etree.iterparse(filepath, events=['end'], tag="{urn:eu.europa.ec.eurostat.navtree}leaf")
 
         def is_selected(parent_codes):
             """parent_codes is array of category_code
@@ -155,96 +146,81 @@ class Eurostat(Fetcher):
                 if c["category_code"] == category_code:
                     return c
 
+        #TODO: date TOC à stocker dans provider !!!
+        
+        def create_categories(parent_codes, parent_titles, position):
+            
+            position += 1
+            
+            for i in range(len(parent_codes)):
+                category_code = parent_codes.pop()                
+                name = parent_titles.pop()                
+                all_parents = parent_codes.copy()
+                parent = None
+                if all_parents:
+                    parent = all_parents[-1]
+                if not category_code in categories_keys:
+                    _category = {
+                        "provider_name": self.provider_name,
+                        "category_code": category_code,
+                        "name": name,
+                        "position": position + i,
+                        "parent": parent,
+                        'all_parents': all_parents,
+                        "datasets": [],
+                        "doc_href": None,
+                        "metadata": None
+                    }
+                    categories_keys.append(category_code)
+                    categories.append(_category)
+        
+        #    .getroottree().creationDate="20160225T1102"
+
         position = 0
-        for event, element in it:
-            if event == 'end':
+        
+        for event, dataset in it:
+            
+            parent_codes = dataset.xpath("ancestor::nt:branch/nt:code/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
+            
+            if not is_selected(parent_codes):
+                continue
+            
+            parent_titles = dataset.xpath("ancestor::nt:branch/nt:title[attribute::language='en']/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
+            category_code = parent_codes[-1]
 
-                if element.tag == fixtag_toc('nt', 'branch'):
+            create_categories(parent_codes, parent_titles, position)
+            
+            category = get_category(category_code)
 
-                    for child in element.iterchildren(tag=fixtag_toc('nt', 'children')):
-                        _parent_codes = xpath_parent_codes(child)
-                        _parents = xpath_ancestor_branch(child)
+            name = xpath_title(dataset)[0]
+            last_update = xpath_ds_last_update(dataset)
+            last_modified = xpath_ds_last_modified(dataset)
+            doc_href = xpath_ds_metadata_html(dataset)
+            data_start = xpath_ds_data_start(dataset)
+            data_end = xpath_ds_data_end(dataset)
+            values = xpath_ds_values(dataset)
 
-                        if not is_selected(_parent_codes):
-                            continue
+            last_update = datetime.strptime(last_update[0], '%d.%m.%Y')
+            if last_modified:
+                last_modified = datetime.strptime(last_modified[0], '%d.%m.%Y')
+                last_update = max(last_update, last_modified)
 
-                        for parent in _parents:
-                            _parent_code = xpath_code(parent)[0]
-                            _parent_title =xpath_title(parent)[0]
-
-                            '''Extrait la partie gauche des categories parents'''
-                            _parent_categories = _parent_codes[:_parent_codes.index(_parent_code)]
-                            _parent = None
-
-                            _category = {
-                                "provider_name": self.provider_name,
-                                "category_code": _parent_code,
-                                "name": _parent_title,
-                                "position": 0,
-                                "parent": None,
-                                'all_parents': None,
-                                "datasets": [],
-                                "doc_href": None,
-                                "metadata": None
-                            }
-
-                            if _parent_categories and len(_parent_categories) >= 1:
-                                _category["parent"] = _parent_categories[-1]
-                                _category["all_parents"] = _parent_categories
-                            else:
-                                position += 1
-                                _category["position"] = position
-                            
-                            if not _category["category_code"] in categories_keys:
-                                categories_keys.append(_category["category_code"])
-                                categories.append(_category)
-                            else:
-                                logger.critical("double provider[%s] - category_code[%s] - parent[%s]" % (self.provider_name, 
-                                                                                             _category["category_code"],
-                                                                                             _category["parent"]))
-
-                        datasets = xpath_datasets(child)
-
-                        for dataset in datasets:
-                            parent_codes = xpath_parent_codes(dataset)
-                            dataset_code = xpath_code(dataset)[0]
-                            _category = get_category(parent_codes[-1]) 
-
-                            '''Verifie si au moins un des category_code est dans categories_filter'''
-                            if not is_selected(parent_codes):
-                                continue
-
-                            name = xpath_title(dataset)[0]
-                            last_update = xpath_ds_last_update(dataset)
-                            last_modified = xpath_ds_last_modified(dataset)
-                            doc_href = xpath_ds_metadata_html(dataset)
-                            data_start = xpath_ds_data_start(dataset)
-                            data_end = xpath_ds_data_end(dataset)
-                            values = xpath_ds_values(dataset)
-
-                            last_update = datetime.strptime(last_update[0], '%d.%m.%Y')
-                            if last_modified:
-                                last_modified = datetime.strptime(last_modified[0], '%d.%m.%Y')
-                                last_update = max(last_update, last_modified)
-
-                            _dataset = {
-                                "dataset_code": dataset_code, 
-                                "name": name,
-                                "last_update": last_update,
-                                "metadata": {
-                                    "doc_href": first_element_xpath(doc_href),
-                                    "data_start": first_element_xpath(data_start),
-                                    "data_end": first_element_xpath(data_end),
-                                    "values": int(first_element_xpath(values, default="0")),
-                                }
-                            }             
-                            _category["datasets"].append(_dataset)
-                            dataset.clear()
-                        child.clear()
-                    element.clear()
+            dataset_code = xpath_code(dataset)[0]
+            _dataset = {
+                "dataset_code": dataset_code, 
+                "name": name,
+                "last_update": last_update,
+                "metadata": {
+                    "doc_href": first_element_xpath(doc_href),
+                    "data_start": first_element_xpath(data_start),
+                    "data_end": first_element_xpath(data_end),
+                    "values": int(first_element_xpath(values, default="0")),
+                }
+            }             
+            category["datasets"].append(_dataset)
 
         self.for_delete.append(filepath)
-
+        
         return categories
         
     def upsert_dataset(self, dataset_code):
