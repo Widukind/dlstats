@@ -1156,11 +1156,11 @@ class Series:
             self.dataset.concepts = self.concepts
             self.dataset.codelists = self.codelists
         else:
-            for key, value in self.concepts:
+            for key, value in self.concepts.items():
                 if not key in self.dataset.concepts:
                     self.dataset.concepts[key] = value
                     
-            for key, values in self.codelists:
+            for key, values in self.codelists.items():
                 if not key in self.dataset.codelists:
                     self.dataset.codelists[key] = values
                 elif values:
