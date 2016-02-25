@@ -55,7 +55,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         "G19-TERMS": deepcopy(xml_samples.DATA_FED_TERMS)
     }
     DATASET_FIRST = "CHGDEL-CHGDEL"
-    DATASET_LAST = "Z.1-Z1"
+    DATASET_LAST = "SLOOS-SLOOS"
     DEBUG_MODE = False
     
     def _load_files(self, dataset_code):
