@@ -177,10 +177,12 @@ class XMLSDMX_2_1(XMLSDMX):
     pass
     
 
-def dataset_converter(xml, dataset_code):
+def dataset_converter(xml, dataset_code, dsd_id=None):
     bson = {}
     
-    dsd_id = xml.get_dsd_id(dataset_code)
+    if not dsd_id:    
+        dsd_id = xml.get_dsd_id(dataset_code)
+        
     bson["provider_name"] = xml.provider_name
     bson["dataset_code"] = dataset_code
     bson["dsd_id"] = dsd_id
@@ -197,7 +199,8 @@ def dataset_converter(xml, dataset_code):
     bson["dimensions"] = {}
     bson["attributes"] = {}
     
-    bson["name"] = xml.get_dataset_name(dataset_code)
+    bson["name"] = xml.get_dataset_name(dsd_id)
+    #bson["name"] = xml.get_dataset_name(dataset_code)
     #TODO: si not ?
     #bson["name"] = xml.dataflows.get(dsd_id)    
     
@@ -222,9 +225,9 @@ def dataset_converter(xml, dataset_code):
     
     return bson
 
-def get_dimensions_from_dsd(xml_dsd=None, provider_name=None, dataset_code=None):
+def get_dimensions_from_dsd(xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
     
-    dataset = dataset_converter(xml_dsd, dataset_code)
+    dataset = dataset_converter(xml_dsd, dataset_code, dsd_id=dsd_id)
     
     dimension_keys = dataset["dimension_keys"]
     
@@ -473,7 +476,8 @@ class XMLStructure_1_0(XMLStructureBase):
         if not _id in self.dimensions_by_dsd[dsd_id]:
             codelist = element.attrib.get('codelist')
             #FIXME: Specific FED
-            codelist = self.fixe_codelist_fed(codelist)
+            if self.provider_name == "FED":
+                codelist = self.fixe_codelist_fed(codelist)
             
             if codelist:
                 name = self.codelists[codelist]["name"]
@@ -914,7 +918,8 @@ class XMLDataBase:
         if self.xml_dsd:
             self.dimension_keys, self.dimensions = get_dimensions_from_dsd(xml_dsd=self.xml_dsd, 
                                                                            provider_name=self.provider_name, 
-                                                                           dataset_code=self.dataset_code)
+                                                                           dataset_code=self.dataset_code,
+                                                                           dsd_id=self.dsd_id)
 
         if not self.dimension_keys:
             raise Exception("required dimension_keys")
@@ -935,9 +940,7 @@ class XMLDataBase:
         self.tree_iterator = None
         
         self._ns_tag_data = ns_tag_data
-        
-        self._period_cache = {}
-        
+                
     @property    
     def ns_tag_data(self):
         if self._ns_tag_data:
@@ -967,8 +970,6 @@ class XMLDataBase:
         
         for event, element in self.tree_iterator:
             if event == 'end':
-                
-                #print(element)
                 
                 if self.is_series_tag(element):
                     try:
@@ -1085,8 +1086,8 @@ class XMLDataMixIn:
             #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
             if localname == "Obs":
                 item["period"] = obs.attrib["TIME_PERIOD"]
-                #item["period_o"] = item["period"]
                 item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
+
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("OBS_VALUE", "")
                 
@@ -1162,6 +1163,10 @@ class XMLData_1_0_FED(XMLData_1_0):
         "129": "M",
         "162": "Q",
         "203": "A", 
+    }
+    
+    MAP_DSD_ID = {
+        "OTHER": "Z.1"
     }    
     
     def __init__(self, **kwargs):
@@ -1183,19 +1188,24 @@ class XMLData_1_0_FED(XMLData_1_0):
             
             if event == 'end':
                 
-                if element.tag == self.fixtag("frb", "DataSet"):
+                for dataset in element.xpath(".//*[local-name()='Dataset']"):
+                
+                #if element.tag == self.fixtag("frb", "DataSet"):
                 
                     _id = element.xpath('//message:Header/message:ID/text()', 
                                         namespaces=self.nsmap)[0]
 
-                    short_id = element.attrib.get('id')
+                    if _id in self.MAP_DSD_ID:
+                        _id = self.MAP_DSD_ID[_id]
+
+                    short_id = dataset.attrib.get('id')
                     long_id = "%s-%s" % (_id, short_id)
                     
-                    if not long_id == self.dataset_code:
-                        element.clear()
+                    if not long_id == self.dsd_id:
+                        dataset.clear()
                         continue
                     
-                    for child in element.getchildren():
+                    for child in dataset.getchildren():
                         if self.is_series_tag(child):
                             try:
                                 yield self.one_series(child), None
@@ -1205,8 +1215,10 @@ class XMLData_1_0_FED(XMLData_1_0):
                                 yield (None, err)
                             finally:
                                 child.clear()
+                        else:
+                            child.clear()
                     
-                    element.clear()
+                    dataset.clear()
     
     def get_name(self, series, dimensions, attributes):
         try:
