@@ -756,6 +756,33 @@ class SeriesIterator:
         if not "end_ts" in bson or not bson.get("end_ts"):
             bson["end_ts"] = pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime()
         
+        dimensions = bson.pop("dimensions")
+        attributes = bson.pop("attributes", {})
+        new_dimensions = {}
+        new_attributes = {}
+        
+        for key, value in dimensions.items():
+            new_dimensions[slugify(key, save_order=True)] = slugify(value, save_order=True)
+
+        if attributes:
+            for key, value in attributes.items():
+                new_attributes[slugify(key, save_order=True)] = slugify(value, save_order=True)
+            
+        bson["dimensions"] = new_dimensions
+
+        if attributes:
+            bson["attributes"] = new_attributes
+        else:
+            bson["attributes"] = None
+            
+        for value in bson["values"]:
+            if not value.get("attributes"):
+                continue
+            attributes_obs = {}
+            for k, v in value.get("attributes").items():
+                attributes_obs[slugify(k, save_order=True)] = slugify(v, save_order=True)
+            value["attributes"] = attributes_obs
+        
         return bson
 
     def build_series(self, bson):
@@ -777,7 +804,7 @@ def series_set_release_date(bson, last_update):
             obs["release_date"] = last_update
 
 def series_revisions(new_bson, old_bson, last_update):
-
+    
     if not new_bson or not isinstance(new_bson, dict):
         raise ValueError("no new_bson or not dict instance")            
 
@@ -816,10 +843,10 @@ def series_revisions(new_bson, old_bson, last_update):
             new_bson["values"].append(group[0])
             continue
         
-        '''load old revisions if exists'''        
         old_obs = group[0]
         new_obs = group[1]
 
+        '''load old revisions if exists'''        
         if "revisions" in old_obs:
             new_obs["revisions"] = old_obs["revisions"] 
         
@@ -1025,11 +1052,6 @@ class Series:
         self.count_inserts = 0
         self.count_updates = 0
 
-        self.codelists = {}
-        self.concepts = {}
-        self.dimension_keys = []
-        self.attribute_keys = []
-
     def reset_counters(self):
         self.count_accepts = 0
         self.count_rejects = 0
@@ -1098,75 +1120,36 @@ class Series:
         txt = "-".join([self.provider_name, self.dataset_code, key])
         return slugify(txt, word_boundary=False, save_order=True)
 
-    def update_dataset_lists(self, bson):
-        
-        obs_attrs = {}
-        for value in bson["values"]:
-            if not value.get("attributes"):
-                continue
-            for k, v in value.get("attributes").items():
-                if not k in obs_attrs:
-                    obs_attrs[k] = v
-                    if not k in self.dataset.concepts:
-                        self.dataset.concepts[k] = k 
-                    if not k in self.dataset.codelists:
-                        self.dataset.codelists[k] = {}
-                    if not v in self.dataset.codelists[k]:
-                        self.dataset.codelists[k] = {v: v}
-
-        dimensions = bson.get("dimensions")
-        attributes = bson.get("attributes")
-        
-        for key in self.dataset.dimension_keys:
-
-            if not key in self.concepts and key in self.dataset.concepts:
-                self.concepts[key] = self.dataset.concepts[key]
-
-            if not key in self.codelists:
-                self.codelists[key] = {}
-
-            value_key = dimensions[key]
-            
-            if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
-                self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
-
-        for key in self.dataset.attribute_keys:
-
-            value_keys = []
-            if attributes and key in attributes:
-                value_keys.append(attributes[key])
-            
-            if obs_attrs and key in obs_attrs:
-                value_keys.append(obs_attrs[key])
-
-            '''Creation concept meme si aucune value'''
-            if not key in self.concepts and key in self.dataset.concepts:
-                self.concepts[key] = self.dataset.concepts[key]
-
-            '''Creation codelist meme si aucune value'''
-            if not key in self.codelists:
-                self.codelists[key] = {}
-                
-            for value_key in value_keys:
-                if not value_key in self.codelists[key] and value_key in self.dataset.codelists[key]:
-                    self.codelists[key][value_key] = self.dataset.codelists[key][value_key]
-
     def update_dataset_lists_finalize(self):
-        if not self.dataset.from_db:
-            self.dataset.concepts = self.concepts
-            self.dataset.codelists = self.codelists
-        else:
-            for key, value in self.concepts.items():
-                if not key in self.dataset.concepts:
-                    self.dataset.concepts[key] = value
-                    
-            for key, values in self.codelists.items():
-                if not key in self.dataset.codelists:
-                    self.dataset.codelists[key] = values
-                elif values:
-                    for k, v in values.items():
-                        if not k in self.dataset.codelists[key]:
-                            self.dataset.codelists[key][k] = v
+        
+        concepts = {}
+        codelists = {}
+        dimension_keys = []
+        attribute_keys = []
+        
+        for key, value in self.dataset.concepts.items():
+            key_slug = slugify(key, save_order=True)
+            concepts[key_slug] = value
+            
+        for key, value in self.dataset.codelists.items():
+            new_value = {}
+            for k, v in value.items():
+                new_value[slugify(k, save_order=True)] = v
+            codelists[slugify(key, save_order=True)] = new_value
+            
+        for key in self.dataset.dimension_keys:
+            dimension_keys.append(slugify(key, save_order=True))
+
+        if self.dataset.attribute_keys:
+            for key in self.dataset.attribute_keys:
+                attribute_keys.append(slugify(key, save_order=True))
+            
+        self.dataset.concepts = concepts
+        self.dataset.codelists = codelists
+        self.dataset.dimension_keys = dimension_keys
+
+        if self.dataset.attribute_keys:
+            self.dataset.attribute_keys = attribute_keys
         
     def update_series_list(self):
 
@@ -1194,7 +1177,6 @@ class Series:
             if not key in old_series:
                 bson = series_update(data, last_update=self.last_update)
                 bulk_requests.append(InsertOne(bson))
-                self.update_dataset_lists(bson)
                 self.count_inserts += 1
             else:
                 old_bson = old_series[key]
@@ -1213,8 +1195,6 @@ class Series:
                     }
                     bulk_requests.append(UpdateOne({'_id': old_bson['_id']}, 
                                               {'$set': query_update}))
-                    #bulk.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
-                    self.update_dataset_lists(bson)
                     self.count_updates += 1
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
@@ -1282,7 +1262,7 @@ class CodeDict():
     def get_list(self):
         return {d1: list(d2.items()) for d1,d2 in self.code_dict.items()}
 
-    def set_dict(self,arg):
+    def set_dict(self, arg):
         self.code_dict = arg
         
     def set_from_list(self, **kwargs):

@@ -495,7 +495,7 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
 @opt_fetcher
 @opt_dataset_multiple
 @click.option('--purge-all', is_flag=True,
-              help='Use existing files in tmpdir')
+              help='Delete provider and categories')
 def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
     """Purge one or more dataset"""
     

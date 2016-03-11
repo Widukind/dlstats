@@ -286,44 +286,6 @@ class ECB_Data(SeriesIterator):
         self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
-        
-        """
-        
-        headers = SDMX_DATA_HEADERS
-        url = "http://sdw-wsrest.ecb.int/service/data/%s" % self.dataset_code
-        last_modified = None
-        
-        if self.dataset.metadata and "Last-Modified" in self.dataset.metadata:
-            headers["If-Modified-Since"] = self.dataset.metadata["Last-Modified"]
-            last_modified = self.dataset.metadata["Last-Modified"]
-        
-        download = utils.Downloader(store_filepath=self.store_path,
-                                    url=url, 
-                                    filename="data-%s.xml" % self.dataset_code,
-                                    headers=headers,
-                                    use_existing_file=self.fetcher.use_existing_file)
-        
-        self.xml_data = XMLData(provider_name=self.provider_name,
-                                dataset_code=self.dataset_code,
-                                xml_dsd=self.xml_dsd,
-                                frequencies_supported=FREQUENCIES_SUPPORTED)
-        
-        filepath, response = download.get_filepath_and_response()
-        self.fetcher.for_delete.append(filepath)
-        
-        if response.status_code == HTTP_ERROR_NOT_MODIFIED:
-            comments = "update-date[%s]" % last_modified
-            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
-                                              dataset_code=self.dataset_code,
-                                              comments=comments)
-
-        if "Last-Modified" in response.headers:
-            if not self.dataset.metadata:
-                self.dataset.metadata = {}
-            self.dataset.metadata["Last-Modified"] = response.headers["Last-Modified"]
-        
-        self.rows = self.xml_data.process(filepath)
-        """
 
     def _get_data_by_dimension(self):
 
@@ -394,21 +356,12 @@ class ECB_Data(SeriesIterator):
         yield None, None
                         
     def _set_dataset(self):
-
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
-        #self.dataset.codelists = dataset["codelists"]
-        
-        '''Fixe key names'''
-        field = dataset["codelists"].pop("OBS_PRE_BREAK", None)
-        if field:
-            new_field = utils.clean_dict(field)
-            dataset["codelists"]["OBS_PRE_BREAK"] = new_field
-
         self.dataset.codelists = dataset["codelists"]
-
+        
     def clean_field(self, bson):
         bson = super().clean_field(bson)
         bson["attributes"].pop("TITLE", None)
@@ -418,10 +371,6 @@ class ECB_Data(SeriesIterator):
     def build_series(self, bson):
         self.dataset.add_frequency(bson["frequency"])
         bson["last_update"] = self.dataset.last_update
-        
-        for value in bson["values"]:
-            if value.get("attributes") and "OBS_PRE_BREAK" in value.get("attributes"):
-                value["attributes"]["OBS_PRE_BREAK"] = utils.clean_key(value["attributes"]["OBS_PRE_BREAK"])
         
         return bson
         

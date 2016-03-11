@@ -2,11 +2,15 @@
 
 import logging
 
+import requests
+
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.utils import Downloader, clean_datetime
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLGenericData_2_0_OECD as XMLData,
-                               dataset_converter)
+                               dataset_converter,
+                               select_dimension,
+                               get_dimensions_from_dsd)
 
 """
 FIXME: Attention à EO dont le dataset NAME change à chaque publication !
@@ -44,6 +48,8 @@ class OECD(Fetcher):
                                   region='World',
                                   website='http://www.oecd.org', 
                                   fetcher=self)
+
+        self.requests_client = requests.Session()
 
     def build_data_tree(self):
         
@@ -105,7 +111,7 @@ class OECD_Data(SeriesIterator):
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
         
         self._load_dsd()
-        self._load_data()
+        self.rows = self._get_data_by_dimension()
 
     def _get_url_dsd(self):
         """
@@ -131,7 +137,8 @@ class OECD_Data(SeriesIterator):
         download = Downloader(store_filepath=self.store_path,
                               url=url, 
                               filename="dsd-%s.xml" % self.dataset_code,
-                              use_existing_file=self.fetcher.use_existing_file)
+                              use_existing_file=self.fetcher.use_existing_file,
+                              client=self.fetcher.requests_client)
         filepath = download.get_filepath()
         self.fetcher.for_delete.append(filepath)
         
@@ -146,22 +153,54 @@ class OECD_Data(SeriesIterator):
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
 
-    def _load_data(self):
-        url = self._get_url_data()
-        download = Downloader(store_filepath=self.store_path,
-                              url=url, 
-                              filename="data-%s.xml" % self.dataset_code,
-                              use_existing_file=self.fetcher.use_existing_file)
+    def _get_data_by_dimension(self):
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        filepath = download.get_filepath()
-        self.fetcher.for_delete.append(filepath)
+        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
+                                                             self.provider_name,
+                                                             self.dataset_code)
+        
+        position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
+        
+        count_dimensions = len(dimension_keys)
+        
+        for dimension_value in dimension_values:
+            
+            sdmx_key = []
+            for i in range(count_dimensions):
+                if i == position:
+                    sdmx_key.append(dimension_value)
+                else:
+                    sdmx_key.append(".")
+            key = "".join(sdmx_key)
 
-        self.rows = self.xml_data.process(filepath)
+            url = "%s/%s" % (self._get_url_data(), key)
+            filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))
+            download = Downloader(url=url, 
+                                  filename=filename,
+                                  store_filepath=self.store_path,
+                                  client=self.fetcher.requests_client
+                                  )
+            filepath, response = download.get_filepath_and_response()
+
+            if filepath:
+                self.fetcher.for_delete.append(filepath)
+            
+            if response.status_code >= 400 and response.status_code < 500:
+                continue
+            elif response.status_code >= 500:
+                raise response.raise_for_status()
+            
+            for row, err in self.xml_data.process(filepath):
+                yield row, err
+
+            self.dataset.update_database(save_only=True)
+        
+        yield None, None
         
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update
