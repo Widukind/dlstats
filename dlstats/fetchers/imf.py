@@ -31,149 +31,618 @@ DATASETS = {
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
     },
     'BOP': { 
-        'name': 'Balance of Payments Statistics (BOPS)',
+        'name': 'Balance of Payments',
         'doc_href': 'http://data.imf.org/BOP',
     },
-    'BOPAGG': { 
-        'name': 'BOPAGG',
+    'BOPAGG': {
+        'name': 'Balance of Payments, World and Regional Aggregates',
         'doc_href': 'http://data.imf.org/BOPAGG',
     },
     'DOT': { 
-        'name': 'Direction of Trade Statistics (DOTS)',
+        'name': 'Direction of Trade Statistics',
         'doc_href': 'http://data.imf.org/DOT',
     },                         
     'IFS': { 
-        'name': 'International Financial Statistics (IFS)',
+        'name': 'International Financial Statistics',
         'doc_href': 'http://data.imf.org/IFS',
     },
     'COMMP': { 
-        'name': 'COMMP',
+        'name': 'Primary Commodity Prices',
         'doc_href': 'http://data.imf.org/COMMP',
     },
     'COMMPP': { 
-        'name': 'COMMPP',
+        'name': 'Primary Commodity Prices Projections',
         'doc_href': 'http://data.imf.org/COMMPP',
     },
     'GFSR': { 
-        'name': 'GFSR',
+        'name': 'Government Finance Statistics, Revenue',
         'doc_href': 'http://data.imf.org/GFSR',
     },
     'GFSSSUC': { 
-        'name': 'GFSSSUC',
+        'name': 'Government Finance Statistics, Statement of Sources and Uses of Cash',
         'doc_href': 'http://data.imf.org/GFSSSUC',
     },
     'GFSCOFOG': { 
-        'name': 'GFSCOFOG',
+        'name': 'Government Finance Statistics, Expenditure by Function of Government',
         'doc_href': 'http://data.imf.org/GFSCOFOG',
     },
     'GFSFALCS': { 
-        'name': 'GFSFALCS',
+        'name': 'Government Finance Statistics, Financial Assets and Liabilities by Counterpart Sector',
         'doc_href': 'http://data.imf.org/GFSFALCS',
     },
     'GFSIBS': { 
-        'name': 'GFSIBS',
+        'name': 'Government Finance Statistics, Integrated Balance Sheet (Stock Positions and Flows in Assets and Liabilities)',
         'doc_href': 'http://data.imf.org/GFSIBS',
     },
     'GFSMAB': { 
-        'name': 'GFSMAB',
+        'name': 'Government Finance Statistics, Main Aggregates and Balances',
         'doc_href': 'http://data.imf.org/GFSMAB',
     },
     'GFSE': { 
-        'name': 'GFSE',
+        'name': 'Government Finance Statistics, Expense',
         'doc_href': 'http://data.imf.org/GFSE',
     },
     'FSI': { 
-        'name': 'FSI',
+        'name': 'Financial Soundness Indicators',
         'doc_href': 'http://data.imf.org/FSI',
     },
     'RT': { 
-        'name': 'RT',
+        'name': 'International Reserves Template',
         'doc_href': 'http://data.imf.org/RT',
     },
     'FAS': { 
-        'name': 'FAS',
+        'name': 'Financial Access Survey',
         'doc_href': 'http://data.imf.org/FAS',
     },
     'COFER': { 
-        'name': 'COFER',
+        'name': 'Currency Composition of Official Foreign Exchange Reserves',
         'doc_href': 'http://data.imf.org/COFER',
     },
     'CDIS': { 
-        'name': 'CDIS',
+        'name': 'Coordinated Direct Investment Survey',
         'doc_href': 'http://data.imf.org/CDIS',
     },
-    #'CPIS': {                                    # frequency S (semi annual)
-    #    'name': 'CPIS',
-    #    'doc_href': 'http://data.imf.org/CPIS',
-    #},
+    'CPIS': {                                    # frequency S (semi annual)
+        'name': 'Coordinated Portfolio Investment Survey',
+        'doc_href': 'http://data.imf.org/CPIS',
+    },
     'WoRLD': { 
-        'name': 'WoRLD',
+        'name': 'World Revenue Longitudinal Data',
         'doc_href': 'http://data.imf.org/WoRLD',
     },
     'MCDREO': { 
-        'name': 'MCDREO',
+        'name': 'Middle East and Central Asia Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/MCDREO',
     },
     'APDREO': { 
-        'name': 'APDREO',
+        'name': 'Asia and Pacific Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/APDREO',
     },
     'AFRREO': { 
-        'name': 'AFRREO',
+        'name': 'Sub-Saharan Africa Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/AFRREO',
     },
-    #'WHDREO': {                                   # bug: KeyError: 'NGDP_FY'
-    #    'name': 'WHDREO',
-    #    'doc_href': 'http://data.imf.org/WHDREO',
-    #},
-    #'WCED': {                                     # bug: KeyError: 'OP'
-    #    'name': 'WCED',
-    #    'doc_href': 'http://data.imf.org/WCED',
-    #},
+    'WHDREO': {                                   # bug: KeyError: 'NGDP_FY'
+        'name': 'Western Hemisphere Regional Economic Outlook',
+        'doc_href': 'http://data.imf.org/WHDREO',
+    },
+    'WCED': {                                     # bug: KeyError: 'OP'
+        'name': 'World Commodity Exporters',
+        'doc_href': 'http://data.imf.org/WCED',
+    },
     'CPI': {
-        'name': 'CPI',
+        'name': 'Consumer Price Index',
         'doc_href': 'http://data.imf.org/CPI',
     },
-    #'COFR': {                                     # Erreur 500
-    #    'name': 'COFR',
-    #    'doc_href': 'http://data.imf.org/COFR',
-    #},
-    #'ICSD': {                                     # bug: KeyError: 'IGOV'
-    #    'name': 'ICSD',
-    #    'doc_href': 'http://data.imf.org/ICSD',
-    #},
-    #'HPDD': {                                     # bug: KeyError: 'GGXWDG'
-    #    'name': 'HPDD',
-    #    'doc_href': 'http://data.imf.org/HPDD',
-    #},
+    'COFR': {                                     # Erreur 500
+        'name': 'Coverage of Fiscal Reporting',
+        'doc_href': 'http://data.imf.org/COFR',
+    },
+    'ICSD': {                                     # bug: KeyError: 'IGOV'
+        'name': 'Investment and Capital Stock',
+        'doc_href': 'http://data.imf.org/ICSD',
+    },
+    'HPDD': {                                     # bug: KeyError: 'GGXWDG'
+        'name': 'Historical Public Debt',
+        'doc_href': 'http://data.imf.org/HPDD',
+    },
     'PGI': { 
-        'name': 'PGI',
+        'name': 'Principal Global Indicators',
         'doc_href': 'http://data.imf.org/PGI',
     },
 }
 
-"""
+
 CATEGORIES = [
     {
-        "category_code": "REO",
-        "name": "Regional Economic Outlook",
-        "position": 2,
+        "provider_name": "IMF",
+        "category_code": "BOFS",
+        "name": "Balance of Payments Statistics",
+        "position": 1,
+        "parent": None,
+        "all_parents": [],
         "doc_href": None,
         "datasets": [
             {
-                "dataset_code": "G19-TERMS",
-                "name": DATASETS["G19-TERMS"]["name"], 
-                "last_update": None,                 
+                "dataset_code": "BOP",
+                "name": DATASETS["BOP"]["name"],
+                "last_update": None,
                 "metadata": {
-                    "doc_href": DATASETS["G19-TERMS"]["doc_href"]
+                    "doc_href": DATASETS["BOP"]["doc_href"]
                 }
             },
-        ]
-    }
+            {
+                "dataset_code": "BOPAGG",
+                "name": DATASETS["BOPAGG"]["name"],
+                "last_update": None,
+                "metadata": {
+                    "doc_href": DATASETS["BOPAGG"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "PCP",
+        "name": "Primary Commodity Prices",
+        "position": 2,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "COMMP",
+                "name": DATASETS["COMMP"]["name"],
+                "last_update": None,
+                "metadata": {
+                    "doc_href": DATASETS["COMMP"]["doc_href"]
+                }
+            },                     
+            {
+                "dataset_code": "COMMPP",
+                "name": DATASETS["COMMPP"]["name"],
+                "last_update": None,
+                "metadata": {
+                    "doc_href": DATASETS["COMMPP"]["doc_href"]
+                }
+            },                     
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "GFS",
+        "name": "Government Finance Statistics (GFS)",
+        "position": 3,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "GFSCOFOG",
+                "name": DATASETS["GFSCOFOG"]["name"],
+                "last_update": None,
+                "metadata": {
+                    "doc_href": DATASETS["GFSCOFOG"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSE",
+                "name": DATASETS["GFSE"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSE"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSFALCS",
+                "name": DATASETS["GFSFALCS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSFALCS"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSIBS",
+                "name": DATASETS["GFSIBS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSIBS"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSMAB",
+                "name": DATASETS["GFSMAB"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSMAB"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSR",
+                "name": DATASETS["GFSR"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSR"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "GFSSSUC",
+                "name": DATASETS["GFSSSUC"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["GFSSSUC"]["doc_href"]
+                }
+            },            
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "CDIS",
+        "name": DATASETS["CDIS"]["name"],
+        "position": 4,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "CDIS",
+                "name": DATASETS["CDIS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["CDIS"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "CPIS",
+        "name": DATASETS["CPIS"]["name"],
+        "position": 5,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "CPIS",
+                "name": DATASETS["CPIS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["CPIS"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "COFER",
+        "name": DATASETS["COFER"]["name"],
+        "position": 6,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "COFER",
+                "name": DATASETS["COFER"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["COFER"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "DOT",
+        "name": DATASETS["DOT"]["name"],
+        "position": 7,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "DOT",
+                "name": DATASETS["DOT"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["DOT"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "FAS",
+        "name": DATASETS["FAS"]["name"],
+        "position": 8,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "FAS",
+                "name": DATASETS["FAS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["FAS"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "FSI",
+        "name": DATASETS["FSI"]["name"],
+        "position": 9,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "FSI",
+                "name": DATASETS["FSI"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["FSI"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "REO",
+        "name": "Regional Economic Outlook",
+        "position": 10,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "AFRREO",
+                "name": DATASETS["AFRREO"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["AFRREO"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "MCDREO",
+                "name": DATASETS["MCDREO"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["MCDREO"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "APDREO",
+                "name": DATASETS["APDREO"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["APDREO"]["doc_href"]
+                }
+            },
+            {
+                "dataset_code": "WHDREO",
+                "name": DATASETS["WHDREO"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["WHDREO"]["doc_href"]
+                }
+            },                    
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "IFS",
+        "name": DATASETS["IFS"]["name"],
+        "position": 11,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "IFS",
+                "name": DATASETS["IFS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["IFS"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "RT",
+        "name": DATASETS["RT"]["name"],
+        "position": 12,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "RT",
+                "name": DATASETS["RT"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["RT"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "WoRLD",
+        "name": DATASETS["WoRLD"]["name"],
+        "position": 13,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "WoRLD",
+                "name": DATASETS["WoRLD"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["WoRLD"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "WEO",
+        "name": DATASETS["WEO"]["name"],
+        "position": 14,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "WEO",
+                "name": DATASETS["WEO"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["WEO"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "PGI",
+        "name": DATASETS["PGI"]["name"],
+        "position": 15,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "PGI",
+                "name": DATASETS["PGI"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["PGI"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "WCED",
+        "name": DATASETS["WCED"]["name"],
+        "position": 16,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "WCED",
+                "name": DATASETS["WCED"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["WCED"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "CPI",
+        "name": DATASETS["CPI"]["name"],
+        "position": 17,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "CPI",
+                "name": DATASETS["CPI"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["CPI"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "COFR",
+        "name": DATASETS["COFR"]["name"],
+        "position": 18,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "COFR",
+                "name": DATASETS["COFR"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["COFR"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "ICSD",
+        "name": DATASETS["ICSD"]["name"],
+        "position": 19,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "ICSD",
+                "name": DATASETS["ICSD"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["ICSD"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
+        "category_code": "HPDD",
+        "name": DATASETS["HPDD"]["name"],
+        "position": 20,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "HPDD",
+                "name": DATASETS["HPDD"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["HPDD"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
 ]
-"""
-
-
 
 class IMF(Fetcher):
 
@@ -191,28 +660,8 @@ class IMF(Fetcher):
 
     def build_data_tree(self):
         
-        #return CATEGORIES
+        return CATEGORIES
         
-        categories = []
-        
-        for category_code, dataset in DATASETS.items():
-            cat = {
-                "provider_name": self.provider_name,
-                "category_code": category_code,
-                "name": dataset["name"],
-                "doc_href": dataset["doc_href"],
-                "datasets": [{
-                    "name": dataset["name"],
-                    "dataset_code": category_code,
-                    "last_update": None, 
-                    "metadata": None
-                }],
-                "metadata": {}
-            }
-            categories.append(cat)
-        
-        return categories
-
     def upsert_dataset(self, dataset_code):
         
         settings = DATASETS[dataset_code]
