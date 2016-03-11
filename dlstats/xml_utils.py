@@ -1188,9 +1188,9 @@ class XMLData_1_0_FED(XMLData_1_0):
             
             if event == 'end':
                 
-                for dataset in element.xpath(".//*[local-name()='Dataset']"):
-                
-                #if element.tag == self.fixtag("frb", "DataSet"):
+                if element.tag == self.fixtag("frb", "DataSet"):
+                    
+                    dataset = element
                 
                     _id = element.xpath('//message:Header/message:ID/text()', 
                                         namespaces=self.nsmap)[0]
