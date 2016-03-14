@@ -332,10 +332,9 @@ class ECB_Data(SeriesIterator):
                 self.fetcher.for_delete.append(filepath)
 
             if response.status_code == HTTP_ERROR_NOT_MODIFIED:
-                comments = "update-date[%s]" % last_modified
-                raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
-                                                  dataset_code=self.dataset_code,
-                                                  comments=comments)
+                msg = "Reject dataset updated for provider[%s] - dataset[%s] - update-date[%s]"
+                logger.warning(msg % (self.provider_name, self.dataset_code, last_modified))
+                continue
             
             elif response.status_code == HTTP_ERROR_NO_RESULT:
                 continue
