@@ -198,7 +198,7 @@ class OECD_Data(SeriesIterator):
             for row, err in self.xml_data.process(filepath):
                 yield row, err
 
-            self.dataset.update_database(save_only=True)
+            #self.dataset.update_database(save_only=True)
         
         yield None, None
         

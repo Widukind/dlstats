@@ -773,7 +773,7 @@ class IMF_XML_Data(SeriesIterator):
                 if local_count > 2500:
                     logger.warning("TODO: VRFY - series > 2500 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
 
-            self.dataset.update_database(save_only=True)
+            #self.dataset.update_database(save_only=True)
         
         yield None, None
         
@@ -885,7 +885,7 @@ class WeoData(SeriesIterator):
                         break       
                     yield row, None
 
-            self.dataset.update_database(save_only=True)
+            #self.dataset.update_database(save_only=True)
         
         yield None, None
         
