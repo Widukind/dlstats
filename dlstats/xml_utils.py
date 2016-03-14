@@ -1166,7 +1166,8 @@ class XMLData_1_0_FED(XMLData_1_0):
     }
     
     MAP_DSD_ID = {
-        "OTHER": "Z.1"
+        "OTHER": "Z.1",
+        "Z1": "Z.1",
     }    
     
     def __init__(self, **kwargs):

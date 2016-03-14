@@ -108,12 +108,6 @@ DATASETS = {
         'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=Z1&filetype=zip',
         'dsd_id': 'Z.1-Z1',
     },
-    'Z1-OTHER': {
-        'name': 'Flow of Funds Z.1 - Z.1 Underlying Detail; OTHER',
-        'doc_href': 'http://www.federalreserve.gov/releases/Z1/current/default.htm',
-        'url': 'http://www.federalreserve.gov/datadownload/Output.aspx?rel=Z1&filetype=zip',
-        'dsd_id': 'Z.1-OTHER',
-    },
     'H8': {
         'name': 'H.8 Assets and Liabilities of Commercial Banks in the United States - Assets and Liabilities of Commercial Banks in the U.S.',
         'doc_href': 'http://www.federalreserve.gov/releases/H8/current/default.htm',
@@ -850,14 +844,6 @@ CATEGORIES = [
                     "last_update": None,      
                     "metadata": {
                         "doc_href": DATASETS["Z1"]["doc_href"]
-                    }
-                },
-                {
-                    "dataset_code": "Z1-OTHER",
-                    "name": DATASETS["Z1-OTHER"]["name"], 
-                    "last_update": None,      
-                    "metadata": {
-                        "doc_href": DATASETS["Z1-OTHER"]["doc_href"]
                     }
                 },
             ],
