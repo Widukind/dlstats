@@ -213,7 +213,7 @@ CATEGORIES = [
     {
         "provider_name": "IMF",
         "category_code": "GFS",
-        "name": "Government Finance Statistics (GFS)",
+        "name": "Government Finance Statistics",
         "position": 3,
         "parent": None,
         "all_parents": [],
