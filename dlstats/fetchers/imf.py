@@ -213,7 +213,7 @@ CATEGORIES = [
     {
         "provider_name": "IMF",
         "category_code": "GFS",
-        "name": "Government Finance Statistics (GFS)",
+        "name": "Government Finance Statistics",
         "position": 3,
         "parent": None,
         "all_parents": [],
@@ -729,9 +729,6 @@ class IMF_XML_Data(SeriesIterator):
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
         
-        if "OBS_STATUS" in self.dataset.codelists:
-            self.dataset.codelists["OBS_STATUS"] = clean_dict(self.dataset.codelists["OBS_STATUS"])
-
     def _get_data_by_dimension(self):
         
         dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
@@ -783,11 +780,6 @@ class IMF_XML_Data(SeriesIterator):
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update
         self.dataset.add_frequency(bson["frequency"])
-        
-        for value in bson["values"]:
-            if value.get("attributes") and "OBS_STATUS" in value.get("attributes"):
-                value["attributes"]["OBS_STATUS"] = clean_key(value["attributes"]["OBS_STATUS"])
-        
         return bson
         
 class WeoData(SeriesIterator):
