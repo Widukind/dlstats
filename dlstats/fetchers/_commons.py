@@ -546,6 +546,8 @@ class Datasets(DlstatsCollection):
 
         self.enable = False        
         self.lock = False
+        
+        self.tags = []
 
         self.download_first = None
         self.download_last = None
@@ -590,7 +592,8 @@ class Datasets(DlstatsCollection):
                 'download_last': self.download_last,
                 'notes': self.notes,
                 "enable": self.enable,
-                "lock": self.lock}
+                "lock": self.lock,
+                "tags": self.tags}
 
     def load_previous_version(self, provider_name, dataset_code):
         dataset = self.fetcher.db[constants.COL_DATASETS].find_one(
@@ -598,15 +601,19 @@ class Datasets(DlstatsCollection):
                                              'dataset_code': dataset_code})
         if dataset:
             # convert to dict of dict
-            self.enable = dataset.get('enable')
-            self.lock = dataset.get('lock')
-            self.metadata = dataset.get('metadata', {}) or {}
-            self.download_first = dataset.get('download_first')
-            self.last_update = dataset.get('last_update')
             self.dimension_keys = dataset.get("dimension_keys", [])
             self.attribute_keys = dataset.get("attribute_keys", [])
             self.codelists = dataset.get("codelists", {})
             self.concepts = dataset.get("concepts", {})
+            self.metadata = dataset.get('metadata', {}) or {}
+            self.doc_href = dataset.get('doc_href')
+            self.last_update = dataset.get('last_update')
+            self.download_last = dataset.get('download_last')
+            self.download_first = dataset.get('download_first')
+            self.notes = dataset.get('notes')
+            self.enable = dataset.get('enable')
+            self.lock = dataset.get('lock')
+            self.tags = dataset.get('tags')
             
             dimension_list = {}
             attribute_list = {}

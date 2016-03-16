@@ -396,8 +396,9 @@ class INSEE_Data(SeriesIterator):
             key = "".join(sdmx_key)
 
             url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (self.dataset_code, key)
+            filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))
             download = Downloader(url=url, 
-                                  filename="data-%s-%s.xml" % (self.dataset_code, key),
+                                  filename=filename,
                                   store_filepath=self.store_path,
                                   #client=self.fetcher.requests_client
                                   )
@@ -447,4 +448,9 @@ class INSEE_Data(SeriesIterator):
             raise errors.RejectUpdatedSeries(provider_name=self.provider_name,
                                              dataset_code=self.dataset_code,
                                              key=bson.get('key'))
+            
+        series_updated = bson.get('last_update', None)
+        if series_updated and series_updated > self.dataset.last_update:
+            self.dataset.last_update = series_updated
+            
         return bson

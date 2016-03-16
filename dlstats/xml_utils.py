@@ -1266,20 +1266,6 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
         localname = etree.QName(element.tag).localname
         return localname == 'Series'
 
-    def finalize_bson(self, bson):
-        """Insee Fixe for reverse dates and values
-        """
-        bson = super().finalize_bson(bson)
-        
-        keyfunc = lambda x: x["ordinal"]
-        bson["values"] = sorted(bson["values"], key=keyfunc)
-        bson["start_date"] = bson["values"][0]["ordinal"]
-        bson["end_date"] = bson["values"][-1]["ordinal"]
-        
-        
-        return bson
-
-    
     def get_observations(self, series, frequency):
         """
         <Series FREQ="A" REF_AREA="122" INDICATOR="TMG_CIF_USD" VIS_AREA="369" SCALE="6" SERIESCODE="122TMG_CIF_USD369.A" TIME_FORMAT="P1Y">
@@ -1297,9 +1283,14 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
                 
             #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
             if localname == "Obs":
-                item["period"] = obs.attrib["TIME_PERIOD"]
-                #item["period_o"] = item["period"]
-                item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
+                 
+                period = obs.attrib["TIME_PERIOD"]                
+                if frequency == "Q" and len(period.split("-")) == 2:
+                    period = period.replace("-0", "-Q")
+                
+                item["period"] = period
+                
+                item["ordinal"] = get_ordinal_from_period(period, freq=frequency)
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("VALUE", "")
                 
