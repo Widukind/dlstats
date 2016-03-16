@@ -753,10 +753,11 @@ class IMF_XML_Data(SeriesIterator):
             key = "".join(sdmx_key)
 
             url = "%s/%s" % (self._get_url_data(), key)
+            filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))
             download = Downloader(url=url, 
-                                  filename="data-%s-%s.xml" % (self.dataset_code, key),
+                                  filename=filename,
                                   store_filepath=self.store_path,
-                                  client=self.fetcher.requests_client)
+                                  client=self.fetcher.requests_client)            
             filepath, response = download.get_filepath_and_response()
 
             if filepath:
