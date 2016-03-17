@@ -275,6 +275,9 @@ class XMLStructureBase:
         self.dimensions_by_dsd = OrderedDict()
         self.attributes_by_dsd = OrderedDict()
         
+        self.annotations = []
+        self.last_update = None        
+        
     def fixtag(self, ns, tag):
         ns = self.TAGS_MAP.get(ns, ns)
         return '{' + self.nsmap[ns] + '}' + tag
@@ -317,6 +320,9 @@ class XMLStructureBase:
 
     def process_attribute(self, element):
         raise NotImplementedError()
+    
+    def process_last_update(self, element):
+        pass
 
     def _iter_parent_category(self, category):
         parents = []
@@ -387,7 +393,7 @@ class XMLStructure_1_0(XMLStructureBase):
         """
         TODO:
         <structure:TimeDimension concept="TIME_PERIOD"/>
-        <structure:PrimaryMeasure concept="OBS_VALUE"/>        
+        <structure:PrimaryMeasure concept="OBS_VALUE"/>
         """
 
         ds_name = self.process_dataset_name(element)
@@ -413,6 +419,9 @@ class XMLStructure_1_0(XMLStructureBase):
             
         for child in element.xpath(".//*[local-name()='Attribute']"):
             self.process_attribute(child, _id)
+            
+        annotations = element.xpath(".//*[local-name()='Annotation']")
+        self.annotations = annotations
         
         element.clear()
     
@@ -586,6 +595,18 @@ class XMLStructure_2_0(XMLStructure_1_0):
                     self.process_concept(element)
                 elif element.tag == self.fixtag("structure", "KeyFamily"):
                     self.process_datastructure(element)
+                    self.process_last_update(element)
+                    element.clear()
+                    
+    def process_last_update(self, element):
+        if self.annotations:
+            try:
+                date_str = self.annotations[0].xpath(".//*[local-name()='AnnotationText']/text()")
+                if date_str:
+                    #'01/27/2016'
+                    self.last_update = datetime.strptime(date_str[0], "%m/%d/%Y")
+            except:
+                pass
     
 class XMLStructure_2_1(XMLStructure_2_0):
     """Parsing SDMX 2.1 structure
@@ -975,9 +996,9 @@ class XMLDataBase:
                     try:
                         yield self.one_series(element), None
                     except errors.RejectFrequency as err:
-                        yield (None, err)
+                        yield None, err
                     except errors.RejectEmptySeries as err:
-                        yield (None, err)
+                        yield None, err
                     finally:
                         element.clear()
 
@@ -1281,7 +1302,6 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
         
             localname = etree.QName(obs.tag).localname
                 
-            #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
             if localname == "Obs":
                  
                 period = obs.attrib["TIME_PERIOD"]                

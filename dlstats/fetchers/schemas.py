@@ -58,6 +58,7 @@ category_schema = Schema({
     'all_parents': Any(None, [], [str]),
     'datasets': [data_tree_datasets_schema],
     'doc_href': Any(None, str),
+    Optional('tags'): Any(None, list),
     'metadata': Any(None, dict),
 }, required=True)
 
@@ -74,6 +75,7 @@ dataset_schema = Schema({
     'codelists': Any(None, dict),
     'concepts': Any(None, dict),
     
+    Optional('tags'): Any(None, list),
     'metadata': Any(None, dict),
     Optional('notes'): Any(None, str),
     'slug': All(str, Length(min=1)),
@@ -110,6 +112,7 @@ series_schema = Schema({
     'dimensions': {str: str},
     'frequency': All(str, Length(min=1)),
     Optional('notes'): Any(None, str),
+    Optional('tags'): Any(None, list),
     'slug': All(str, Length(min=1)),
 }, required=True)
 
