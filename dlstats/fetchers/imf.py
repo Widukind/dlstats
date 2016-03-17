@@ -9,6 +9,7 @@ import logging
 import requests
 from lxml import etree
 
+from dlstats import errors
 from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime, clean_key, clean_dict
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
@@ -688,18 +689,26 @@ class IMF_XML_Data(SeriesIterator):
     def __init__(self, dataset=None):
         super().__init__(dataset)
 
-        self.dataset.last_update = clean_datetime()        
         self.store_path = self.get_store_path()
-        self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
-
+        self.xml_dsd = XMLStructure(provider_name=self.provider_name)
+        
         self._load_dsd()
+
+        if self.dataset.last_update and self.xml_dsd.last_update:
+            
+            if self.dataset.last_update > self.xml_dsd.last_update:
+                comments = "update-date[%s]" % self.xml_dsd.last_update
+                raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                                  dataset_code=self.dataset.dataset_code,
+                                                  comments=comments)
+        
+        self.dataset.last_update = clean_datetime(self.xml_dsd.last_update)        
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        #self._load_data()
         self.rows = self._get_data_by_dimension()
 
     def _get_url_dsd(self):
@@ -732,8 +741,8 @@ class IMF_XML_Data(SeriesIterator):
     def _get_data_by_dimension(self):
         
         dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
-                                                                       self.provider_name,
-                                                                       self.dataset_code)
+                                                             self.provider_name,
+                                                             self.dataset_code)
         
         position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
         
