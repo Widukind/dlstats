@@ -780,8 +780,9 @@ class IMF_XML_Data(SeriesIterator):
             for row, err in self.xml_data.process(filepath):
                 yield row, err
                 local_count += 1
-                if local_count > 2500:
-                    logger.warning("TODO: VRFY - series > 2500 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
+                
+            if local_count >= 2999:
+                logger.warning("TODO: VRFY - series > 2999 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
 
             #self.dataset.update_database(save_only=True)
         
@@ -998,7 +999,7 @@ class WeoData(SeriesIterator):
                 'release_date': self.release_date,
                 'ordinal': get_ordinal_from_period(period, freq=self.frequency),
                 'period': period,
-                'value': row[period]
+                'value': row[period].replace(',' ,'')
             }
             if estimation_start:
                 if int(period) >= estimation_start:
