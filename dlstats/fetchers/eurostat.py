@@ -108,8 +108,8 @@ class Eurostat(Fetcher):
             'demo_pjanbroad', 
             'lfsi_act_q',
             #TODO: 'euroind',
-            #TODO: 'pop',
-            #TODO: 'labour'
+            'pop',
+            'labour',
         ]
 
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
