@@ -24,7 +24,8 @@ from dlstats import errors
 from dlstats.utils import (last_error, 
                            clean_datetime, 
                            remove_file_and_dir, 
-                           make_store_path)
+                           make_store_path,
+                           get_year)
 
 logger = logging.getLogger(__name__)
 
@@ -758,10 +759,18 @@ class SeriesIterator:
     def clean_field(self, bson):
 
         if not "start_ts" in bson or not bson.get("start_ts"):
-            bson["start_ts"] = pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime()
+            if bson["frequency"] == "A":
+                year = int(get_year(bson["values"][0]["period"]))
+                bson["start_ts"] = clean_datetime(datetime(year, 1, 1), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
+            else:
+                bson["start_ts"] = clean_datetime(pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime())
 
         if not "end_ts" in bson or not bson.get("end_ts"):
-            bson["end_ts"] = pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime()
+            if bson["frequency"] == "A":
+                year = int(get_year(bson["values"][-1]["period"]))
+                bson["end_ts"] = clean_datetime(datetime(year, 12, 31), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
+            else:
+                bson["end_ts"] = clean_datetime(pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime())
         
         dimensions = bson.pop("dimensions")
         attributes = bson.pop("attributes", {})
