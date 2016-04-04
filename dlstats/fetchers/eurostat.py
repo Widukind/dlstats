@@ -107,7 +107,7 @@ class Eurostat(Fetcher):
             'bop_6',
             'demo_pjanbroad', 
             'lfsi_act_q',
-            #TODO: 'euroind',
+            'euroind',
             'pop',
             'labour',
         ]
