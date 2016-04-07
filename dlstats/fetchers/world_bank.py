@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
 import logging
 from datetime import datetime
 import time
 from collections import OrderedDict
-from itertools import groupby
+import os
+import json
+import hashlib
 
 import requests
 from slugify import slugify
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.utils import clean_datetime, get_ordinal_from_period
+from dlstats import errors
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +22,11 @@ VERSION = 1
 HTTP_ERROR_SERVICE_CURRENTLY_UNAVAILABLE = 503 #Service currently unavailable
 
 HTTP_ERROR_ENDPOINT_NOTFOUND = 400 #Endpoint “XXX” not found
+
+#TODO: use for limit search: http://api.worldbank.org/v2/countries/wld/indicators/CHICKEN
+ONLY_WORLD_COUNTRY = [
+    "GMC",
+]
 
 def retry(tries=1, sleep_time=2):
     """Retry calling the decorated function
@@ -89,27 +96,40 @@ class WorldBankAPI(Fetcher):
         
         self._available_countries = None
 
-    @retry(tries=2, sleep_time=2)
+    @retry(tries=5, sleep_time=2)
     def download_or_raise(self, url, params={}):
-        #TODO: stream
         
-        response = self.requests_client.get(url, params=params)
+        if not os.path.exists(self.store_path):
+            os.makedirs(self.store_path, exist_ok=True)
         
-        logger.info("download url[%s]" %  response.url)
+        filename = hashlib.sha224(url.encode("utf-8")).hexdigest()
+        filepath = os.path.abspath(os.path.join(self.store_path, filename))
+        if os.path.exists(filepath):
+            os.remove(filepath)
+                
+        response = self.requests_client.get(url, params=params, stream=True)
+        #response = requests.get(url, params=params)
+        
+        logger.info("download url[%s] - filepath[%s]" %  (response.url, filepath))
 
         response.raise_for_status()
-        
-        return response
 
+        with open(filepath, mode='wb') as f:
+            for chunk in response.iter_content():
+                f.write(chunk)
+                
+        with open(filepath, mode='rb') as f:
+            return json.load(f)
+        
     def download_json(self, url, parameters={}):
         #TODO: settings
-        per_page = 300
+        per_page = 1000
         payload = {'format': 'json', 'per_page': per_page}
         payload.update(parameters)
         
-        request = self.download_or_raise(self.api_url + url, params=payload)
+        response_json = self.download_or_raise(self.api_url + url, params=payload)
         
-        first_page = request.json()
+        first_page = response_json#.json()
         if isinstance(first_page, list):
             number_of_pages = int(first_page[0]['pages'])
         else:
@@ -118,10 +138,8 @@ class WorldBankAPI(Fetcher):
         for page in range(1, number_of_pages + 1):
             if page != 1:
                 payload = {'format': 'json', 'per_page': per_page, 'page': page}
-                request = self.download_or_raise(self.api_url + url, params=payload)
-                #TODO: ?
-                request.raise_for_status()
-            yield request.json()
+                response_json = self.download_or_raise(self.api_url + url, params=payload)
+            yield response_json#.json()
 
     @property
     def available_countries(self):
@@ -350,7 +368,10 @@ class WorldBankAPIData(SeriesIterator):
         
         self.wb_id = settings["metadata"]["id"]
         
-        self.available_countries = self.fetcher.available_countries
+        if self.dataset_code in ONLY_WORLD_COUNTRY:
+            self.available_countries = {"WLD": self.fetcher.available_countries.get("WLD")}
+        else:
+            self.available_countries = self.fetcher.available_countries
         
         self.dataset.dimension_keys = ["country"]
         self.dataset.concepts["country"] = "Country"
@@ -383,7 +404,45 @@ class WorldBankAPIData(SeriesIterator):
         self.countries_to_process = list(self.available_countries.keys())
         #self.countries_str = ";".join(list(self.available_countries.keys()))
         
-        self.blacklist_indicator = ["TOT"]
+        self.blacklist_indicator = [
+            "IC.DCP.COST",
+            "IC.DCP.PROC",
+            "IC.DCP.TIME",
+            "IC.EC.COST",
+            "IC.EC.PROC",
+            "IC.EC.TIME",
+            "IC.EXP.COST.EXP",
+            "IS.ROD.DNST.K2",
+            "IS.ROD.GOOD.MT.K6",
+            "IS.ROD.PAVE.ZS",
+            "IS.ROD.PSGR.K6",
+            "IS.ROD.TOTL.KM",
+            "IS.VEH.NVEH.P3",
+            "IS.VEH.PCAR.P3",
+            "IS.VEH.ROAD.K1",
+            "TOT",
+            "KSHRIMP_MEX", #GMC: error[Expecting value: line 1 column 1 (char 0)]
+            "IC.EXP.COST.IMP",
+            "IC.EXP.DOCS.IMP",
+            "IC.EXP.TIME.EXP",
+            "IC.EXP.TIME.IMP",
+            "IC.GE.COST",
+            "IC.GE.NUM",
+            "IC.GE.TIME",
+            "IC.ISV.COST",
+            "IC.ISV.RECRT",
+            "IC.LIC.NUM",
+            "IC.LIC.TIME",
+            "IC.PI.DIR",
+            "IC.PI.DISCL",
+            "IC.PI.INV",
+            "IC.PI.SHAR",
+            "IC.REG.CAP",
+            "IC.REG.COST",
+            "IC.RP.COST",
+            "IC.RP.PROC",
+            "IC.RP.TIME",            
+        ]
         
         self.release_date = None
         self.current_indicator = None
@@ -582,10 +641,11 @@ class WorldBankAPIData(SeriesIterator):
         series['name'] = "%s - %s" % (self.current_indicator["name"], self.available_countries[self.current_country]["name"])
         series['frequency'] = self._search_frequency(datas[0])
 
-        if self.current_indicator.get("sourceNote"):
-            series["notes"] = self.current_indicator.get("sourceNote")
+        #if self.current_indicator.get("sourceNote"):
+        #    series["notes"] = self.current_indicator.get("sourceNote")
         
         values = []
+        value_found = False
         for point in datas:
             
             frequency = self._search_frequency(point)
@@ -595,10 +655,12 @@ class WorldBankAPIData(SeriesIterator):
             value = {
                 'attributes': None,
                 'release_date': self.release_date,
-                'value': str(point["value"]),
+                'value': str(point["value"]).replace("None", ""),
                 'ordinal': get_ordinal_from_period(point["date"], freq=series['frequency']),
                 'period': point["date"],
             }
+            if not value_found and value["value"] != "":
+                value_found = True
             
             if "obs_status" in point:
                 obs_status = point.get("obs_status")
@@ -606,6 +668,11 @@ class WorldBankAPIData(SeriesIterator):
                     value["attributes"] = {"obs_status": obs_status}
             
             values.append(value)
+
+        if not value_found:
+            msg = {"provider_name": self.provider_name, 
+                   "dataset_code": self.dataset_code}            
+            raise errors.RejectEmptySeries(**msg)                
 
         keyfunc = lambda x: x["ordinal"]
         series['values'] = sorted(values, key=keyfunc)
