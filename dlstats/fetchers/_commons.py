@@ -9,6 +9,8 @@ import logging
 import pprint
 from collections import OrderedDict
 from itertools import groupby
+import hashlib
+import json
 
 import pymongo
 from pymongo import ReturnDocument
@@ -25,7 +27,8 @@ from dlstats.utils import (last_error,
                            clean_datetime, 
                            remove_file_and_dir, 
                            make_store_path,
-                           get_year)
+                           get_year,
+                           json_dump_convert)
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +81,21 @@ class Fetcher(object):
             
         if IS_SCHEMAS_VALIDATION_DISABLE:
             logger.warning("schemas validation is disable")
+    
+    def upsert_calendar(self):
+        try:
+            for entry in self.get_calendar():
+                entry_str = json.dumps(entry, default=json_dump_convert)
+                key = hashlib.md5(entry_str.encode('utf_8')).hexdigest()
+                entry["key"] = key
+                self.db[constants.COL_CALENDARS].find_one_and_replace({"key": key}, 
+                                                                      entry, 
+                                                                      upsert=True)
+                
+        except NotImplementedError:
+            pass
+        except Exception as err:
+            logger.critical('upsert_calendar failed for %s error[%s]' % (self.provider_name, last_error()))
     
     def upsert_data_tree(self, data_tree=None, force_update=False):
         #TODO: bulk
