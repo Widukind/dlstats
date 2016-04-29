@@ -18,7 +18,7 @@ from pymongo import InsertOne, UpdateOne
 from slugify import slugify
 import pandas
 
-from widukind_common.utils import get_mongo_db, create_or_update_indexes
+from widukind_common.utils import get_mongo_db
 
 from dlstats import constants
 from dlstats.fetchers import schemas
@@ -76,9 +76,6 @@ class Fetcher(object):
                                                        self.provider_name))
         self.for_delete = []
         
-        if is_indexes:
-            create_or_update_indexes(self.db)
-            
         if IS_SCHEMAS_VALIDATION_DISABLE:
             logger.warning("schemas validation is disable")
     
