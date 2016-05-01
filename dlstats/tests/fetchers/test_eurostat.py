@@ -29,27 +29,27 @@ def extract_zip_file(zipfilepath):
 
 LOCAL_DATASETS_UPDATE = {
     "nama_10_fcs": {
-        "concept_keys": ['FREQ', 'OBS_STATUS', 'TIME_FORMAT', 'geo', 'na_item', 'unit'], 
-        "codelist_keys": ['FREQ', 'OBS_STATUS', 'TIME_FORMAT', 'geo', 'na_item', 'unit'], 
+        "concept_keys": ['freq', 'obs-status', 'time-format', 'geo', 'na-item', 'unit'], 
+        "codelist_keys": ['freq', 'obs-status', 'time-format', 'geo', 'na-item', 'unit'], 
         "codelist_count": {
-            "FREQ": 1,
-            "OBS_STATUS": 4,
-            "TIME_FORMAT": 1,
+            "freq": 9,
             "geo": 33,
-            "na_item": 10,
+            "na-item": 10,
+            "obs-status": 12,
+            "time-format": 7,
             "unit": 12,
         },
-        "dimension_keys": ['FREQ', 'unit', 'na_item', 'geo'],
+        "dimension_keys": ['freq', 'unit', 'na-item', 'geo'],
         "dimension_count": {
-            "FREQ": 1,
+            "freq": 9,
             "unit": 12,
-            "na_item": 10,
+            "na-item": 10,
             "geo": 33,
         },
-        "attribute_keys": ["TIME_FORMAT", "OBS_STATUS"],
+        "attribute_keys": ["time-format", "obs-status"],
         "attribute_count": {
-            "TIME_FORMAT": 1,
-            "OBS_STATUS": 4,
+            "time-format": 7,
+            "obs-status": 12,
         }, 
     }
 }

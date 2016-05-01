@@ -15,7 +15,8 @@ import os
 
 from lxml import etree
 
-from dlstats import errors
+from widukind_common import errors
+
 from dlstats import constants
 from dlstats.utils import Downloader
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
@@ -251,6 +252,36 @@ class Eurostat(Fetcher):
         
         return dataset.update_database()
     
+    def get_calendar(self):
+        
+        yield {
+            "action": "update-fetcher",
+            "period_type": "cron",
+            "kwargs": { 
+                "provider_name": self.provider_name
+            },
+            "period_kwargs": { 
+                "day": '*', 
+                "hour": 11, 
+                "minute": 1, 
+                "timezone": 'Europe/Paris'
+            }
+        }
+
+        yield {
+            "action": "update-fetcher",
+            "period_type": "cron",
+            "kwargs": { 
+                "provider_name": self.provider_name
+            },
+            "period_kwargs": { 
+                "day": '*', 
+                "hour": 23, 
+                "minute": 1, 
+                "timezone": 'Europe/Paris'
+            }
+        }
+    
     def load_datasets_update(self):
 
         datasets_list = self.datasets_list()
@@ -314,6 +345,7 @@ class EurostatData(SeriesIterator):
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
+                                dsd_id=self.dataset_code,
                                 #TODO: frequencies_supported=FREQUENCIES_SUPPORTED
                                 )        
         self.rows = self.xml_data.process(data_fp)
