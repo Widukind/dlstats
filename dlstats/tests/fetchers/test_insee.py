@@ -9,6 +9,7 @@ from dlstats.fetchers.insee import INSEE as Fetcher
 from dlstats import constants
 
 import unittest
+from unittest import mock
 import httpretty
 
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
@@ -17,6 +18,24 @@ from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "insee"))
 
+def get_dimensions_from_dsd(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['FREQ', 'NATURE', 'PRODUIT']
+    dimensions = {
+        'FREQ': {'M': 'M'},
+        'NATURE': {},
+        'PRODUIT': {},
+    }
+    return dimension_keys, dimensions
+
+def get_dimensions_from_dsd_CHO_AN_AGE(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['INDICATEUR', 'SEXE', 'AGE']
+    dimensions = {
+        'INDICATEUR': {'Nbre': 'Nbre'},
+        'SEXE': {},
+        'AGE': {},
+    }
+    return dimension_keys, dimensions
+
 LOCAL_DATASETS_UPDATE = {
     "IPI-2010-A21": {
         "categories_root": ['COMPTA-NAT', 'CONDITIONS-VIE-SOCIETE', 'DEMO-ENT', 
@@ -24,97 +43,98 @@ LOCAL_DATASETS_UPDATE = {
                             'POPULATION', 'PRIX', 'PRODUCTION-ENT', 
                             'SALAIRES-REVENUS', 'SERVICES-TOURISME-TRANSPORT', 
                             'SRGDP'],
-        "concept_keys": ['BASE_PER', 'DECIMALS', 'EMBARGO_TIME', 'FREQ', 'IDBANK', 'LAST_UPDATE', 'NATURE', 'OBS_STATUS', 'PRODUIT', 'REF_AREA', 'TIME_PER_COLLECT', 'TITLE', 'UNIT_MEASURE', 'UNIT_MULT'],
-        "codelist_keys": ['BASE_PER', 'DECIMALS', 'EMBARGO_TIME', 'FREQ', 'IDBANK', 'LAST_UPDATE', 'NATURE', 'OBS_STATUS', 'PRODUIT', 'REF_AREA', 'TIME_PER_COLLECT', 'TITLE', 'UNIT_MEASURE', 'UNIT_MULT'],
+        "concept_keys": ['base-per', 'decimals', 'embargo-time', 'freq', 'idbank', 'last-update', 'nature', 'obs-status', 'produit', 'ref-area', 'time-per-collect', 'title', 'unit-measure', 'unit-mult'],
+        "codelist_keys": ['base-per', 'decimals', 'embargo-time', 'freq', 'idbank', 'last-update', 'nature', 'obs-status', 'produit', 'ref-area', 'time-per-collect', 'title', 'unit-measure', 'unit-mult'],
         "codelist_count": {
-            "BASE_PER": 0,
-            "DECIMALS": 0,
-            "EMBARGO_TIME": 0,
-            "FREQ": 2,
-            "IDBANK": 0,
-            "LAST_UPDATE": 0,
-            "NATURE": 3,
-            "OBS_STATUS": 1,
-            "PRODUIT": 5,
-            "REF_AREA": 1,
-            "TIME_PER_COLLECT": 2,
-            "TITLE": 0,
-            "UNIT_MEASURE": 2,
-            "UNIT_MULT": 0,
+            "base-per": 0,
+            "decimals": 0,
+            "embargo-time": 0,
+            "freq": 7,
+            "idbank": 0,
+            "last-update": 0,
+            "nature": 25,
+            "obs-status": 10,
+            "produit": 30,
+            "ref-area": 11,
+            "time-per-collect": 7,
+            "title": 0,
+            "unit-measure": 123,
+            "unit-mult": 0,
         },
-        "dimension_keys": ['FREQ', 'PRODUIT', 'NATURE'],
+        "dimension_keys": ['freq', 'produit', 'nature'],
         "dimension_count": {
-            "FREQ": 2,
-            "PRODUIT": 5,
-            "NATURE": 3,
+            "freq": 7,
+            "produit": 30,
+            "nature": 25,
         },
-        "attribute_keys": ['IDBANK', 'TITLE', 'LAST_UPDATE', 'UNIT_MEASURE', 'UNIT_MULT', 'REF_AREA', 'DECIMALS', 'BASE_PER', 'TIME_PER_COLLECT', 'OBS_STATUS', 'EMBARGO_TIME'],
+        "attribute_keys": ['idbank', 'title', 'last-update', 'unit-measure', 'unit-mult', 'ref-area', 'decimals', 'base-per', 'time-per-collect', 'obs-status', 'embargo-time'],
         "attribute_count": {
-            "IDBANK": 0,
-            "TITLE": 0,
-            "LAST_UPDATE": 0,
-            "UNIT_MEASURE": 2,
-            "UNIT_MULT": 0,
-            "REF_AREA": 1,
-            "DECIMALS": 0,
-            "BASE_PER": 0,
-            "TIME_PER_COLLECT": 2,
-            "OBS_STATUS": 1,
-            "EMBARGO_TIME": 0,
+            "idbank": 0,
+            "title": 0,
+            "last-update": 0,
+            "unit-measure": 123,
+            "unit-mult": 0,
+            "ref-area": 11,
+            "decimals": 0,
+            "base-per": 0,
+            "time-per-collect": 7,
+            "obs-status": 10,
+            "embargo-time": 0,
         },
     },
 }
 
 DSD_INSEE_CHO_AN_AGE = {
     "provider": "INSEE",
-    "filepaths": xml_samples.DATA_INSEE_SPECIFIC["DSD"]["filepaths"],
+    "filepaths": deepcopy(xml_samples.DATA_INSEE_SPECIFIC["DSD"]["filepaths"]),
     "dataset_code": "CHO-AN-AGE",
     "dataset_name": "Unemployment according to the ILO standard (annual average) - By gender and age",
     "dsd_id": "CHO-AN-AGE",
     "dsd_ids": ["CHO-AN-AGE"],
     "dataflow_keys": ['CHO-AN-AGE'],
     "is_completed": True,
-    "concept_keys": ['AGE', 'BASE_PER', 'DECIMALS', 'EMBARGO_TIME', 'FREQ', 'IDBANK', 'INDICATEUR', 'LAST_UPDATE', 'OBS_STATUS', 'REF_AREA', 'SEXE', 'TIME_PER_COLLECT', 'TITLE', 'UNIT_MEASURE', 'UNIT_MULT'],
-    "codelist_keys": ['AGE', 'BASE_PER', 'DECIMALS', 'EMBARGO_TIME', 'FREQ', 'IDBANK', 'INDICATEUR', 'LAST_UPDATE', 'OBS_STATUS', 'REF_AREA', 'SEXE', 'TIME_PER_COLLECT', 'TITLE', 'UNIT_MEASURE', 'UNIT_MULT'],
+    "concept_keys": ['age', 'base-per', 'decimals', 'embargo-time', 'freq', 'idbank', 'indicateur', 'last-update', 'obs-status', 'ref-area', 'sexe', 'time-per-collect', 'title', 'unit-measure', 'unit-mult'],
+    "codelist_keys": ['age', 'base-per', 'decimals', 'embargo-time', 'freq', 'idbank', 'indicateur', 'last-update', 'obs-status', 'ref-area', 'sexe', 'time-per-collect', 'title', 'unit-measure', 'unit-mult'],
     "codelist_count": {
-        "AGE": 5,
-        "BASE_PER": 0,
-        "DECIMALS": 0,
-        "EMBARGO_TIME": 0,
-        "FREQ": 1,
-        "IDBANK": 0,
-        "INDICATEUR": 2,
-        "LAST_UPDATE": 0,
-        "OBS_STATUS": 1,
-        "REF_AREA": 2,
-        "SEXE": 3,
-        "TIME_PER_COLLECT": 1,
-        "TITLE": 0,
-        "UNIT_MEASURE": 2,
-        "UNIT_MULT": 0,
+        "age": 73,
+        "base-per": 0,
+        "decimals": 0,
+        "embargo-time": 0,
+        "freq": 7,
+        "idbank": 0,
+        "indicateur": 9,
+        "last-update": 0,
+        "obs-status": 10,
+        "ref-area": 11,
+        "sexe": 3,
+        "time-per-collect": 7,
+        "title": 0,
+        "unit-measure": 123,
+        "unit-mult": 0,
     },
-    "dimension_keys": ['INDICATEUR', 'SEXE', 'AGE'],
+    "dimension_keys": ['indicateur', 'sexe', 'age'],
     "dimension_count": {
-        "INDICATEUR": 2,
-        "SEXE": 3,
-        "AGE": 5,
+        "indicateur": 9,
+        "sexe": 3,
+        "age": 73,
     },
-    "attribute_keys": ['FREQ', 'IDBANK', 'TITLE', 'LAST_UPDATE', 'UNIT_MEASURE', 'UNIT_MULT', 'REF_AREA', 'DECIMALS', 'BASE_PER', 'TIME_PER_COLLECT', 'OBS_STATUS', 'EMBARGO_TIME'],      
+    "attribute_keys": ['freq', 'idbank', 'title', 'last-update', 'unit-measure', 'unit-mult', 'ref-area', 'decimals', 'base-per', 'time-per-collect', 'obs-status', 'embargo-time'],      
     "attribute_count": {
-        "FREQ": 1,
-        "IDBANK": 0,
-        "TITLE": 0,
-        "LAST_UPDATE": 0,
-        "UNIT_MEASURE": 2,
-        "UNIT_MULT": 0,
-        "REF_AREA": 2,
-        "DECIMALS": 0,
-        "BASE_PER": 0,
-        "TIME_PER_COLLECT": 1,
-        "OBS_STATUS": 1,
-        "EMBARGO_TIME": 0,
+        "freq": 7,
+        "idbank": 0,
+        "title": 0,
+        "last-update": 0,
+        "unit-measure": 123,
+        "unit-mult": 0,
+        "ref-area": 11,
+        "decimals": 0,
+        "base-per": 0,
+        "time-per-collect": 7,
+        "obs-status": 10,
+        "embargo-time": 0,
     },
 }                        
+
 DSD_INSEE_CHO_AN_AGE["filepaths"]["datastructure"] = os.path.abspath(os.path.join(RESOURCES_DIR, "insee-datastructure-CHO-AN-AGE.xml"))
         
 DATA_INSEE_CHO_AN_AGE = {
@@ -184,9 +204,8 @@ class FetcherTestCase(BaseFetcherTestCase):
     }
     DATASET_FIRST = "ACT-TRIM-ANC"
     DATASET_LAST = "TXEMP-AN-FR"
-    DEBUG_MODE = False
     
-    def _load_files(self, dataset_code):
+    def _load_files(self, dataset_code, data_key=None):
         
         filepaths = self.DATASETS[dataset_code]["DSD"]["filepaths"]
         dsd_content_type = 'application/vnd.sdmx.structure+xml;version=2.1'
@@ -228,11 +247,12 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type=dsd_content_type,
                           match_querystring=True)
         
-        url = "http://www.bdm.insee.fr/series/sdmx/data/%s" % dataset_code
-        self.register_url(url, 
-                          self.DATASETS[dataset_code]['filepath'],
-                          content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1',
-                          match_querystring=True)
+        if data_key:
+            url = "http://www.bdm.insee.fr/series/sdmx/data/%s/%s" % (dataset_code, data_key)
+            self.register_url(url, 
+                              self.DATASETS[dataset_code]['filepath'],
+                              content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1',
+                              match_querystring=True)
 
     @httpretty.activate     
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
@@ -261,29 +281,30 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertDataTree(dataset_code)
         
     @httpretty.activate
-    @unittest.skipIf(True, "FIXME")     
+    @mock.patch('dlstats.fetchers.insee.INSEE_Data._get_dimensions_from_dsd', get_dimensions_from_dsd)
     def test_upsert_dataset_ipi_2010_a21(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_upsert_dataset_ipi_2010_a21
 
         dataset_code = 'IPI-2010-A21'
         self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
-        self._load_files(dataset_code)
+        self.DATASETS[dataset_code]["series_sample"]["attributes"].pop("IDBANK", None)
+        self._load_files(dataset_code, data_key="M..")
         self.assertProvider()
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
 
     @httpretty.activate     
+    @mock.patch('dlstats.fetchers.insee.INSEE_Data._get_dimensions_from_dsd', get_dimensions_from_dsd_CHO_AN_AGE)
     def test_upsert_dataset_cho_an_age(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_upsert_dataset_cho_an_age
 
         dataset_code = 'CHO-AN-AGE'
-        self._load_files(dataset_code)
+        self._load_files(dataset_code, data_key="Nbre..")
         self.assertProvider()
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
-
 
     @httpretty.activate     
     @unittest.skipIf(True, "TODO")

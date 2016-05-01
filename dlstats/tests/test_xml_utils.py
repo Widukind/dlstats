@@ -8,7 +8,8 @@ import os
 
 import unittest
 
-from dlstats import errors
+from widukind_common import errors
+
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR, BaseTestCase
 from dlstats.tests.resources import xml_samples
 
@@ -27,7 +28,7 @@ SAMPLES_DSD_2_0 = {
     #"DESTATIS": xml_samples.DSD_DESTATIS,
     "OECD-MEI": xml_samples.DSD_OECD_MEI,
     "OECD-EO": xml_samples.DSD_OECD_EO,
-    "DSD_IMF_DOT": xml_samples.DSD_IMF_DOT,
+    "IMF_DOT": xml_samples.DSD_IMF_DOT,
 }
 
 SAMPLES_DSD_2_1 = {
@@ -88,6 +89,10 @@ class UtilsTestCase(BaseTestCase):
         
     def test_select_dimension(self):
 
+        # nosetests -s -v dlstats.tests.test_xml_utils:UtilsTestCase.test_select_dimension
+        
+        print()
+
         dimensions = {}
         dimension_keys = ["A", "B", "C"]
         dimensions["A"] = {"a1": "a1 lib"}
@@ -102,25 +107,31 @@ class UtilsTestCase(BaseTestCase):
         self.assertEqual(sorted(dimension_values), ["c1", "c2", "c3"])
         
         position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
-                                                                      dimensions, 
-                                                                      choice="min")
+                                                                    dimensions, 
+                                                                    choice="min")
         self.assertEqual(key, "A")
         self.assertEqual(position, 0)
         self.assertEqual(sorted(dimension_values), ["a1"])
 
+        
+        
         position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
-                                                                      dimensions, 
-                                                                      choice="avg")
+                                                                    dimensions, 
+                                                                    choice="avg")
         self.assertEqual(key, "B")
         self.assertEqual(position, 1)
         self.assertEqual(sorted(dimension_values), ["b1", "b2"])
 
+        
+        
         position, key, dimension_values = xml_utils.select_dimension(dimension_keys, 
-                                                                      dimensions, 
-                                                                      choice=None)
+                                                                    dimensions, 
+                                                                    choice=None)
         self.assertEqual(key, "B")
         self.assertEqual(position, 1)
         self.assertEqual(sorted(dimension_values), ["b1", "b2"])
+
+
 
         position, key, dimension_values = xml_utils.select_dimension([], 
                                                                      {}, 
@@ -451,7 +462,6 @@ class XMLStructure_2_0_TestCase(BaseXMLStructureTestCase):
         # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_0_TestCase.test_datastructure
         self._test_datastructure()    
 
-@unittest.skipIf(True, "FIXME")
 class XMLStructure_2_1_TestCase(BaseXMLStructureTestCase):
     
     # nosetests -s -v dlstats.tests.test_xml_utils:XMLStructure_2_1_TestCase
@@ -607,6 +617,7 @@ class BaseXMLDataTestCase(BaseTestCase):
         self.assertTrue(series["end_date"] >= series["start_date"])
         
         self.assertEqual(series["dimensions"], series_sample["dimensions"])
+        self.assertEqual(series["attributes"], series_sample["attributes"])
 
         #self._assert_series_v2(xml, provider, provider_name, series)
         series_sample = provider["series_sample"]

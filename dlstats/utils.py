@@ -9,6 +9,8 @@ from io import StringIO
 import traceback
 
 import requests
+import arrow
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -228,21 +230,137 @@ def remove_file_and_dir(filepath, let_root=False):
             except Exception as err:
                 logger.error("root dir not remove %s" % dirname)
 
+def get_year(date_str):
+    if "-" in date_str:
+        return date_str.split("-")[0]
+    else:
+        return date_str[:4]
+
+def get_month(date_str):
+    if "-" in date_str:
+        return date_str.split("-")[1]
+    else:
+        return date_str[4:][:2]
+
+def get_day(date_str):
+    if "-" in date_str:
+        return date_str.split("-")[2]
+    else:
+        return date_str[-2:]
+
+def get_datetime_from_period(date_str, freq=None):
+    
+    year = None
+    month = None
+    day = None
+    
+    if freq == "A":
+        year = int(get_year(date_str))
+        month = 1
+        day = 1
+    elif freq == "M":
+        year = int(get_year(date_str))
+        month = int(get_month(date_str))
+    elif freq == "D":
+        year = int(get_year(date_str))
+        month = int(get_month(date_str))
+        day = int(get_day(date_str))
+    elif freq == "Q":
+        year = int(get_year(date_str))
+        month_str = get_month(date_str)
+        if month_str.startswith("Q"):
+            if month_str == "Q1":
+                month = 1
+            elif month_str == "Q2":
+                month = 4
+            elif month_str == "Q3":
+                month = 7
+            elif month_str == "Q4":
+                month = 10
+            else:
+                raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
+        #else:
+        #    month = int(month_str)
+            
+    elif freq == "W":
+        year = int(get_year(date_str))
+        """
+        W-WED
+        W-MON
+        W-FRI
+        W-THU
+        1998-W53
+        2010-06-16
+        >>> datetime(2016,12,31).strftime("%Y-%m-%d %W")
+        '2016-12-31 52'
+        
+        >>> pd.Period("2016-01-27", freq="W-WED").to_timestamp()
+        Timestamp('2016-01-21 00:00:00')
+        >>> pd.Period("2016-01-27", freq="W-WED").ordinal
+        2404
+        
+        >>> pd.Period("2016-01-27", freq="W-MON").to_timestamp()
+        Timestamp('2016-01-26 00:00:00')
+        >>> pd.Period("2016-01-27", freq="W-MON").ordinal
+        2405                        
+        """
+    elif freq == "S":
+        """
+        ECB:
+            H: Half-yearly (2000-S2)
+            S: Half Yearly
+        """
+        year = int(get_year(date_str))
+        if freq.endswith("1"):
+            month = 1
+        elif freq.endswith("2"):
+            month = 7
+        else:
+            raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
+    elif freq == "B":
+        """
+        Bimestre: période de 2 mois
+        """
+    else:
+        raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
+        
+    
+    dt = datetime(year, month or 1, day or 1)
+    return clean_datetime(dt, rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True)
 
 def get_ordinal_from_period(date_str, freq=None):
+    """
+    Frequency stats - 2016-03-30
+    { "_id" : "A", "count" : 36858826 }
+    { "_id" : "Q", "count" : 3318158 }
+    { "_id" : "M", "count" : 507243 }
+    { "_id" : "W-WED", "count" : 1713 }
+    { "_id" : "D", "count" : 845 }
+    { "_id" : "W-MON", "count" : 77 }
+    { "_id" : "W-FRI", "count" : 60 }
+    { "_id" : "W-THU", "count" : 2 }    
+    """
+    
     from dlstats.cache import cache
     from dlstats import constants
     from pandas import Period
-    
+        
     if not cache or not freq in constants.CACHE_FREQUENCY:
         return Period(date_str, freq=freq).ordinal
     
     key = "%s.%s" % (date_str, freq)
     period_from_cache = cache.get(key)
-    if period_from_cache:
+    if not period_from_cache is None:
         return period_from_cache
     
-    period_ordinal = Period(date_str, freq=freq).ordinal
+    period_ordinal = None
+    if freq == "A":
+        year = int(get_year(date_str))
+        period_ordinal = year - 1970
+        return period_ordinal
+
+    if not period_ordinal:
+        period_ordinal = Period(date_str, freq=freq).ordinal
     cache.set(key, period_ordinal)
     
     return period_ordinal
@@ -264,3 +382,12 @@ def clean_dict(dct):
         new_dct[key] = v
     return new_dct
 
+def json_dump_convert(obj):
+    
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    
+    elif isinstance(obj, datetime):
+        return arrow.get(obj).for_json()
+    
+    return obj

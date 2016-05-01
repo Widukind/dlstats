@@ -12,10 +12,11 @@ import re
 import pytz
 from lxml import etree
 
+from widukind_common import errors
+
 from dlstats import constants
 from dlstats.utils import Downloader, get_ordinal_from_period
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats import errors
 
 VERSION = 3
 
@@ -89,7 +90,7 @@ def local_read_csv(filepath=None, fileobj=None,
         
     periods = headers_list_copy    
     headers = dimension_keys + ["KEY"] + periods
-    return rows, headers, release_date, dimension_keys, periods
+    return _file, rows, headers, release_date, dimension_keys, periods
 
 PROVIDER_NAME = "BIS"
 
@@ -278,7 +279,7 @@ class BIS(Fetcher):
     def _parse_agenda(self):
         
         agenda = etree.HTML(self._get_agenda())
-        table = agenda.find('.//table')
+        table = agenda.find('.//table') #class="relcal"
         # only one table
         rows = table[0].findall('tr')
         # skipping first row
@@ -290,7 +291,8 @@ class BIS(Fetcher):
             content = c.find('strong')
             if content.text is None:
                 content = content.find('strong')
-            months.append(datetime.datetime.strptime(content.text,'%B %Y'))
+            if content.text is not None:
+                months.append(datetime.datetime.strptime(content.text,'%B %Y'))
         agenda.append(months)
         ir = 2
         
@@ -378,14 +380,14 @@ class BIS(Fetcher):
             scheds = [d for d in zip(months, days) if not d[1] is None]
 
             for date_base, day in scheds:
-                yield {'action': "update_node",
+                yield {'action': "update-dataset",
                        "kwargs": {"provider_name": self.provider_name,
                                 "dataset_code": dataset_code},
                        "period_type": "date",
                        "period_kwargs": {"run_date": datetime.datetime(date_base.year,
                                                                        date_base.month,
                                                                        int(day), 8, 0, 0),
-                                         "timezone": pytz.country_timezones(AGENDA['country'])}
+                                         "timezone": 'Europe/Zurich'}
                      }
 
 class BIS_Data(SeriesIterator):
@@ -408,9 +410,10 @@ class BIS_Data(SeriesIterator):
         self.start_date = None
         self.end_date = None
         self._rows = None
+        self._file = None
 
         self.rows = self._process()
-
+        
         if is_autoload:
             self._load_datas()
         
@@ -436,7 +439,7 @@ class BIS_Data(SeriesIterator):
         
         kwargs['date_format'] = "%a %b %d %H:%M:%S %Z %Y"
         kwargs['headers_line'] = DATASETS[self.dataset.dataset_code]['lines']['headers']
-        self._rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
+        self._file, self._rows, self.headers, self.release_date, self.dimension_keys, self.periods = local_read_csv(**kwargs)
         
         self.dataset.dimension_keys = self.dimension_keys
         
@@ -459,8 +462,12 @@ class BIS_Data(SeriesIterator):
         return False
 
     def _process(self):
-        for row in self._rows:
-            yield csv_dict(self.headers, row), None
+        try:
+            for row in self._rows:
+                yield csv_dict(self.headers, row), None
+        finally:
+            if self._file and not self._file.closed:
+                self._file.close()
 
         self.dataset.concepts = dict(zip(self.dimension_keys, self.dimension_keys))
 

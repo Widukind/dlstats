@@ -28,7 +28,7 @@ class BaseDBTestCase(unittest.TestCase):
 
         utils.clean_mongodb(self.db)
                 
-        create_or_update_indexes(self.db, force_mode=True)
+        create_or_update_indexes(self.db, force_mode=True, background=False)
 
         self._collections_is_empty()
 
@@ -37,6 +37,5 @@ class BaseDBTestCase(unittest.TestCase):
         self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 0)
         self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         self.assertEqual(self.db[constants.COL_SERIES].count(), 0)
-        self.assertEqual(self.db[constants.COL_TAGS_DATASETS].count(), 0)
-        self.assertEqual(self.db[constants.COL_TAGS_SERIES].count(), 0)
+        #self.assertEqual(self.db[constants.COL_TAGS].count(), 0)
         

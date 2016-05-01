@@ -9,7 +9,8 @@ import logging
 import requests
 from lxml import etree
 
-from dlstats import errors
+from widukind_common import errors
+
 from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime, clean_key, clean_dict
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
@@ -707,6 +708,7 @@ class IMF_XML_Data(SeriesIterator):
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
+                                dsd_id=self.dataset_code,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
         self.rows = self._get_data_by_dimension()
@@ -738,11 +740,12 @@ class IMF_XML_Data(SeriesIterator):
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
         
+    def _get_dimensions_from_dsd(self):
+        return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
+
     def _get_data_by_dimension(self):
         
-        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
-                                                             self.provider_name,
-                                                             self.dataset_code)
+        dimension_keys, dimensions = self._get_dimensions_from_dsd()
         
         position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
         

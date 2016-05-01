@@ -153,4 +153,8 @@ http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/MEI/AUT+FRA.PRMNTO01.IXOB
 http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/EO" > xmlutils/oecd/oecd-eo-datastructure-2.0.xml
 http "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/EO/AUT+FRA.CB.A+Q" > xmlutils/oecd/oecd-eo-data-generic.xml
 
-
+# WORLDBANK - test
+http "http://api.worldbank.org/v2/sources?format=json&per_page=1000" > world_bank/sources.json
+http "http://api.worldbank.org/v2/countries?per_page=1000&format=json" > world_bank/countries.json
+http "http://api.worldbank.org/v2/sources/27/indicators?format=json&per_page=1000" > worl_dbank/gep-indicator.json
+http "http://api.worldbank.org/v2/countries/fra/indicators/NYGDPMKTPKDZ?format=json&per_page=1000" > world_bank/NYGDPMKTPKDZ-fra.json

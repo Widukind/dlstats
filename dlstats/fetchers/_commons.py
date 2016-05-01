@@ -9,6 +9,8 @@ import logging
 import pprint
 from collections import OrderedDict
 from itertools import groupby
+import hashlib
+import json
 
 import pymongo
 from pymongo import ReturnDocument
@@ -16,15 +18,17 @@ from pymongo import InsertOne, UpdateOne
 from slugify import slugify
 import pandas
 
-from widukind_common.utils import get_mongo_db, create_or_update_indexes
+from widukind_common.utils import get_mongo_db
+from widukind_common import errors
 
 from dlstats import constants
 from dlstats.fetchers import schemas
-from dlstats import errors
 from dlstats.utils import (last_error, 
                            clean_datetime, 
                            remove_file_and_dir, 
-                           make_store_path)
+                           make_store_path,
+                           get_year,
+                           json_dump_convert)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +45,8 @@ class Fetcher(object):
                  max_errors=5,
                  use_existing_file=False,
                  not_remove_files=False,
+                 async_mode=False,
+                 async_framework="gevent",
                  **kwargs):
         """
         :param str provider_name: Provider Name
@@ -58,6 +64,13 @@ class Fetcher(object):
         self.max_errors = max_errors
         self.use_existing_file = use_existing_file
         self.not_remove_files = not_remove_files
+        self.async_mode = async_mode
+        self.async_framework = async_framework
+        
+        if self.async_mode:
+            logger.info("ASYNC MODE ENABLE")
+        else:
+            logger.info("ASYNC MODE DISABLE")
         
         self.provider = None
         
@@ -72,11 +85,23 @@ class Fetcher(object):
                                                        self.provider_name))
         self.for_delete = []
         
-        if is_indexes:
-            create_or_update_indexes(self.db)
-            
         if IS_SCHEMAS_VALIDATION_DISABLE:
             logger.warning("schemas validation is disable")
+    
+    def upsert_calendar(self):
+        try:
+            for entry in self.get_calendar():
+                entry_str = json.dumps(entry, default=json_dump_convert)
+                key = hashlib.md5(entry_str.encode('utf_8')).hexdigest()
+                entry["key"] = key
+                self.db[constants.COL_CALENDARS].find_one_and_replace({"key": key}, 
+                                                                      entry, 
+                                                                      upsert=True)
+                
+        except NotImplementedError:
+            pass
+        except Exception as err:
+            logger.critical('upsert_calendar failed for %s error[%s]' % (self.provider_name, last_error()))
     
     def upsert_data_tree(self, data_tree=None, force_update=False):
         #TODO: bulk
@@ -514,7 +539,7 @@ class Datasets(DlstatsCollection):
                  doc_href=None,
                  last_update=None,
                  metadata=None,
-                 bulk_size=100,
+                 bulk_size=500,
                  fetcher=None, 
                  is_load_previous_version=True,
                  **kwargs):
@@ -669,7 +694,10 @@ class Datasets(DlstatsCollection):
         
         try:
             if not save_only:
-                self.series.process_series_data()
+                if self.fetcher.async_mode and self.fetcher.async_framework == "gevent":
+                    self.series.process_series_data_async()
+                else:
+                    self.series.process_series_data()
         except Exception:
             self.fetcher.errors += 1
             logger.critical(last_error())
@@ -758,10 +786,18 @@ class SeriesIterator:
     def clean_field(self, bson):
 
         if not "start_ts" in bson or not bson.get("start_ts"):
-            bson["start_ts"] = pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime()
+            if bson["frequency"] == "A":
+                year = int(get_year(bson["values"][0]["period"]))
+                bson["start_ts"] = clean_datetime(datetime(year, 1, 1), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
+            else:
+                bson["start_ts"] = clean_datetime(pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime())
 
         if not "end_ts" in bson or not bson.get("end_ts"):
-            bson["end_ts"] = pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime()
+            if bson["frequency"] == "A":
+                year = int(get_year(bson["values"][-1]["period"]))
+                bson["end_ts"] = clean_datetime(datetime(year, 12, 31), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
+            else:
+                bson["end_ts"] = clean_datetime(pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime())
         
         dimensions = bson.pop("dimensions")
         attributes = bson.pop("attributes", {})
@@ -1020,7 +1056,7 @@ class Series:
                  provider_name=None, 
                  dataset_code=None, 
                  last_update=None, 
-                 bulk_size=100,
+                 bulk_size=500,
                  fetcher=None):
         """        
         :param str provider_name: Provider name
@@ -1123,6 +1159,59 @@ class Series:
                 self.update_series_list()
             self.update_dataset_lists_finalize()
 
+    def process_series_data_async(self):
+        
+        from gevent.pool import Pool
+        pool = Pool(100)
+        
+        try:
+            while True:
+                
+                self.fatal_error = False
+                try:
+                    data = next(self.data_iterator)
+    
+                    if isinstance(data, dict):
+                        self.count_accepts += 1
+                        pool.spawn(self.update_series_list_async, data)
+    
+                    elif isinstance(data, errors.RejectFrequency):
+                        self.count_rejects += 1
+                        msg = "Reject frequency for provider[%s] - dataset[%s] - frequency[%s]"
+                        logger.warning(msg % (self.provider_name, 
+                                              self.dataset_code, 
+                                              data.frequency))
+                        continue
+                    
+                    elif isinstance(data, errors.RejectUpdatedSeries):
+                        self.count_rejects += 1
+                        if logger.isEnabledFor(logging.DEBUG):
+                            msg = "Reject series updated for provider[%s] - dataset[%s] - key[%s]"
+                            logger.debug(msg % (self.provider_name, 
+                                                self.dataset_code, 
+                                                data.key))
+                        continue
+    
+                    elif isinstance(data, errors.RejectEmptySeries):
+                        self.count_rejects += 1
+                        msg = "Reject empty series for provider[%s] - dataset[%s]"
+                        logger.warning(msg % (self.provider_name, 
+                                              self.dataset_code))
+                        continue
+                        
+                    elif isinstance(data, Exception):
+                        self.fatal_error = True
+                        raise errors.InterruptProcessSeriesData(str(data))
+
+                except StopIteration:
+                    break
+                except Exception:
+                    raise
+            
+        finally:
+            pool.join()
+            self.update_dataset_lists_finalize()
+
     def slug(self, key):
         txt = "-".join([self.provider_name, self.dataset_code, key])
         return slugify(txt, word_boundary=False, save_order=True)
@@ -1211,15 +1300,58 @@ class Series:
         result = None        
         if len(bulk_requests) > 0:
             try:
-                result = self.fetcher.db[constants.COL_SERIES].bulk_write(bulk_requests)
+                result = self.fetcher.db[constants.COL_SERIES].bulk_write(bulk_requests, ordered=False)
                 bulk_requests = []
             except pymongo.errors.BulkWriteError as err:
-                logger.critical(last_error())
-                #TODO: use pprint and StringIO for err.details output
-                #logger.critical(str(err.details))
+                #logger.critical(last_error())
+                logger.critical(str(err.details))
                 raise
                  
         self.series_list = []
+        return result
+
+    def update_series_list_async(self, data):
+
+        result = None
+        query = {
+            'provider_name': self.provider_name,
+            'dataset_code': self.dataset_code,
+            'key': data["key"]
+        }
+        projection = {"tags": False}
+
+        old_series = self.fetcher.db[constants.COL_SERIES].find_one(query, projection)
+
+        key = data['key']
+
+        if not data.get("slug", None):
+            data['slug'] = self.slug(key)
+
+        if not old_series:
+            bson = series_update(data, last_update=self.last_update)
+            result = self.fetcher.db[constants.COL_SERIES].insert(bson)
+            #self.count_inserts += 1
+        else:
+            old_bson = old_series
+            
+            bson = series_update(data, old_bson=old_bson, 
+                                 last_update=self.last_update)
+
+            if bson:
+                query_update = {
+                    "start_date": bson["start_date"],     
+                    "end_date": bson["end_date"],     
+                    "values": bson["values"],     
+                    "attributes": bson["attributes"],     
+                    "dimensions": bson["dimensions"],     
+                    "notes": bson.get("notes"),     
+                }
+                result = self.fetcher.db[constants.COL_SERIES].update_one({'_id': old_bson['_id']}, {'$set': query_update})
+                #self.count_updates += 1
+            else:
+                if logger.isEnabledFor(logging.DEBUG):
+                    logger.debug("series[%s] not changed" % old_bson["slug"])                    
+        
         return result
 
 class CodeDict():

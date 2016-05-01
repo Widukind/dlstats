@@ -11,7 +11,6 @@ import requests
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import utils
 from dlstats.utils import Downloader
-from dlstats import errors
 from dlstats.xml_utils import (XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_ECB as XMLData,
                                dataset_converter,
@@ -191,8 +190,9 @@ class ECB(Fetcher):
                             "dsd_id": dataset["dsd_id"]
                         }
                     })
-                
-            categories.append(cat)
+            
+            if len(cat["datasets"]) > 0:
+                categories.append(cat)
             
         return categories
         
@@ -225,15 +225,16 @@ class ECB(Fetcher):
         for entry in self._parse_agenda():
 
             if entry['dataflow_key'] in datasets:
+                
+                scheduled_date = entry.pop("scheduled_date")
+                run_date = datetime.strptime(scheduled_date, "%d/%m/%Y %H:%M CET")
 
-                yield {'action': 'update_node',
+                yield {'action': 'update-dataset',
                        'kwargs': {'provider_name': self.provider_name,
                                   'dataset_code': entry['dataflow_key']},
                        'period_type': 'date',
-                       'period_kwargs': {'run_date': datetime.strptime(
-                           entry['scheduled_date'], "%d/%m/%Y %H:%M CET"),
-                           'timezone': pytz.timezone('CET')
-                       }
+                       'period_kwargs': {'run_date': run_date,
+                                         'timezone': 'CET'}
                       }
 
     def upsert_dataset(self, dataset_code):
@@ -266,9 +267,10 @@ class ECB_Data(SeriesIterator):
 
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
+        self.agency_id = self.fetcher._dataflows[self.dataset_code]["attrs"].get("agencyID")
 
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)        
-        self.xml_dsd.concepts = self.fetcher._concepts
+        #self.xml_dsd.concepts = self.fetcher._concepts
         
         self._load()
         
@@ -276,7 +278,7 @@ class ECB_Data(SeriesIterator):
                 
     def _load(self):
 
-        url = "http://sdw-wsrest.ecb.int/service/datastructure/ECB/%s?references=all" % self.dsd_id
+        url = "http://sdw-wsrest.ecb.int/service/datastructure/%s/%s?references=all" % (self.agency_id, self.dsd_id)
         download = utils.Downloader(store_filepath=self.store_path,
                                     url=url, 
                                     filename="dsd-%s.xml" % self.dataset_code,
@@ -286,24 +288,25 @@ class ECB_Data(SeriesIterator):
         self.fetcher.for_delete.append(filepath)
         self.xml_dsd.process(filepath)
         self._set_dataset()
+        
+    def _get_dimensions_from_dsd(self):
+        return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
 
     def _get_data_by_dimension(self):
-
+        
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
+                                dsd_id=self.dsd_id,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
-                                                             self.provider_name,
-                                                             self.dataset_code)
+        dimension_keys, dimensions = self._get_dimensions_from_dsd()
         
         position, _key, dimension_values = select_dimension(dimension_keys, dimensions)
         
         count_dimensions = len(dimension_keys)
         
         for dimension_value in dimension_values:
-                        
             sdmx_key = []
             for i in range(count_dimensions):
                 if i == position:
@@ -312,6 +315,7 @@ class ECB_Data(SeriesIterator):
                     sdmx_key.append(".")
             key = "".join(sdmx_key)
 
+            #http://sdw-wsrest.ecb.int/service/data/IEAQ/A............
             url = "http://sdw-wsrest.ecb.int/service/data/%s/%s" % (self.dataset_code, key)
             headers = SDMX_DATA_HEADERS
             
@@ -325,7 +329,9 @@ class ECB_Data(SeriesIterator):
                                   filename=filename,
                                   store_filepath=self.store_path,
                                   headers=headers,
-                                  client=self.fetcher.requests_client)
+                                  use_existing_file=self.fetcher.use_existing_file,
+                                  #client=self.fetcher.requests_client
+                                  )
             filepath, response = download.get_filepath_and_response()
 
             if filepath:
@@ -362,9 +368,9 @@ class ECB_Data(SeriesIterator):
         self.dataset.codelists = dataset["codelists"]
         
     def clean_field(self, bson):
-        bson = super().clean_field(bson)
         bson["attributes"].pop("TITLE", None)
         bson["attributes"].pop("TITLE_COMPL", None)
+        bson = super().clean_field(bson)
         return bson
 
     def build_series(self, bson):

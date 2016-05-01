@@ -1351,8 +1351,8 @@ class FED_Data(SeriesIterator):
                 self.dataset.codelists[key] = dataset["codelists"][key]
 
     def clean_field(self, bson):
-        bson = super().clean_field(bson)
         bson["attributes"].pop("SERIES_NAME", None)
+        bson = super().clean_field(bson)
         return bson
         
     def build_series(self, bson):

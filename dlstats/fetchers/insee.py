@@ -3,18 +3,17 @@
 import os
 import logging
 import re
-import requests
-import pytz
 from datetime import datetime
-from lxml import etree
-from urllib.parse import urljoin
-
 from collections import OrderedDict
+
+from pyquery import PyQuery as pq
+import requests
+
+from widukind_common import errors
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
 from dlstats.utils import Downloader, clean_datetime
-from dlstats import errors
 from dlstats.xml_utils import (XMLSDMX_2_1 as XMLSDMX,
                                XMLStructure_2_1 as XMLStructure, 
                                XMLSpecificData_2_1_INSEE as XMLData,
@@ -27,7 +26,7 @@ HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 4
+VERSION = 5
 
 SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;version=2.1'}
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
@@ -227,56 +226,52 @@ class INSEE(Fetcher):
         return dataset.update_database()
 
     def get_calendar(self):
-        """Parse agenda of new releases and schedule jobs"""
+
+        datasets = {d['name']: d['dataset_code'] for d in self.datasets_list()}
         
-        name_list = {d['name']: d['dataset_code'] for d in self.datasets_list()}
         DATEEXP = re.compile("(January|February|March|April|May|June|July|August|September|October|November|December)[ ]+\d+[ ]*,[ ]+\d+[ ]+\d+:\d+")
         url = 'http://www.insee.fr/en/service/agendas/agenda.asp'
-        page = download_page(url)
-        agenda = etree.HTML(page)
-        ul = agenda.find('.//div[@id="contenu"]').find('.//ul[@class="liens"]')
-        for li in ul.iterfind('li'):
-            text = li.find('p[@class="info"]').text
-            _date = datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
-            href = li.find('.//a').get('href')
-            groups = self._parse_theme(urljoin('http://www.insee.fr',href))
-            for group in groups:
-                group_info = self._parse_group_page(group['url'])
-                yield {'action': "update_node",
-                       "kwargs": {"provider_name": self.provider_name,
-                                  "dataset_code": name_list[group_info['name']]},
-                       "period_type": "date",
-                       "period_kwargs": {"run_date": datetime(_date.year,
-                                                              _date.month,
-                                                              _date.day,
-                                                              _date.hour,
-                                                              _date.minute+5,
-                                                              0),
-                                         "timezone": pytz.country_timezones('fr')}
-                     }
+        
+        d = pq(url=url, parser='html')
+        
+        for li in d('div#contenu')('ul.liens')("li.princ-ind"):
+            try:
+                
+                # April 21, 2016  08:45 - INSEE
+                text = pq(li)("p.info")[0].text
+                
+                _date = datetime.strptime(DATEEXP.match(text).group(),'%B %d, %Y %H:%M')
+                
+                #/en/themes/indicateur.asp?id=105
+                url1 = "http://www.insee.fr%s" % pq(li)("a")[0].get("href")
+                page2 = pq(url=url1, parser='html')
+                
+                # 'http://www.bdm.insee.fr/bdm2/choixCriteres.action?request_locale=en&codeGroupe=1007'
+                url2 = page2("div#savoirplus")('p')('a')[0].get("href")
+                page3 = pq(url=url2, parser='html')
+                
+                #telechargeSDMX-ML?lien=CLIMAT-AFFAIRES&groupeLibc=CLIMAT-AFFAIRES
+                dataset_code = page3("a#exportSDMX")[0].get("href").split("=")[-1]
+                
+                #print("dataset_code : ", dataset_code)
+                
+                if dataset_code in datasets:
 
-    def _parse_theme(self,url):
-        """Find updated code group and url"""
-
-        page = download_page(url)
-        theme = etree.HTML(page)
-        p = theme.find('.//div[@id="savoirplus"]').find('p')
-        groups = []
-        for a in p.iterfind('.//a'):
-            groups.append({'code': a.text[1:],
-                           'url': a.get('href')})
-        return groups
-
-    def _parse_group_page(self,url):
-        """Find updated dataset code"""
-
-        page = download_page(url)
-        group = etree.HTML(page)
-        div = group.find('.//div[@id="contenu"]')
-        name = div.find('.//h1').text
-        # this will be useful if we change the way to download INSEE data
-        url = div.find('.//a[@id="exportSDMX"]').get('href')
-        return({'name': name, 'url': url})
+                    yield {'action': "update-dataset",
+                           "kwargs": {"provider_name": self.provider_name,
+                                      "dataset_code": dataset_code},
+                           "period_type": "date",
+                           "period_kwargs": {"run_date": datetime(_date.year,
+                                                                  _date.month,
+                                                                  _date.day,
+                                                                  _date.hour,
+                                                                  _date.minute+2,
+                                                                  0),
+                                             "timezone": 'Europe/Paris'}
+                         }
+                
+            except Exception as err:
+                logger.exception(err)
 
 class INSEE_Data(SeriesIterator):
     
@@ -309,6 +304,7 @@ class INSEE_Data(SeriesIterator):
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
+                                dsd_id=self.dsd_id,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
         self.rows = self._get_data_by_dimension()
@@ -362,17 +358,18 @@ class INSEE_Data(SeriesIterator):
         
     def _set_dataset(self):
 
-        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
+        dataset = dataset_converter(self.xml_dsd, self.dataset_code, dsd_id=self.dsd_id)
         self.dataset.dimension_keys = dataset["dimension_keys"] 
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
+
+    def _get_dimensions_from_dsd(self):
+        return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
         
     def _get_data_by_dimension(self):
         
-        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
-                                                                       self.provider_name,
-                                                                       self.dataset_code)
+        dimension_keys, dimensions = self._get_dimensions_from_dsd()
         
         choice = "avg" 
         if self.dataset_code in ["IPC-2015-COICOP"]:
@@ -383,6 +380,8 @@ class INSEE_Data(SeriesIterator):
                                                             choice=choice)
         
         count_dimensions = len(dimension_keys)
+        
+        logger.info("choice[%s] - filterkey[%s] - count[%s] - provider[%s] - dataset[%s]" % (choice, _key, len(dimension_values), self.provider_name, self.dataset_code))
         
         for dimension_value in dimension_values:
             '''Pour chaque valeur de la dimension, generer une key d'url'''
@@ -437,8 +436,8 @@ class INSEE_Data(SeriesIterator):
         return False
 
     def clean_field(self, bson):
-        bson = super().clean_field(bson)
         bson["attributes"].pop("IDBANK", None)
+        bson = super().clean_field(bson)
         return bson
 
     def build_series(self, bson):
