@@ -3,7 +3,6 @@
 from dlstats import constants
 from dlstats.utils import Downloader, clean_datetime
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats import errors
 
 VERSION = 1
 
