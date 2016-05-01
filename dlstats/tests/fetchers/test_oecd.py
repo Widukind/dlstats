@@ -4,6 +4,7 @@ from copy import deepcopy
 import os
 
 import unittest
+from unittest import mock
 
 from dlstats.fetchers.oecd import OECD as Fetcher
 
@@ -15,6 +16,25 @@ from dlstats.tests.resources import xml_samples
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "oecd"))
 
+def get_dimensions_from_dsd_MEI(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['LOCATION', 'SUBJECT', 'MEASURE', 'FREQUENCY']
+    dimensions = {
+        "LOCATION": {},
+        "SUBJECT": {},
+        "MEASURE": {},
+        "FREQUENCY": {'A': 'A'},
+    }
+    return dimension_keys, dimensions
+
+def get_dimensions_from_dsd_EO(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['LOCATION', 'VARIABLE', 'FREQUENCY']
+    dimensions = {
+        "LOCATION": {},
+        "VARIABLE": {},
+        "FREQUENCY": {'A': 'A'},
+    }
+    return dimension_keys, dimensions
+
 LOCAL_DATASETS_UPDATE = {
     "MEI": {
         "dataset_code": "MEI",
@@ -23,33 +43,33 @@ LOCAL_DATASETS_UPDATE = {
         "categories_key": 'MEI',
         "categories_parents": None,
         "categories_root": ['EO', 'MEI'],    
-        "concept_keys": ['FREQUENCY', 'LOCATION', 'MEASURE', 'OBS_STATUS', 'POWERCODE', 'REFERENCEPERIOD', 'SUBJECT', 'TIME_FORMAT', 'UNIT'],
-        "codelist_keys": ['FREQUENCY', 'LOCATION', 'MEASURE', 'OBS_STATUS', 'POWERCODE', 'REFERENCEPERIOD', 'SUBJECT', 'TIME_FORMAT', 'UNIT'],
+        "concept_keys": ['frequency', 'location', 'measure', 'obs-status', 'powercode', 'referenceperiod', 'subject', 'time-format', 'unit'],
+        "codelist_keys": ['frequency', 'location', 'measure', 'obs-status', 'powercode', 'referenceperiod', 'subject', 'time-format', 'unit'],
         "codelist_count": {
-            "FREQUENCY": 2,
-            "LOCATION": 2,
-            "MEASURE": 1,
-            "OBS_STATUS": 1,
-            "POWERCODE": 1,
-            "REFERENCEPERIOD": 1,
-            "SUBJECT": 1,
-            "TIME_FORMAT": 2,
-            "UNIT": 1,
+            "frequency": 3,
+            "location": 64,
+            "measure": 24,
+            "obs-status": 14,
+            "powercode": 17,
+            "referenceperiod": 68,
+            "subject": 1099,
+            "time-format": 5,
+            "unit": 296,
         },
-        "dimension_keys": ['LOCATION', 'SUBJECT', 'MEASURE', 'FREQUENCY'],
+        "dimension_keys": ['location', 'subject', 'measure', 'frequency'],
         "dimension_count": {
-            "LOCATION": 2,
-            "SUBJECT": 1,
-            "MEASURE": 1,
-            "FREQUENCY": 2,
+            "location": 64,
+            "subject": 1099,
+            "measure": 24,
+            "frequency": 3,
         },
-        "attribute_keys": ['OBS_STATUS', 'TIME_FORMAT', 'UNIT', 'REFERENCEPERIOD', 'POWERCODE'],
+        "attribute_keys": ['obs-status', 'time-format', 'unit', 'referenceperiod', 'powercode'],
         "attribute_count": {
-            "OBS_STATUS": 1,
-            "TIME_FORMAT": 2,
-            "UNIT": 1,
-            "REFERENCEPERIOD": 1,
-            "POWERCODE": 1,
+            "obs-status": 14,
+            "time-format": 5,
+            "unit": 296,
+            "referenceperiod": 68,
+            "powercode": 17,
         }, 
     },
     "EO": {
@@ -59,31 +79,31 @@ LOCAL_DATASETS_UPDATE = {
         "categories_key": 'EO',
         "categories_parents": None,
         "categories_root": ['EO', 'MEI'],    
-        "concept_keys": ['FREQUENCY', 'LOCATION', 'OBS_STATUS', 'POWERCODE', 'REFERENCEPERIOD', 'TIME_FORMAT', 'UNIT', 'VARIABLE'],
-        "codelist_keys": ['FREQUENCY', 'LOCATION', 'OBS_STATUS', 'POWERCODE', 'REFERENCEPERIOD', 'TIME_FORMAT', 'UNIT', 'VARIABLE'],
+        "concept_keys": ['frequency', 'location', 'obs-status', 'powercode', 'referenceperiod', 'time-format', 'unit', 'variable'],
+        "codelist_keys": ['frequency', 'location', 'obs-status', 'powercode', 'referenceperiod', 'time-format', 'unit', 'variable'],
         "codelist_count": {
-            "FREQUENCY": 2,
-            "LOCATION": 2,
-            "OBS_STATUS": 0,
-            "POWERCODE": 1,
-            "REFERENCEPERIOD": 0,
-            "TIME_FORMAT": 2,
-            "UNIT": 1,
-            "VARIABLE": 1,
+            "frequency": 2,
+            "location": 59,
+            "obs-status": 14,
+            "powercode": 17,
+            "referenceperiod": 68,
+            "time-format": 5,
+            "unit": 296,
+            "variable": 297,
         },
-        "dimension_keys": ['LOCATION', 'VARIABLE', 'FREQUENCY'],
+        "dimension_keys": ['location', 'variable', 'frequency'],
         "dimension_count": {
-            "LOCATION": 2,
-            "VARIABLE": 1,
-            "FREQUENCY": 2,
+            "location": 59,
+            "variable": 297,
+            "frequency": 2,
         },
-        "attribute_keys": ['OBS_STATUS', 'TIME_FORMAT', 'UNIT', 'REFERENCEPERIOD', 'POWERCODE'],
+        "attribute_keys": ['obs-status', 'time-format', 'unit', 'referenceperiod', 'powercode'],
         "attribute_count": {
-            "OBS_STATUS": 0,
-            "TIME_FORMAT": 2,
-            "UNIT": 1,
-            "REFERENCEPERIOD": 0,
-            "POWERCODE": 1,
+            "obs-status": 14,
+            "time-format": 5,
+            "unit": 296,
+            "referenceperiod": 68,
+            "powercode": 17,
         }, 
             
     },
@@ -102,14 +122,14 @@ class FetcherTestCase(BaseFetcherTestCase):
     DATASET_LAST = "MEI"
     DEBUG_MODE = False
     
-    def _load_files(self, dataset_code):
+    def _load_files(self, dataset_code, data_key=None):
 
         filepaths = self.DATASETS[dataset_code]["DSD"]["filepaths"]
 
         url = "http://stats.oecd.org/restsdmx/sdmx.ashx/GetDataStructure/%s" % dataset_code
         self.register_url(url, filepaths["datastructure"])
         
-        url = "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/%s" % dataset_code
+        url = "http://stats.oecd.org/restsdmx/sdmx.ashx/GetData/%s/%s" % (dataset_code, data_key)
         self.register_url(url, self.DATASETS[dataset_code]['filepath'])
 
     @httpretty.activate     
@@ -139,38 +159,30 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertDataTree(dataset_code)
         
     @httpretty.activate     
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_dimensions_from_dsd', get_dimensions_from_dsd_MEI)
     def test_upsert_dataset_mei(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_oecd:FetcherTestCase.test_upsert_dataset_mei
 
         dataset_code = 'MEI'
         self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
-        self._load_files(dataset_code)
+        self._load_files(dataset_code, data_key="...A")
         
         self.assertProvider()
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
 
     @httpretty.activate     
+    @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_dimensions_from_dsd', get_dimensions_from_dsd_EO)
     def test_upsert_dataset_eo(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_oecd:FetcherTestCase.test_upsert_dataset_eo
 
         dataset_code = 'EO'
         self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
-        self._load_files(dataset_code)
+        self._load_files(dataset_code, data_key="..A")
         
         self.assertProvider()
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
         
-    #@httpretty.activate
-    @unittest.skipIf(True, "TODO")
-    def test__parse_agenda(self):
-        pass
-        
-    #@httpretty.activate
-    @unittest.skipIf(True, "TODO")
-    def test_get_calendar(self):
-        pass
-

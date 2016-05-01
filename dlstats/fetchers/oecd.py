@@ -153,16 +153,18 @@ class OECD_Data(SeriesIterator):
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
 
+    def _get_dimensions_from_dsd(self):
+        return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
+
     def _get_data_by_dimension(self):
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
+                                dsd_id=self.dataset_code,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
         
-        dimension_keys, dimensions = get_dimensions_from_dsd(self.xml_dsd,
-                                                             self.provider_name,
-                                                             self.dataset_code)
+        dimension_keys, dimensions = self._get_dimensions_from_dsd()
         
         position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
         
