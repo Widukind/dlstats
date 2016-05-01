@@ -3,6 +3,7 @@
 import re
 from datetime import datetime
 import os
+from copy import deepcopy
 
 from dlstats.fetchers.imf import IMF as Fetcher
 from dlstats import constants
@@ -30,26 +31,26 @@ DATA_WEO = {
         "categories_key": "WEO",
         "categories_parents": None,
         "categories_root": ['DOT', 'WEO'],
-        "concept_keys": ['ISO', 'Scale', 'Units', 'WEO Country Code', 'WEO Subject Code', 'flag'],
-        "codelist_keys": ['ISO', 'Scale', 'Units', 'WEO Country Code', 'WEO Subject Code', 'flag'],
+        "concept_keys": ['flag', 'iso', 'scale', 'units', 'weo-country-code', 'weo-subject-code'],
+        "codelist_keys": ['flag', 'iso', 'scale', 'units', 'weo-country-code', 'weo-subject-code'],
         "codelist_count": {
-            "ISO": 182,
-            "Scale": 4,
-            "Units": 12,
-            "WEO Country Code": 182,
-            "WEO Subject Code": 23,
             "flag": 1,
+            "iso": 182,
+            "scale": 4,
+            "units": 12,
+            "weo-country-code": 182,
+            "weo-subject-code": 23,
         },        
-        "dimension_keys": ['WEO Subject Code', 'ISO', 'WEO Country Code', 'Units'],
+        "dimension_keys": ['weo-subject-code', 'iso', 'weo-country-code', 'units'],
         "dimension_count": {
-            "WEO Subject Code": 23,
-            "ISO": 182,
-            "WEO Country Code": 182,
-            "Units": 12,
+            "weo-subject-code": 23,
+            "iso": 182,
+            "weo-country-code": 182,
+            "units": 12,
         },
-        "attribute_keys": ['Scale', 'flag'],
+        "attribute_keys": ['scale', 'flag'],
         "attribute_count": {
-            "Scale": 4,
+            "scale": 4,
             "flag": 1,
         },
     },
@@ -94,35 +95,46 @@ DATA_WEO = {
     }
 }
 
+def get_dimensions_from_dsd(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['REF_AREA', 'INDICATOR', 'VIS_AREA', 'FREQ', 'SCALE']
+    dimensions = {
+        "REF_AREA": {},
+        "INDICATOR": {},
+        "VIS_AREA": {},
+        'FREQ': {'A': 'A'},
+        "SCALE": {},
+    }
+    return dimension_keys, dimensions
+
 LOCAL_DATASETS_UPDATE = {
     "DOT": {
-        "concept_keys": ['CMT', 'FREQ', 'INDICATOR', 'OBS_STATUS', 'REF_AREA', 'SCALE', 'SERIESCODE', 'TIME_FORMAT', 'VIS_AREA'],
-        "codelist_keys": ['CMT', 'FREQ', 'INDICATOR', 'OBS_STATUS', 'REF_AREA', 'SCALE', 'SERIESCODE', 'TIME_FORMAT', 'VIS_AREA'],
+        "concept_keys": ['cmt', 'freq', 'indicator', 'obs-status', 'ref-area', 'scale', 'seriescode', 'time-format', 'vis-area'],
+        "codelist_keys": ['cmt', 'freq', 'indicator', 'obs-status', 'ref-area', 'scale', 'seriescode', 'time-format', 'vis-area'],
         "codelist_count": {
-            "CMT": 0,
-            "FREQ": 1,
-            "INDICATOR": 2,
-            "OBS_STATUS": 0,
-            "REF_AREA": 1,
-            "SCALE": 1,
-            "SERIESCODE": 0,
-            "TIME_FORMAT": 1,
-            "VIS_AREA": 1,
+            "cmt": 0,
+            "freq": 3,
+            "indicator": 4,
+            "obs-status": 13,
+            "ref-area": 248,
+            "scale": 16,
+            "seriescode": 0,
+            "time-format": 6,
+            "vis-area": 311,
         },
-        "dimension_keys": ['REF_AREA', 'INDICATOR', 'VIS_AREA', 'FREQ', 'SCALE'],
+        "dimension_keys": ['ref-area', 'indicator', 'vis-area', 'freq', 'scale'],
         "dimension_count": {
-            "REF_AREA": 1,
-            "INDICATOR": 2,
-            "VIS_AREA": 1,
-            "FREQ": 1,
-            "SCALE": 1,
+            "ref-area": 248,
+            "indicator": 4,
+            "vis-area": 311,
+            "freq": 3,
+            "scale": 16,
         },
-        "attribute_keys": ['SERIESCODE', 'CMT', 'OBS_STATUS', 'TIME_FORMAT'],
+        "attribute_keys": ['seriescode', 'cmt', 'obs-status', 'time-format'],
         "attribute_count": {
-            "SERIESCODE": 0,
-            "CMT": 0,
-            "OBS_STATUS": 0,
-            "TIME_FORMAT": 1,
+            "seriescode": 0,
+            "cmt": 0,
+            "obs-status": 13,
+            "time-format": 6,
         },
     },
 }
@@ -158,7 +170,7 @@ class UtilsTestCase(BaseTestCase):
         _date = (release_date.year, release_date.month, release_date.day)
         self.assertEqual(_date, (2006, 9, 1))
         
-@unittest.skipIf(True, "TODO")
+#@unittest.skipIf(True, "TODO")
 class FetcherTestCase(BaseFetcherTestCase):
 
     # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase
@@ -166,7 +178,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     FETCHER_KLASS = Fetcher    
     DATASETS = {
         'WEO': DATA_WEO,
-        'DOT': xml_samples.DATA_IMF_DOT,        
+        'DOT': deepcopy(xml_samples.DATA_IMF_DOT),
     }    
     DATASET_FIRST = "AFRREO"
     DATASET_LAST = "WoRLD"
@@ -184,7 +196,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         url = "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/%s" % dataset_code
         self.register_url(url, filepaths["datastructure"])
         
-        url = "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/%s" % dataset_code
+        url = "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/%s/...A." % dataset_code
         self.register_url(url, self.DATASETS[dataset_code]['filepath'])
         
 
@@ -250,6 +262,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertSeries(dataset_code)
 
     @httpretty.activate     
+    @mock.patch('dlstats.fetchers.imf.IMF_XML_Data._get_dimensions_from_dsd', get_dimensions_from_dsd)
     def test_upsert_dataset_dot(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_upsert_dataset_dot
