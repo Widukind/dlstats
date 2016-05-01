@@ -256,7 +256,9 @@ DSD_ECB = {
     "categorisations_key": "53A341E8-D48B-767E-D5FF-E2E3E0E2BB19",
     "categories_key": "07",
     "categories_parents": None,
-    "categories_root": ['01', '02', '03', '04', '05', '06', '07', '08', 
+    "categories_root": ['01', '02', '03', 
+                        #'04', EUROSTAT / ESTAT 
+                        '05', '06', '07', '08', 
                         '09', '10', '11'],
     "concept_keys": ['ACCOUNT_ENTRY', 'ADJUSTMENT', 'ADJUST_DETAIL', 
                      'ADJU_DETAIL', 'AGG_EQUN', 'AME_AGG_METHOD', 'AME_ITEM', 
@@ -438,6 +440,7 @@ DATA_FED_TERMS = {
         "provider_name": "FED",
         "dataset_code": "G19-TERMS",
         "dsd_filepath": DSD_FED_TERMS["filepaths"]["datastructure"],
+        "dsd_id": DSD_FED_TERMS["dsd_id"]
     },
     "series_accept": 11,
     "series_reject_frequency": 0,
@@ -478,6 +481,7 @@ DATA_FED_TERMS = {
         'attributes': {
             'CURRENCY': 'USD',
             'UNIT': 'Percent',
+            'SERIES_NAME': 'RIFLPBCIANM48_N.M',
             'UNIT_MULT': '1',
         },
     }
@@ -493,6 +497,7 @@ DATA_EUROSTAT = {
         #"field_frequency": "FREQ",
         #"dimension_keys": DSD_EUROSTAT["dimension_keys"],
         "dsd_filepath": DSD_EUROSTAT["filepaths"]["datastructure"],
+        "dsd_id": DSD_EUROSTAT["dsd_id"]        
         #"frequencies_supported": [] #TODO: specific: P1Y (A), P3M (Q), P1M (M), P1D (D)
     },
     "series_accept": 3303,
@@ -529,7 +534,7 @@ DATA_EUROSTAT = {
             'geo': 'AT',
         },
         'attributes': {
-            'TIME_FORMAT': 'P3M',
+            'TIME_FORMAT': 'P1Y',
         },
     }
 }
@@ -540,8 +545,9 @@ DATA_IMF_DOT = {
     "DSD": DSD_IMF_DOT,
     "kwargs": {
         "provider_name": "IMF",
-        "dataset_code": "DOT",
+        "dataset_code": "DOT",        
         "dsd_filepath": DSD_IMF_DOT["filepaths"]["datastructure"],
+        "dsd_id": DSD_IMF_DOT["dsd_id"]        
     },
     "series_accept": 2,
     "series_reject_frequency": 0,
@@ -591,6 +597,7 @@ DATA_DESTATIS = {
         "dataset_code": "DCS",
         "field_frequency": "FREQ",
         "dimension_keys": DSD_DESTATIS["dimension_keys"],
+        "dsd_id": DSD_DESTATIS["dsd_id"],        
         #"dsd_filepath": DSD_DESTATIS["filepaths"]["datastructure"],
         "frequencies_supported": ["A", "D", "M", "Q", "W"]
     },
@@ -644,6 +651,7 @@ DATA_OECD_MEI = {
         "provider_name": "OECD",
         "dataset_code": "MEI",
         "dsd_filepath": DSD_OECD_MEI["filepaths"]["datastructure"],
+        "dsd_id": DSD_OECD_MEI["dsd_id"],        
     },
     "series_accept": 4,
     "series_reject_frequency": 0,
@@ -694,6 +702,7 @@ DATA_OECD_EO = {
         "provider_name": "OECD",
         "dataset_code": "EO",
         "dsd_filepath": DSD_OECD_EO["filepaths"]["datastructure"],
+        "dsd_id": DSD_OECD_EO["dsd_id"],
     },
     "series_accept": 4,
     "series_reject_frequency": 0,
@@ -744,6 +753,7 @@ _DATA_ECB = {
         #"field_frequency": "FREQ",
         #"dimension_keys": DSD_ECB["dimension_keys"],
         "dsd_filepath": DSD_ECB["filepaths"]["datastructure"],
+        "dsd_id": DSD_ECB["dsd_id"],
         #"frequencies_supported": ["A", "D", "M", "Q", "W"]
     },
     "series_accept": 8,
@@ -806,6 +816,7 @@ _DATA_INSEE = {
         "provider_name": "INSEE",
         "dataset_code": "IPI-2010-A21",
         "dsd_filepath": DSD_INSEE["filepaths"]["datastructure"],
+        "dsd_id": DSD_INSEE["dsd_id"],
     },
     "series_accept": 20,
     "series_reject_frequency": 0,

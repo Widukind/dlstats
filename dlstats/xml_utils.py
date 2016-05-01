@@ -6,8 +6,10 @@ from datetime import datetime
 import re
 
 from lxml import etree
-from dlstats import errors
-from dlstats.utils import clean_datetime, Downloader, get_ordinal_from_period
+
+from widukind_common import errors
+
+from dlstats.utils import Downloader, clean_datetime, get_ordinal_from_period
 
 logger = logging.getLogger(__name__)
 
@@ -56,22 +58,31 @@ def parse_special_date(period, time_format, dataset_code=None):
         logger.critical(msg)
         raise Exception(msg)    
 
-def select_dimension(dimension_keys, dimensions, choice=None):
-    """Renvoi le nom de la dimension qui contiens le moins de valeur
+def select_dimension(dimension_keys, dimensions, choice="avg"):
+    """Renvoi le nom de la dimension qui contiens le nombre de valeures demandés 
     pour servir ensuite de filtre dans le chargement des données (..A.)
     en tenant compte du nombre de dimension et de la position 
     """
-
     _dimensions = {}
     _min = None
     _max = None
     _avg = None
     
-    if not dimension_keys or not dimensions:
-        return (0, None, [])
+    import statistics
     
-    for key, values in dimensions.items():
+    if not dimension_keys or not dimensions:
+        return 0, None, []
+    
+    counts = [len(values) for values in dimensions.values()]
+    average = int(statistics.mean(counts))
+    
+    #for key, values in dimensions.items():
+    for key in dimension_keys:
+        values = dimensions[key]
         count = len(values)
+        if count == 0:
+            continue
+        
         if not _min:
             _min = (key, count)
             _max = (key, count)
@@ -82,7 +93,8 @@ def select_dimension(dimension_keys, dimensions, choice=None):
             _min = (key, count)
         if count > _max[1]:
             _max = (key, count)
-        if count > _min[1] and count < _max[1]:
+        
+        if count >= average and count <= average:
             _avg = (key, count)
         
     if choice == "max":
@@ -92,11 +104,9 @@ def select_dimension(dimension_keys, dimensions, choice=None):
     else:
         _key = _avg[0]
         
-    position = dimension_keys.index(_key)         
+    position = dimension_keys.index(_key)
     dimension_values = list(dimensions[_key])
-    return (position, 
-            _key, 
-            dimension_values)
+    return position, _key, dimension_values
 
 #TODO: url diff for data and structure
 SDMX_PROVIDERS = {
@@ -140,6 +150,7 @@ SDMX_PROVIDERS = {
         }
     }
 }
+
 class XMLSDMX:
 
     def __init__(self, 
@@ -783,7 +794,7 @@ class XMLStructure_2_1(XMLStructure_2_0):
         element.clear()
         
     def process_dimension(self, element, dsd_id):
-
+        
         if element.getparent().tag != self.fixtag("structure", "DimensionList"):
             return
 
@@ -935,8 +946,13 @@ class XMLDataBase:
         if not self.xml_dsd and self.XMLStructureKlass and self.dsd_filepath:
             self.xml_dsd = self.XMLStructureKlass(provider_name=self.provider_name)
             self.xml_dsd.process(dsd_filepath)
+            self.dsd_id = self.xml_dsd.get_dsd_id(self.dataset_code)
         
         if self.xml_dsd:
+            
+            if not self.dsd_id:
+                raise Exception("required dsd_id parameter")
+            
             self.dimension_keys, self.dimensions = get_dimensions_from_dsd(xml_dsd=self.xml_dsd, 
                                                                            provider_name=self.provider_name, 
                                                                            dataset_code=self.dataset_code,
@@ -1209,7 +1225,7 @@ class XMLData_1_0_FED(XMLData_1_0):
         for event, element in self.tree_iterator:
             
             if event == 'end':
-                
+
                 if element.tag == self.fixtag("frb", "DataSet"):
                     
                     dataset = element
