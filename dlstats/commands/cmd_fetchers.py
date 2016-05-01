@@ -114,12 +114,15 @@ def cmd_datatree(fetcher=None, force=False,
 
 @cli.command('calendar', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
+@client.opt_silent
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
 @opt_fetcher
-def cmd_calendar(fetcher=None, **kwargs):
+@click.option('--update', is_flag=True,
+              help='Update calendar in database')
+def cmd_calendar(fetcher=None, update=False, **kwargs):
     """Display calendar for this provider"""
     
     """
@@ -129,32 +132,45 @@ def cmd_calendar(fetcher=None, **kwargs):
     ---------------------------------------------------------------------------------------------------------------------------
     Provider   | Dataset      | Action          | Type   | Date (yyyy-mm-dd hh:mn)
     ---------------------------------------------------------------------------------------------------------------------------
-    BIS        | EERI         | update_node     | date   | 2016-01-18 - 08:00
-    BIS        | LBS-DISS     | update_node     | date   | 2016-01-22 - 08:00
-    BIS        | CBS          | update_node     | date   | 2016-01-22 - 08:00    
+    BIS        | EERI         | update-dataset     | date   | 2016-01-18 - 08:00
+    BIS        | LBS-DISS     | update-dataset     | date   | 2016-01-22 - 08:00
+    BIS        | CBS          | update-dataset     | date   | 2016-01-22 - 08:00    
     ---------------------------------------------------------------------------------------------------------------------------
 
     $ dlstats fetchers calendar -F ECB
     ---------------------------------------------------------------------------------------------------------------------------
     Provider   | Dataset      | Action          | Type   | Date (yyyy-mm-dd hh:mn)
     ---------------------------------------------------------------------------------------------------------------------------
-    ECB        | BLS          | update_node     | date   | 2016-01-19 - 10:00
-    ECB        | ICP          | update_node     | date   | 2016-01-19 - 11:00
-    ECB        | IVF          | update_node     | date   | 2016-01-21 - 10:00
-    ECB        | BSI          | update_node     | date   | 2016-01-29 - 10:00    
+    ECB        | BLS          | update-dataset     | date   | 2016-01-19 - 10:00
+    ECB        | ICP          | update-dataset     | date   | 2016-01-19 - 11:00
+    ECB        | IVF          | update-dataset     | date   | 2016-01-21 - 10:00
+    ECB        | BSI          | update-dataset     | date   | 2016-01-29 - 10:00    
     ---------------------------------------------------------------------------------------------------------------------------
     """
 
     ctx = client.Context(**kwargs)
+    db = ctx.mongo_database()
 
-    f = FETCHERS[fetcher](db=ctx.mongo_database())
+    f = FETCHERS[fetcher](db=db)
     if not hasattr(f, 'get_calendar'):
         ctx.log_error("Not implemented get_calendar() method")
         ctx.log_error("Operation cancelled !")
         return False
     
-    calendars = [(i, c) for i, c in enumerate(f.get_calendar())]
-    dates = [(i, c['period_kwargs']['run_date']) for i, c in enumerate(f.get_calendar())]
+    if update:
+        if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+            f.upsert_calendar()
+        
+    calendar_list = db[constants.COL_CALENDARS].find({"action": {"$in": ["update-dataset", "update-fetcher"]}, 
+                                                      "kwargs.provider_name": fetcher})
+        
+    calendars = []
+    dates = []
+    
+    for i, c in enumerate(calendar_list):
+        calendars.append((i, c))
+        if c["period_type"] == "date":
+            dates.append((i, c['period_kwargs']['run_date']))
 
     fmt = "{0:10} | {1:12} | {2:15} | {3:6} | {4:10}"
     print("---------------------------------------------------------------------------------------------------------------------------")
@@ -195,9 +211,10 @@ def cmd_calendar(fetcher=None, **kwargs):
 @click.option('--not-remove', is_flag=True,
               help='Not remove files after process')
 @opt_fetcher
+@opt_async_mode
 @opt_dataset_multiple
 def cmd_run(fetcher=None, dataset=None, 
-            max_errors=0, datatree=False, 
+            max_errors=0, datatree=False, async_mode=None, 
             use_files=False, not_remove=False, **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
@@ -207,10 +224,15 @@ def cmd_run(fetcher=None, dataset=None,
     
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
+        _async_mode = False
+        if async_mode and async_mode == "gevent":
+            _async_mode = True
+        
         f = FETCHERS[fetcher](db=ctx.mongo_database(),
                               max_errors=max_errors,
                               use_existing_file=use_files,
-                              not_remove_files=not_remove)
+                              not_remove_files=not_remove,
+                              async_mode=_async_mode)
         
         if not dataset and not hasattr(f, "upsert_all_datasets"):
             ctx.log_error("upsert_all_datasets method is not implemented for this fetcher.")
@@ -291,7 +313,7 @@ def cmd_report(fetcher=None, **kwargs):
 @client.opt_logger
 @client.opt_logger_conf
 @client.opt_mongo_url
-@opt_fetcher
+@opt_fetcher_not_required
 @opt_dataset
 @opt_async_mode
 @click.option('--max-bulk', '-M', 
@@ -320,58 +342,67 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
 
     ctx = client.Context(**kwargs)
 
-    ctx.log("START update tags for [%s]" % fetcher)
-    
     if ctx.silent or click.confirm('Do you want to continue?', abort=True):
         
         start = time.time()
         
         db = ctx.mongo_database()
+        
+        if fetcher:
+            fetchers = [fetcher]
+        else:
+            fetchers = FETCHERS.keys()
+            
+        for provider in fetchers:
 
-        provider_name = fetcher
+            provider_name = provider
 
-        ctx.log("Update provider[%s] Categories tags..." % provider_name)
-        try:
-            result = tags.update_tags_categories(db, 
-                                      provider_name=provider_name, 
-                                      max_bulk=max_bulk,
-                                      update_only=update_only,
-                                      dry_mode=dry_mode)
-            ctx.log_ok("Update provider[%s] Categories tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
-        except Exception as err:
-            ctx.log_error("Update Categories tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
+            ctx.log("START update tags for [%s]" % provider_name)
     
-        ctx.log("Update provider[%s] Datasets tags..." % provider_name)
-        try:
-            result = tags.update_tags_datasets(db,
-                                      provider_name=provider_name,
-                                      dataset_code=dataset, 
-                                      max_bulk=max_bulk,
-                                      update_only=update_only,
-                                      dry_mode=dry_mode)
-            ctx.log_ok("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
-        except Exception as err:
-            ctx.log_error("Update Datasets tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
-    
-        ctx.log("Update provider[%s] Series tags..." % provider_name)
-        try:
-            result = tags.update_tags_series(db,
-                                      provider_name=provider_name,
-                                      dataset_code=dataset, 
-                                      max_bulk=max_bulk,
-                                      update_only=update_only,
-                                      async_mode=async_mode,
-                                      dry_mode=dry_mode)
-            if not async_mode:
-                ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
-        except Exception:
-            ctx.log_error("Update Series tags Fail - provider[%s]: %s" % (provider_name, last_error()))
+            """
+            ctx.log("Update provider[%s] Categories tags..." % provider_name)
+            try:
+                result = tags.update_tags_categories(db, 
+                                          provider_name=provider_name, 
+                                          max_bulk=max_bulk,
+                                          update_only=update_only,
+                                          dry_mode=dry_mode)
+                ctx.log_ok("Update provider[%s] Categories tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+            except Exception as err:
+                ctx.log_error("Update Categories tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
+            """
         
-        end = time.time() - start
+            ctx.log("Update provider[%s] Datasets tags..." % provider_name)
+            try:
+                result = tags.update_tags_datasets(db,
+                                          provider_name=provider_name,
+                                          dataset_code=dataset, 
+                                          max_bulk=max_bulk,
+                                          update_only=update_only,
+                                          dry_mode=dry_mode)
+                ctx.log_ok("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+            except Exception as err:
+                ctx.log_error("Update Datasets tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
         
-        ctx.log("END update tags for [%s] - time[%.3f]" % (fetcher, end))
+            ctx.log("Update provider[%s] Series tags..." % provider_name)
+            try:
+                result = tags.update_tags_series(db,
+                                          provider_name=provider_name,
+                                          dataset_code=dataset, 
+                                          max_bulk=max_bulk,
+                                          update_only=update_only,
+                                          async_mode=async_mode,
+                                          dry_mode=dry_mode)
+                if not async_mode:
+                    ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+            except Exception:
+                ctx.log_error("Update Series tags Fail - provider[%s]: %s" % (provider_name, last_error()))
+            
+            end = time.time() - start
+            
+            ctx.log("END update tags for [%s] - time[%.3f]" % (provider_name, end))
         
-@cli.command('tags-aggregate', context_settings=client.DLSTATS_SETTINGS)
+@cli.command('tags-aggs', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
 @client.opt_quiet
@@ -402,11 +433,17 @@ def cmd_aggregate_tags(max_bulk=100, update_only=False, async_mode=None,
         db = ctx.mongo_database()
 
         ctx.log("Aggregate Datasets tags...")
-        result_datasets = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
+        result = tags.aggregate_tags_datasets(db, max_bulk=max_bulk)
+        #{'nMatched': 410, 'nModified': 385, 'writeConcernErrors': [], 'nInserted': 0, 'nUpserted': 2452, 'writeErrors': [], 'nRemoved': 0}
+        ctx.log_ok("datasets - matched[%(nMatched)s] - modified[%(nModified)s] - inserted[%(nInserted)s] - upserted[%(nUpserted)s]" % result)
+        if result["writeErrors"]:
+            print(result["writeErrors"][0])
 
-        #ctx.log("Aggregate Series tags...")
-        #result_series = tags.aggregate_tags_series(db, max_bulk=max_bulk)
-        #TODO: aggregate categories
+        ctx.log("Aggregate Series tags...")
+        result = tags.aggregate_tags_series(db, max_bulk=max_bulk)
+        ctx.log_ok("series - matched[%(nMatched)s] - modified[%(nModified)s] - inserted[%(nInserted)s] - upserted[%(nUpserted)s]" % result)
+        if result["writeErrors"]:
+            print(result["writeErrors"][0])
 
         end = time.time() - start
         
@@ -526,6 +563,8 @@ def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
             query = {"provider_name": fetcher}
             result = db[constants.COL_CATEGORIES].bulk_write([DeleteMany(query)],
                                                              ordered=False)
+            
+            ctx.log("Categories deleted: %s" % result.deleted_count)
         
         query = {"provider_name": fetcher}
         if not purge_all and dataset:
