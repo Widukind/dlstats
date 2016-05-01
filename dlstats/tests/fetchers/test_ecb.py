@@ -4,12 +4,11 @@ from copy import deepcopy
 from datetime import datetime
 import os
 
-import pytz
-
 from dlstats.fetchers.ecb import ECB as Fetcher
 
 import httpretty
 import unittest
+from unittest import mock
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase, body_generator
@@ -21,71 +20,82 @@ STATSCAL_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "statscal.htm"))
 
 ALL_DATAFLOW_FP = os.path.abspath(os.path.join(RESOURCES_DIR, "ecb-all-dataflow.xml"))
 
+def get_dimensions_from_dsd(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
+    dimension_keys = ['FREQ', 'CURRENCY', 'CURRENCY_DENOM', 'EXR_TYPE', 'EXR_SUFFIX']
+    dimensions = {
+        'FREQ': {'A': 'A'},
+        'CURRENCY': {},
+        'CURRENCY_DENOM': {},
+        'EXR_SUFFIX': {},
+        'EXR_TYPE': {},
+    }
+    return dimension_keys, dimensions
+
 LOCAL_DATASETS_UPDATE = {
     "EXR": {
-        "concept_keys": ['BREAKS', 'COLLECTION', 'COMPILATION', 'COVERAGE', 'CURRENCY', 'CURRENCY_DENOM', 'DECIMALS', 'DOM_SER_IDS', 'EXR_SUFFIX', 'EXR_TYPE', 'FREQ', 'NAT_TITLE', 'OBS_COM', 'OBS_CONF', 'OBS_PRE_BREAK', 'OBS_STATUS', 'PUBL_ECB', 'PUBL_MU', 'PUBL_PUBLIC', 'SOURCE_AGENCY', 'SOURCE_PUB', 'TIME_FORMAT', 'TITLE', 'TITLE_COMPL', 'UNIT', 'UNIT_INDEX_BASE', 'UNIT_MULT'],
-        "codelist_keys": ['BREAKS', 'COLLECTION', 'COMPILATION', 'COVERAGE', 'CURRENCY', 'CURRENCY_DENOM', 'DECIMALS', 'DOM_SER_IDS', 'EXR_SUFFIX', 'EXR_TYPE', 'FREQ', 'NAT_TITLE', 'OBS_COM', 'OBS_CONF', 'OBS_PRE_BREAK', 'OBS_STATUS', 'PUBL_ECB', 'PUBL_MU', 'PUBL_PUBLIC', 'SOURCE_AGENCY', 'SOURCE_PUB', 'TIME_FORMAT', 'TITLE', 'TITLE_COMPL', 'UNIT', 'UNIT_INDEX_BASE', 'UNIT_MULT'],
+        "concept_keys": ['breaks', 'collection', 'compilation', 'coverage', 'currency', 'currency-denom', 'decimals', 'dom-ser-ids', 'exr-suffix', 'exr-type', 'freq', 'nat-title', 'obs-com', 'obs-conf', 'obs-pre-break', 'obs-status', 'publ-ecb', 'publ-mu', 'publ-public', 'source-agency', 'source-pub', 'time-format', 'title', 'title-compl', 'unit', 'unit-index-base', 'unit-mult'],
+        "codelist_keys": ['breaks', 'collection', 'compilation', 'coverage', 'currency', 'currency-denom', 'decimals', 'dom-ser-ids', 'exr-suffix', 'exr-type', 'freq', 'nat-title', 'obs-com', 'obs-conf', 'obs-pre-break', 'obs-status', 'publ-ecb', 'publ-mu', 'publ-public', 'source-agency', 'source-pub', 'time-format', 'title', 'title-compl', 'unit', 'unit-index-base', 'unit-mult'],
         "codelist_count": {
-            "BREAKS": 0,
-            "COLLECTION": 1,
-            "COMPILATION": 0,
-            "COVERAGE": 0,
-            "CURRENCY": 2,
-            "CURRENCY_DENOM": 1,
-            "DECIMALS": 2,
-            "DOM_SER_IDS": 0,
-            "EXR_SUFFIX": 1,
-            "EXR_TYPE": 1,
-            "FREQ": 4,
-            "NAT_TITLE": 0,
-            "OBS_COM": 1,
-            "OBS_CONF": 0,
-            "OBS_PRE_BREAK": 0,
-            "OBS_STATUS": 1,
-            "PUBL_ECB": 0,
-            "PUBL_MU": 0,
-            "PUBL_PUBLIC": 0,
-            "SOURCE_AGENCY": 1,
-            "SOURCE_PUB": 0,
-            "TIME_FORMAT": 0,
-            "TITLE": 0,
-            "TITLE_COMPL": 0,
-            "UNIT": 2,
-            "UNIT_INDEX_BASE": 0,
-            "UNIT_MULT": 1,
+            "breaks": 0,
+            "collection": 10,
+            "compilation": 0,
+            "coverage": 0,
+            "currency": 349,
+            "currency-denom": 349,
+            "decimals": 16,
+            "dom-ser-ids": 0,
+            "exr-suffix": 6,
+            "exr-type": 36,
+            "freq": 10,
+            "nat-title": 0,
+            "obs-com": 0,
+            "obs-conf": 4,
+            "obs-pre-break": 0,
+            "obs-status": 17,
+            "publ-ecb": 0,
+            "publ-mu": 0,
+            "publ-public": 0,
+            "source-agency": 893,
+            "source-pub": 0,
+            "time-format": 0,
+            "title": 0,
+            "title-compl": 0,
+            "unit": 330,
+            "unit-index-base": 0,
+            "unit-mult": 10,
         },
-        "dimension_keys": ['FREQ', 'CURRENCY', 'CURRENCY_DENOM', 'EXR_TYPE', 'EXR_SUFFIX'],
+        "dimension_keys": ['freq', 'currency', 'currency-denom', 'exr-type', 'exr-suffix'],
         "dimension_count": {
-            "FREQ": 4,
-            "CURRENCY": 2,
-            "CURRENCY_DENOM": 1,
-            "EXR_TYPE": 1,
-            "EXR_SUFFIX": 1,
+            "freq": 10,
+            "currency": 349,
+            "currency-denom": 349,
+            "exr-type": 36,
+            "exr-suffix": 6,
         },
-        "attribute_keys": ['TIME_FORMAT', 'OBS_STATUS', 'OBS_CONF', 'OBS_PRE_BREAK', 'OBS_COM', 'BREAKS', 'COLLECTION', 'DOM_SER_IDS', 'PUBL_ECB', 'PUBL_MU', 'PUBL_PUBLIC', 'UNIT_INDEX_BASE', 'COMPILATION', 'COVERAGE', 'DECIMALS', 'NAT_TITLE', 'SOURCE_AGENCY', 'SOURCE_PUB', 'TITLE', 'TITLE_COMPL', 'UNIT', 'UNIT_MULT'],
+        "attribute_keys": ['time-format', 'obs-status', 'obs-conf', 'obs-pre-break', 'obs-com', 'breaks', 'collection', 'dom-ser-ids', 'publ-ecb', 'publ-mu', 'publ-public', 'unit-index-base', 'compilation', 'coverage', 'decimals', 'nat-title', 'source-agency', 'source-pub', 'title', 'title-compl', 'unit', 'unit-mult'],
         "attribute_count": {
-            "TIME_FORMAT": 0,
-            "OBS_STATUS": 1,
-            "OBS_CONF": 0,
-            "OBS_PRE_BREAK": 0,
-            "OBS_COM": 1,
-            "BREAKS": 0,
-            "COLLECTION": 1,
-            "DOM_SER_IDS": 0,
-            "PUBL_ECB": 0,
-            "PUBL_MU": 0,
-            "PUBL_PUBLIC": 0,
-            "UNIT_INDEX_BASE": 0,
-            "COMPILATION": 0,
-            "COVERAGE": 0,
-            "DECIMALS": 2,
-            "NAT_TITLE": 0,
-            "SOURCE_AGENCY": 1,
-            "SOURCE_PUB": 0,
-            "TITLE": 0,
-            "TITLE_COMPL": 0,
-            "UNIT": 2,
-            "UNIT_MULT": 1,
+            "time-format": 0,
+            "obs-status": 17,
+            "obs-conf": 4,
+            "obs-pre-break": 0,
+            "obs-com": 0,
+            "breaks": 0,
+            "collection": 10,
+            "dom-ser-ids": 0,
+            "publ-ecb": 0,
+            "publ-mu": 0,
+            "publ-public": 0,
+            "unit-index-base": 0,
+            "compilation": 0,
+            "coverage": 0,
+            "decimals": 16,
+            "nat-title": 0,
+            "source-agency": 893,
+            "source-pub": 0,
+            "title": 0,
+            "title-compl": 0,
+            "unit": 330,
+            "unit-mult": 10,
         }, 
     }
 }
@@ -137,7 +147,8 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type=dsd_content_type,
                           match_querystring=True)
         
-        url = "http://sdw-wsrest.ecb.int/service/data/EXR"
+        url = "http://sdw-wsrest.ecb.int/service/data/EXR/A...."
+        #url = re.compile("http://sdw-wsrest.ecb.int/service/data/EXR/(.*)")
         self.register_url(url, 
                           self.DATASETS[dataset_code]['filepath'],
                           content_type='application/vnd.sdmx.structurespecificdata+xml;version=2.1')
@@ -160,17 +171,22 @@ class FetcherTestCase(BaseFetcherTestCase):
 
     @httpretty.activate     
     def test_build_data_tree(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_build_data_tree
 
         dataset_code = 'EXR'
         self._load_files(dataset_code)
         self.assertDataTree(dataset_code)
         
-    @httpretty.activate     
+    @httpretty.activate
+    @mock.patch('dlstats.fetchers.ecb.ECB_Data._get_dimensions_from_dsd', get_dimensions_from_dsd)
     def test_upsert_dataset_exr(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_ecb:FetcherTestCase.test_upsert_dataset_exr
-
+        
         dataset_code = 'EXR'
+        self.DATASETS[dataset_code]["series_sample"]["attributes"].pop("TITLE", None)
+        self.DATASETS[dataset_code]["series_sample"]["attributes"].pop("TITLE_COMPL", None)
         self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
         self._load_files(dataset_code)
         
@@ -213,22 +229,22 @@ class FetcherTestCase(BaseFetcherTestCase):
                                content_type='text/html')
 
         calendar_first = {
-            'action': 'update_node',
+            'action': 'update-dataset',
             'kwargs': {'dataset_code': 'SEC', 'provider_name': 'ECB'},
             'period_type': 'date',
             'period_kwargs': {
                 'run_date': datetime(2016, 1, 13, 10, 0),
-                'timezone': pytz.timezone('CET')
+                'timezone': 'CET' 
             },
         }        
 
         calendar_last = {
-            'action': 'update_node',
+            'action': 'update-dataset',
             'period_type': 'date',
             'kwargs': {'dataset_code': 'IVF', 'provider_name': 'ECB'},
             'period_kwargs': {
                 'run_date': datetime(2017, 2, 20, 10, 0),
-                'timezone': pytz.timezone('CET')
+                'timezone': 'CET' 
             },
         }
 
