@@ -9,6 +9,8 @@ from io import StringIO
 import traceback
 
 import requests
+import arrow
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -380,3 +382,12 @@ def clean_dict(dct):
         new_dct[key] = v
     return new_dct
 
+def json_dump_convert(obj):
+    
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    
+    elif isinstance(obj, datetime):
+        return arrow.get(obj).for_json()
+    
+    return obj
