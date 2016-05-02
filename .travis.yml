@@ -12,11 +12,11 @@ cache:
   - apt
   
 env:
-  - MONGO_IMAGE=mongo:3.2.1 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test --link=mongodb:mongodb --rm"
+  - MONGO_IMAGE=mongo:3.2.4 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test --link=mongodb:mongodb --rm"
 
 before_install:
   - docker pull $MONGO_IMAGE
-  - docker run --privileged=true -d --name=mongodb $MONGO_IMAGE mongod --noauth
+  - docker run --privileged=true -d --name=mongodb $MONGO_IMAGE mongod --noauth --storageEngine wiredTiger --wiredTigerDirectoryForIndexes
   - docker build -t widukind/dlstats -f DockerfileTests .
   - pip install coveralls
  
@@ -30,7 +30,7 @@ before_script:
 script:
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats --version
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats mongo check
-  - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests -v --with-coverage dlstats
+  - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests -x --with-coverage dlstats
   - docker run $DOCKER_OPTIONS widukind/dlstats flake8 --exit-zero dlstats
   
 after_script: COVERAGE_FILE=./coverage/.coverage coveralls --verbose
