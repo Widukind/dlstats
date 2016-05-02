@@ -39,12 +39,12 @@ try:
 except ImportError:
     pass
 
-#try:
-#    from dlstats.fetchers.bea import BEA
-#    FETCHERS['BEA'] = BEA
-#    __all__.append('BEA')
-#except ImportError:
-#    pass
+try:
+    from dlstats.fetchers.bea import BEA
+    FETCHERS['BEA'] = BEA
+    __all__.append('BEA')
+except ImportError:
+    pass
 
 try:
     from dlstats.fetchers.ecb import ECB
