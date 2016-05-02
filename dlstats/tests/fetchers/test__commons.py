@@ -1562,6 +1562,7 @@ class DB_SeriesTestCase(BaseDBTestCase):
         
         self.assertEqual(series.count(), len(series_list))
 
+    @unittest.skipIf(True, "TODO")    
     def test_update_series_list_async(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_SeriesTestCase.test_update_series_list_async
