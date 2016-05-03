@@ -20,22 +20,22 @@ DATA_BEA_10101_An = {
     "DSD": {
         "provider": "BEA",
         "filepath": None,
-        "dataset_code": "10101-a",
-        "dsd_id": "10101-a",
+        "dataset_code": "nipa-section1-10101-a",
+        "dsd_id": "nipa-section1-10101-a",
         "is_completed": True,
-        "categories_key": "10101-a",
-        "categories_parents": None,
-        "categories_root": [],
-        "concept_keys": ['concept'],# 'line'],
-        "codelist_keys": ['concept'],# 'line'],
+        "categories_key": "nipa-section1",
+        "categories_parents": ["national", "nipa"],
+        "categories_root": ["national", "nipa", "nipa-fa2004", "nipa-underlying"],
+        "concept_keys": ['concept', 'frequency'],
+        "codelist_keys": ['concept', 'frequency'],
         "codelist_count": {
-            "concept": 21,
-            #"line": 0,
+            "concept": 25,
+            "frequency": 1
         },        
-        "dimension_keys": ['concept'],# 'line'],
+        "dimension_keys": ['concept', 'frequency'],
         "dimension_count": {
-            "concept": 21,
-            #"line": 0,
+            "concept": 25,
+            "frequency": 1
         },
         "attribute_keys": [],
         "attribute_count": None,
@@ -44,12 +44,12 @@ DATA_BEA_10101_An = {
     "series_reject_frequency": 0,
     "series_reject_empty": 0,
     "series_all_values": 1175,
-    "series_key_first": "A191RL1",
-    "series_key_last": "A191RP1",
+    "series_key_first": "A191RL1-A",
+    "series_key_last": "A191RP1-A",
     "series_sample": {
         'provider_name': 'BEA',
-        'dataset_code': '10101-a',
-        'key': 'A191RL1',
+        'dataset_code': 'nipa-section1-10101-a',
+        'key': 'A191RL1-A',
         'name': 'Gross domestic product - Annually',
         'frequency': 'A',
         'last_update': None,
@@ -67,7 +67,7 @@ DATA_BEA_10101_An = {
         },
         'dimensions': {
             'concept': 'a191rl1',
-            #"line": '1-0',
+            "frequency": 'a'
         },
         'attributes': None,
     }
@@ -75,8 +75,8 @@ DATA_BEA_10101_An = {
 
 def _get_datasets_settings(self):
     return { 
-        "10101-a": {
-            'dataset_code': '10101-a',
+        "nipa-section1-10101-a": {
+            'dataset_code': 'nipa-section1-10101-a',
             'name': 'Table 1.1.1. Percent Change From Preceding Period in Real Gross Domestic Product - Annually',
             'last_update': None,
             'metadata': {
@@ -94,11 +94,11 @@ class FetcherTestCase(BaseFetcherTestCase):
     FETCHER_KLASS = Fetcher
     
     DATASETS = {
-        '10101-a': DATA_BEA_10101_An
+        'nipa-section1-10101-a': DATA_BEA_10101_An
     }
     
-    DATASET_FIRST = "CBS"
-    DATASET_LAST = "PP-SS"
+    DATASET_FIRST = "nipa-fa2004-section1-101-a"
+    DATASET_LAST = "nipa-underlying-section9-90500U-a"
     DEBUG_MODE = True
 
     def _load_files(self, dataset_code):
@@ -110,7 +110,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):
 
-        dataset_code = "10101-a"
+        dataset_code = "nipa-section1-10101-a"
         self._load_files(dataset_code)
         self.assertLoadDatasetsFirst([dataset_code])
 
@@ -118,7 +118,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_update(self):
 
-        dataset_code = "10101-a"
+        dataset_code = "nipa-section1-10101-a"
         self._load_files(dataset_code)
         self.assertLoadDatasetsUpdate([dataset_code])
 
@@ -126,16 +126,16 @@ class FetcherTestCase(BaseFetcherTestCase):
     @unittest.skipIf(True, "TODO")     
     def test_build_data_tree(self):
 
-        dataset_code = "10101-a"
+        dataset_code = "nipa-section1-10101-a"
         self.assertDataTree(dataset_code)
             
     @httpretty.activate
     @mock.patch("dlstats.fetchers.bea.BEA._get_datasets_settings", _get_datasets_settings)     
-    def test_upsert_dataset_10101_a(self):
+    def test_upsert_dataset_10101(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test_bea:FetcherTestCase.test_upsert_dataset_10101_a
+        # nosetests -s -v dlstats.tests.fetchers.test_bea:FetcherTestCase.test_upsert_dataset_10101
     
-        dataset_code = "10101-a"
+        dataset_code = "nipa-section1-10101-a"
         
         self._load_files(dataset_code)
     
