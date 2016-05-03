@@ -32,6 +32,13 @@ class BaseDBTestCase(unittest.TestCase):
 
         self._collections_is_empty()
 
+    def tearDown(self):
+        unittest.TestCase.tearDown(self)
+        try:
+            self.db.client.close()
+        except:
+            pass
+
     def _collections_is_empty(self):
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
         self.assertEqual(self.db[constants.COL_CATEGORIES].count(), 0)
