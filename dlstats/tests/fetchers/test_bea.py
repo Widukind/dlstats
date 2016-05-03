@@ -99,7 +99,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     
     DATASET_FIRST = "nipa-fa2004-section1-101-a"
     DATASET_LAST = "nipa-underlying-section9-90500U-a"
-    DEBUG_MODE = True
+    DEBUG_MODE = False
 
     def _load_files(self, dataset_code):
         url = "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2"
