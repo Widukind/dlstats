@@ -8,7 +8,6 @@ Created on Thu Sep 10 11:35:26 2015
 from datetime import datetime
 import zipfile
 import logging
-from pprint import pprint
 
 import xlrd
 import pandas
@@ -16,41 +15,55 @@ import pandas
 from widukind_common import errors
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime
+from dlstats.utils import Downloader, clean_datetime
 from dlstats import constants
 
 VERSION = 1
 
 logger = logging.getLogger(__name__)
 
-"""
-Chaque Section est une categories contenant des datasets !!!
-Chaque sheet dans un excel contient 1 dataset !
-"""
 CATEGORIES = {
     "national": {
-        "name": "National Accounts",
+        "name": "National Data",
         "doc_href": "http://www.bea.gov/national/index.htm",
         "parent": None,
         "all_parents": None,
     },
+    "international": {
+        "name": "International Data",
+        "doc_href": "http://www.bea.gov/international/index.htm",
+        "parent": None,
+        "all_parents": None,
+    },
+    "industry": {
+        "name": "Industry Data",
+        "doc_href": "http://www.bea.gov/industry/index.htm",
+        "parent": None,
+        "all_parents": None,
+    },
+    #"gdp": {
+    #    "name": "GDP by Industry",
+    #    "parent": "international",
+    #    "all_parents": ["international"],
+    #    "doc_href": None,
+    #},
     "nipa": {
-        "name": "National Income and Product Accounts (NIPA)",
+        "name": "National Income and Product Accounts",
         "parent": "national",
         "all_parents": ["national"],
-        "doc_href": "http://www.bea.gov/national/index.htm"
+        "doc_href": "http://www.bea.gov/iTable/index_nipa.cfm"
     },
     "nipa-underlying": {
-        "name": "Underlying Detail (NIPA)",
+        "name": "Underlying",
         "parent": "national",
         "all_parents": ["national"],
         "doc_href": "http://www.bea.gov/national/index.htm"
     },
-    "nipa-fa2004": {
-        "name": "Fixed Assets (NIPA)",
+    "fa2004": {
+        "name": "Fixed Assets",
         "parent": "national",
         "all_parents": ["national"],
-        "doc_href": "http://www.bea.gov/national/index.htm"
+        "doc_href": "http://www.bea.gov/iTable/index_FA.cfm"
     },
     "nipa-underlying-section0": {
         "name": "NIPA - Underlying - Section 0",
@@ -101,66 +114,66 @@ CATEGORIES = {
         "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
         "doc_href": None
     },
-    "nipa-fa2004-section1": {
-        "name": "NIPA - FA2004 - Section 1",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section1": {
+        "name": "SECTION 1 - FIXED ASSETS AND CONSUMER DURABLE GOODS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2",
         "doc_href": None
     },
-    "nipa-fa2004-section2": {
-        "name": "NIPA - FA2004 - Section 2",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section2": {
+        "name": "SECTION 2 - PRIVATE FIXED ASSETS BY TYPE",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
         "doc_href": None
     },
-    "nipa-fa2004-section3": {
-        "name": "NIPA - FA2004 - Section 3",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section3": {
+        "name": "SECTION 3 - PRIVATE FIXED ASSETS BY INDUSTRY",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
         "doc_href": None
     },
-    "nipa-fa2004-section4": {
-        "name": "NIPA - FA2004 - Section 4",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section4": {
+        "name": "SECTION 4 - NONRESIDENTIAL FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
         "doc_href": None
     },
-    "nipa-fa2004-section5": {
-        "name": "NIPA - FA2004 - Section 5",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section5": {
+        "name": "SECTION 5 - RESIDENTIAL FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
         "doc_href": None
     },
-    "nipa-fa2004-section6": {
-        "name": "NIPA - FA2004 - Section 6",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section6": {
+        "name": "SECTION 6 - PRIVATE FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.zip&Section=7",
         "doc_href": None
     },
-    "nipa-fa2004-section7": {
-        "name": "NIPA - FA2004 - Section 7",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section7": {
+        "name": "SECTION 7 - GOVERNMENT FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
         "doc_href": None
     },
-    "nipa-fa2004-section8": {
-        "name": "NIPA - FA2004 - Section 8",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section8": {
+        "name": "SECTION 8 - CONSUMER DURABLE GOODS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section8All_xls.zip&Section=9",
         "doc_href": None
     },
-    "nipa-fa2004-section9": {
-        "name": "NIPA - FA2004 - Section 9",
-        "parent": "nipa-fa2004",
-        "all_parents": ["national", "nipa-fa2004"],
+    "fa2004-section9": {
+        "name": "SECTION 9 - CHAINED DOLLAR TABLES",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
         "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
         "doc_href": None
     },
@@ -225,7 +238,6 @@ def _get_frequency(sheet_name):
     
     return None, None
 
-
 class BEA(Fetcher):
     
     def __init__(self, **kwargs):
@@ -235,7 +247,7 @@ class BEA(Fetcher):
                                   long_name='Bureau of Economic Analysis',
                                   region='USA',
                                   version=VERSION,
-                                  website='www.bea.gov/',
+                                  website='http://www.bea.gov',
                                   fetcher=self)
         
         self._datasets_settings = None
