@@ -868,7 +868,7 @@ class WeoData(SeriesIterator):
             date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
             self.release_date = datetime.strptime(date_str, "%b%Y") #2006-09-01 00:00:00
             
-            if not self.is_updated():
+            if not self._is_updated():
                 msg = "upsert dataset[%s] bypass because is updated from release_date[%s]"
                 logger.info(msg % (self.dataset_code, self.release_date))
                 continue
@@ -903,18 +903,12 @@ class WeoData(SeriesIterator):
         
         yield None, None
         
-    def is_updated(self):
-        
-        query = {'provider_name': self.dataset.provider_name, 
-                 "dataset_code": self.dataset.dataset_code}
-        dataset_doc = self.dataset.fetcher.db[constants.COL_DATASETS].find_one(query)
-        
-        if not dataset_doc:
+    def _is_updated(self):
+
+        if not self.dataset.last_update:
             return True
-
-        print("UPDATED : ? ", self.release_date, dataset_doc['last_update'], self.release_date > dataset_doc['last_update'])
-
-        if self.release_date > dataset_doc['last_update']:            
+        
+        if self.release_date > self.dataset.last_update:            
             return True
 
         return False
