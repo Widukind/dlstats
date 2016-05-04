@@ -5,145 +5,482 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
-from dlstats.fetchers._commons import Fetcher, Datasets, Providers, CodeDict
-from dlstats import constants
-import urllib
-import xlrd
-import csv
-import codecs
 from datetime import datetime
-import pandas
-import pprint
-from collections import OrderedDict
-from re import match
-import time
 import zipfile
-import io
 import logging
+
+import xlrd
+import pandas
+
+from widukind_common import errors
+
+from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
+from dlstats.utils import Downloader, clean_datetime
+from dlstats import constants
 
 VERSION = 1
 
 logger = logging.getLogger(__name__)
 
+CATEGORIES = {
+    "national": {
+        "name": "National Data",
+        "doc_href": "http://www.bea.gov/national/index.htm",
+        "parent": None,
+        "all_parents": None,
+    },
+    "international": {
+        "name": "International Data",
+        "doc_href": "http://www.bea.gov/international/index.htm",
+        "parent": None,
+        "all_parents": None,
+    },
+    "industry": {
+        "name": "Industry Data",
+        "doc_href": "http://www.bea.gov/industry/index.htm",
+        "parent": None,
+        "all_parents": None,
+    },
+    #"gdp": {
+    #    "name": "GDP by Industry",
+    #    "parent": "international",
+    #    "all_parents": ["international"],
+    #    "doc_href": None,
+    #},
+    "nipa": {
+        "name": "National Income and Product Accounts",
+        "parent": "national",
+        "all_parents": ["national"],
+        "doc_href": "http://www.bea.gov/iTable/index_nipa.cfm"
+    },
+    "nipa-underlying": {
+        "name": "Underlying",
+        "parent": "national",
+        "all_parents": ["national"],
+        "doc_href": "http://www.bea.gov/national/index.htm"
+    },
+    "fa2004": {
+        "name": "Fixed Assets",
+        "parent": "national",
+        "all_parents": ["national"],
+        "doc_href": "http://www.bea.gov/iTable/index_FA.cfm"
+    },
+    "nipa-underlying-section0": {
+        "name": "NIPA - Underlying - Section 0",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section0All_xls.zip&Section=1",
+        "doc_href": None
+    },
+    "nipa-underlying-section2": {
+        "name": "NIPA - Underlying - Section 2",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "doc_href": None
+    },
+    "nipa-underlying-section3": {
+        "name": "NIPA - Underlying - Section 3",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "doc_href": None
+    },
+    "nipa-underlying-section4": {
+        "name": "NIPA - Underlying - Section 4",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "doc_href": None
+    },
+    "nipa-underlying-section5": {
+        "name": "NIPA - Underlying - Section 5",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "doc_href": None
+    },
+    "nipa-underlying-section7": {
+        "name": "NIPA - Underlying - Section 7",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "doc_href": None
+    },
+    "nipa-underlying-section9": {
+        "name": "NIPA - Underlying - Section 9",
+        "parent": "nipa-underlying",
+        "all_parents": ["national", "nipa-underlying"],
+        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
+        "doc_href": None
+    },
+    "fa2004-section1": {
+        "name": "SECTION 1 - FIXED ASSETS AND CONSUMER DURABLE GOODS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2",
+        "doc_href": None
+    },
+    "fa2004-section2": {
+        "name": "SECTION 2 - PRIVATE FIXED ASSETS BY TYPE",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "doc_href": None
+    },
+    "fa2004-section3": {
+        "name": "SECTION 3 - PRIVATE FIXED ASSETS BY INDUSTRY",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "doc_href": None
+    },
+    "fa2004-section4": {
+        "name": "SECTION 4 - NONRESIDENTIAL FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "doc_href": None
+    },
+    "fa2004-section5": {
+        "name": "SECTION 5 - RESIDENTIAL FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "doc_href": None
+    },
+    "fa2004-section6": {
+        "name": "SECTION 6 - PRIVATE FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.zip&Section=7",
+        "doc_href": None
+    },
+    "fa2004-section7": {
+        "name": "SECTION 7 - GOVERNMENT FIXED ASSETS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "doc_href": None
+    },
+    "fa2004-section8": {
+        "name": "SECTION 8 - CONSUMER DURABLE GOODS",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section8All_xls.zip&Section=9",
+        "doc_href": None
+    },
+    "fa2004-section9": {
+        "name": "SECTION 9 - CHAINED DOLLAR TABLES",
+        "parent": "fa2004",
+        "all_parents": ["national", "fa2004"],
+        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
+        "doc_href": None
+    },
+    "nipa-section1": {
+        "name": "NIPA - Section 1 - Domestic Product and Income",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2",
+        "doc_href": None
+    },
+    "nipa-section2": {
+        "name": "NIPA - Section 2 - Personal Income and Outlays",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "doc_href": None
+    },
+    "nipa-section3": {
+        "name": "NIPA - Section 3 - Government Current Receipts and Expenditures",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "doc_href": None
+    },
+    "nipa-section4": {
+        "name": "NIPA - Section 4 - Foreign Transactions",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "doc_href": None
+    },
+    "nipa-section5": {
+        "name": "NIPA - Section 5 - Saving and Investment",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "doc_href": None
+    },
+    "nipa-section6": {
+        "name": "NIPA - Section 6 - Income and Employment by Industry",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.zip&Section=7",
+        "doc_href": None
+    },
+    "nipa-section7": {
+        "name": "NIPA - Section 7 - Supplemental Tables",
+        "parent": "nipa",
+        "all_parents": ["national", "nipa"],
+        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "doc_href": None
+    },
+}
+
+def _get_frequency(sheet_name):
+    if 'Qtr' in sheet_name :
+        return "Quarterly", "Q" 
+    elif 'Ann'  in sheet_name or 'Annual' in sheet_name:
+        return "Annually", "A"
+    elif 'Month'in sheet_name:
+        return "Monthly", "M"
+    
+    return None, None
+
 class BEA(Fetcher):
-    def __init__(self, db=None):
-        super().__init__(provider_name='BEA',  db=db) 
-        self.provider_name = 'BEA'
+    
+    def __init__(self, **kwargs):
+        super().__init__(provider_name='BEA', version=VERSION, **kwargs)
+         
         self.provider = Providers(name=self.provider_name ,
                                   long_name='Bureau of Economic Analysis',
                                   region='USA',
                                   version=VERSION,
-                                  website='www.bea.gov/',
+                                  website='http://www.bea.gov',
                                   fetcher=self)
-        #self.urls= {'National Data_GDP & Personal Income' :'http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
-        #            'National Data_Fixed Assets': 'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11', 
-        #            'Industry data_GDP by industry_Q': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
-        #            'Industry data_GDP by industry_A': 'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
-        #            'International transactions(ITA)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
-        #            'International services': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
-        #            'International investment position(IIP)': 'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip'}
         
-        self.urls = ['http://www.bea.gov//national/nipaweb/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11',
-                    'http://www.bea.gov//national/FA2004/GetCSV.asp?GetWhat=SS_Data/SectionAll_xls.zip&Section=11']
-        #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTablesQTR.zip',
-        #                    'http://www.bea.gov//industry/iTables%20Static%20Files/AllTables.zip',
-        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/ITA-XLS.zip',
-        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IntlServ-XLS.zip',
-        #                    'http://www.bea.gov/international/bp_web/startDownload.cfm?dlSelect=tables/XLSNEW/IIP-XLS.zip']
-        self._spreadsheets = {}
+        self._datasets_settings = None
+        self._current_urls = {}
 
-    @property
-    def spreadsheets(self):
-        if self._spreadsheets == {}:
-            for self.url in self.urls:
-                response = urllib.request.urlopen(self.url)
-                zipfile_ = zipfile.ZipFile(io.BytesIO(response.read()))
-                for section in zipfile_.namelist():
-                    if section !='Iip_PrevT3a.xls' and section !='Iip_PrevT3b.xls' and section !='Iip_PrevT3c.xls' :
-                        file_contents = zipfile_.read(section)
-                        excel_book = xlrd.open_workbook(file_contents=file_contents)
-                        for sheet_name in excel_book.sheet_names():
-                            sheet = excel_book.sheet_by_name(sheet_name)
-                            if  sheet_name != 'Contents':
-                                dataset_code = sheet_name.replace(' ','_')
-                                self._spreadsheets[dataset_code] = sheet
-        return self._spreadsheets
-
-    def datasets_list(self):
-        return list(self.spreadsheets.keys())
-
-    def datasets_long_list(self):
-        return [(dataset_code, dataset_code) for dataset_code in self.spreadsheets.keys()]
-                    
-    def upsert_nipa(self):
-        for dataset_code, sheet in self.spreadsheets.items():
-            self.upsert_dataset(dataset_code, sheet)
-
-    def upsert_dataset(self, dataset_code, sheet):    
-        start = time.time()
-        logger.info("upsert dataset[%s] - START" % (dataset_code))
-        
-        dataset = Datasets(self.provider_name,dataset_code,
-                           fetcher=self)
-        bea_data = BeaData(dataset,self.url, sheet)
-        dataset.name = dataset_code
-        dataset.doc_href = 'http://www.bea.gov/newsreleases/national/gdp/gdpnewsrelease.htm'
-        dataset.last_update = bea_data.release_date
-        dataset.series.data_iterator = bea_data
-        dataset.update_database()
-        self.update_metas(dataset_code)
-        end = time.time() - start
-        logger.info("upsert dataset[%s] - END - time[%.3f seconds]" % (dataset_code, end))
-
-
-        
-    def upsert_categories(self):
-        data_tree = {'name': 'BEA' , 
-                     'category_code': 'bea_root',
-                     'children': []}
-
-        return document.update_database() 
-                
-class BeaData():
-    def __init__(self,dataset,url, sheet):
-        self.sheet = sheet
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
-        str = sheet.cell_value(2,0) #released Date
-        info = []
-        self.frequency = None
-        #retrieve frequency from url        
-        if 'AllTablesQTR' in url :
-            self.frequency = 'Q'
-        elif  'AllTables.' in url : 
-            self.frequency = 'A'
-        #retrieve frequency from sheet name  
-        if 'Qtr' in sheet.name :
-            self.frequency = 'Q' 
-        elif 'Ann'  in sheet.name or 'Annual' in sheet.name:
-            self.frequency = 'A'
-        elif 'Month'in sheet.name:
-            self.frequency = 'M'
-        if self.frequency is None:
-            raise Exception(dataset.name + " " + sheet.name + " (" +
-                            url + "): frequency can't be found")  
+    def _get_release_date(self, url, sheet):
         if 'Section' in  url :
-            release_datesheet = sheet.cell_value(4,0)[15:] 
+            release_datesheet = sheet.cell_value(4,0)[15:] #April 28, 2016 
+        elif 'ITA-XLS' in url or 'IIP-XLS' in url :
+            release_datesheet = sheet.cell_value(3,0)[14:].split('-')[0]
         else :
             release_datesheet = sheet.cell_value(3,0)[14:] 
-        if 'ITA-XLS' in url or 'IIP-XLS' in url :
-            release_datesheet = sheet.cell_value(3,0)[14:].split('-')[0]
             
-        years = [int(s) for s in str.split() if s.isdigit()] 
-        #To DO: start years and end_dates
-        self.start_date = pandas.Period(years[0],freq = self.frequency).ordinal
-        self.end_date = pandas.Period(years[1],freq = self.frequency).ordinal
-        self.release_date = datetime.strptime(release_datesheet.strip(), "%B %d, %Y") 
+        return clean_datetime(datetime.strptime(release_datesheet.strip(), "%B %d, %Y")) 
+
+    def _get_sheet(self, url, filename, sheet_name):
+        
+        if url in self._current_urls:
+            filepath = self._current_urls[url]
+        else:
+            download = Downloader(url=url,
+                                  filename=filename,
+                                  store_filepath=self.store_path,
+                                  use_existing_file=self.use_existing_file)
+            
+            filepath = download.get_filepath()
+            self._current_urls[url] = filepath        
+
+        zipfile_ = zipfile.ZipFile(filepath)
+        section = zipfile_.namelist()[0]
+                
+        file_contents = zipfile_.read(section)
+                    
+        excel_book = xlrd.open_workbook(file_contents=file_contents)
+                    
+        return excel_book.sheet_by_name(sheet_name)
+        
+    def upsert_dataset(self, dataset_code):
+        
+        settings = self._get_datasets_settings()[dataset_code]
+        
+        dataset = Datasets(provider_name=self.provider_name, 
+                           dataset_code=dataset_code, 
+                           name=settings["name"], 
+                           doc_href='http://www.bea.gov', 
+                           fetcher=self)
+        
+        url = settings["metadata"]["url"]
+        filename = settings["metadata"]["filename"]
+        sheet_name = settings["metadata"]["sheet_name"]
+
+        sheet = self._get_sheet(url, filename, sheet_name)
+        fetcher_data = BeaData(dataset, url=url, sheet=sheet)
+        
+        if dataset.last_update and fetcher_data.release_date >= dataset.last_update: 
+            comments = "update-date[%s]" % fetcher_data.release_date
+            raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                              dataset_code=dataset_code,
+                                              comments=comments)
+        
+        
+        dataset.last_update = fetcher_data.release_date
+        dataset.series.data_iterator = fetcher_data
+        
+        return dataset.update_database()
+
+    def _get_datasets_settings(self):
+        if not self._datasets_settings:
+            self._datasets_settings = dict([(d["dataset_code"], d) for d in self.datasets_list()])
+        return self._datasets_settings
+    
+    def load_datasets_first(self):
+        self._get_datasets_settings()
+        return super().load_datasets_first()
+
+    def build_data_tree(self):
+        
+        categories = []
+        
+        for category_code, values in CATEGORIES.items():
+            if "url" in values:
+                continue
+            
+            cat = {
+                "category_code": category_code,
+                "name": values["name"],
+                "parent": values["parent"],
+                "all_parents": values["all_parents"],                
+                "doc_href": values["doc_href"],
+                "datasets": []
+            }
+            categories.append(cat)
+
+        for category_code, category in CATEGORIES.items():
+            
+            if not "url" in category:
+                continue
+            
+            url = category["url"]
+            #filename = category["filename"]
+            filename = "%s.xls.zip" % category_code
+            print(filename, url)
+            
+            download = Downloader(url=url,
+                                  filename=filename,
+                                  store_filepath=self.store_path,
+                                  use_existing_file=self.use_existing_file)
+            filepath = download.get_filepath()        
+
+            self._current_urls[url] = filepath
+            
+            zipfile_ = zipfile.ZipFile(filepath)
+            
+            for section in zipfile_.namelist():
+                
+                if section in ['Iip_PrevT3a.xls', 'Iip_PrevT3b.xls', 'Iip_PrevT3c.xls']:
+                    continue
+
+                file_contents = zipfile_.read(section)
+                excel_book = xlrd.open_workbook(file_contents=file_contents)
+    
+                try:                    
+                    sheet = excel_book.sheet_by_name('Contents')
+                    
+                    cat = {
+                        "category_code": category_code,
+                        "name": category["name"],
+                        "parent": category.get("parent"),
+                        "all_parents": category.get("all_parents"),
+                        "doc_href": None,
+                        "datasets": []
+                    }
+
+                    dataset_base_names = {}
+
+                    first_line = 0
+
+                    for i, cell in enumerate(sheet.col(1)):
+                        if "Code" in cell.value:
+                            first_line = i+2
+                            break
+                        
+                    for i, cell in enumerate(sheet.col(1)):
+                        if i < first_line:
+                            continue
+                        
+                        cell_row = sheet.row(i)
+                        if cell_row[1].value != '':
+                            dataset_code = cell_row[1].value
+                            dataset_name = cell_row[2].value
+
+                            dataset_base_names[dataset_code] = dataset_name
+                            
+                    for sheet_name in excel_book.sheet_names():
+                        
+                        _dataset_code = sheet_name.split()[0]
+                        
+                        if not _dataset_code in dataset_base_names:
+                            continue
+                        
+                        _dataset_name = dataset_base_names[_dataset_code]
+                        
+                        frequency_name, frequency_code = _get_frequency(sheet_name)
+                        
+                        if not frequency_name:
+                            msg = "not frequency name for sheet[%s] - url[%s] - filename[%s]" % (sheet_name, url, filename) 
+                            logger.critical(msg)
+                            raise Exception(msg)
+                        
+                        dataset_code = "%s-%s-%s" % (category_code, _dataset_code, frequency_code.lower()) 
+                        dataset_name = "%s - %s" % (_dataset_name, frequency_name)
+                        
+                        cat["datasets"].append({
+                            "name": dataset_name, 
+                            "dataset_code": dataset_code,
+                            "last_update": self._get_release_date(url, excel_book.sheet_by_name(sheet_name)), 
+                            "metadata": {
+                                "url": url, 
+                                "filename": filename,
+                                "sheet_name": sheet_name
+                            }
+                        })
+
+                    categories.append(cat)
+                    
+                except Exception as err:
+                    logger.error(str(err))
+                
+        return categories
+        
+class BeaData(SeriesIterator):
+    
+    def __init__(self, dataset, url=None, sheet=None):
+        super().__init__(dataset)
+        
+        self.url = url
+        self.sheet = sheet
+        
+        self.dataset.dimension_keys = ['concept', 'frequency']
+        self.dataset.concepts["concept"] = "Concept"
+        self.dataset.concepts["frequency"] = "Frequency"
+        
+        if not "concept" in self.dataset.codelists:
+            self.dataset.codelists["concept"] = {}
+
+        if not "frequency" in self.dataset.codelists:
+            self.dataset.codelists["frequency"] = {}
+        
+        cell_value = self.sheet.cell_value(2,0) #Annual data from 1969 To 2015
+        self.frequency = None
+
+        #retrieve frequency from url        
+        #if 'AllTablesQTR' in url :
+        #    self.frequency = 'Q'
+        #elif 'AllTables.' in url : 
+        #    self.frequency = 'A'
+        
+        if 'Qtr' in self.sheet.name :
+            self.frequency = 'Q' 
+        elif 'Ann'  in self.sheet.name or 'Annual' in self.sheet.name:
+            self.frequency = 'A'
+        elif 'Month'in self.sheet.name:
+            self.frequency = 'M'
+        
+        if self.frequency is None:
+            raise Exception(dataset.name + " " + self.sheet.name + " (" + url + "): frequency can't be found")  
+        
+        self.years = [int(s) for s in cell_value.split() if s.isdigit()] #[1969, 2015]
+
+        self.release_date = self.fetcher._get_release_date(self.url, self.sheet) 
         self.dimensions = {} 
         
-        if 'Section' in  url :
+        if 'Section' in  self.url :
             row_start = sheet.col_values(0).index(1)
         else:     
             col_values_ = [cell.strip(' ') for cell in sheet.col_values(0)]
@@ -151,72 +488,82 @@ class BeaData():
                 row_start = col_values_.index('A1')
             else :    
                 row_start = col_values_.index('1')         
-        self.row_range = iter(range(row_start, sheet.nrows))
-        if '' in sheet.col_values(1)[row_start:] :
-            row_info = sheet.col_values(1).index('',row_start,sheet.nrows)+1
-            if sheet.col_values(0)[row_info]:
-                for row_no in range(row_info, sheet.nrows) : 
-                    info.append(sheet.cell_value(row_no,0))
-        self.keys = []
+        
+        self.row_ranges = list(iter(range(row_start, sheet.nrows)))
+        
+        row_notes = self.sheet.row_values(1)
+        if row_notes and len(row_notes[0].strip()) > 0:
+            self.dataset.notes = row_notes[0].strip()
 
-   
-    def __next__(self):
-        while True:
-            row = self.sheet.row(next(self.row_range))
-            key = row[2].value
-            if row is None:
-                raise StopIteration()
-            # skip lines without key or with ZZZZZZx key
-            elif (len(key.replace(' ','')) == 0) or  key[0:6] == 'ZZZZZZ':
-                continue
-            elif key in self.keys:
-                continue
-            else:
-                self.keys.append(key)
-                break
-        return(self.build_series(row))
-                                       
-                                           
-    def build_series(self,row):  
+        self.keys = []
+        self.rows = self._get_datas()
+        
+    def _get_datas(self):
+        try:
+            for row_num in self.row_ranges:
+
+                row = self.sheet.row_values(row_num)
+                
+                key = row[2]
+
+                # skip lines without key or with ZZZZZZx key
+                if len(key.replace(' ','')) == 0 or key[0:6] == 'ZZZZZZ':
+                    continue
+                elif key in self.keys:
+                    continue
+                else:
+                    self.keys.append(key)
+                
+                yield row, None
+        finally:
+            try:
+                self.sheet.book.release_resources()
+            except Exception as err:
+                logger.error(str(err))
+            
+    def build_series(self, row):
         dimensions = {}
         series = {}
-        series_value = [] 
-        #TO DO: Syncronize for all series
-        series_name = row[1].value + self.frequency 
-        series_key = row[2].value
-        dimensions['concept'] = self.dimension_list.update_entry('concept',row[2].value,row[1].value)  
-        dimensions['line'] = self.dimension_list.update_entry('line',str(row[0].value),str(row[0].value))
-        for r in range(3, len(row)):
-            series_value.append(str(row[r].value))  
-        #release_dates = [self.release_date for v in series_value] 
-        series['values'] = series_value                
+        series_values = [] 
+
+        series_name = "%s - %s" % (row[1].strip(), constants.FREQUENCIES_DICT[self.frequency]) 
+        series_key = "%s-%s" % (row[2], self.frequency)
+
+        dimensions['concept'] = row[2]
+        dimensions['frequency'] = self.frequency
+        
+        if not dimensions["frequency"] in self.dataset.codelists["frequency"]:
+            self.dataset.codelists["frequency"][dimensions["frequency"]] = constants.FREQUENCIES_DICT[self.frequency]
+        
+        if not dimensions["concept"] in self.dataset.codelists["concept"]:
+            self.dataset.codelists["concept"][dimensions["concept"]] = dimensions["concept"]
+
+        start_date = pandas.Period(self.years[0], freq=self.frequency)
+        end_date = pandas.Period(self.years[1], freq=self.frequency)
+
         series['provider_name'] = self.provider_name       
         series['dataset_code'] = self.dataset_code
         series['name'] = series_name
         series['key'] = series_key
-        series['start_date'] = self.start_date
-        series['end_date'] = self.end_date  
+        series['start_date'] = start_date.ordinal
+        series['end_date'] = end_date.ordinal
         series['last_update'] = self.release_date
         series['dimensions'] = dimensions
         series['frequency'] = self.frequency
         series['attributes'] = {}
-        return(series)
+        
+        for v in row[3:]:
+            value = {
+                'attributes': None,
+                'release_date': self.release_date,
+                'ordinal': start_date.ordinal,
+                'period': str(start_date),
+                'value': str(v)
+            }
+            series_values.append(value)
+            start_date += 1
 
-if __name__ == "__main__":
-    import sys
-    import os
-    import tempfile
-    print("WARNING : run main for testing only", file=sys.stderr)
-    try:
-        import requests_cache
-        cache_filepath = os.path.abspath(os.path.join(tempfile.gettempdir(), 'dlstats_cache'))        
-        requests_cache.install_cache(cache_filepath, backend='sqlite', expire_after=None)#=60 * 60) #1H
-        print("requests cache in %s" % cache_filepath)
-    except ImportError:
-        pass
-    w = BEA()
-    w.provider.update_database()
-#    w.upsert_categories()
-    w.upsert_nipa()
-    
+        series['values'] = series_values
+        
+        return series
 

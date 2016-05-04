@@ -324,7 +324,8 @@ class BaseXMLStructureTestCase(BaseTestCase):
 
         for key in provider["codelist_keys"]:
             self.assertEqual(len(xml.codelists[key]["enum"].keys()), 
-                             provider["codelist_count"][key])
+                             provider["codelist_count"][key],
+                             key)
             
     def assert_dimension(self, xml, provider, provider_name):
 
@@ -342,7 +343,8 @@ class BaseXMLStructureTestCase(BaseTestCase):
 
         for key in provider["dimension_keys"]:
             self.assertEqual(len(dimensions[key]["enum"].keys()), 
-                             provider["dimension_count"][key])
+                             provider["dimension_count"][key],
+                             key)
         
         #TODO: codelists and concepts ?
         
@@ -360,7 +362,8 @@ class BaseXMLStructureTestCase(BaseTestCase):
 
         for key in provider["attribute_keys"]:
             self.assertEqual(len(attributes[key]["enum"].keys()), 
-                             provider["attribute_count"][key])
+                             provider["attribute_count"][key],
+                             key)
         
     def _commons_tests(self, test_name=None):
         

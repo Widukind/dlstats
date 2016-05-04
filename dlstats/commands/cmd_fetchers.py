@@ -5,6 +5,7 @@ from operator import itemgetter
 import click
 
 from widukind_common import tags
+from widukind_common.tasks import consolidate
 
 from dlstats import constants
 from dlstats.fetchers import FETCHERS
@@ -519,8 +520,55 @@ def cmd_search(search_type=None, fetcher=None, dataset=None,
             fields.append(doc['tags'])
             
         print(fields)
-            
+
+@cli.command('consolidate', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_quiet
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_logger_file
+@client.opt_mongo_url
+@opt_fetcher
+@opt_dataset
+@click.option('--max-bulk', '-M', 
+              type=click.INT,
+              default=20, 
+              show_default=True,
+              help='Max Bulk')
+def cmd_consolidate(fetcher=None, dataset=None, max_bulk=20, **kwargs):
+    """Consolidate codelists and concepts one or more dataset"""
     
+    ctx = client.Context(**kwargs)
+
+    ctx.log("START consolidate for [%s]" % fetcher)
+    
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        start = time.time()
+        
+        db = ctx.mongo_database()
+        
+        query = {"provider_name": fetcher}
+        if dataset:
+            query["dataset_code"] = dataset
+        
+        if dataset:    
+            result = consolidate.consolidate_dataset(db=db, **query)
+            if result == 1:
+                ctx.log("dataset[%s] updated" % dataset)
+            else:
+                ctx.log_warn("dataset[%s] not updated" % dataset)
+        else:
+            result = consolidate.consolidate_all_dataset(db=db, max_bulk=max_bulk, **query)
+            ctx.log("%(modified_count)s modified on %(matched_count)s matched" % result)
+        
+        end = time.time() - start
+        
+        ctx.log("END consolidate for [%s] - time[%.3f]" % (fetcher, end))
+        
+            
 @cli.command('purge', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent

@@ -406,7 +406,7 @@ DSD_INSEE = {
         "CL_NATURE": 25,
         "CL_OBS_STATUS": 10,
         "CL_TIME_COLLECT": 7,
-        "CL_UNIT": 123,    
+        "CL_UNIT": 125,    
     },
     "dimension_keys": ['FREQ', 'PRODUIT', 'NATURE'],
     "dimension_count": {
@@ -421,7 +421,7 @@ DSD_INSEE = {
         'IDBANK': 0, 
         'TITLE': 0, 
         'LAST_UPDATE': 0,
-        'UNIT_MEASURE': 123, 
+        'UNIT_MEASURE': 125, 
         'UNIT_MULT': 0, 
         'REF_AREA': 11, 
         'DECIMALS': 0,
