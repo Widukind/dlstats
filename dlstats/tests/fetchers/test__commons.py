@@ -1114,8 +1114,6 @@ class DB_ProvidersTestCase(BaseDBTestCase):
                       website="http://www.example.com", 
                       fetcher=f)
         
-        #f.provider = p
-
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 0)
         
         result = p.update_database()
@@ -1126,13 +1124,14 @@ class DB_ProvidersTestCase(BaseDBTestCase):
         with self.assertRaises(DuplicateKeyError):
             self.db[constants.COL_PROVIDERS].insert(existing_provider)
 
-        p = Providers(name="p2", 
+        p2 = Providers(name="p2", 
                       long_name="Provider One",
                       version=1,                      
                       region="Dreamland",
                       website="http://www.example.com",
                       fetcher=f)
-        p.update_database()
+        result = p2.update_database()
+        self.assertIsNotNone(result)
 
         self.assertEqual(self.db[constants.COL_PROVIDERS].count(), 2)
 
@@ -1900,7 +1899,7 @@ class DB_DummyTestCase(BaseDBTestCase):
          'start_date': 30,
          'end_date': 31,
          'start_ts': datetime(2000, 1, 1, 0, 0),
-         'end_ts': datetime(2001, 12, 31, 0, 0), #FIXME: bug mongo
+         'end_ts': datetime(2001, 1, 1, 0, 0),
          'values': [{'attributes': {'obs-status': 'a'},
                      'ordinal': 30,
                      'period': '2000',
