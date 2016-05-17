@@ -13,6 +13,7 @@ cache:
   
 env:
   - MONGO_IMAGE=mongo:3.2.4 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000 --link=mongodb:mongodb --rm"
+  #- MONGO_IMAGE=mongo:3.2.4 DOCKER_OPTIONS="-e USE_MONGO_SERVER=1 -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000 --link=mongodb:mongodb --rm"
 
 before_install:
   - docker pull $MONGO_IMAGE
@@ -39,3 +40,6 @@ notifications:
   email: true
   on_success: always
   on_failure: always
+  on_start:  always
+  webhooks:
+    - https://webhooks.gitter.im/e/1e371085c950f03e2221

@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import hashlib
 import logging
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from datetime import datetime
 import re
 
 from lxml import etree
 
 from widukind_common import errors
+from widukind_common.debug import timeit
 
-from dlstats.utils import Downloader, clean_datetime, get_ordinal_from_period
+from dlstats.utils import Downloader, clean_datetime, get_ordinal_from_period, get_datetime_from_period
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +59,15 @@ def parse_special_date(period, time_format, dataset_code=None):
         msg = 'TIME FORMAT[%s] for DATASET[%s] not recognized' % (time_format, dataset_code)
         logger.critical(msg)
         raise Exception(msg)    
+
+def get_key_for_dimension(count_dimensions, position, dimension_value):
+    sdmx_key = []
+    for i in range(count_dimensions):
+        if i == position:
+            sdmx_key.append(dimension_value)
+        else:
+            sdmx_key.append(".")
+    return "".join(sdmx_key)
 
 def select_dimension(dimension_keys, dimensions, choice="avg"):
     """Renvoi le nom de la dimension qui contiens le nombre de valeures demandés 
@@ -155,7 +166,7 @@ class XMLSDMX:
 
     def __init__(self, 
                  sdmx_url=None, agencyID=None, data_headers={}, structure_headers={},
-                 client=None, cache=None, store_filepath=None,  
+                 client=None, cache=None, store_filepath=None, use_existing_file=False,  
                  **http_cfg):
         
         self.sdmx_url = sdmx_url
@@ -165,24 +176,27 @@ class XMLSDMX:
         self.data_headers = data_headers
         self.structure_headers = structure_headers
         self.store_filepath = store_filepath
+        self.use_existing_file = use_existing_file
 
     def query_rest(self, url, **kwargs):
         logger.info('Requesting %s', url)
-        download = Downloader(url, filename="sdmx.xml",
-                              store_filepath=self.store_filepath, 
+        filename = "%s.xml" % hashlib.sha224(url.encode("utf-8")).hexdigest()
+        download = Downloader(url, filename=filename,
+                              store_filepath=self.store_filepath,
+                              use_existing_file=self.use_existing_file, 
                               **kwargs)
         filepath, response = download.get_filepath_and_response()
-        #FIXME: remove !
-        return filepath, url, response.headers, response.status_code
+        if response:
+            return filepath, url, response.headers, response.status_code
+        return filepath, url, None, None
 
     def codelist(self, cl_code=None, headers={}, url=None, references=None):
         if not url:
             url = "%s/codelist/%s/%s" % (self.sdmx_url, self.agencyID, cl_code)
             if references:
                 url = "%s?references=" % (url, references)
-        logger.info('Requesting %s', url)
-        source, final_url, headers, status_code = self.query_rest(url, headers=headers)
-        return source
+        _source, _final_url, _headers, _status_code = self.query_rest(url, headers=headers)
+        return _source
 
 class XMLSDMX_2_1(XMLSDMX):
     pass
@@ -896,6 +910,7 @@ class XMLStructure_2_1(XMLStructure_2_0):
                                 
             #element.clear()
 
+@timeit("xml_utils.series_converter_v2", stats_only=True)
 def series_converter_v2(bson, xml):
     
     bson.pop("series_keys", None)
@@ -987,20 +1002,24 @@ class XMLDataBase:
         
     def _get_nsmap(self, tree_iterator):
         return get_nsmap(tree_iterator)
-        
+
+    @timeit("xml_utils.XMLDatabase._load_data", stats_only=True)        
     def _load_data(self, filepath):
         self.tree_iterator = etree.iterparse(filepath, events=['end', 'start-ns'])
         self.nsmap = self._get_nsmap(self.tree_iterator)
 
+    @timeit("xml_utils.XMLDatabase.fixtag", stats_only=True)
     def fixtag(self, ns, tag):
         if not ns in self.nsmap:
             msg = "Namespace not found[%s] - tag[%s] - provider[%s] - nsmap[%s]"
             raise Exception(msg %(ns, tag, self.provider_name, self.nsmap))
         return '{' + self.nsmap[ns] + '}' + tag
 
+    @timeit("xml_utils.XMLDatabase.is_series_tag", stats_only=True)
     def is_series_tag(self, element):
         return element.tag == self.fixtag(self.ns_tag_data, 'Series')
 
+    @timeit("xml_utils.XMLDatabase.process", stats_only=True)
     def process(self, filepath):
         
         self._load_data(filepath)
@@ -1063,6 +1082,7 @@ class XMLDataBase:
         
         return True
     
+    @timeit("xml_utils.XMLDatabase.get_frequency", stats_only=True)
     def get_frequency(self, series, dimensions, attributes):
         frequency = self.search_frequency(series, dimensions, attributes)
         frequency = self.fixe_frequency(frequency, series, dimensions, attributes)
@@ -1070,6 +1090,7 @@ class XMLDataBase:
         self.valid_frequency(frequency, series, dimensions)
         return frequency
 
+    @timeit("xml_utils.XMLDatabase.search_frequency", stats_only=True)
     def search_frequency(self, series, dimensions, attributes):
         if self.field_frequency in dimensions:
             return dimensions[self.field_frequency]
@@ -1091,12 +1112,14 @@ class XMLDataBase:
         _date = observations[-1]["period"]
         return get_ordinal_from_period(_date, freq=frequency)
 
+    @timeit("xml_utils.XMLDatabase.finalize_bson", stats_only=True)
     def finalize_bson(self, bson):
         return self.series_converter(bson, self)
 
     def build_series(self, series):
         raise NotImplementedError()
 
+    @timeit("xml_utils.XMLDatabase.one_series", stats_only=True)
     def one_series(self, series):
         bson = self.build_series(series)
         return self.finalize_bson(bson)
@@ -1113,7 +1136,7 @@ class XMLDataMixIn:
         </data:Series>
         
         """
-        observations = []
+        observations = deque()
         for obs in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
@@ -1136,7 +1159,7 @@ class XMLDataMixIn:
             
                 obs.clear()
 
-        return observations
+        return list(observations)
     
     def build_series(self, series):
         dimensions = self.get_dimensions(series)
@@ -1311,7 +1334,7 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
         </Series>
         
         """
-        observations = []
+        observations = deque()
         for obs in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
@@ -1338,7 +1361,7 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
             
                 obs.clear()
 
-        return observations
+        return list(observations)
     
     
     
@@ -1377,7 +1400,7 @@ class XMLGenericData_2_0(XMLDataBase):
 
     def is_series_tag(self, element):
         return etree.QName(element.tag).localname == 'Series'
-    
+
     def _get_values(self, element):
         """
         <SeriesKey>
@@ -1394,7 +1417,7 @@ class XMLGenericData_2_0(XMLDataBase):
     
     def get_observations(self, series, frequency):
         
-        observations = []
+        observations = deque()
         
         for element in series.xpath("./*[local-name()='Obs']"):
 
@@ -1425,7 +1448,7 @@ class XMLGenericData_2_0(XMLDataBase):
             observations.append(item)
             element.clear()
             
-        return observations
+        return list(observations)
 
     def get_dimensions(self, series):
         _dimensions = series.xpath("./*[local-name()='SeriesKey']")[0]
@@ -1495,7 +1518,7 @@ class XMLGenericData_2_1(XMLDataBase):
     
     def get_observations(self, series, frequency):
         
-        observations = []
+        observations = deque()
         
         for element in series.xpath("child::%s:Obs" % self.ns_tag_data, 
                                     namespaces=self.nsmap):
@@ -1521,7 +1544,7 @@ class XMLGenericData_2_1(XMLDataBase):
             observations.append(item)
             element.clear()
             
-        return observations
+        return list(observations)
 
     def get_dimensions(self, series):
         _dimensions = series.xpath("child::%s:SeriesKey" % self.ns_tag_data, 
@@ -1600,12 +1623,14 @@ class DataMixIn_INSEE:
 
     #_frequencies_rejected = ["S", "B", "I"]
     _frequencies_supported = ["A", "M", "Q", "W", "D"]
-    
+
+    """    
     def _dim_attrs(self,  dimensions, attributes):
         attributes_keys = "|".join(list(attributes.keys())) if attributes else ""
         dimensions_keys = "|".join(list(dimensions.keys())) if dimensions else ""
         return "DIMENSIONS[%s] - ATTRIBUTES[%s]" % (attributes_keys, dimensions_keys)
-
+    """
+    
     """
     USE title English by concat dimension + add title ?    
     def get_name(self, series, dimensions, attributes):
@@ -1620,6 +1645,7 @@ class DataMixIn_INSEE:
     def get_key(self, series, dimensions, attributes):
         return attributes["IDBANK"]
 
+    @timeit("xml_utils.DataMixIn_INSEE.fixe_frequency", stats_only=True)
     def fixe_frequency(self, frequency, series, dimensions, attributes):
         if frequency == "T":
             #TODO: T equal Trimestrial for INSEE
@@ -1629,9 +1655,12 @@ class DataMixIn_INSEE:
 
         return frequency
 
+    @timeit("xml_utils.DataMixIn_INSEE.get_last_update", stats_only=True)
     def get_last_update(self, series, dimensions, attributes, bson=None):
+        #TODO: normalize
         return datetime.strptime(attributes["LAST_UPDATE"], "%Y-%m-%d")
 
+    @timeit("xml_utils.DataMixIn_INSEE.finalize_bson", stats_only=True)
     def finalize_bson(self, bson):
         """Insee Fixe for reverse dates and values
         """
@@ -1665,20 +1694,20 @@ class XMLSpecificData_2_1(XMLDataBase):
 
     XMLStructureKlass = XMLStructure_2_1
 
+    @timeit("xml_utils.XMLSpecificData_2_1.is_series_tag", stats_only=True)
     def is_series_tag(self, element):
-        localname = etree.QName(element.tag).localname
-        return localname == 'Series'
-
+        return etree.QName(element.tag).localname == 'Series'
+    
+    @timeit("xml_utils.XMLSpecificData_2_1.get_observations", stats_only=True)
     def get_observations(self, series, frequency):
         
-        observations = []
+        observations = deque()
 
         for observation in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
             
             item["period"] = observation.attrib[self.field_obs_time_period]
-            #item["period_o"] = item["period"] 
             item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
             item["value"] = observation.attrib[self.field_obs_value]
             
@@ -1690,8 +1719,9 @@ class XMLSpecificData_2_1(XMLDataBase):
             
             observations.append(item)
             
-        return observations
+        return list(observations)
     
+    @timeit("xml_utils.XMLSpecificData_2_1.build_series", stats_only=True)
     def build_series(self, series):
         """
         :series ElementTree: Element from lxml        

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import hashlib
 from datetime import datetime
 import time
 import os
@@ -11,6 +12,9 @@ import traceback
 import requests
 import arrow
 from bson import ObjectId
+from slugify import slugify as original_slugify
+
+from widukind_common.debug import timeit
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +44,9 @@ def make_store_path(base_path=None, provider_name=None, dataset_code=None):
             os.makedirs(store_filepath)
     
     return store_filepath
+
+def get_url_hash(url):
+    return hashlib.sha224(url.encode("utf-8")).hexdigest()    
 
 class Downloader:
     
@@ -248,7 +255,10 @@ def get_day(date_str):
     else:
         return date_str[-2:]
 
+@timeit("utils.get_datetime_from_period", stats_only=True)
 def get_datetime_from_period(date_str, freq=None):
+    
+    #TODO: cache
     
     year = None
     month = None
@@ -304,6 +314,7 @@ def get_datetime_from_period(date_str, freq=None):
         >>> pd.Period("2016-01-27", freq="W-MON").ordinal
         2405                        
         """
+        raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
     elif freq == "S":
         """
         ECB:
@@ -321,6 +332,7 @@ def get_datetime_from_period(date_str, freq=None):
         """
         Bimestre: période de 2 mois
         """
+        raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
     else:
         raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
         
@@ -328,6 +340,7 @@ def get_datetime_from_period(date_str, freq=None):
     dt = datetime(year, month or 1, day or 1)
     return clean_datetime(dt, rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True)
 
+@timeit("utils.get_ordinal_from_period", stats_only=True)
 def get_ordinal_from_period(date_str, freq=None):
     """
     Frequency stats - 2016-03-30
@@ -345,25 +358,66 @@ def get_ordinal_from_period(date_str, freq=None):
     from dlstats import constants
     from pandas import Period
         
-    if not cache or not freq in constants.CACHE_FREQUENCY:
-        return Period(date_str, freq=freq).ordinal
-    
-    key = "%s.%s" % (date_str, freq)
-    period_from_cache = cache.get(key)
-    if not period_from_cache is None:
-        return period_from_cache
+    key = "ordinal.%s.%s" % (date_str, freq)
+
+    if cache and freq in constants.CACHE_FREQUENCY:
+        period_from_cache = cache.get(key)
+        if not period_from_cache is None:
+            return period_from_cache
     
     period_ordinal = None
     if freq == "A":
         year = int(get_year(date_str))
         period_ordinal = year - 1970
-        return period_ordinal
+    """
+    elif freq == "M":
+        year = int(get_year(date_str))
+        month = int(get_month(date_str))
+        period_ordinal = ((year - 1970) * 12) * month
+    """
+    """
+     ("1970", "A", 0),
+     ("1969", "A", -1),
+     ("1971", "A", 1),
+
+     ("1970-01", "M", 0),
+     ("197001", "M", 0),
+     ("1970-02", "M", 1),
+     ("1969-12", "M", -1),
+     ("1969-01", "M", -12),
+     ("1971-01", "M", 12),
+     ("1970-07", "M", 6),
+     ("1971-07", "M", 18),
+     ("1969-07", "M", -6),
+     
+    """
 
     if not period_ordinal:
         period_ordinal = Period(date_str, freq=freq).ordinal
-    cache.set(key, period_ordinal)
+    
+    if cache and freq in constants.CACHE_FREQUENCY:
+        cache.set(key, period_ordinal)
     
     return period_ordinal
+
+@timeit("commons.slugify", stats_only=True)
+def slugify(text, **kwargs):
+    
+    from dlstats.cache import cache
+
+    key = "slugify.%s" % text
+
+    if cache:
+        slug_from_cache = cache.get(key)
+        if slug_from_cache:
+            return slug_from_cache
+    
+    slug = original_slugify(text, **kwargs)
+
+    if cache:
+        cache.set(key, slug)
+        
+    return slug
 
 def clean_key(key):
     if not key:
@@ -391,3 +445,4 @@ def json_dump_convert(obj):
         return arrow.get(obj).for_json()
     
     return obj
+

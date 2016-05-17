@@ -4,22 +4,22 @@ import time
 import os
 import tempfile
 from operator import itemgetter
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import pprint
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from itertools import groupby
 import hashlib
 import json
 
 import pymongo
 from pymongo import ReturnDocument
-from pymongo import InsertOne, UpdateOne
-from slugify import slugify
 import pandas
 
-from widukind_common.utils import get_mongo_db
+from widukind_common.utils import get_mongo_db, load_klass
 from widukind_common import errors
+from widukind_common.tags import generate_tags_series
+from widukind_common.debug import timeit, TRACE_ENABLE
 
 from dlstats import constants
 from dlstats.fetchers import schemas
@@ -27,8 +27,10 @@ from dlstats.utils import (last_error,
                            clean_datetime, 
                            remove_file_and_dir, 
                            make_store_path,
-                           get_year,
-                           json_dump_convert)
+                           get_url_hash,
+                           json_dump_convert,
+                           get_datetime_from_period,
+                           slugify)
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +47,12 @@ class Fetcher(object):
                  max_errors=5,
                  use_existing_file=False,
                  not_remove_files=False,
-                 async_mode=False,
-                 async_framework="gevent",
+                 dataset_only=False,
+                 refresh_meta=False,
+                 refresh_dsd=False,
+                 async_mode=None,
+                 bulk_size=500,
+                 pool_size=20,
                  **kwargs):
         """
         :param str provider_name: Provider Name
@@ -64,11 +70,16 @@ class Fetcher(object):
         self.max_errors = max_errors
         self.use_existing_file = use_existing_file
         self.not_remove_files = not_remove_files
+        self.dataset_only = dataset_only
+        self.refresh_meta = refresh_meta
+        self.refresh_dsd = refresh_dsd
+        
         self.async_mode = async_mode
-        self.async_framework = async_framework
+        self.bulk_size = bulk_size
+        self.pool_size = pool_size
         
         if self.async_mode:
-            logger.info("ASYNC MODE ENABLE")
+            logger.info("ASYNC MODE [%s]" % self.async_mode)
         else:
             logger.info("ASYNC MODE DISABLE")
         
@@ -84,6 +95,8 @@ class Fetcher(object):
         self.store_path = os.path.abspath(os.path.join(tempfile.gettempdir(), 
                                                        self.provider_name))
         self.for_delete = []
+        
+        self.provider_verified = False
         
         if IS_SCHEMAS_VALIDATION_DISABLE:
             logger.warning("schemas validation is disable")
@@ -156,6 +169,9 @@ class Fetcher(object):
 
     def provider_verify(self):
         
+        if self.provider_verified:
+            return
+        
         if self.provider.from_db:
             return
         
@@ -165,10 +181,14 @@ class Fetcher(object):
         if not provider:
             self.provider.update_database()
         
-        self.provider = self.load_provider_from_db()
-    
-        if self.provider.version != self.version:
+        provider = self.load_provider_from_db()
+        if provider:
+            self.provider = provider
+        
+        if not provider or self.provider.version != self.version:
             self.provider.update_database()
+
+        self.provider_verified = True
             
     def load_provider_from_db(self):
         """Load and set provider fields from DB
@@ -192,12 +212,12 @@ class Fetcher(object):
             
             if self.db[constants.COL_DATASETS].count(query) == 0:
                 msg_op = "load"
-                msg = "fetcher load START: provider[%s]"
-                logger.info(msg % self.provider_name)
+                msg = "fetcher load START: provider[%s] - bulk-size[%s]"
+                logger.info(msg % self.provider_name, self.bulk_size)
                 return self.load_datasets_first()
             else:
-                msg = "fetcher update START: provider[%s]"
-                logger.info(msg % self.provider_name)
+                msg = "fetcher update START: provider[%s] - bulk-size[%s]"
+                logger.info(msg % self.provider_name, self.bulk_size)
                 return self.load_datasets_update()
 
         except Exception:
@@ -212,8 +232,8 @@ class Fetcher(object):
     def wrap_upsert_dataset(self, dataset_code):
 
         start = time.time()
-        msg = " dataset upsert START: provider[%s] - dataset[%s]"
-        logger.info(msg % (self.provider_name, dataset_code))
+        msg = " dataset upsert START: provider[%s] - dataset[%s] - bulk-size[%s] - dataset-only[%s]"
+        logger.info(msg % (self.provider_name, dataset_code, self.bulk_size, self.dataset_only))
 
         self.provider_verify()
 
@@ -277,6 +297,25 @@ class Fetcher(object):
         #TODO: log and/or warning
         return self.load_datasets_first()
 
+    def _add_to_metadata(self, key, bson):
+        if not self.provider.metadata:
+            self.provider.metadata = {}
+        self.provider.metadata[key] = bson
+        self.provider.update_database()
+            
+    def _structure_put(self, key, url, **values):
+        #TODO: compress ?
+        bson = {
+            "url": url, #{"original": url, "hashed": get_url_hash(url)},
+            "values": values
+        }
+        self._add_to_metadata(key, bson)
+
+    def _structure_get(self, key):
+        #TODO: uncompress ?
+        if self.provider.metadata and key in self.provider.metadata:
+            return self.provider.metadata[key]["values"]
+
     def build_data_tree(self):
         raise NotImplementedError()
     
@@ -310,7 +349,8 @@ class DlstatsCollection(object):
             raise TypeError("Bad type for fetcher")
         
         self.fetcher = fetcher
-        
+
+    @timeit("commons.DlstatsCollection.update_mongo_collection")        
     def update_mongo_collection(self, collection, keys, bson):
         """Update one document
 
@@ -349,7 +389,7 @@ class Providers(DlstatsCollection):
                  metadata=None,
                  enable=True,
                  lock=False,
-                 from_db=None,
+                 from_db=False,
                  slug=None,
                  fetcher=None):
         """        
@@ -365,7 +405,7 @@ class Providers(DlstatsCollection):
         self.version = version
         self.region = region
         self.website = website
-        self.metadata = metadata
+        self.metadata = metadata or {}
         self.enable = enable
         self.lock = lock
         self.from_db = from_db
@@ -395,7 +435,7 @@ class Providers(DlstatsCollection):
     def update_database(self):
         schemas.provider_schema(self.bson)
         return self.update_mongo_collection(constants.COL_PROVIDERS, 
-                                            ['name'], 
+                                            ['slug'], 
                                             self.bson)
 
 class Categories(DlstatsCollection):
@@ -524,13 +564,16 @@ class Categories(DlstatsCollection):
     def update_database(self):
         schemas.category_schema(self.bson)
         return self.update_mongo_collection(constants.COL_CATEGORIES, 
-                                            ['provider_name', 'category_code'],
+                                            #['provider_name', 'category_code'],
+                                            ['slug'],
                                             self.bson)
 class Datasets(DlstatsCollection):
     """Abstract base class for datasets
     
     Inherit from :class:`DlstatsCollection`
     """
+    
+    series_klass = "dlstats.fetchers._commons.Series"
     
     def __init__(self, 
                  provider_name=None,
@@ -585,12 +628,22 @@ class Datasets(DlstatsCollection):
             
         self.notes = None
         
-        self.series = Series(dataset=self,
-                             provider_name=self.provider_name, 
-                             dataset_code=self.dataset_code, 
-                             last_update=self.last_update, 
-                             bulk_size=self.bulk_size, 
-                             fetcher=self.fetcher)
+        self.series = None
+        
+        self.set_series_class()
+    
+    def set_series_class(self):
+        if self.fetcher.async_mode:
+            if self.fetcher.async_mode == "future":
+                self.series_klass = "dlstats.async._concurrent_futures.AsyncSeries"
+        
+        series_klass = load_klass(self.series_klass)
+        self.series = series_klass(dataset=self,
+                                   provider_name=self.provider_name, 
+                                   dataset_code=self.dataset_code, 
+                                   last_update=self.last_update, 
+                                   bulk_size=self.bulk_size, 
+                                   fetcher=self.fetcher)
 
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
@@ -687,17 +740,17 @@ class Datasets(DlstatsCollection):
             return True
 
         return False
-        
+    
+    @timeit("commons.Datasets.update_database")
     def update_database(self, save_only=False):
 
         self.fetcher.hook_before_dataset(self)
         
+        start = time.time()
+        
         try:
-            if not save_only:
-                if self.fetcher.async_mode and self.fetcher.async_framework == "gevent":
-                    self.series.process_series_data_async()
-                else:
-                    self.series.process_series_data()
+            if not save_only and not self.fetcher.dataset_only:
+                self.series.process_series_data()
         except Exception:
             self.fetcher.errors += 1
             logger.critical(last_error())
@@ -711,10 +764,8 @@ class Datasets(DlstatsCollection):
     
             if not self.download_first:
                 self.download_first = now
-    
+
             self.download_last = now
-    
-            schemas.dataset_schema(self.bson)
             
             if not self.is_recordable():
                 self.enable = False
@@ -724,21 +775,70 @@ class Datasets(DlstatsCollection):
             else:
                 self.enable = True
 
-            if logger.isEnabledFor(logging.INFO):    
-                msg_stats = "STATS dataset-update: provider[%s] - dataset[%s] - accepts[%s] - rejects[%s] - inserts[%s] - updates[%s]"
+            if self.fetcher.dataset_only:
+                self.download_last = self.download_last - timedelta(seconds=1)
+                self.last_update = self.last_update - timedelta(seconds=1)
+
+            end = time.time()
+            avg_all = 0
+            avg_write = 0
+            duration = end - start 
+            try:
+                avg_all = (self.series.count_accepts + self.series.count_rejects) / duration
+                avg_write = (self.series.count_inserts + self.series.count_updates) / duration 
+            except:
+                pass
+            
+            _stats = {
+                 "created": clean_datetime(),
+                 "tags": ["fetcher", "Datasets.update_database", "commons"],
+                 "provider_name": self.provider_name,
+                 "dataset_code": self.dataset_code,
+                 "fetcher_errors": self.fetcher.errors,
+                 "fetcher_version": self.fetcher.version,
+                 "count_accepts": self.series.count_accepts,
+                 "count_rejects": self.series.count_rejects,
+                 "count_inserts": self.series.count_inserts,
+                 "count_updates": self.series.count_updates,
+                 "count_errors": self.series.count_errors,
+                 "avg_all": round(avg_all, 2),
+                 "avg_write": round(avg_write, 2),
+                 "duration": round(duration, 2),
+                 "bulk_size": self.fetcher.bulk_size,
+                 "pool_size": self.fetcher.pool_size,            
+                 "dataset_only": self.fetcher.dataset_only,
+                 "is_trace": TRACE_ENABLE,
+                 "logger_level": logger.getEffectiveLevel(),
+                 "async_mode": self.fetcher.async_mode,
+                 "schema_validation_disable": IS_SCHEMAS_VALIDATION_DISABLE
+            }
+            
+            try:
+                self.fetcher.db[constants.COL_STATS_RUN].insert_one(_stats)
+            except Exception as err:
+                logger.error("record stats : %s" % str(err))
+            
+            if logger.isEnabledFor(logging.INFO):
+                msg_stats = "STATS dataset-update: provider[%s] - dataset[%s] - accepts[%s] - rejects[%s] - inserts[%s] - updates[%s] - avg-all[%.3f] - avg-write[%.3f] - time[%.3f] - bulk-size[%s] - dataset-only[%s]"
                 logger.info(msg_stats % (self.provider_name,
                                          self.dataset_code,
                                          self.series.count_accepts,
                                          self.series.count_rejects,
                                          self.series.count_inserts,
-                                         self.series.count_updates))
+                                         self.series.count_updates,
+                                         avg_all,
+                                         avg_write,
+                                         duration,
+                                         self.fetcher.bulk_size,
+                                         self.fetcher.dataset_only))
             
-            if save_only:
-                self.series.reset_counters()
+            #if save_only:
+            #    self.series.reset_counters()
                         
+            schemas.dataset_schema(self.bson)
+            
             result = self.update_mongo_collection(constants.COL_DATASETS,
-                                                  ['provider_name', 
-                                                   'dataset_code'],
+                                                  ['slug'],
                                                   self.bson)
     
             self.fetcher.hook_after_dataset(self)
@@ -783,54 +883,80 @@ class SeriesIterator:
         except Exception as err:
             return err
 
+    def _add_url_cache(self, url, status_code=0):
+        key = get_url_hash(url)
+        if not "cache_url" in self.dataset.metadata:
+            self.dataset.metadata["cache_url"] = {}
+        if not key in self.dataset.metadata["cache_url"]:
+            self.dataset.metadata["cache_url"][key] = {"url": url, "status_code": status_code}
+        
+    def _is_good_url(self, url, good_codes=[200]):
+        """
+        FIXME: prendre en compte autre que 200
+        """
+        key = get_url_hash(url)
+        if "cache_url" in self.dataset.metadata:
+            if key in self.dataset.metadata["cache_url"]:
+                return self.dataset.metadata["cache_url"][key]["status_code"] in good_codes
+        return True
+    
     def clean_field(self, bson):
-
-        if not "start_ts" in bson or not bson.get("start_ts"):
-            if bson["frequency"] == "A":
-                year = int(get_year(bson["values"][0]["period"]))
-                bson["start_ts"] = clean_datetime(datetime(year, 1, 1), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
-            else:
-                bson["start_ts"] = clean_datetime(pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime())
-
-        if not "end_ts" in bson or not bson.get("end_ts"):
-            if bson["frequency"] == "A":
-                year = int(get_year(bson["values"][-1]["period"]))
-                bson["end_ts"] = clean_datetime(datetime(year, 12, 31), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
-            else:
-                bson["end_ts"] = clean_datetime(pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime())
-        
-        dimensions = bson.pop("dimensions")
-        attributes = bson.pop("attributes", {})
-        new_dimensions = {}
-        new_attributes = {}
-        
-        for key, value in dimensions.items():
-            new_dimensions[slugify(key, save_order=True)] = slugify(value, save_order=True)
-
-        if attributes:
-            for key, value in attributes.items():
-                new_attributes[slugify(key, save_order=True)] = slugify(value, save_order=True)
-            
-        bson["dimensions"] = new_dimensions
-
-        if attributes:
-            bson["attributes"] = new_attributes
-        else:
-            bson["attributes"] = None
-            
-        for value in bson["values"]:
-            if not value.get("attributes"):
-                continue
-            attributes_obs = {}
-            for k, v in value.get("attributes").items():
-                attributes_obs[slugify(k, save_order=True)] = slugify(v, save_order=True)
-            value["attributes"] = attributes_obs
-        
-        return bson
+        return series_clean_field(bson)
 
     def build_series(self, bson):
         raise NotImplementedError()
 
+@timeit("commons.series_clean_field", stats_only=True)
+def series_clean_field(bson):
+    
+    if not "start_ts" in bson or not bson.get("start_ts"):
+        if bson["frequency"] in ["A", "M", "D", "Q", "S"]:
+            bson["start_ts"] = get_datetime_from_period(bson["values"][0]["period"], freq=bson["frequency"])
+        else:
+            bson["start_ts"] = clean_datetime(pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime())
+
+    if not "end_ts" in bson or not bson.get("end_ts"):
+        if bson["frequency"] in ["A", "M", "D", "Q", "S"]:
+            bson["end_ts"] = get_datetime_from_period(bson["values"][-1]["period"], freq=bson["frequency"])
+        else:
+            bson["end_ts"] = clean_datetime(pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime())
+    
+    dimensions = bson.pop("dimensions")
+    attributes = bson.pop("attributes", {})
+    new_dimensions = {}
+    new_attributes = {}
+    
+    for key, value in dimensions.items():
+        new_dimensions[slugify(key, save_order=True)] = slugify(value, save_order=True)
+
+    if attributes:
+        for key, value in attributes.items():
+            new_attributes[slugify(key, save_order=True)] = slugify(value, save_order=True)
+        
+    bson["dimensions"] = new_dimensions
+
+    if attributes:
+        bson["attributes"] = new_attributes
+    else:
+        bson["attributes"] = None
+        
+    for value in bson["values"]:
+        
+        #TODO: datetime
+        #if not "datetime" in bson or bson.get("datetime") is None:
+        #    value["datetime"] = get_datetime_from_period(bson["period"], freq=bson["frequency"])
+        
+        if not value.get("attributes"):
+            continue
+        attributes_obs = {}
+        for k, v in value.get("attributes").items():
+            attributes_obs[slugify(k, save_order=True)] = slugify(v, save_order=True)
+        value["attributes"] = attributes_obs
+    
+    return bson
+
+
+@timeit("commons.series_set_release_date", stats_only=True)
 def series_set_release_date(bson, last_update):
     
     if not bson or not isinstance(bson, dict):
@@ -846,6 +972,7 @@ def series_set_release_date(bson, last_update):
         if not obs.get("release_date"):
             obs["release_date"] = last_update
 
+@timeit("commons.series_revisions", stats_only=True)
 def series_revisions(new_bson, old_bson, last_update):
     
     if not new_bson or not isinstance(new_bson, dict):
@@ -871,6 +998,7 @@ def series_revisions(new_bson, old_bson, last_update):
         old_values_by_periods[old_value["period"]] = old_value
     
     keyfunc = lambda x: x["ordinal"]
+    #TODO: keyfunc = lambda x: x["datetime"]
     groups = []
     uniquekeys = []
     data = sorted(old_bson["values"] + new_bson["values"], key=keyfunc)
@@ -926,6 +1054,7 @@ def series_revisions(new_bson, old_bson, last_update):
 
     return changed
 
+@timeit("commons.series_is_changed", stats_only=True)
 def series_is_changed(new_bson, old_bson):
 
     if not new_bson or not isinstance(new_bson, dict):
@@ -982,6 +1111,7 @@ def series_is_changed(new_bson, old_bson):
 
     return False
 
+@timeit("commons.series_update", stats_only=True)
 def series_update(new_bson, old_bson=None, last_update=None):
 
     if not new_bson or not isinstance(new_bson, dict):
@@ -1047,6 +1177,40 @@ def series_update(new_bson, old_bson=None, last_update=None):
         
     return new_bson
 
+@timeit("commons.update_series_list_unit", stats_only=True)
+def update_series_list_unit(data, old_series=None, last_update=None, 
+                            provider_name=None, dataset_code=None):
+    key = data['key']
+
+    if not data.get("slug", None):
+        txt = "-".join([provider_name, dataset_code, key])
+        data['slug'] = slugify(txt, word_boundary=False, save_order=True)
+
+    if not key in old_series:
+        bson = series_update(data, last_update=last_update)
+        return bson, None
+    else:
+        old_bson = old_series[key]
+        
+        bson = series_update(data, old_bson=old_bson, 
+                             last_update=last_update)
+
+        if bson:
+            query_update = {
+                "start_date": bson["start_date"],     
+                "end_date": bson["end_date"],     
+                "values": bson["values"],     
+                "attributes": bson["attributes"],     
+                "dimensions": bson["dimensions"],     
+                "notes": bson.get("notes"),     
+            }
+            return None, [{'_id': old_bson['_id']},
+                          {'$set': query_update}]
+        else:
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug("series[%s] not changed" % old_bson["slug"])                    
+            
+
 class Series:
     """Time Series class
     """
@@ -1069,7 +1233,6 @@ class Series:
         self.provider_name = provider_name
         self.dataset_code = dataset_code
         self.last_update = last_update
-        self.bulk_size = bulk_size
         
         if not fetcher:
             raise ValueError("fetcher is required")
@@ -1086,26 +1249,31 @@ class Series:
         self.fetcher = fetcher        
         self.dataset = dataset
 
+        self.bulk_size = self.fetcher.bulk_size
+
         # temporary storage necessary to get old_bson in bulks
-        self.series_list = []
+        self.series_list = deque()
         self.fatal_error = False
         
         self.count_accepts = 0
         self.count_rejects = 0
         self.count_inserts = 0
         self.count_updates = 0
-
+        self.count_errors = 0
+        
     def reset_counters(self):
         self.count_accepts = 0
         self.count_rejects = 0
         self.count_inserts = 0
         self.count_updates = 0
+        self.count_errors = 0
             
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code),
                                ('last_update', self.last_update)])
 
+    @timeit("commons.Series.process_series_data")
     def process_series_data(self):
         
         try:
@@ -1158,64 +1326,18 @@ class Series:
             if not self.fatal_error and len(self.series_list) > 0:
                 self.update_series_list()
             self.update_dataset_lists_finalize()
+            """
+            consolidate.consolidate_dataset(db=self.fetcher.db, {"provider_name": self.provider_name,
+                                                    "dataset_code": self.dataset_code})
+            tags.update_tags_datasets(self.fetcher.db,
+                                      provider_name=self.provider_name,
+                                      dataset_code=self.dataset_code, 
+                                      max_bulk=self.bulk_size,
+                                      #update_only=update_only,
+                                      )
+            """
 
-    def process_series_data_async(self):
-        
-        from gevent.pool import Pool
-        pool = Pool(100)
-        
-        try:
-            while True:
-                
-                self.fatal_error = False
-                try:
-                    data = next(self.data_iterator)
-    
-                    if isinstance(data, dict):
-                        self.count_accepts += 1
-                        pool.spawn(self.update_series_list_async, data)
-    
-                    elif isinstance(data, errors.RejectFrequency):
-                        self.count_rejects += 1
-                        msg = "Reject frequency for provider[%s] - dataset[%s] - frequency[%s]"
-                        logger.warning(msg % (self.provider_name, 
-                                              self.dataset_code, 
-                                              data.frequency))
-                        continue
-                    
-                    elif isinstance(data, errors.RejectUpdatedSeries):
-                        self.count_rejects += 1
-                        if logger.isEnabledFor(logging.DEBUG):
-                            msg = "Reject series updated for provider[%s] - dataset[%s] - key[%s]"
-                            logger.debug(msg % (self.provider_name, 
-                                                self.dataset_code, 
-                                                data.key))
-                        continue
-    
-                    elif isinstance(data, errors.RejectEmptySeries):
-                        self.count_rejects += 1
-                        msg = "Reject empty series for provider[%s] - dataset[%s]"
-                        logger.warning(msg % (self.provider_name, 
-                                              self.dataset_code))
-                        continue
-                        
-                    elif isinstance(data, Exception):
-                        self.fatal_error = True
-                        raise errors.InterruptProcessSeriesData(str(data))
-
-                except StopIteration:
-                    break
-                except Exception:
-                    raise
-            
-        finally:
-            pool.join()
-            self.update_dataset_lists_finalize()
-
-    def slug(self, key):
-        txt = "-".join([self.provider_name, self.dataset_code, key])
-        return slugify(txt, word_boundary=False, save_order=True)
-
+    @timeit("commons.Series.update_dataset_lists_finalize")
     def update_dataset_lists_finalize(self):
         
         concepts = {}
@@ -1246,7 +1368,22 @@ class Series:
 
         if self.dataset.attribute_keys:
             self.dataset.attribute_keys = attribute_keys
-        
+    
+    def get_db(self):
+        return self.fetcher.db
+        #TODO: settings for new connection
+        #return get_mongo_db()
+    """
+    def _update_series_list_unit(self, data, old_series=None, last_update=None, 
+                                provider_name=None, dataset_code=None):
+        return update_series_list_unit(data, 
+                                       old_series=old_series, 
+                                       last_update=last_update, 
+                                       provider_name=provider_name, 
+                                       dataset_code=dataset_code)
+    """
+
+    @timeit("commons.Series.update_series_list", stats_only=True)
     def update_series_list(self):
 
         keys = [s['key'] for s in self.series_list]
@@ -1258,21 +1395,31 @@ class Series:
         }
         projection = {"tags": False}
 
-        cursor = self.fetcher.db[constants.COL_SERIES].find(query, projection)
+        db = self.get_db()
+        cursor = db[constants.COL_SERIES].find(query, projection)
 
         old_series = {s['key']:s for s in cursor}
 
-        bulk_requests = []
+        bulk_requests = db[constants.COL_SERIES].initialize_unordered_bulk_op()
+        is_operation = False
         for data in self.series_list:
 
             key = data['key']
 
             if not data.get("slug", None):
-                data['slug'] = self.slug(key)
+                txt = "-".join([self.provider_name, self.dataset_code, key])
+                data['slug'] = slugify(txt, word_boundary=False, save_order=True)
 
             if not key in old_series:
                 bson = series_update(data, last_update=self.last_update)
-                bulk_requests.append(InsertOne(bson))
+                """
+                bson["tags"] = generate_tags_series(self.fetcher.db, 
+                                                    bson, 
+                                                    self.fetcher.provider.bson, 
+                                                    self.dataset.bson)
+                """
+                bulk_requests.insert(bson)
+                is_operation = True
                 self.count_inserts += 1
             else:
                 old_bson = old_series[key]
@@ -1289,8 +1436,8 @@ class Series:
                         "dimensions": bson["dimensions"],     
                         "notes": bson.get("notes"),     
                     }
-                    bulk_requests.append(UpdateOne({'_id': old_bson['_id']}, 
-                                              {'$set': query_update}))
+                    bulk_requests.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
+                    is_operation = True
                     self.count_updates += 1
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
@@ -1298,61 +1445,19 @@ class Series:
                     
 
         result = None        
-        if len(bulk_requests) > 0:
+        if is_operation is True:
             try:
-                result = self.fetcher.db[constants.COL_SERIES].bulk_write(bulk_requests, ordered=False)
-                bulk_requests = []
+                @timeit("commons.Series.update_series_list.execute")
+                def _execute():
+                    bulk_requests.execute()
+                _execute()
             except pymongo.errors.BulkWriteError as err:
-                #logger.critical(last_error())
                 logger.critical(str(err.details))
                 raise
                  
-        self.series_list = []
+        self.series_list = deque()
         return result
 
-    def update_series_list_async(self, data):
-
-        result = None
-        query = {
-            'provider_name': self.provider_name,
-            'dataset_code': self.dataset_code,
-            'key': data["key"]
-        }
-        projection = {"tags": False}
-
-        old_series = self.fetcher.db[constants.COL_SERIES].find_one(query, projection)
-
-        key = data['key']
-
-        if not data.get("slug", None):
-            data['slug'] = self.slug(key)
-
-        if not old_series:
-            bson = series_update(data, last_update=self.last_update)
-            result = self.fetcher.db[constants.COL_SERIES].insert(bson)
-            #self.count_inserts += 1
-        else:
-            old_bson = old_series
-            
-            bson = series_update(data, old_bson=old_bson, 
-                                 last_update=self.last_update)
-
-            if bson:
-                query_update = {
-                    "start_date": bson["start_date"],     
-                    "end_date": bson["end_date"],     
-                    "values": bson["values"],     
-                    "attributes": bson["attributes"],     
-                    "dimensions": bson["dimensions"],     
-                    "notes": bson.get("notes"),     
-                }
-                result = self.fetcher.db[constants.COL_SERIES].update_one({'_id': old_bson['_id']}, {'$set': query_update})
-                #self.count_updates += 1
-            else:
-                if logger.isEnabledFor(logging.DEBUG):
-                    logger.debug("series[%s] not changed" % old_bson["slug"])                    
-        
-        return result
 
 class CodeDict():
     """Class for handling code lists
