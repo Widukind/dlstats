@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import os
 from datetime import datetime
 import logging
 import re
 
 import lxml.html
-import pytz
-import requests
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import utils
@@ -15,6 +14,7 @@ from dlstats.xml_utils import (XMLStructure_2_1 as XMLStructure,
                                XMLSpecificData_2_1_ECB as XMLData,
                                dataset_converter,
                                select_dimension,
+                               get_key_for_dimension,
                                get_dimensions_from_dsd)
 
 HTTP_ERROR_NOT_MODIFIED = 304
@@ -85,7 +85,7 @@ class ECB(Fetcher):
         self._categorisations = None
         self._concepts = None
         
-        self.requests_client = requests.Session()
+        #self.requests_client = requests.Session()
 
     def _load_structure(self, force=False):
         """Load structure and build data_tree
@@ -264,7 +264,8 @@ class ECB_Data(SeriesIterator):
         """
         super().__init__(dataset)
         self.store_path = self.get_store_path()
-
+        self.last_modified = None        
+                
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
         self.agency_id = self.fetcher._dataflows[self.dataset_code]["attrs"].get("agencyID")
@@ -274,8 +275,8 @@ class ECB_Data(SeriesIterator):
         
         self._load()
         
-        self.rows = self._get_data_by_dimension()        
-                
+        self.rows = self._get_data_by_dimension()
+        
     def _load(self):
 
         url = "http://sdw-wsrest.ecb.int/service/datastructure/%s/%s?references=all" % (self.agency_id, self.dsd_id)
@@ -307,16 +308,15 @@ class ECB_Data(SeriesIterator):
         count_dimensions = len(dimension_keys)
         
         for dimension_value in dimension_values:
-            sdmx_key = []
-            for i in range(count_dimensions):
-                if i == position:
-                    sdmx_key.append(dimension_value)
-                else:
-                    sdmx_key.append(".")
-            key = "".join(sdmx_key)
+            
+            key = get_key_for_dimension(count_dimensions, position, dimension_value)
 
             #http://sdw-wsrest.ecb.int/service/data/IEAQ/A............
             url = "http://sdw-wsrest.ecb.int/service/data/%s/%s" % (self.dataset_code, key)
+            if not self._is_good_url(url, good_codes=[200, HTTP_ERROR_NOT_MODIFIED]):
+                print("bypass url[%s]" % url)
+                continue
+            
             headers = SDMX_DATA_HEADERS
             
             last_modified = None
@@ -334,30 +334,31 @@ class ECB_Data(SeriesIterator):
                                   )
             filepath, response = download.get_filepath_and_response()
 
-            if filepath:
+            if filepath and os.path.exists(filepath):
                 self.fetcher.for_delete.append(filepath)
+            elif not filepath or not os.path.exists(filepath):
+                continue
 
-            if response.status_code == HTTP_ERROR_NOT_MODIFIED:
+            if response:
+                self._add_url_cache(url, response.status_code)
+
+            if response and response.status_code == HTTP_ERROR_NOT_MODIFIED:
                 msg = "Reject dataset updated for provider[%s] - dataset[%s] - update-date[%s]"
                 logger.warning(msg % (self.provider_name, self.dataset_code, last_modified))
                 continue
             
-            elif response.status_code == HTTP_ERROR_NO_RESULT:
+            elif response and response.status_code == HTTP_ERROR_NO_RESULT:
                 continue
             
-            elif response.status_code >= 400:
+            elif response and response.status_code >= 400:
                 raise response.raise_for_status()
     
-            if "Last-Modified" in response.headers:
-                if not self.dataset.metadata:
-                    self.dataset.metadata = {}
-                self.dataset.metadata["Last-Modified"] = response.headers["Last-Modified"]
+            if response and not self.last_modified and "Last-Modified" in response.headers:
+                self.last_modified = response.headers["Last-Modified"]
             
             for row, err in self.xml_data.process(filepath):
                 yield row, err
 
-            #self.dataset.update_database(save_only=True)
-        
         yield None, None
                         
     def _set_dataset(self):
@@ -366,6 +367,10 @@ class ECB_Data(SeriesIterator):
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
+        if self.last_modified:
+            if not self.dataset.metadata:
+                self.dataset.metadata = {}
+            self.dataset.metadata["Last-Modified"] = self.last_modified
         
     def clean_field(self, bson):
         bson["attributes"].pop("TITLE", None)
