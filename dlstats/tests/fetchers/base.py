@@ -34,7 +34,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
     def setUp(self):
         super().setUp()
         self.fetcher = self.FETCHER_KLASS(db=self.db, use_existing_file=False,
-                                          not_remove_files=False)
+                                          not_remove_files=True)
         self.is_debug = self.DEBUG_MODE
         if self.is_debug:
             logger = logging.getLogger("dlstats")
@@ -251,7 +251,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
 
         settings = self.DATASETS[dataset_code]
 
-        series_list = list(self.db[constants.COL_SERIES].find(query).hint([("$natural", 1)]))
+        series_list = list(self.db[constants.COL_SERIES].find(query))#.hint([("$natural", 1)]))
         self.assertEqual(settings["series_accept"], len(series_list))
 
         series_sample = settings["series_sample"]
