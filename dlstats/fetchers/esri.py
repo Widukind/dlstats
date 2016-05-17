@@ -131,8 +131,8 @@ def parse_dates(column):
             last_row = last_row + 1
 
     if freq == 'A':
-        start_date = get_ordinal_from_period(start_year, freq='A')
-        end_date = get_ordinal_from_period(end_year, freq='A')
+        start_date = get_ordinal_from_period(str(start_year), freq='A')
+        end_date = get_ordinal_from_period(str(end_year), freq='A')
     elif freq == 'Q':
         start_date = get_ordinal_from_period('%sQ%s' % (start_year, start_quarter), freq='Q')
         end_date = get_ordinal_from_period('%sQ%s' % (end_year, end_quarter), freq='Q')
