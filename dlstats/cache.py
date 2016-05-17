@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+from collections import OrderedDict
+
+from widukind_common.debug import timeit
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +15,8 @@ class Cache(object):
     
     def __init__(self, 
                  cache_url='simple', 
-                 cache_timeout=600, #600 seconds : 10mn
-                 cache_threshold=5000,
+                 cache_timeout=7200, #2H
+                 cache_threshold=20000,
                  cache_prefix=None):
         
         self.cache_timeout = cache_timeout
@@ -44,6 +47,8 @@ class Cache(object):
         
         self.cache = SimpleCache(threshold=self.cache_threshold, 
                                  default_timeout=self.cache_timeout)
+        self.cache._cache = OrderedDict()
+        self.cache.clear = self.cache._cache.clear
         
     def _configure_cache_redis(self, url):
         from werkzeug.contrib.cache import RedisCache
@@ -57,12 +62,14 @@ class Cache(object):
                                 default_timeout=self.cache_timeout, 
                                 key_prefix=self.cache_prefix)
     
+    @timeit("cache.get", stats_only=True)
     def get(self, key, **kwargs):
         "Proxy function for internal cache object."
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug("get from cache key[%s]" % key)
         return self.cache.get(key, **kwargs)
 
+    @timeit("cache.set", stats_only=True)
     def set(self, key, value, timeout=None):
         "Proxy function for internal cache object."
         if not key:
