@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import atexit
 import tempfile
 import pprint
 import os
 import sys
+import contextlib
 
 import gridfs
 
 import click
 
 from widukind_common.utils import get_mongo_url, get_mongo_client, configure_logging
+from widukind_common.mongolock import MongoLock, MongoLockLocked
+from widukind_common import errors
 
 from dlstats import version
 from dlstats.constants import CACHE_URL
@@ -76,9 +80,13 @@ opt_requests_cache_expire = click.option('--requests-cache-expire',
 cmd_folder = os.path.abspath(
                     os.path.join(os.path.dirname(__file__), 'commands'))
 
+opt_trace = click.option('--trace', is_flag=True,
+              help='Enable trace')
+
 class Context(object):
     def __init__(self, mongo_url=None, verbose=False,
                  log_level='ERROR', log_config=None, log_file=None,
+                 trace=False,
                  cache_enable=False,  
                  requests_cache_enable=None, requests_cache_path=None, 
                  requests_cache_expire=None,               
@@ -90,6 +98,7 @@ class Context(object):
         self.silent = silent
         self.pretty = pretty
         self.quiet = quiet
+        self.trace = trace
         
         self.cache_enable = cache_enable
         
@@ -103,6 +112,8 @@ class Context(object):
         
         if self.verbose and log_level != "DEBUG":
             self.log_level = 'INFO'
+        
+        self.locker = None
         
         self.client_mongo = None
         self.db_mongo = None
@@ -121,6 +132,11 @@ class Context(object):
             
         if self.requests_cache_enable:
             self._set_requests_cache()
+            
+        if self.trace:
+            from widukind_common import debug
+            debug.TRACE_ENABLE = True
+            atexit.register(debug.flush_logs)
 
     def _set_log_file(self):
         from logging import FileHandler
@@ -195,6 +211,20 @@ class Context(object):
         if not self.client_mongo:
             self.client_mongo = get_mongo_client(self.mongo_url)
         return self.client_mongo
+    
+    @contextlib.contextmanager
+    def lock(self, key, owner, timeout=None, expire=None):
+        if not self.locker:
+            db = self.mongo_database()
+            self.locker = MongoLock(client=db.client, db=db.name)
+        try:
+            with self.locker(key, owner, timeout=timeout, expire=expire):
+                yield
+        except MongoLockLocked:
+            #lock_doc = self.locker.get_lock_info(key)
+            raise errors.Locked(key=key, owner=owner)
+        finally:
+            self.locker.release(key, owner)
     
     def mongo_database(self):
         if not self.db_mongo:
