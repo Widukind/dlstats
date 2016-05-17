@@ -1,7 +1,7 @@
 Widukind - dlstats
 ==================
 
-|Build Status| |Build Doc| |Coveralls|
+|Build Status| |Build Doc| |Coveralls| |Gitter|
 
 **This is a database of international macroeconomic data collected on public web servers of statistical offices worldwide.**
 
@@ -12,6 +12,7 @@ Requires
 - Python 3.4
 - `Widukind Common`_
 - `Widukind Web`_ for WebUI (Optional)
+- `Widukind Api`_ Rest API (Optional)
 
 Installation with Python
 ------------------------
@@ -59,7 +60,11 @@ Use `Widukind Docker`_ project with docker-compose or manual installation:
    
 .. |Coveralls| image:: https://coveralls.io/repos/Widukind/dlstats/badge.svg?branch=master&service=github
    :target: https://coveralls.io/github/Widukind/dlstats?branch=master
-   :alt: Coverage   
+   :alt: Coverage
+   
+.. |Gitter| image:: https://badges.gitter.im/Widukind/dlstats.svg
+   :alt: Join the chat at https://gitter.im/Widukind/dlstats
+   :target: https://gitter.im/Widukind/dlstats?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge      
 
 LICENSE
 -------
@@ -68,5 +73,6 @@ GNU Affero General Public License version 3
 
 
 .. _`Widukind Web`: https://github.com/Widukind/widukind-web
+.. _`Widukind Api`: https://github.com/Widukind/widukind-api
 .. _`Widukind Docker`: https://github.com/Widukind/widukind-docker
 .. _`Widukind Common`: https://github.com/Widukind/widukind-common
