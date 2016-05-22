@@ -39,7 +39,7 @@ def _consolidate(ctx, db, fetcher, dataset=None, max_bulk=20):
 
     start = time.time()
     
-    ctx.log("START consolidate for [%s]" % fetcher)
+    ctx.log("consolidate - START for [%s]" % fetcher)
     
     query = {"provider_name": fetcher}
     if dataset:
@@ -48,16 +48,16 @@ def _consolidate(ctx, db, fetcher, dataset=None, max_bulk=20):
     if dataset:    
         result = consolidate.consolidate_dataset(db=db, **query)
         if result == 1:
-            ctx.log("dataset[%s] updated" % dataset)
+            ctx.log_warn("consolidate - dataset[%s] updated" % dataset)
         else:
-            ctx.log_warn("dataset[%s] not updated" % dataset)
+            ctx.log_warn("consolidate - dataset[%s] not updated" % dataset)
     else:
         result = consolidate.consolidate_all_dataset(db=db, max_bulk=max_bulk, **query)
-        ctx.log("%(modified_count)s modified on %(matched_count)s matched" % result)
+        ctx.log_warn("consolidate - %(modified_count)s modified on %(matched_count)s matched" % result)
     
     end = time.time() - start
     
-    ctx.log("END consolidate for [%s] - time[%.3f]" % (fetcher, end))
+    ctx.log("consolidate - END for [%s] - time[%.3f]" % (fetcher, end))
 
 def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only=False, dry_mode=False, async_mode=None):
         
@@ -73,7 +73,7 @@ def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only
                                   max_bulk=max_bulk,
                                   update_only=update_only,
                                   dry_mode=dry_mode)
-        ctx.log_ok("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+        ctx.log_warn("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
     except Exception as err:
         ctx.log_error("Update Datasets tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
 
@@ -87,7 +87,7 @@ def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only
                                   async_mode=async_mode,
                                   dry_mode=dry_mode)
         if not async_mode:
-            ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+            ctx.log_warn("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
     except Exception:
         ctx.log_error("Update Series tags Fail - provider[%s]: %s" % (provider_name, last_error()))
 
