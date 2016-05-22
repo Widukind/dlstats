@@ -475,7 +475,7 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
               help='Update only if not tags in document')
 def cmd_aggregate_tags(max_bulk=100, update_only=False, async_mode=None, 
                        **kwargs):
-    """Create or Update field tags"""
+    """Aggregate tags"""
 
     ctx = client.Context(**kwargs)
 
@@ -665,3 +665,55 @@ def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
         end = time.time() - start
         
         ctx.log("END purge for [%s] - time[%.3f]" % (fetcher, end))
+
+@cli.command('stats-run', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_mongo_url
+@opt_fetcher_not_required
+@click.option('--limit', '-l', 
+              default=20, 
+              type=int, 
+              show_default=True,
+              help='Result limit (zero for unlimited)')
+def cmd_stats_run(fetcher=None, limit=20, **kwargs):
+    """Display run stats sorted by descending created field"""
+    
+    #TODO: csv export ?
+    #TODO: envoi csv par mail
+
+    ctx = client.Context(**kwargs)
+    db = ctx.mongo_database()
+    #fmt = "{:15} | {:10} | {:20} | {:>5} | {:>5} | {:>5} | {:>5} | {:>5}"
+    fmt = "{:16} | {:10} | {:20.20} | {:>6} | {:>6} | {:>6} | {:>6} | {:>5} | {:>5} | {:>6} | {:>6} | {:>6} | {:5} | {:>5}"
+    sep = "---------------------------------------------------------------------------------------------------------------------------------------------------"
+    print(sep)
+    print(fmt.format("Date", "Provider", "Dataset", "Acc.", "Rej.", "Ins.", "Upd.", "Err.", "FErr.", "Dur.", "Avg", "Avg.W", "Async", "Bulk"))
+    print(sep)
+    query = {}
+    if fetcher:
+        query["provider_name"] = fetcher
+
+    cursor = db[constants.COL_STATS_RUN].find(query)
+    if limit:
+        cursor = cursor.limit(limit)
+
+    for stat in cursor.sort("created", -1):
+        
+        print(fmt.format(
+            stat['created'].strftime("%Y-%m-%d-%H:%M"),
+            stat["provider_name"], 
+            stat.get("dataset_code"), 
+            stat.get("count_accepts", 0),
+            stat.get("count_rejects", 0),
+            stat.get("count_inserts", 0),
+            stat.get("count_updates", 0),
+            stat.get("count_errors", 0),
+            stat.get("fetcher_errors", 0),
+            round(stat.get("duration", 0.0), 2),
+            round(stat.get("avg_all", 0.0), 2),
+            round(stat.get("avg_write", 0.0), 2),
+            "Y" if stat.get("async_mode", None) else "N",
+            stat.get("bulk_size", 0)
+        ))
+        
+    print(sep)
+
