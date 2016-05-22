@@ -213,11 +213,11 @@ class Fetcher(object):
             if self.db[constants.COL_DATASETS].count(query) == 0:
                 msg_op = "load"
                 msg = "fetcher load START: provider[%s] - bulk-size[%s]"
-                logger.info(msg % self.provider_name, self.bulk_size)
+                logger.info(msg % (self.provider_name, self.bulk_size))
                 return self.load_datasets_first()
             else:
                 msg = "fetcher update START: provider[%s] - bulk-size[%s]"
-                logger.info(msg % self.provider_name, self.bulk_size)
+                logger.info(msg % (self.provider_name, self.bulk_size))
                 return self.load_datasets_update()
 
         except Exception:
@@ -818,9 +818,9 @@ class Datasets(DlstatsCollection):
             except Exception as err:
                 logger.error("record stats : %s" % str(err))
             
-            if logger.isEnabledFor(logging.INFO):
+            if logger.isEnabledFor(logging.WARN):
                 msg_stats = "STATS dataset-update: provider[%s] - dataset[%s] - accepts[%s] - rejects[%s] - inserts[%s] - updates[%s] - avg-all[%.3f] - avg-write[%.3f] - time[%.3f] - bulk-size[%s] - dataset-only[%s]"
-                logger.info(msg_stats % (self.provider_name,
+                logger.warn(msg_stats % (self.provider_name,
                                          self.dataset_code,
                                          self.series.count_accepts,
                                          self.series.count_rejects,
