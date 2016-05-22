@@ -265,6 +265,7 @@ def cmd_calendar(fetcher=None, update=False, **kwargs):
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
+@client.opt_quiet
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
@@ -336,16 +337,16 @@ def cmd_run(fetcher=None, dataset=None,
                     for ds in dataset:
                         f.wrap_upsert_dataset(ds)
                         if run_full:
-                            _update_tags(ctx, db, fetcher, dataset=ds)
                             _consolidate(ctx, db, fetcher, dataset=ds)
+                            _update_tags(ctx, db, fetcher, dataset=ds)
                 else:
                     f.upsert_all_datasets()
                     if run_full:
-                        _update_tags(ctx, db, fetcher)
                         _consolidate(ctx, db, fetcher)
+                        _update_tags(ctx, db, fetcher)
                 
         except errors.Locked as err:
-            ctx.log_error("run command is locked for provider[%s]" % fetcher)
+            ctx.log_error("run command is locked for key[%s]" % lock_key)
             return False
 
 #TODO: multi include/exclude fetcher        
