@@ -39,7 +39,7 @@ def _consolidate(ctx, db, fetcher, dataset=None, max_bulk=20):
 
     start = time.time()
     
-    ctx.log("START consolidate for [%s]" % fetcher)
+    ctx.log("consolidate - START for [%s]" % fetcher)
     
     query = {"provider_name": fetcher}
     if dataset:
@@ -48,16 +48,16 @@ def _consolidate(ctx, db, fetcher, dataset=None, max_bulk=20):
     if dataset:    
         result = consolidate.consolidate_dataset(db=db, **query)
         if result == 1:
-            ctx.log("dataset[%s] updated" % dataset)
+            ctx.log_warn("consolidate - dataset[%s] updated" % dataset)
         else:
-            ctx.log_warn("dataset[%s] not updated" % dataset)
+            ctx.log_warn("consolidate - dataset[%s] not updated" % dataset)
     else:
         result = consolidate.consolidate_all_dataset(db=db, max_bulk=max_bulk, **query)
-        ctx.log("%(modified_count)s modified on %(matched_count)s matched" % result)
+        ctx.log_warn("consolidate - %(modified_count)s modified on %(matched_count)s matched" % result)
     
     end = time.time() - start
     
-    ctx.log("END consolidate for [%s] - time[%.3f]" % (fetcher, end))
+    ctx.log("consolidate - END for [%s] - time[%.3f]" % (fetcher, end))
 
 def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only=False, dry_mode=False, async_mode=None):
         
@@ -73,7 +73,7 @@ def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only
                                   max_bulk=max_bulk,
                                   update_only=update_only,
                                   dry_mode=dry_mode)
-        ctx.log_ok("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+        ctx.log_warn("Update provider[%s] Datasets tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
     except Exception as err:
         ctx.log_error("Update Datasets tags Fail - provider[%s] - [%s]" % (provider_name, str(err)))
 
@@ -87,7 +87,7 @@ def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only
                                   async_mode=async_mode,
                                   dry_mode=dry_mode)
         if not async_mode:
-            ctx.log_ok("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
+            ctx.log_warn("Update provider[%s] Series tags Success. Docs Updated[%s]" % (provider_name, result["nModified"]))
     except Exception:
         ctx.log_error("Update Series tags Fail - provider[%s]: %s" % (provider_name, last_error()))
 
@@ -265,6 +265,7 @@ def cmd_calendar(fetcher=None, update=False, **kwargs):
 @cli.command('run', context_settings=client.DLSTATS_SETTINGS)
 @client.opt_verbose
 @client.opt_silent
+@client.opt_quiet
 @client.opt_debug
 @client.opt_logger
 @client.opt_logger_conf
@@ -336,16 +337,16 @@ def cmd_run(fetcher=None, dataset=None,
                     for ds in dataset:
                         f.wrap_upsert_dataset(ds)
                         if run_full:
-                            _update_tags(ctx, db, fetcher, dataset=ds)
                             _consolidate(ctx, db, fetcher, dataset=ds)
+                            _update_tags(ctx, db, fetcher, dataset=ds)
                 else:
                     f.upsert_all_datasets()
                     if run_full:
-                        _update_tags(ctx, db, fetcher)
                         _consolidate(ctx, db, fetcher)
+                        _update_tags(ctx, db, fetcher)
                 
         except errors.Locked as err:
-            ctx.log_error("run command is locked for provider[%s]" % fetcher)
+            ctx.log_error("run command is locked for key[%s]" % lock_key)
             return False
 
 #TODO: multi include/exclude fetcher        
@@ -474,7 +475,7 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
               help='Update only if not tags in document')
 def cmd_aggregate_tags(max_bulk=100, update_only=False, async_mode=None, 
                        **kwargs):
-    """Create or Update field tags"""
+    """Aggregate tags"""
 
     ctx = client.Context(**kwargs)
 
@@ -664,3 +665,55 @@ def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
         end = time.time() - start
         
         ctx.log("END purge for [%s] - time[%.3f]" % (fetcher, end))
+
+@cli.command('stats-run', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_mongo_url
+@opt_fetcher_not_required
+@click.option('--limit', '-l', 
+              default=20, 
+              type=int, 
+              show_default=True,
+              help='Result limit (zero for unlimited)')
+def cmd_stats_run(fetcher=None, limit=20, **kwargs):
+    """Display run stats sorted by descending created field"""
+    
+    #TODO: csv export ?
+    #TODO: envoi csv par mail
+
+    ctx = client.Context(**kwargs)
+    db = ctx.mongo_database()
+    #fmt = "{:15} | {:10} | {:20} | {:>5} | {:>5} | {:>5} | {:>5} | {:>5}"
+    fmt = "{:16} | {:10} | {:20.20} | {:>6} | {:>6} | {:>6} | {:>6} | {:>5} | {:>5} | {:>6} | {:>6} | {:>6} | {:5} | {:>5}"
+    sep = "---------------------------------------------------------------------------------------------------------------------------------------------------"
+    print(sep)
+    print(fmt.format("Date", "Provider", "Dataset", "Acc.", "Rej.", "Ins.", "Upd.", "Err.", "FErr.", "Dur.", "Avg", "Avg.W", "Async", "Bulk"))
+    print(sep)
+    query = {}
+    if fetcher:
+        query["provider_name"] = fetcher
+
+    cursor = db[constants.COL_STATS_RUN].find(query)
+    if limit:
+        cursor = cursor.limit(limit)
+
+    for stat in cursor.sort("created", -1):
+        
+        print(fmt.format(
+            stat['created'].strftime("%Y-%m-%d-%H:%M"),
+            stat["provider_name"], 
+            stat.get("dataset_code"), 
+            stat.get("count_accepts", 0),
+            stat.get("count_rejects", 0),
+            stat.get("count_inserts", 0),
+            stat.get("count_updates", 0),
+            stat.get("count_errors", 0),
+            stat.get("fetcher_errors", 0),
+            round(stat.get("duration", 0.0), 2),
+            round(stat.get("avg_all", 0.0), 2),
+            round(stat.get("avg_write", 0.0), 2),
+            "Y" if stat.get("async_mode", None) else "N",
+            stat.get("bulk_size", 0)
+        ))
+        
+    print(sep)
+
