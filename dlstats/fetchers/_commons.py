@@ -122,7 +122,7 @@ class Fetcher(object):
         if data_tree and not isinstance(data_tree, list):
             raise TypeError("data_tree is not instance of list")
 
-        if not data_tree or force_update:
+        if data_tree is None or force_update is True:
             data_tree = self.build_data_tree()
             Categories.remove_all(self.provider_name, db=self.db)
 
@@ -564,7 +564,6 @@ class Categories(DlstatsCollection):
     def update_database(self):
         schemas.category_schema(self.bson)
         return self.update_mongo_collection(constants.COL_CATEGORIES, 
-                                            #['provider_name', 'category_code'],
                                             ['slug'],
                                             self.bson)
 class Datasets(DlstatsCollection):
@@ -760,7 +759,7 @@ class Datasets(DlstatsCollection):
                                               self.dataset_code,
                                               self.fetcher.max_errors))
         finally:
-            now = clean_datetime()
+            now = self.series.now
     
             if not self.download_first:
                 self.download_first = now
@@ -834,16 +833,38 @@ class Datasets(DlstatsCollection):
             
             #if save_only:
             #    self.series.reset_counters()
-                        
-            schemas.dataset_schema(self.bson)
-            
-            result = self.update_mongo_collection(constants.COL_DATASETS,
-                                                  ['slug'],
-                                                  self.bson)
+    
+            if self.series.count_inserts + self.series.count_updates > 0:
+                schemas.dataset_schema(self.bson)
+                result = self.update_mongo_collection(constants.COL_DATASETS,
+                                                      ['slug'],
+                                                      self.bson)
+            else:
+                result = self.minimal_update_database()
+                """
+                query = {"slug": self.slug()}
+                query_update = {"$set": {"download_last": self.download_last}}
+                result = self.fetcher.db[constants.COL_DATASETS].update_one(query,
+                                                                    query_update)
+                result = result.upserted_id
+                logger.info("update only download_last for dataset[%s]" % self.dataset_code)
+                """
     
             self.fetcher.hook_after_dataset(self)
     
             return result
+        
+    def minimal_update_database(self):
+        query = {"slug": self.slug()}
+        query_update =  {"$set": {
+                            "download_last": self.series.now,
+                            "metadata": self.metadata
+                        }}
+        result = self.fetcher.db[constants.COL_DATASETS].update_one(query,
+                                                                    query_update)
+        result = result.upserted_id
+        logger.warn("minimal update for dataset[%s]" % self.dataset_code)
+        
 
 class SeriesIterator:
     """Base class for all Fetcher data class
@@ -1255,6 +1276,8 @@ class Series:
         self.series_list = deque()
         self.fatal_error = False
         
+        self.now = clean_datetime()
+        
         self.count_accepts = 0
         self.count_rejects = 0
         self.count_inserts = 0
@@ -1373,15 +1396,6 @@ class Series:
         return self.fetcher.db
         #TODO: settings for new connection
         #return get_mongo_db()
-    """
-    def _update_series_list_unit(self, data, old_series=None, last_update=None, 
-                                provider_name=None, dataset_code=None):
-        return update_series_list_unit(data, 
-                                       old_series=old_series, 
-                                       last_update=last_update, 
-                                       provider_name=provider_name, 
-                                       dataset_code=dataset_code)
-    """
 
     @timeit("commons.Series.update_series_list", stats_only=True)
     def update_series_list(self):
