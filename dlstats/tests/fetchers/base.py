@@ -2,6 +2,7 @@
 
 import logging
 from pprint import pprint
+import io
 
 import httpretty
 from slugify import slugify
@@ -13,9 +14,15 @@ from dlstats.tests.base import BaseDBTestCase
 #TODO: use tests.utils
 def body_generator(filepath):
     '''body for large file'''
-    with open(filepath, 'rb') as fp:
-        for line in fp:
+    if isinstance(filepath, io.BufferedIOBase):
+        for line in filepath.readline():
             yield line
+    elif isinstance(filepath, bytes):
+        yield filepath
+    else:
+        with open(filepath, 'rb') as fp:
+            for line in fp:
+                yield line
 
 def slugify_dict_keys(**kwargs):
     result = {}
@@ -33,8 +40,9 @@ class BaseFetcherTestCase(BaseDBTestCase):
     
     def setUp(self):
         super().setUp()
-        self.fetcher = self.FETCHER_KLASS(db=self.db, use_existing_file=False,
-                                          not_remove_files=True)
+        self.fetcher = self.FETCHER_KLASS(db=self.db, 
+                                          use_existing_file=False,
+                                          not_remove_files=False)
         self.is_debug = self.DEBUG_MODE
         if self.is_debug:
             logger = logging.getLogger("dlstats")
@@ -120,7 +128,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
             print("------ DATA TREE LOCAL ---------")
             pprint(data_tree)
         
-        results = self.fetcher.upsert_data_tree()
+        results = self.fetcher.upsert_data_tree(force_update=True)
         self.assertIsNotNone(results)
         
         data_tree = self.db[constants.COL_CATEGORIES].find({"provider_name": 
@@ -209,12 +217,24 @@ class BaseFetcherTestCase(BaseDBTestCase):
         
         if self.is_debug:
             self._debug_dataset(dataset)
-
-        self.assertIsNotNone(dataset.get("metadata"))
-        #self.assertTrue('frequencies' in dataset.get("metadata"))
+            
+        self.assertTrue(dataset["enable"])
+        self.assertFalse(dataset["lock"])
 
         dsd = self.DATASETS[dataset_code]["DSD"]
         
+        if "last_update" in dsd:
+            self.assertEqual(dsd["last_update"], dataset['last_update'])
+        else:
+            #TODO: warning !
+            pass
+
+        self.assertIsNotNone(dataset.get("metadata"))
+        self.assertTrue('frequencies' in dataset.get("metadata"))
+        if 'frequencies' in dsd:
+            self.assertEqual(sorted(dsd['frequencies']), 
+                             sorted(dataset['metadata']['frequencies']))
+
         self.assertEqual(len(list(dataset["concepts"].keys())), len(dsd["concept_keys"]))
         self.assertEqual(len(list(dataset["codelists"].keys())), len(dsd["codelist_keys"]))
 
