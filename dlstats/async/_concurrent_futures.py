@@ -8,6 +8,7 @@ import pymongo
 from widukind_common.debug import timeit
 
 from dlstats import constants
+from dlstats.utils import last_error
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,11 @@ class AsyncSeries(Series):
             
             for future in concurrent.futures.as_completed(tasks):
                 try:
-                    _insert, _update = future.result()
+                    result = future.result()
+                    if not result:
+                        continue
+                    
+                    _insert, _update = result
                     if _insert:
                         bulk_insert.append(_insert)
                         self.count_inserts += 1
@@ -65,7 +70,7 @@ class AsyncSeries(Series):
                         self.count_updates += 1
                 except Exception as err:
                     self.count_errors += 1
-                    logger.error(str(err))
+                    logger.critical(last_error())
     
         result = None        
         if len(bulk_insert) + len(bulk_update) > 0:
