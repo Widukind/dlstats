@@ -338,12 +338,12 @@ def cmd_run(fetcher=None, dataset=None,
                         f.wrap_upsert_dataset(ds)
                         if run_full:
                             _consolidate(ctx, db, fetcher, dataset=ds)
-                            _update_tags(ctx, db, fetcher, dataset=ds)
+                            _update_tags(ctx, db, fetcher, dataset=ds, update_only=True)
                 else:
                     f.upsert_all_datasets()
                     if run_full:
                         _consolidate(ctx, db, fetcher)
-                        _update_tags(ctx, db, fetcher)
+                        _update_tags(ctx, db, fetcher, update_only=True)
                 
         except errors.Locked as err:
             ctx.log_error("run command is locked for key[%s]" % lock_key)
