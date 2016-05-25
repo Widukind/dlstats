@@ -6,6 +6,9 @@ import os
 from copy import deepcopy
 
 from dlstats.fetchers.eurostat import Eurostat as Fetcher, make_url
+from dlstats.fetchers._commons import Categories
+from dlstats import constants
+from widukind_common.errors import RejectUpdatedDataset
 
 import httpretty
 import unittest
@@ -29,6 +32,8 @@ def extract_zip_file(zipfilepath):
 
 LOCAL_DATASETS_UPDATE = {
     "nama_10_fcs": {
+        "last_update": datetime.datetime(2015, 10, 26, 0, 0),
+        "frequencies": ['A'],
         "concept_keys": ['freq', 'obs-status', 'time-format', 'geo', 'na-item', 'unit'], 
         "codelist_keys": ['freq', 'obs-status', 'time-format', 'geo', 'na-item', 'unit'], 
         "codelist_count": {
@@ -66,11 +71,12 @@ class FetcherTestCase(BaseFetcherTestCase):
     DATASET_LAST = "nama_10_gdp"
     DEBUG_MODE = False
     
-    def _load_files_datatree(self):
+    def _load_files_datatree(self, toc=TOC_FP):
         
+        self.fetcher.url_table_of_contents = "http://localhost/toc.xml"
         url = self.fetcher.url_table_of_contents
         self.register_url(url, 
-                          TOC_FP,
+                          toc,
                           match_querystring=True)
 
     def _load_files_dataset(self, dataset_code=None):
@@ -111,19 +117,75 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files_datatree()
         self.assertDataTree(dataset_code)
         
-    @httpretty.activate
     def test_upsert_dataset_nama_10_fcs(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase.test_upsert_dataset_nama_10_fcs
+        
+        httpretty.enable()
 
         dataset_code = "nama_10_fcs"
         self.DATASETS[dataset_code]["DSD"].update(LOCAL_DATASETS_UPDATE[dataset_code])
+        self._load_files_datatree(TOC_FP)
         self._load_files(dataset_code)
         
         self.assertProvider()
-        self.assertDataset(dataset_code)        
+        self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
+
+        '''Reload upsert_dataset for normal fail'''
+        with self.assertRaises(RejectUpdatedDataset) as err:
+            self.fetcher.upsert_dataset(dataset_code)
+        self.assertEqual(err.exception.comments, 
+                         "update-date[2015-10-26 00:00:00]")
+
+        '''Verify last_update in category for this dataset'''
+        category = Categories.search_category_for_dataset(self.fetcher.provider_name, 
+                                                          dataset_code, self.db)
+        self.assertIsNotNone(category)
+        last_update = None
+        for d in category["datasets"]:
+            if d["dataset_code"] == dataset_code:
+                last_update = d["last_update"]
+        self.assertIsNotNone(last_update)
+        self.assertEqual(str(last_update), "2015-10-26 00:00:00")
+        last_update = None
         
+        httpretty.reset()
+        httpretty.disable()
+        httpretty.enable()
+        self._load_files(dataset_code)
+            
+        '''Change last_update in catalog.xml for force update dataset'''
+        toc = open(TOC_FP, 'rb').read()
+        toc = toc.replace(b'26.10.2015', b'27.10.2015')
+        self.assertTrue(b'27.10.2015' in toc)
+        self._load_files_datatree(toc=toc)
+        results = self.fetcher.upsert_data_tree(force_update=True)
+        self.assertIsNotNone(results)
+        self.fetcher.get_selected_datasets(force=True)
+
+
+        query = {
+            'provider_name': self.fetcher.provider_name,
+            "dataset_code": dataset_code
+        }
+        _id = self.db[constants.COL_SERIES].find_one()["_id"]
+        deleted = self.db[constants.COL_SERIES].delete_one({"_id": _id})
+        self.assertEqual(deleted.deleted_count, 1)
+
+        result = self.fetcher.upsert_dataset(dataset_code)
+        self.assertIsNotNone(result) #_id du dataset
+        dataset = self.db[constants.COL_DATASETS].find_one(query)
+        self.assertIsNotNone(dataset)
+        
+        self.assertEqual(dataset["last_update"],
+                         datetime.datetime(2015, 10, 27, 0, 0))
+
+        #self.assertEqual(dataset["download_last"],
+        #                 datetime.datetime(2015, 10, 27, 0, 0))
+
+        httpretty.disable()
+
     @httpretty.activate
     def test_datasets_list(self):
 

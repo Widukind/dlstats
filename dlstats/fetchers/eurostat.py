@@ -18,7 +18,7 @@ from lxml import etree
 from widukind_common import errors
 
 from dlstats import constants
-from dlstats.utils import Downloader
+from dlstats.utils import Downloader, clean_datetime
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
                                XMLCompactData_2_0_EUROSTAT as XMLData,
@@ -112,13 +112,9 @@ class Eurostat(Fetcher):
             'pop',
             'labour',
         ]
-
-        self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
-        self.dataset_url = None
         
-        self._concepts = OrderedDict()
-        self._codelists = OrderedDict()        
-
+        self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
+        
     def build_data_tree(self):
         """Builds the data tree
         """
@@ -210,7 +206,7 @@ class Eurostat(Fetcher):
             _dataset = {
                 "dataset_code": dataset_code, 
                 "name": name,
-                "last_update": last_update,
+                "last_update": clean_datetime(last_update),
                 "metadata": {
                     "doc_href": first_element_xpath(doc_href),
                     "data_start": first_element_xpath(data_start),
@@ -245,8 +241,9 @@ class Eurostat(Fetcher):
                            dataset_code=dataset_code, 
                            name=dataset_settings["name"], 
                            doc_href=dataset_settings["metadata"].get("doc_href"), 
-                           last_update=dataset_settings["last_update"], 
+                           last_update=None, 
                            fetcher=self)
+        dataset.last_update = dataset_settings["last_update"]
 
         dataset.series.data_iterator = EurostatData(dataset)
         
@@ -298,7 +295,10 @@ class Eurostat(Fetcher):
         for dataset in datasets_list:
             dataset_code = dataset["dataset_code"]
             
-            if (dataset_code not in selected_datasets) or (selected_datasets[dataset_code]['last_update'] < dataset['last_update']):
+            last_update_from_dataset = dataset['last_update']
+            last_update_from_catalog = selected_datasets.get(dataset_code, {}).get('last_update')
+             
+            if (dataset_code not in selected_datasets) or (last_update_from_catalog > last_update_from_dataset):
                 try:
                     self.wrap_upsert_dataset(dataset_code)
                 except Exception as err:
@@ -308,6 +308,9 @@ class Eurostat(Fetcher):
                     logger.critical(msg % (self.provider_name, 
                                            dataset_code, 
                                            str(err)))
+            else:
+                msg = "bypass update - provider[%s] - dataset[%s] - last-update-dataset[%s] - last-update-catalog[%s]"
+                logger.info(msg % (self.provider_name, dataset_code, last_update_from_dataset, last_update_from_catalog))
 
 
 class EurostatData(SeriesIterator):
@@ -318,8 +321,6 @@ class EurostatData(SeriesIterator):
         self.dataset_url = make_url(self.dataset_code)
         
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)
-        self.xml_dsd.concepts = self.fetcher._concepts        
-        self.xml_dsd.codelists = self.fetcher._codelists
         
         self.store_path = self.get_store_path()
         
