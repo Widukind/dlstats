@@ -565,5 +565,7 @@ class BeaData(SeriesIterator):
 
         series['values'] = series_values
         
+        self.dataset.add_frequency(self.frequency)        
+        
         return series
 
