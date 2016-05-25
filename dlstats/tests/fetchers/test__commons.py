@@ -1421,14 +1421,11 @@ class DB_DatasetsTestCase(BaseDBTestCase):
         d.series.data_iterator = datas
 
         _id = d.update_database()
-        self.assertIsNotNone(_id)
+        self.assertIsNone(_id)
         
-        self.assertEqual(self.db[constants.COL_DATASETS].count(), 1)
+        self.assertEqual(self.db[constants.COL_DATASETS].count(), 0)
         
-        doc = self.db[constants.COL_DATASETS].find_one({"_id": _id})
-        self.assertIsNotNone(doc)
-        self.assertEqual(doc["enable"], False)
-                
+
 class DB_SeriesTestCase(BaseDBTestCase):
 
     @unittest.skipIf(True, "TODO")    

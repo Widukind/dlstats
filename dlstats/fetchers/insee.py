@@ -268,12 +268,7 @@ class INSEE(Fetcher):
                            last_update=clean_datetime(),
                            fetcher=self)
         
-        query = {'provider_name': self.provider_name, 
-                 "dataset_code": dataset_code}        
-        dataset_doc = self.db[constants.COL_DATASETS].find_one(query)
-        
-        insee_data = INSEE_Data(dataset,
-                                dataset_doc=dataset_doc)
+        insee_data = INSEE_Data(dataset)
         dataset.series.data_iterator = insee_data
         
         return dataset.update_database()
@@ -328,13 +323,12 @@ class INSEE(Fetcher):
 
 class INSEE_Data(SeriesIterator):
     
-    def __init__(self, dataset, dataset_doc=None):
+    def __init__(self, dataset):
         """
         :param Datasets dataset: Datasets instance
         """
         super().__init__(dataset)
 
-        self.dataset_doc = dataset_doc
         self.store_path = self.get_store_path()
         
         if not "series_last_update" in self.dataset.metadata:
@@ -344,12 +338,9 @@ class INSEE_Data(SeriesIterator):
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
         
-        if self.dataset_doc and self.dataset_doc["enable"]:
-            #self.last_update = self.dataset_doc["last_update"]
-            self.last_update = self.dataset_doc["download_last"]
-        else:
-            self.last_update = self.dataset.download_last #self.dataset.last_update
-
+        self.dataset_updated = False
+        self.last_update = self.dataset.last_update
+        
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
                                     sdmx_client=self.fetcher.xml_sdmx)        
         self.xml_dsd.concepts = self.fetcher._concepts
@@ -490,9 +481,6 @@ class INSEE_Data(SeriesIterator):
         
         last_update = self.dataset.metadata["series_last_update"][bson["key"]]
         
-        #if not self.last_update:
-        #    return True
-        
         series_updated = bson.get('last_update')
         if not series_updated:
             return True
@@ -515,8 +503,8 @@ class INSEE_Data(SeriesIterator):
                                              dataset_code=self.dataset_code,
                                              key=bson.get('key'))
             
-        #series_updated = bson.get('last_update', None)
-        #if series_updated and series_updated > self.dataset.last_update:
-        #    self.dataset.last_update = series_updated
+        if not self.dataset_updated:
+            self.dataset_updated = True
+            self.dataset.last_update = self.dataset.series.now
             
         return bson

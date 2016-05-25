@@ -312,6 +312,9 @@ class FetcherTestCase(BaseFetcherTestCase):
     def test_is_updated(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test_insee:FetcherTestCase.test_is_updated
+        """
+        use dataset.series.now
+        """
 
         dataset_code = 'IPI-2010-A21'
         
