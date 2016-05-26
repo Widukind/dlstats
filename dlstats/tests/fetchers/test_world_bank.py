@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 import os
+import re
 
 import httpretty
 
@@ -45,6 +47,8 @@ DATA_WB_GEP = {
         "categories_key": "GEP",
         "categories_parents": None,
         "categories_root": ['ADI', 'DBS', 'ED1', 'EDS', 'FDX', 'G2F', 'GDS', 'GEM', 'GEP', 'GFD', 'GMC', 'GPE', 'HNP', 'HNQ', 'HPP', 'IDA', 'IDS', 'JOB', 'MDG', 'POV', 'PSD', 'QDG', 'QDS', 'SE4', 'SNM', 'SNP', 'SNT', 'WAT', 'WDI', 'WGI'],
+        "frequencies": ['A'],#, 'M', 'Q'],
+        #'last_update': datetime(2016, 4, 5, 0, 0),
         "concept_keys": ['country', 'obs-status'],
         "codelist_keys": ['country', 'obs-status'],
         "codelist_count": {
@@ -55,8 +59,10 @@ DATA_WB_GEP = {
         "dimension_count": {
             "country": 1,
         },
-        "attribute_keys": [],
-        "attribute_count": None,
+        "attribute_keys": ['obs-status'],
+        "attribute_count": {
+            'obs-status': 2,
+        }
     },
     "series_accept": 1,
     "series_reject_frequency": 0,
@@ -70,7 +76,6 @@ DATA_WB_GEP = {
         'key': 'NYGDPMKTPKDZ.FRA',
         'name': 'Annual percentage growth rate of GDP at market prices based on constant 2010 US Dollars. - France',
         'frequency': 'A',
-        'last_update': None,
         'first_value': {
             'value': '',
             'ordinal': 29,
@@ -90,6 +95,60 @@ DATA_WB_GEP = {
     }
 }
 
+DATA_WB_GEM = {
+    "DSD": {
+        "provider": "WORLDBANK",
+        "filepath": filepath("GemDataEXTR.zip"),
+        "dataset_code": "GEM",
+        "dsd_id": "GEM",
+        "is_completed": True,
+        "categories_key": "GEM",
+        "categories_parents": None,
+        "categories_root": [],
+        "frequencies": ['A', 'M'],
+        'last_update': datetime(2016, 4, 5, 15, 5, 11),
+        "concept_keys": ['country'],
+        "codelist_keys": ['country'],
+        "codelist_count": {
+            "country": 14,
+        },        
+        "dimension_keys": ['country'],
+        "dimension_count": {
+            "country": 14,
+        },
+        "attribute_keys": [],
+        "attribute_count": None,
+    },
+    "series_accept": 28,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 3640,
+    "series_key_first": "cpi-price-y-o-y-median-weighted-seas-adj-developing-asia-annually",
+    "series_key_last": "cpi-price-y-o-y-median-weighted-seas-adj-world-wbg-members-monthly",
+    "series_sample": {
+        'provider_name': 'WORLDBANK',
+        'dataset_code': 'GEM',
+        'key': 'cpi-price-y-o-y-median-weighted-seas-adj-developing-asia-annually',
+        'name': 'CPI Price, % y-o-y, median weighted, seas. adj. - Developing Asia - Annually',
+        'frequency': 'A',
+        'first_value': {
+            'value': '6.22842',
+            'ordinal': 27,
+            'period': '1997',
+            'attributes': None,
+        },
+        'last_value': {
+            'value': '1.474426',
+            'ordinal': 46,
+            'period': '2016',
+            'attributes': None,
+        },
+        'dimensions': {
+            'country': 'widukind-asia-dev',
+        },
+        'attributes': None,
+    }
+}
 
 class FetcherTestCase(BaseFetcherTestCase):
 
@@ -98,7 +157,8 @@ class FetcherTestCase(BaseFetcherTestCase):
     FETCHER_KLASS = Fetcher
     
     DATASETS = {
-        'GEP': DATA_WB_GEP
+        'GEP': DATA_WB_GEP,
+        'GEM': DATA_WB_GEM,
     }
     
     DATASET_FIRST = "ADI"
@@ -119,9 +179,26 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.register_url(url, 
                           filepath("gep-indicator.json"))
 
-        url = "http://api.worldbank.org/v2/countries/FRA/indicators/NYGDPMKTPKDZ?format=json&per_page=1000"
+        url = "http://api.worldbank.org/v2/countries/FRA/indicators/NYGDPMKTPKDZ?(.*)"
         self.register_url(url, 
                           filepath("NYGDPMKTPKDZ-fra.json"))
+
+    def _load_files_excel_gem(self):
+
+        url = re.compile("http://api.worldbank.org/v2/sources?(.*)")
+        self.register_url(url, 
+                          filepath("sources.json"),
+                          content_type="application/json")
+        
+        url = re.compile("http://api.worldbank.org/v2/countries?(.*)")
+        self.register_url(url, 
+                          filepath("countries.json"),
+                          content_type="application/json")
+        
+        url = "http://siteresources.worldbank.org/INTPROSPECTS/Resources/GemDataEXTR.zip"
+        self.register_url(url, 
+                          self.DATASETS["GEM"]["DSD"]["filepath"],
+                          **{"Last-Modified": "Tue, 05 Apr 2016 15:05:11 GMT"})
 
     @httpretty.activate
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
@@ -154,6 +231,18 @@ class FetcherTestCase(BaseFetcherTestCase):
     
         dataset_code = "GEP"
         self._load_files_gep()
+        self.assertProvider()
+        self.assertDataset(dataset_code)        
+        self.assertSeries(dataset_code)
+
+    @httpretty.activate
+    @mock.patch("dlstats.fetchers.world_bank.WorldBankAPI.available_countries", available_countries)
+    def test_upsert_dataset_excel_gem(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_world_bank:FetcherTestCase.test_upsert_dataset_excel_gem
+    
+        dataset_code = "GEM"
+        self._load_files_excel_gem()
         self.assertProvider()
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
