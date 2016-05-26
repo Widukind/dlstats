@@ -20,6 +20,7 @@ from widukind_common import errors
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats.utils import clean_datetime, get_ordinal_from_period, get_year
 from dlstats.utils import Downloader, make_store_path
+from dlstats import constants
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +63,6 @@ def retry(tries=1, sleep_time=2):
                     time.sleep(sleep_time)
         return f
     return try_it
-
-"""
-Incoming level:
-    http://data.worldbank.org/developers/api-overview/income-level-queries
-    <wb:incomeLevel id="HIC">High income</wb:incomeLevel> 
-    Income levels show the income category of a particular country as identified by ..
-    
-http://api.worldbank.org/countries?incomeLevel=LMC    
-"""
 
 class WorldBankAPI(Fetcher):
     
@@ -134,6 +126,8 @@ class WorldBankAPI(Fetcher):
         with open(filepath, mode='wb') as f:
             for chunk in response.iter_content():
                 f.write(chunk)
+                
+        self.for_delete.append(filepath)
                 
         with open(filepath) as f: #, mode='rb'
             return json.load(f)
@@ -410,6 +404,8 @@ class WorldBankAPIData(SeriesIterator):
         self.dataset.dimension_keys = ["country"]
         self.dataset.concepts["country"] = "Country"
         self.dataset.codelists["country"] = dict([(k, c["name"]) for k, c in self.available_countries.items()])
+        
+        self.dataset.set_dimension_country("country")
         
         self.obs_status = {"E": "estimate", "F": "forecast"}
         
@@ -706,6 +702,8 @@ class WorldBankAPIData(SeriesIterator):
                         self.dataset.codelists["obs_status"] = self.obs_status
                     if not "obs_status" in self.dataset.concepts:
                         self.dataset.concepts["obs_status"] = "Observation Status"
+                    if not "obs_status" in self.dataset.attribute_keys:
+                        self.dataset.attribute_keys.append("obs_status")
             
             values.append(value)
 
@@ -725,59 +723,45 @@ class WorldBankAPIData(SeriesIterator):
 
         series['dimensions'] = {'country': self.current_country}
         series['attributes'] = None
+        
+        self.dataset.add_frequency(series["frequency"])
 
         return series
+
+class ExcelData(SeriesIterator):
     
-"""
-['Bahamas',
- 'East Asia & Pacific developing',
- 'South Asia developing',
- 'Tanzania, United Rep.',
- 'World (WBG members)',
- 'Europe & Central Asia developing',
- 'Montserrat',
- 'Sub-Saharan Africa developing',
- 'Lao, PDR',
- 'Slovakia',
- 'Developing Asia',
- 'Middle Income Countries',
- 'High Income Countries',
- 'Latin America & Caribbean developing',
- 'Low Income',
- 'Middle East & N. Africa developing',
- 'High Income: Non-OECD',
- 'Moldova, Rep.',
- 'Developing Countries',
- 'Anguilla',
- 'Netherlands Antilles']
-"""    
-
-class ExcelData:
-
     def __init__(self, dataset, url, is_autoload=True):
-        self.dataset = dataset
-        self.fetcher = self.dataset.fetcher
-        self.provider_name = dataset.provider_name
-        self.dataset_code = dataset.dataset_code
-        self.dimension_list = dataset.dimension_list
-        self.attribute_list = dataset.attribute_list
-    
-        self.last_update = self.dataset.last_update
-        self.release_date = None
-                
-        self.columns = iter([])
-        self.sheets = iter([])
-        self.url = url
-        #self.release_date = None
-        self.excel_filenames = []
-        self.freq_long_name = {'A': 'Annual', 'Q': 'Quarterly', 'M': 'Monthly', 'D': 'Daily'}
-        self.zipfile = None
+        SeriesIterator.__init__(self, dataset)
         
+        self.release_date = None
+        self.url = url
         self.available_countries = self.fetcher.available_countries_by_name()
         self.countries_not_found = set()
-        #http://data.worldbank.org/developers/api-overview/aggregates-regions-and-income-levels
-        #http://api.worldbank.org/v2/countries?format=json&per_page=1000
-        self.manual_countries = {
+        self.manual_countries = self._get_manual_countries()
+
+        if not "country" in self.dataset.dimension_keys:
+            self.dataset.dimension_keys.append("country")
+
+        if not "country" in self.dataset.concepts:
+            self.dataset.concepts["country"] = "Country"
+        
+        if not "country" in self.dataset.codelists:
+            self.dataset.codelists["country"] = {}
+            
+        self.dataset.set_dimension_country("country")
+        
+        if is_autoload:
+            self._load_file()
+            
+        self.rows = self._get_datas()
+
+    def _get_manual_countries(self):
+        """
+        http://data.worldbank.org/developers/api-overview/income-level-queries
+        http://api.worldbank.org/v2/incomeLevels : not completed
+        http://api.worldbank.org/v2/countries?incomeLevel=LMC : countries for this zone
+        """
+        return {
             'Anguilla': 'AIA', # google
             'Bahamas': 'BHS',
             'Developing Countries': 'LDC',
@@ -786,7 +770,8 @@ class ExcelData:
             'Latin America & Caribbean developing': 'LAC',
             'Tanzania, United Rep.': 'TZA',
             'World (WBG members)': 'WLD',
-            'High Income Countries': 'OEC',
+            'High Income Countries': 'HIC',
+            'High Income: OECD': 'OEC',
             'High Income: Non-OECD': 'NOC',
             'Low Income': 'LIC',
             'Slovakia': 'SVK',
@@ -798,252 +783,174 @@ class ExcelData:
             'South Asia developing': 'SAAS',
             'Sub-Saharan Africa developing': 'SSA',
             'Middle Income Countries': 'MIC',
-            #'Developing Asia': 'Developing Asia', #CPI_Price_%_y-o-y_median_weighted_seas._adj.Developing Asia.A
+            'Developing Asia': 'WIDUKIND-ASIA-DEV', 
         }
-        
-        if is_autoload:
-            self.load_datas()
 
-    def get_store_path(self):
-        return make_store_path(base_path=self.fetcher.store_path,
-                               dataset_code=self.dataset_code)
-
-    def load_datas(self):
+    def _load_file(self):
 
         filename = "data-%s.zip" % (self.dataset_code)
         download = Downloader(url=self.url, 
                               filename=filename,
-                              store_filepath=self.fetcher.store_path,
-                              use_existing_file=self.fetcher.use_existing_file,
-                              #client=self.fetcher.requests_client
-                              )
-        filepath, response = download.get_filepath_and_response()
+                              store_filepath=self.get_store_path(),
+                              use_existing_file=self.fetcher.use_existing_file,)
+        self.filepath, response = download.get_filepath_and_response()
+        
+        if self.filepath:
+            self.fetcher.for_delete.append(self.filepath)
 
-        if response:
-            release_date_str = response.headers['Last-Modified']
-    
-            #Last-Modified: Tue, 05 Apr 2016 15:05:11 GMT            
-            self.release_date = datetime.strptime(release_date_str, 
-                                                          "%a, %d %b %Y %H:%M:%S GMT")
-            
-            self._is_updated(self.release_date)
-            
-        self.zipfile = zipfile.ZipFile(filepath)
-        self.excel_filenames = iter(self.zipfile.namelist())
-        
-    def _is_updated(self, last_update):
-        
-        """
-        FIXME: doit être fait au niveau dataset
-        if self.dataset.last_update and self.dataset.last_update >= last_update:
-            comments = "update-date[%s]" % last_update
+        release_date_str = response.headers['Last-Modified']
+        #Last-Modified: Tue, 05 Apr 2016 15:05:11 GMT            
+        self.release_date = clean_datetime(datetime.strptime(release_date_str, 
+                                                      "%a, %d %b %Y %H:%M:%S GMT"))
+
+        if self.dataset.last_update and self.dataset.last_update >= self.release_date:
+            comments = "update-date[%s]" % self.release_date
             raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
                                               dataset_code=self.dataset_code,
                                               comments=comments)
-        """
-        
-        self.dataset.last_update = last_update
-        self.last_update = last_update
-     
-    def __next__(self):
-        return self.clean_field(self.build_series())
-
-    def clean_field(self, bson):
-
-        if not "start_ts" in bson or not bson.get("start_ts"):
-            if bson["frequency"] == "A":
-                year = int(get_year(bson["values"][0]["period"]))
-                bson["start_ts"] = clean_datetime(datetime(year, 1, 1), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
-            else:
-                bson["start_ts"] = clean_datetime(pandas.Period(ordinal=bson["start_date"], freq=bson["frequency"]).start_time.to_datetime())
-
-        if not "end_ts" in bson or not bson.get("end_ts"):
-            if bson["frequency"] == "A":
-                year = int(get_year(bson["values"][-1]["period"]))
-                bson["end_ts"] = clean_datetime(datetime(year, 12, 31), rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True) 
-            else:
-                bson["end_ts"] = clean_datetime(pandas.Period(ordinal=bson["end_date"], freq=bson["frequency"]).end_time.to_datetime())
-        
-        dimensions = bson.pop("dimensions")
-        attributes = bson.pop("attributes", {})
-        new_dimensions = {}
-        new_attributes = {}
-        
-        for key, value in dimensions.items():
-            new_dimensions[slugify(key, save_order=True)] = slugify(value, save_order=True)
-
-        if attributes:
-            for key, value in attributes.items():
-                new_attributes[slugify(key, save_order=True)] = slugify(value, save_order=True)
             
-        bson["dimensions"] = new_dimensions
+        self.dataset.last_update = self.release_date
 
-        if attributes:
-            bson["attributes"] = new_attributes
-        else:
-            bson["attributes"] = None
+    def _get_datas(self):
+
+        _zipfile = zipfile.ZipFile(self.filepath)
+
+        for fname in _zipfile.namelist():
+            info = _zipfile.getinfo(fname)
             
-        for value in bson["values"]:
-            if not value.get("attributes"):
+            #bypass directory
+            if info.file_size == 0 or info.filename.endswith('/'):
                 continue
-            attributes_obs = {}
-            for k, v in value.get("attributes").items():
-                attributes_obs[slugify(k, save_order=True)] = slugify(v, save_order=True)
-            value["attributes"] = attributes_obs
-        
-        return bson
 
-    def update_sheet(self):
-        try:
-            self.sheet = next(self.sheets)
-        except StopIteration:
-            self.update_file()
-            self.sheet = next(self.sheets)
+            if 'Commodity Prices' in fname:
+                logger.warning("bypass %s" % fname)
+                continue
+            
+            #if not self.release_date:
+            #    last_update = clean_datetime(datetime(*self.zipfile.getinfo(fname).date_time[0:6]))
+                
+            series_name = fname[:-5]
+            logger.info("open excel file[%s] - series.name[%s]" % (fname, series_name))
+            
+            excel_book = xlrd.open_workbook(file_contents = _zipfile.read(fname))
+            
+            for sheet in excel_book.sheets():
+                if sheet.name in ['Sheet1','Sheet2','Sheet3','Sheet4', 'Feuille1','Feuille2','Feuille3','Feuille4']:
+                    continue
+    
+                periods = sheet.col_slice(0, start_rowx=2)
+                start_period = periods[0].value
+                end_period = periods[-1].value
+                
+                frequency = None
+                start_date = None
+                end_date = None
+                
+                if sheet.name == 'annual':    
+                    frequency = 'A'
+                    start_date = get_ordinal_from_period(str(int(start_period)), freq='A')
+                    end_date = get_ordinal_from_period(str(int(end_period)), freq='A')
+                    periods = [str(int(p.value)) for p in periods]
+                    
+                elif sheet.name == 'quarterly':    
+                    frequency = 'Q'
+                    start_date = get_ordinal_from_period(start_period,freq='Q')
+                    end_date = get_ordinal_from_period(end_period,freq='Q')
+                    periods = [p.value for p in periods]
+                    
+                elif sheet.name == 'monthly':    
+                    frequency = 'M'
+                    start_date = get_ordinal_from_period(start_period.replace('M','-'),freq='M')
+                    end_date = get_ordinal_from_period(end_period.replace('M','-'),freq='M')
+                    periods = [p.value.replace('M','-') for p in periods]
+                    
+                else:
+                    msg = {"provider_name": self.provider_name, 
+                           "dataset_code": self.dataset_code,
+                           "frequency": sheet.name}
+                    raise errors.RejectFrequency(**msg)
+                """
+                elif sheet.name == 'daily':    
+                    frequency = 'D'
+                    start_date = self._translate_daily_dates(start_period)
+                    end_date = self._translate_daily_dates(end_period)
+                    TODO: periods = [p.value for p in periods]
+                """
+                self.dataset.add_frequency(frequency)
+            
+                columns = iter(range(1, sheet.row_len(0)))
+                
+                for column in columns:
+                    settings = {
+                        "column": column,
+                        "sheet": sheet,
+                        "periods": periods,
+                        "series_name": series_name,
+                        "bson": {
+                            "frequency": frequency,
+                            "start_date": start_date,
+                            "end_date": end_date,
+                        }
+                    }
+                    yield settings, None
+                
 
-        self.columns = iter(range(1,self.sheet.row_len(0)))
-        periods = self.sheet.col_slice(0, start_rowx=2)
-        start_period = periods[0].value
-        end_period = periods[-1].value
-        
-        self.periods = []
-        
-        if self.sheet.name == 'annual':    
-            self.frequency = 'A'
-            self.start_date = get_ordinal_from_period(str(int(start_period)), freq='A')
-            self.end_date = get_ordinal_from_period(str(int(end_period)), freq='A')
-            self.periods = [str(int(p.value)) for p in periods]
-            
-        elif self.sheet.name == 'quarterly':    
-            self.frequency = 'Q'
-            self.start_date = get_ordinal_from_period(start_period,freq='Q')
-            self.end_date = get_ordinal_from_period(end_period,freq='Q')
-            self.periods = [p.value for p in periods]
-            
-        elif self.sheet.name == 'monthly':    
-            self.frequency = 'M'
-            self.start_date = get_ordinal_from_period(start_period.replace('M','-'),freq='M')
-            self.end_date = get_ordinal_from_period(end_period.replace('M','-'),freq='M')
-            self.periods = [p.value.replace('M','-') for p in periods]
-            
-        else:
-            msg = {"provider_name": self.provider_name, 
-                   "dataset_code": self.dataset_code,
-                   "frequency": self.sheet.name}
-            raise errors.RejectFrequency(**msg)
-        """
-        elif self.sheet.name == 'daily':    
-            self.frequency = 'D'
-            self.start_date = self.translate_daily_dates(start_period)
-            self.end_date = self.translate_daily_dates(end_period)
-            TODO: self.periods = [p.value for p in periods]
-        """
-        self.dataset.add_frequency(self.frequency)
-        
-    def translate_daily_dates(self,value):
+    def _translate_daily_dates(self,value):
             date = xlrd.xldate_as_tuple(value, self.excel_book.datemode)
             return pandas.Period(year=date[0], month=date[1], day=date[2], freq=self.frequency)
         
-    def update_file(self):
-        fname = next(self.excel_filenames)
-        info = self.zipfile.getinfo(fname)
+    def _get_country(self, col_header):
+        
+        country = None
+        if col_header in self.available_countries:
+            country = self.available_countries[col_header]["id"]
+        elif col_header in self.manual_countries:
+            country = self.manual_countries[col_header]
+        else:
+            logger.error("country not found [%s]" % col_header)
+            raise Exception("country not found [%s]" % col_header)
 
-        while True:
-            #bypass directory - not excel file
-            if info.file_size > 0 and not info.filename.endswith('/'):
-                break
-            
-            fname = next(self.excel_filenames)
-            info = self.zipfile.getinfo(fname)
-            
-        self.series_name = fname[:-5]
-        last_update = datetime(*self.zipfile.getinfo(fname).date_time[0:6])
-        if not self.release_date:
-            self._is_updated(last_update)            
-            
-        self.excel_book = xlrd.open_workbook(file_contents = self.zipfile.read(fname))
-        self.sheets = iter([s for s in self.excel_book.sheets()
-                            if s.name not in ['Sheet1','Sheet2','Sheet3','Sheet4',
-                                              'Feuille1','Feuille2','Feuille3','Feuille4']])
+        if country and not country in self.dataset.codelists["country"]:
+            self.dataset.codelists["country"][country] = col_header
+        
+        return country
 
-        if self.series_name == 'Commodity Prices':
-            if not "commodity" in self.dataset.dimension_keys:
-                self.dataset.dimension_keys.append("commodity")
-            if not "commodity" in self.dataset.codelists:
-                self.dataset.codelists["commodity"] = {}
-            if not "commodity" in self.dataset.concepts:
-                self.dataset.concepts["commodity"] = "Commodity"
-        else:    
-            if not "country" in self.dataset.dimension_keys:
-                self.dataset.dimension_keys.append("country")
-            if not "country" in self.dataset.codelists:
-                self.dataset.codelists["country"] = {}
-            if not "country" in self.dataset.concepts:
-                self.dataset.concepts["country"] = "Country"
-            #TODO: use available_countries by name
-
-    def build_series(self):
-        try:
-            column = next(self.columns)
-        except StopIteration:
-            self.update_sheet()
-            column = next(self.columns)
+    def build_series(self, settings):
+        column = settings["column"]
+        sheet = settings["sheet"]
+        periods = settings["periods"]
+        series_name = settings["series_name"]
+        bson = settings["bson"]
             
         dimensions = {}
         
-        col_header = self.sheet.cell_value(0,column)
-        
-        if self.series_name == 'Commodity Prices':
-            dimensions['commodity'] = self.dimension_list.update_entry('Commodity','',col_header)
-            if not col_header in self.dataset.codelists["commodity"]:
-                self.dataset.codelists["commodity"][col_header] = col_header
-        else:    
-            if col_header in self.available_countries:
-                dimensions['country'] = self.available_countries[col_header]["id"]
-            elif col_header in self.manual_countries:
-                dimensions['country'] = self.manual_countries[col_header]
-            else:
-                logger.warning("country not found [%s]" % col_header)
-                #self.countries_not_found.add(col_header)
-                dimensions['country'] = self.dimension_list.update_entry('country','',col_header)
-            
-            if not dimensions['country'] in self.dataset.codelists["country"]:
-                self.dataset.codelists["country"][dimensions['country']] = col_header
+        col_header = sheet.cell_value(0, column)
+        dimensions['country'] = self._get_country(col_header)
         
         values = []
-        
-        _values = [str(v) for v in self.sheet.col_values(column, start_rowx=2)]
+        _values = [str(v) for v in sheet.col_values(column, start_rowx=2)]
         
         for i, v in enumerate(_values):            
             value = {
                 'attributes': None,
-                'release_date': self.last_update,
-                'ordinal': get_ordinal_from_period(self.periods[i], freq=self.frequency),
-                'period': self.periods[i], #str(period),
-                'value': v
+                'release_date': self.dataset.last_update,
+                'ordinal': get_ordinal_from_period(periods[i], freq=bson['frequency']),
+                'period': str(periods[i]),
+                'value': str(v).replace(",", ".")    
             }
             values.append(value)
         
-        series = {}
-        series['values'] = values                
+        bson['values'] = values                
+        bson['name'] = series_name + ' - ' + col_header + ' - ' + constants.FREQUENCIES_DICT[bson['frequency']]
         
-        series_key = self.series_name.replace(' ','_').replace(',', '')
-        # don't add a period if there is already one
-        if series_key[-1] != '.':
-            series_key += '.'
-        series_key += col_header + '.' + self.frequency
+        series_key = slugify(bson['name'], save_order=True)
 
-        series['provider_name'] = self.provider_name
-        series['dataset_code'] = self.dataset_code
-        series['name'] = self.series_name + ' - ' + col_header + ' - ' + self.freq_long_name[self.frequency]
-        series['key'] = series_key
-        #series['values'] = values
-        series['attributes'] = None
-        series['dimensions'] = dimensions
-        series['last_update'] = self.last_update
-        #series['release_dates'] = release_dates
-        series['start_date'] = self.start_date
-        series['end_date'] = self.end_date
-        series['frequency'] = self.frequency
+        bson['provider_name'] = self.provider_name
+        bson['dataset_code'] = self.dataset_code
+        bson['key'] = series_key
+        bson['attributes'] = None
+        bson['dimensions'] = dimensions
+        bson['last_update'] = self.dataset.last_update
         
-        return series
+        return bson
     
