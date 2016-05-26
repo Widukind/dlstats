@@ -124,7 +124,7 @@ class INSEE(Fetcher):
 
     def _load_structure_datatree(self, force=False):
 
-        if self._dataflows and self._categoryschemes and self._categorisations and not force:
+        if self._categoryschemes and self._categorisations and not force:
             return
         
         self._load_structure_dataflows(force)
@@ -240,8 +240,11 @@ class INSEE(Fetcher):
                 for categorisation_id in categorisation_ids:
                     categorisation = self._categorisations[categorisation_id]
                     dataflow_id = categorisation["dataflow"]["id"]
-                    dataset = self.xml_dsd.dataflows[dataflow_id]
-                    #dataset = self._dataflows[dataflow_id]
+                    #dataset = self.xml_dsd.dataflows[dataflow_id]
+                    if not dataflow_id in self._dataflows:
+                        logger.critical("dataflow not found [%s]" % dataflow_id)
+                        continue
+                    dataset = self._dataflows[dataflow_id]
                     
                     cat["datasets"].append({
                         "dataset_code": dataset['id'], 
