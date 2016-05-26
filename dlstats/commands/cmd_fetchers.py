@@ -287,6 +287,8 @@ def cmd_calendar(fetcher=None, update=False, **kwargs):
               help='Run tags and consolidate command after run')
 @click.option('--dataset-only', is_flag=True,
               help='Load or update dataset only (not series)')
+@click.option('--refresh-meta', is_flag=True,
+              help='Refresh stored metadata')
 @client.opt_trace
 @click.option('--bulk-size', '-B', default=200, type=int, 
               show_default=True, help='Bulk size for batch mode.')
@@ -297,7 +299,7 @@ def cmd_run(fetcher=None, dataset=None,
             max_errors=0, bulk_size=200, datatree=False,             
             async_mode=None, 
             use_files=False, not_remove=False, run_full=False,
-            dataset_only=False, 
+            dataset_only=False, refresh_meta=False, 
             **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
@@ -322,6 +324,7 @@ def cmd_run(fetcher=None, dataset=None,
                                       use_existing_file=use_files,
                                       not_remove_files=not_remove,
                                       dataset_only=dataset_only,
+                                      refresh_meta=refresh_meta,
                                       async_mode=async_mode)
                 
                 if not dataset and not hasattr(f, "upsert_all_datasets"):
