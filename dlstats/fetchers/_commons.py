@@ -250,8 +250,10 @@ class Fetcher(object):
 
             return self.upsert_dataset(dataset_code)
 
-        except errors.RejectUpdatedDataset:
+        except errors.RejectUpdatedDataset as err:
             msg = "Reject dataset updated for provider[%s] - dataset[%s]"
+            if err.comments:
+                msg = "%s - %s" % (msg, err.comments)
             logger.info(msg % (self.provider_name, dataset_code))
         finally:
             end = time.time() - start
@@ -714,7 +716,24 @@ class Datasets(DlstatsCollection):
             msg = "dataset not found for previous loading. provider[%s] - dataset[%s]"
             logger.warning(msg % (provider_name, dataset_code))
 
+    def set_dimension_frequency(self, dimension_name):
+        '''Identify frequency field in dataset dimensions'''
+        if not dimension_name:
+            return
+        if not self.metadata:
+            self.metadata = {}
+        self.metadata["dim_frequency"] = dimension_name
+
+    def set_dimension_country(self, dimension_name):
+        '''Identify country field in dataset dimensions'''
+        if not dimension_name:
+            return
+        if not self.metadata:
+            self.metadata = {}
+        self.metadata["dim_country"] = dimension_name
+    
     def add_frequency(self, frequency):
+        '''Add used frequency for this dataset'''
         if not frequency:
             return
         if not self.metadata:
