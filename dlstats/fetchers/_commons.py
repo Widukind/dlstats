@@ -746,10 +746,13 @@ class Datasets(DlstatsCollection):
     def is_recordable(self):
 
         if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+            self.metadata["disable_reason"] = "fetcher max errors exceeded [%s]" % self.fetcher.errors
             return False
         
         if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
-            logger.critical("provider[%s] not found in DB" % self.provider_name)
+            msg = "provider[%s] not found in DB" % self.provider_name
+            self.metadata["disable_reason"] = msg
+            logger.critical(msg)
             return False
         
         query = {"provider_name": self.provider_name,
@@ -757,6 +760,7 @@ class Datasets(DlstatsCollection):
         if self.fetcher.db[constants.COL_SERIES].count(query) > 0:
             return True
 
+        self.metadata["disable_reason"] = "not series for this dataset"
         return False
     
     @timeit("commons.Datasets.update_database")
