@@ -5,6 +5,8 @@ Widukind - dlstats
 
 **This is a database of international macroeconomic data collected on public web servers of statistical offices worldwide.**
 
+*Please ask your questions in the https://github.com/Widukind/widukind/issues repository.*
+
 Requires
 --------
 
