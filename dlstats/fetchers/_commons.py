@@ -47,6 +47,7 @@ class Fetcher(object):
                  max_errors=5,
                  use_existing_file=False,
                  not_remove_files=False,
+                 force_update=False,
                  dataset_only=False,
                  refresh_meta=False,
                  refresh_dsd=False,
@@ -73,6 +74,7 @@ class Fetcher(object):
         self.dataset_only = dataset_only
         self.refresh_meta = refresh_meta
         self.refresh_dsd = refresh_dsd
+        self.force_update = force_update
         
         self.async_mode = async_mode
         self.bulk_size = bulk_size
@@ -124,12 +126,14 @@ class Fetcher(object):
 
         if data_tree is None or force_update is True:
             data_tree = self.build_data_tree()
-            Categories.remove_all(self.provider_name, db=self.db)
 
-        results = []            
-        for data in data_tree:
-            cat = Categories(fetcher=self, **data)
-            results.append(cat.update_database())
+        results = []
+        if data_tree:
+            Categories.remove_all(self.provider_name, db=self.db)
+                        
+            for data in data_tree:
+                cat = Categories(fetcher=self, **data)
+                results.append(cat.update_database())
             
         return results
 
@@ -744,25 +748,35 @@ class Datasets(DlstatsCollection):
             self.metadata["frequencies"].append(frequency)
     
     def is_recordable(self):
-
-        if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
-            self.metadata["disable_reason"] = "fetcher max errors exceeded [%s]" % self.fetcher.errors
-            return False
         
-        if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
-            msg = "provider[%s] not found in DB" % self.provider_name
-            self.metadata["disable_reason"] = msg
-            logger.critical(msg)
-            return False
-        
-        query = {"provider_name": self.provider_name,
-                 "dataset_code": self.dataset_code}
-        if self.fetcher.db[constants.COL_SERIES].count(query) > 0:
-            return True
+        msg = None
 
-        self.metadata["disable_reason"] = "not series for this dataset"
-        return False
+        try:
+            if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+                msg = "fetcher max errors exceeded [%s]" % self.fetcher.errors
+                return False
+            
+            if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
+                msg = "provider[%s] not found in DB" % self.provider_name
+                logger.critical(msg)
+                return False
+            
+            if not self.codelists or len(self.codelists) == 0:
+                msg = "empty codelists for provider[%s] - dataset[%s]" % (self.provider_name, self.dataset_code)
+                logger.critical(msg)                
+                return False
+            
+            query = {"provider_name": self.provider_name,
+                     "dataset_code": self.dataset_code}
+            if self.fetcher.db[constants.COL_SERIES].count(query) == 0:
+                msg = "not series for this dataset"
+                return False
     
+            return True
+        finally:
+            if msg:
+                self.metadata["disable_reason"] = msg
+            
     @timeit("commons.Datasets.update_database")
     def update_database(self, save_only=False):
 
@@ -1489,6 +1503,8 @@ class Series:
                     bulk_requests.execute()
                 _execute()
             except pymongo.errors.BulkWriteError as err:
+                self.dataset.enable = False
+                self.dataset.metadata["disable_reason"] = "critical bulk error"
                 logger.critical(str(err.details))
                 raise
                  

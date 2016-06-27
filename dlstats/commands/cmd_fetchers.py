@@ -93,7 +93,7 @@ def _update_tags(ctx, db, provider_name, dataset=None, max_bulk=100, update_only
 
     end = time.time() - start
         
-    ctx.log("END update tags for [%s] - time[%.3f]" % (provider_name, end))
+    ctx.log("update tags END: provider[%s] - time[%.3f]" % (provider_name, end))
         
 
 @click.group()
@@ -292,6 +292,7 @@ def cmd_calendar(fetcher=None, update=False, **kwargs):
 @client.opt_trace
 @click.option('--bulk-size', '-B', default=200, type=int, 
               show_default=True, help='Bulk size for batch mode.')
+@click.option('--force-update', is_flag=True, help="Force update")
 @opt_fetcher
 @opt_async_mode
 @opt_dataset_multiple
@@ -299,7 +300,8 @@ def cmd_run(fetcher=None, dataset=None,
             max_errors=0, bulk_size=200, datatree=False,             
             async_mode=None, 
             use_files=False, not_remove=False, run_full=False,
-            dataset_only=False, refresh_meta=False, 
+            dataset_only=False, refresh_meta=False,
+            force_update=False, 
             **kwargs):
     """Run Fetcher - All datasets or selected dataset"""
 
@@ -325,7 +327,8 @@ def cmd_run(fetcher=None, dataset=None,
                                       not_remove_files=not_remove,
                                       dataset_only=dataset_only,
                                       refresh_meta=refresh_meta,
-                                      async_mode=async_mode)
+                                      async_mode=async_mode,
+                                      force_update=force_update)
                 
                 if not dataset and not hasattr(f, "upsert_all_datasets"):
                     ctx.log_error("upsert_all_datasets method is not implemented for this fetcher.")
@@ -479,6 +482,8 @@ def cmd_update_tags(fetcher=None, dataset=None, max_bulk=100,
 def cmd_aggregate_tags(max_bulk=100, update_only=False, async_mode=None, 
                        **kwargs):
     """Aggregate tags"""
+
+    #TODO: tag sur dataset only
 
     ctx = client.Context(**kwargs)
 
