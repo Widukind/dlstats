@@ -25,7 +25,10 @@ class DUMMY(Fetcher):
                            name="My Dataset Name",
                            last_update=clean_datetime(), 
                            fetcher=self)
-        
+        dataset.codelists = {
+            'COUNTRY': {'FRA': 'France'},
+            'OBS_STATUS': {'A': "A"}
+        }
         fetcher_data = DUMMY_Data(dataset)
         dataset.series.data_iterator = fetcher_data
 
@@ -65,13 +68,11 @@ DUMMY_SAMPLE_SERIES = [
             {
              "period": "2000", 
              "value": "1", 
-             "ordinal": 30, 
              "attributes": {"OBS_STATUS": "A"}
             },
             {
              "period": "2001", 
              "value": "10", 
-             "ordinal": 31, 
              "attributes": None
             },
         ],                

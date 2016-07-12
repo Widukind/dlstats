@@ -274,6 +274,7 @@ class BEA(Fetcher):
                                   use_existing_file=self.use_existing_file)
             
             filepath = download.get_filepath()
+            self.for_delete.append(filepath)
             self._current_urls[url] = filepath        
 
         zipfile_ = zipfile.ZipFile(filepath)
@@ -349,13 +350,13 @@ class BEA(Fetcher):
             url = category["url"]
             #filename = category["filename"]
             filename = "%s.xls.zip" % category_code
-            print(filename, url)
             
             download = Downloader(url=url,
                                   filename=filename,
                                   store_filepath=self.store_path,
                                   use_existing_file=self.use_existing_file)
-            filepath = download.get_filepath()        
+            filepath = download.get_filepath()
+            self.for_delete.append(filepath)        
 
             self._current_urls[url] = filepath
             
@@ -449,6 +450,8 @@ class BeaData(SeriesIterator):
         self.dataset.dimension_keys = ['concept', 'frequency']
         self.dataset.concepts["concept"] = "Concept"
         self.dataset.concepts["frequency"] = "Frequency"
+        
+        self.dataset.set_dimension_frequency("frequency")
         
         if not "concept" in self.dataset.codelists:
             self.dataset.codelists["concept"] = {}

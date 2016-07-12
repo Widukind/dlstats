@@ -8,6 +8,7 @@ from voluptuous import MultipleInvalid
 from pymongo.errors import DuplicateKeyError
 
 from widukind_common import errors
+from widukind_common.utils import series_archives_load
 
 from dlstats import constants
 from dlstats.fetchers import schemas
@@ -18,15 +19,14 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Categories,
                                        Datasets, 
                                        Series,
-                                       SeriesIterator,
-                                       series_is_changed,
-                                       series_revisions,
-                                       series_set_release_date,
-                                       series_update)
+                                       SeriesIterator)
+from dlstats.utils import clean_datetime 
+
 from dlstats.fetchers.dummy import DUMMY, DUMMY_SAMPLE_SERIES
 
 import unittest
 from unittest import mock
+import httpretty
 
 from dlstats.tests.base import BaseTestCase, BaseDBTestCase
 
@@ -50,6 +50,7 @@ class FakeSeriesIterator(SeriesIterator):
         return bson
 
 SERIES1 = {
+    'version': 0,
     'provider_name': 'p1',
     'dataset_code': 'd1',
     'name': 'series1',
@@ -57,9 +58,6 @@ SERIES1 = {
     'slug': 'p1-d1-key1',
     'values': [
         {
-            'release_date': datetime(2015, 1, 1, 0, 0, 0),
-            'ordinal': 25,
-            #'period_o': '1995',
             'period': '1995',
             'value': '1.0',
             'attributes': {
@@ -67,9 +65,6 @@ SERIES1 = {
             },
         },
         {
-            'release_date': datetime(2015, 1, 1, 0, 0, 0),
-            'ordinal': 44,
-            #'period_o': '2014',
             'period': '2014',
             'value': '1.5',
             'attributes': None
@@ -333,6 +328,7 @@ class SeriesTestCase(BaseTestCase):
         
         self.assertFalse(hasattr(s, "data_iterator"))
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_set_release_date(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_set_release_date
@@ -383,6 +379,7 @@ class SeriesTestCase(BaseTestCase):
                         datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None))
 
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_is_changed(self):
 
         old_bson = None
@@ -519,10 +516,17 @@ class SeriesTestCase(BaseTestCase):
     def test_series_schema(self):
 
         bson = {
-            'provider_name': "p1", 'dataset_code': "d1",
-            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
+            'version': 0,
+            'last_update_ds': datetime.now(),
+            'last_update_widu': datetime.now(),
+            'provider_name': "p1", 
+            'dataset_code': "d1",
+            'name': "name1", 
+            'key': "key1", 
+            "slug": "p1-d1-key1",             
             'attributes': None,
             'dimensions': {"COUNTRY": "FRA"},
+            'codelists': {"COUNTRY": {"FRA": "FRANCE"}},
             'start_date': 30, 'end_date': 30,
             'start_ts': datetime(2000, 1, 1, 0, 0),
             'end_ts': datetime(2000, 12, 31, 23, 59, 59, 999999),
@@ -530,22 +534,15 @@ class SeriesTestCase(BaseTestCase):
             'values': [
                 {
                     "period": "2000", 
-                    "value": "1", 
-                    "ordinal": 30, "attributes": None,
-                    "release_date": datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None),
-                    "revisions": [{
-                        "revision_date": datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None),
-                        "value": "1",
-                        "attributes": None
-                    }]
+                    "value": "1",
+                    "attributes": None, 
                  }
             ],                
         }
-        schemas.series_revision_schema(bson["values"][0]["revisions"][0])
         schemas.series_value_schema(bson["values"][0])
         schemas.series_schema(bson)
 
-    @unittest.skipIf(True, "FIXME")    
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_update(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_update
@@ -565,15 +562,15 @@ class SeriesTestCase(BaseTestCase):
             'last_update': last_update,
             'values': [
                 {"period": "2000", 
-                 "value": "1", "ordinal": 30, "attributes": None}
+                 "value": "1", "attributes": None}
             ],                
         }
         modify_bson = series_update(new_bson, last_update=last_update)
         self.assertIsNotNone(modify_bson)
         
         values_0 = modify_bson["values"][0]
-        self.assertTrue("release_date" in values_0) 
-        self.assertEqual(values_0["release_date"], last_update)
+        #self.assertTrue("release_date" in values_0) 
+        #self.assertEqual(values_0["release_date"], last_update)
 
 
         '''old_bson without change - bypass'''
@@ -590,7 +587,7 @@ class SeriesTestCase(BaseTestCase):
             'values': [
                 {"period": "2000", 
                  #"period_o": "2000", 
-                 "value": "1", "ordinal": 30, "attributes": None}
+                 "value": "1", "attributes": None}
             ],                
         }
         old_bson = deepcopy(new_bson)
@@ -609,10 +606,10 @@ class SeriesTestCase(BaseTestCase):
             'frequency': "A",
             'last_update': last_update,
             'values': [
-                {"period": "2000", "value": "1", "ordinal": 30, "attributes": None},
-                {"period": "2001", "value": "1", "ordinal": 31, "attributes": None},
-                {"period": "2002", "value": "1", "ordinal": 32, "attributes": None},
-                {"period": "2003", "value": "1", "ordinal": 33, "attributes": None},
+                {"period": "2000", "value": "1", "attributes": None},
+                {"period": "2001", "value": "1", "attributes": None},
+                {"period": "2002", "value": "1", "attributes": None},
+                {"period": "2003", "value": "1", "attributes": None},
             ],                
         }
         modify_bson = series_update(new_bson, last_update=last_update)
@@ -629,20 +626,21 @@ class SeriesTestCase(BaseTestCase):
             'frequency': "A",
             'last_update': last_update,
             'values': [
-                {"period": "2000", "value": "1", "ordinal": 30, "attributes": None},
-                {"period": "2002", "value": "1", "ordinal": 32, "attributes": None},
-                {"period": "2003", "value": "1", "ordinal": 33, "attributes": None},
+                {"period": "2000", "value": "1", "attributes": None},
+                {"period": "2002", "value": "1", "attributes": None},
+                {"period": "2003", "value": "1", "attributes": None},
             ],                
         }
         
         modify_bson = series_update(new_bson, last_update=last_update)
-        print("modify_bson : ", modify_bson)
+        #print("modify_bson : ", modify_bson)
         with self.assertRaises(Exception) as err:
             modify_bson = series_update(new_bson, last_update=last_update)
         self.assertEqual(str(err.exception), 
                          "Missing values for provider[p1] - dataset[d1] - current[3] - attempt[4]")
         
         
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_revisions_exceptions(self):
 
         new_bson = None
@@ -685,6 +683,7 @@ class SeriesTestCase(BaseTestCase):
         self.assertEqual(str(err.exception), 
                          "not values field in old_bson")
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_revisions_no_change(self):
 
         release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
@@ -692,14 +691,12 @@ class SeriesTestCase(BaseTestCase):
 
         old_bson = {
             "values": [
-                {"period": "2000", "value": "1", "ordinal": 30, 
-                 "release_date": release_date, "attributes": None},
+                {"period": "2000", "value": "1", "attributes": None},
             ]
         }
         new_bson = {
             "values": [
-                {"period": "2000", "value": "1", "ordinal": 30,
-                 "release_date": release_date, "attributes": None},
+                {"period": "2000", "value": "1", "attributes": None},
             ]
         }
         
@@ -707,6 +704,7 @@ class SeriesTestCase(BaseTestCase):
         self.assertFalse(changed)
 
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_revisions_change_one_value(self):
 
         release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
@@ -715,14 +713,12 @@ class SeriesTestCase(BaseTestCase):
         '''Change one value - add one revision'''
         old_bson = {
             "values": [
-                {"period": "2000", "value": "1", "ordinal": 30, 
-                 "release_date": release_date, "attributes": None},
+                {"period": "2000", "value": "1", "attributes": None},
             ]
         }
         new_bson = {
             "values": [
-                {"period": "2000", "value": "1000", "ordinal": 30, 
-                 "release_date": release_date, "attributes": None},
+                {"period": "2000", "value": "1000", "attributes": None},
             ]
         }
         
@@ -740,6 +736,7 @@ class SeriesTestCase(BaseTestCase):
         self.assertEqual(new_bson["values"][0]["release_date"], last_update)
         self.assertEqual(new_bson["values"][0]["revisions"][0], revision_entry)
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_more_values_in_old_json(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_more_values_in_old_json
@@ -767,17 +764,13 @@ class SeriesTestCase(BaseTestCase):
         for i in range(2010, 2060+1):
             start_date += 1
             old_bson["values"].append({
-                "period": str(i), "value": "1", "ordinal": start_date, 
-                "release_date": release_date, 
-                "attributes": None
+                "period": str(i), "value": "1", "attributes": None
             })
 
         self.assertEqual(len(old_bson["values"]), 51)
 
         self.assertEqual(old_bson["values"][0]["period"], "2010")
-        self.assertEqual(old_bson["values"][0]["ordinal"], 40)
         self.assertEqual(old_bson["values"][-1]["period"], "2060")
-        self.assertEqual(old_bson["values"][-1]["ordinal"], 90)
                 
         new_bson = {
             "start_date": 37, # 2007
@@ -789,17 +782,13 @@ class SeriesTestCase(BaseTestCase):
         for i in range(2007, 2017+1):
             start_date += 1 #37
             new_bson["values"].append({
-                "period": str(i), "value": "1", "ordinal": start_date,
-                "release_date": release_date, 
-                "attributes": None
+                "period": str(i), "value": "1", "attributes": None
             })
 
         self.assertEqual(len(new_bson["values"]), 11)
 
         self.assertEqual(new_bson["values"][0]["period"], "2007")
-        self.assertEqual(new_bson["values"][0]["ordinal"], 37)
         self.assertEqual(new_bson["values"][-1]["period"], "2017")
-        self.assertEqual(new_bson["values"][-1]["ordinal"], 47)
 
         '''Change value for 2010 TO 2017'''
         for i in range(3, 11):
@@ -848,6 +837,7 @@ class SeriesTestCase(BaseTestCase):
         self.assertEqual(new_bson["values"][3]["revisions"][0], revision_entry)
 
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_revisions_change_one_value_add_existing_revision(self):
 
         release_date = datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None)
@@ -857,8 +847,7 @@ class SeriesTestCase(BaseTestCase):
 
         old_bson = {
             "values": [
-                {"period": "2000", "value": "10", "ordinal": 30, 
-                 "release_date": release_date, "attributes": None,
+                {"period": "2000", "value": "10", "attributes": None,
                  "revisions": [{
                     "revision_date": datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None),
                     "value": "5",
@@ -868,8 +857,7 @@ class SeriesTestCase(BaseTestCase):
         }
         new_bson = {
             "values": [
-                {"period": "2000", "value": "20", "ordinal": 30, 
-                 "release_date": release_date, "attributes": None},
+                {"period": "2000", "value": "20", "attributes": None},
             ]
         }
         changed = series_revisions(new_bson, old_bson, last_update)
@@ -886,6 +874,7 @@ class SeriesTestCase(BaseTestCase):
         self.assertEqual(revision_0["revision_date"].year, 2015)
         self.assertEqual(revision_1["revision_date"].year, 2016)
 
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_series_revisions_change_only_attribute(self):
 
         #FIXME: not only attribute change
@@ -897,16 +886,12 @@ class SeriesTestCase(BaseTestCase):
         
         old_bson = {
             "values": [
-                {"period": "2000", "value": "1", "ordinal": 30, 
-                 "release_date": release_date, 
-                 "attributes": {"OBS_STATUS": "e"}}, # estimated
+                {"period": "2000", "value": "1", "attributes": {"OBS_STATUS": "e"}}, # estimated
             ]
         }
         new_bson = {
             "values": [
-                {"period": "2000", "value": "10", "ordinal": 30,
-                 "release_date": release_date, 
-                 "attributes": None}, # fixe value
+                {"period": "2000", "value": "10", "attributes": None}, # fixe value
             ]
         }
         
@@ -920,7 +905,8 @@ class SeriesTestCase(BaseTestCase):
         revision_0 = new_bson["values"][0]["revisions"][0]
         self.assertEqual(revision_0["attributes"], {"OBS_STATUS": "e"})
 
-    @mock.patch("dlstats.fetchers._commons.DlstatsCollection.update_mongo_collection", update_mongo_collection)
+    #@mock.patch("dlstats.fetchers._commons.DlstatsCollection.update_mongo_collection", update_mongo_collection)
+    @unittest.skipIf(True, "REMOVE OR UPDATE")    
     def test_process_series_data(self):
 
         # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_process_series_data
@@ -1782,6 +1768,10 @@ class DB_SeriesTestCase(BaseDBTestCase):
         provider_name = "p1"
         dataset_code = "d1"
         dataset_name = "d1 name"
+        series_slug = "p1-d1-key1"
+        
+        last_update_ds = datetime(2015, 1, 1, 0, 0, 0)
+        last_update_widu = datetime(2015, 1, 1, 0, 0, 0)
     
         f = Fetcher(provider_name=provider_name, 
                     db=self.db)
@@ -1797,36 +1787,45 @@ class DB_SeriesTestCase(BaseDBTestCase):
         d = Datasets(provider_name=provider_name, 
                     dataset_code=dataset_code,
                     name=dataset_name,
-                    last_update=datetime.now(),
+                    last_update=last_update_ds,
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
+        d.codelists = {"fake": {}}
         
         s1 = Series(dataset=d,
                     provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
-                    last_update=datetime(2013,4,1), 
+                    last_update=d.last_update, 
                     bulk_size=1, 
                     fetcher=f)
 
-        series_list = [SERIES1.copy()]
+        _SERIES1 = SERIES1.copy()
+        _SERIES1['last_update_ds'] = last_update_ds
+        _SERIES1['last_update_widu'] = last_update_widu
+        #_SERIES1['version'] = 0
+
+        series_list = [_SERIES1]
         datas1 = FakeSeriesIterator(d, series_list)
         s1.data_iterator = datas1
         d.series = s1
         d.update_database()
 
-        test_key = SERIES1['key']
+        bson = self.db[constants.COL_SERIES].find_one({'slug': series_slug})
+        self.assertIsNotNone(bson)
+        self.assertEqual(bson["version"], 0)
         
-        SERIES1.pop("_id", None)
-        old_value = SERIES1["values"][0]["value"] #1.0
-        old_release_date = SERIES1["values"][0]["release_date"]
+        _SERIES1.pop("_id", None)
+        old_value = _SERIES1["values"][0]["value"] #1.0
+        old_release_date = last_update_ds
 
-        SERIES2 = SERIES1.copy()
+        SERIES2 = _SERIES1.copy()
         SERIES2["values"][0]["value"] = "10"
 
         s1.last_update = datetime(old_release_date.year+1, 
                                   old_release_date.month, 
-                                  old_release_date.day)
+                                  old_release_date.day,
+                                  0, 0, 0)
 
         SERIES2["last_update"] = s1.last_update
 
@@ -1837,21 +1836,25 @@ class DB_SeriesTestCase(BaseDBTestCase):
         d.series = s1
         d.update_database()
         
-        bson = self.db[constants.COL_SERIES].find_one({'key': test_key})
-
-        self.assertTrue("revisions" in bson["values"][0])
-        
+        bson = self.db[constants.COL_SERIES].find_one({'slug': series_slug})
+        self.assertIsNotNone(bson)
+        self.assertEqual(bson["version"], 1)
         self.assertEqual(bson["values"][0]["value"], "10")
-        self.assertEqual(bson["values"][0]["release_date"], datetime(2016, 1, 1, 0, 0))
+        self.assertEqual(bson["last_update_ds"], datetime(2016, 1, 1, 0, 0))
+
+        bson_rev0 = self.db[constants.COL_SERIES_ARCHIVES].find_one({'slug': series_slug})
+        self.assertIsNotNone(bson_rev0)
+        bson_rev0 = series_archives_load(bson_rev0)
+        self.assertEqual(bson_rev0["version"], 0)
+        #FIXME: self.assertEqual(bson_rev0["last_update_ds"], old_release_date)
+        self.assertEqual(bson_rev0["values"][0]["value"], old_value)
         
-        self.assertEqual(len(bson["values"][0]["revisions"]), 1)        
-        self.assertEqual(bson["values"][0]["revisions"][0]["value"], old_value)
-        self.assertEqual(bson["values"][0]["revisions"][0]["revision_date"], old_release_date)
-        
+
 class DB_DummyTestCase(BaseDBTestCase):
 
     # nosetests -s -v dlstats.tests.fetchers.test__commons:DB_DummyTestCase
     
+    #@unittest.skipIf(True, "FIXME")
     def test_upsert_dataset(self):
         
         fetcher = DUMMY(db=self.db)
@@ -1881,10 +1884,12 @@ class DB_DummyTestCase(BaseDBTestCase):
         self.maxDiff = None
         
         series.pop('_id')
-        for v in series["values"]:
-            v.pop("release_date")
+        series.pop('last_update_ds')
+        series.pop('last_update_widu')
         
         bson = {
+         'version': 0,
+         'codelists': {'country': {'fra': 'France'}, 'obs-status': {'a': 'A'}},
          'attributes': None,
          'dataset_code': 'ds1',
          'dimensions': {'country': 'fra'},
@@ -1898,16 +1903,11 @@ class DB_DummyTestCase(BaseDBTestCase):
          'start_ts': datetime(2000, 1, 1, 0, 0),
          'end_ts': datetime(2001, 1, 1, 0, 0),
          'values': [{'attributes': {'obs-status': 'a'},
-                     'ordinal': 30,
                      'period': '2000',
-                     #'release_date': datetime(2016, 2, 8, 9, 35, 16),
                      'value': '1'},
                     {'attributes': None,
-                     'ordinal': 31,
                      'period': '2001',
-                     #'release_date': datetime(2016, 2, 8, 9, 35, 16),
-                     'value': '10'}]}        
-        #from pprint import pprint
-        #print()
-        #pprint(series)
-        self.assertEqual(series, bson)
+                     'value': '10'}]
+        }
+        self.assertEquals(series, bson)
+        

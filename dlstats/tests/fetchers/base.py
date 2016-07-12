@@ -41,6 +41,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
     def setUp(self):
         super().setUp()
         self.fetcher = self.FETCHER_KLASS(db=self.db, 
+                                          bulk_size=10,
                                           use_existing_file=False,
                                           not_remove_files=False)
         self.is_debug = self.DEBUG_MODE
@@ -128,7 +129,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
             print("------ DATA TREE LOCAL ---------")
             pprint(data_tree)
         
-        results = self.fetcher.upsert_data_tree(force_update=True)
+        results = self.fetcher.upsert_data_tree(data_tree=data_tree, force_update=False)
         self.assertIsNotNone(results)
         
         data_tree = self.db[constants.COL_CATEGORIES].find({"provider_name": 
@@ -294,8 +295,6 @@ class BaseFetcherTestCase(BaseDBTestCase):
         self.assertEqual(series_db["name"], series_sample["name"])
         self.assertEqual(series_db["frequency"], series_sample["frequency"])
         
-        self.assertEqual(series_db["start_date"], series_sample["first_value"]["ordinal"])
-        self.assertEqual(series_db["end_date"], series_sample["last_value"]["ordinal"])
         self.assertTrue(series_db["end_date"] >= series_db["start_date"])
         
         self.assertEqual(series_db["dimensions"], slugify_dict_keys(**series_sample["dimensions"]))
@@ -311,9 +310,7 @@ class BaseFetcherTestCase(BaseDBTestCase):
         
         for source, target in [(first_value, first_sample), (last_value, last_sample)]:
             self.assertEqual(source["value"], target["value"])
-            self.assertEqual(source["ordinal"], target["ordinal"])
             self.assertEqual(source["period"], target["period"])
-            #self.assertEqual(source["period_o"], target["period_o"])
             if source.get("attributes") and target.get("attributes"):
                 self.assertEqual(source["attributes"], slugify_dict_keys(**target["attributes"]))
 
