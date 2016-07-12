@@ -74,7 +74,6 @@ dataset_schema = Schema({
     'attribute_keys': Any(None, list, Length(min=1)),
     'codelists': Any(None, dict),
     'concepts': Any(None, dict),
-    
     Optional('tags'): Any(None, list),
     'metadata': Any(None, dict),
     Optional('notes'): Any(None, str),
@@ -83,22 +82,16 @@ dataset_schema = Schema({
     'download_last': typecheck(datetime),
     },required=True)
 
-series_revision_schema = Schema({
-    'value': str,
-    'attributes': Any(None, dict),
-    'revision_date': date_validator,
-}, required=True)
-
 series_value_schema = Schema({
     'value': str,
-    'release_date': date_validator,
-    'ordinal': int,
     'period': All(str, Length(min=1)),
     'attributes': Any(None, dict),
-    Optional('revisions'): [series_revision_schema],
 }, required=True)
 
 series_schema = Schema({
+    'version': All(int, Range(min=0)),
+    'last_update_ds': typecheck(datetime),
+    'last_update_widu': typecheck(datetime),
     'name': All(str, Length(min=1)),
     'provider_name': All(str, Length(min=1)),
     'key': All(str, Length(min=1)),
@@ -110,6 +103,7 @@ series_schema = Schema({
     'values': [series_value_schema],
     'attributes': Any(None, dict),
     'dimensions': {str: str},
+    'codelists': Any(None, dict),
     'frequency': All(str, Length(min=1)),
     Optional('notes'): Any(None, str),
     Optional('tags'): Any(None, list),

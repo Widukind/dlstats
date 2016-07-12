@@ -14,9 +14,10 @@ import json
 
 import pymongo
 from pymongo import ReturnDocument
+from bson.json_util import dumps as json_dumps
 import pandas
 
-from widukind_common.utils import get_mongo_db, load_klass
+from widukind_common.utils import get_mongo_db, load_klass, series_archives_store
 from widukind_common import errors
 from widukind_common.tags import generate_tags_series
 from widukind_common.debug import timeit, TRACE_ENABLE
@@ -44,7 +45,7 @@ class Fetcher(object):
                  db=None, 
                  is_indexes=True,
                  version=0,
-                 max_errors=5,
+                 max_errors=10,
                  use_existing_file=False,
                  not_remove_files=False,
                  force_update=False,
@@ -608,7 +609,7 @@ class Datasets(DlstatsCollection):
         self.doc_href = doc_href
         self.last_update = last_update
         self.metadata = metadata or {}
-        self.bulk_size = bulk_size
+        self.bulk_size = self.fetcher.bulk_size
         self.dimension_list = CodeDict()
         self.attribute_list = CodeDict()
         
@@ -868,9 +869,6 @@ class Datasets(DlstatsCollection):
                                          self.fetcher.bulk_size,
                                          self.fetcher.dataset_only))
             
-            #if save_only:
-            #    self.series.reset_counters()
-    
             if self.series.count_inserts + self.series.count_updates > 0:
                 schemas.dataset_schema(self.bson)
                 result = self.update_mongo_collection(constants.COL_DATASETS,
@@ -878,14 +876,6 @@ class Datasets(DlstatsCollection):
                                                       self.bson)
             else:
                 result = self.minimal_update_database()
-                """
-                query = {"slug": self.slug()}
-                query_update = {"$set": {"download_last": self.download_last}}
-                result = self.fetcher.db[constants.COL_DATASETS].update_one(query,
-                                                                    query_update)
-                result = result.upserted_id
-                logger.info("update only download_last for dataset[%s]" % self.dataset_code)
-                """
     
             self.fetcher.hook_after_dataset(self)
     
@@ -1014,163 +1004,63 @@ def series_clean_field(bson):
     return bson
 
 
-@timeit("commons.series_set_release_date", stats_only=True)
-def series_set_release_date(bson, last_update):
-    
-    if not bson or not isinstance(bson, dict):
-        raise ValueError("no bson or not dict instance")            
-    
-    if not last_update or not isinstance(last_update, datetime):
-        raise ValueError("no last_update or not datetime instance")            
-    
-    if not "values" in bson:
-        raise ValueError("not values field in bson")
-    
-    for obs in bson["values"]:
-        if not obs.get("release_date"):
-            obs["release_date"] = last_update
-
-@timeit("commons.series_revisions", stats_only=True)
-def series_revisions(new_bson, old_bson, last_update):
-    
-    if not new_bson or not isinstance(new_bson, dict):
-        raise ValueError("no new_bson or not dict instance")            
-
-    if not old_bson or not isinstance(old_bson, dict):
-        raise ValueError("no old_bson or not dict instance")            
-    
-    if not last_update or not isinstance(last_update, datetime):
-        raise ValueError("no last_update or not datetime instance")            
-
-    if not "values" in new_bson:
-        raise ValueError("not values field in new_bson")
-
-    if not "values" in old_bson:
-        raise ValueError("not values field in old_bson")
-    
-    old_values = old_bson["values"]
-    changed = False
-    
-    old_values_by_periods = {}    
-    for old_value in old_values:
-        old_values_by_periods[old_value["period"]] = old_value
-    
-    keyfunc = lambda x: x["ordinal"]
-    #TODO: keyfunc = lambda x: x["datetime"]
-    groups = []
-    uniquekeys = []
-    data = sorted(old_bson["values"] + new_bson["values"], key=keyfunc)
-
-    for k, g in groupby(data, keyfunc):
-        groups.append(list(g))
-        uniquekeys.append(k)
-
-    new_bson["values"] = []
-
-    for group in groups:
-        if len(group) == 1:
-            new_bson["values"].append(group[0])
-            continue
-        
-        old_obs = group[0]
-        new_obs = group[1]
-
-        '''load old revisions if exists'''        
-        if "revisions" in old_obs:
-            new_obs["revisions"] = old_obs["revisions"] 
-        
-        '''Search if new revision'''
-        is_new_revision = False
-        
-        '''is value change'''
-        if old_obs["value"] != new_obs["value"]:
-            is_new_revision = True
-            
-        '''is attributes change'''
-        if old_obs.get("attributes") != new_obs.get("attributes"):
-            is_new_revision = True
-        
-        if not is_new_revision:
-            new_bson["values"].append(group[0])
-            continue
-        
-        changed = True
-        
-        if not new_obs.get("revisions"):
-            new_obs["revisions"] = []
-        
-        new_obs["revisions"].append({ 
-            "revision_date": old_obs["release_date"],
-            "value": old_obs["value"],
-            "attributes": old_obs.get("attributes") 
-        })
-        
-        '''new release date'''
-        new_obs["release_date"] = last_update
-
-        new_bson["values"].append(new_obs)
-
-    return changed
-
 @timeit("commons.series_is_changed", stats_only=True)
 def series_is_changed(new_bson, old_bson):
+    """Verify if series change(s)"""
 
-    if not new_bson or not isinstance(new_bson, dict):
-        raise ValueError("no new_bson or not dict instance")            
-
-    if not old_bson or not isinstance(old_bson, dict):
-        raise ValueError("no old_bson or not dict instance")            
-
-    if not "values" in new_bson:
-        raise ValueError("not values field in new_bson")
-
-    if not "values" in old_bson:
-        raise ValueError("not values field in old_bson")
-
-    # Already in revisions process - before run series_is_changed
-    """    
+    '''Add or remove period'''
     if len(new_bson["values"]) != len(old_bson["values"]):
         return True
     
+    '''First period change'''
     if new_bson["values"][0]["period"] != old_bson["values"][0]["period"]:
         return True 
 
+    '''Last period change'''
     if new_bson["values"][-1]["period"] != old_bson["values"][-1]["period"]:
-        return True 
-    """
-    
-    if new_bson.get("notes") != old_bson.get("notes"):
         return True
 
-    if sorted(list(new_bson.get("dimensions", {}).keys())) != sorted(list(old_bson.get("dimensions", {}).keys())):
+    '''Value(s) change'''    
+    old_values = [v['value'] for v in old_bson['values']]
+    new_values = [v['value'] for v in new_bson['values']]
+    if old_values != new_values:
         return True
 
-    if sorted(list(new_bson.get("dimensions", {}).values())) != sorted(list(old_bson.get("dimensions", {}).values())):
-        return True
-
-    if new_bson.get("attributes") and not old_bson.get("attributes"):
-        return True
-
-    if old_bson.get("attributes") and not new_bson.get("attributes"):
-        return True
-
-    if new_bson.get("attributes") and old_bson.get("attributes"):
-        if sorted(list(new_bson.get("attributes", {}).keys())) != sorted(list(old_bson.get("attributes", {}).keys())):
+    '''values.$.attributes change(s)'''
+    old_obs_attrs = [v['attributes'] for v in old_bson['values']]
+    new_obs_attrs = [v['attributes'] for v in new_bson['values']]
+    for i, v in enumerate(old_obs_attrs):
+        if v != new_obs_attrs[i]:
             return True
-    
-        if sorted(list(new_bson.get("attributes", {}).values())) != sorted(list(old_bson.get("attributes", {}).values())):
-            return True
-    
+
+    '''change start_date'''
     if new_bson["start_date"] != old_bson["start_date"]:
         return True 
 
+    '''change end_date'''
     if new_bson["end_date"] != old_bson["end_date"]:
+        return True
+
+    '''change notes'''
+    if new_bson.get("notes") != old_bson.get("notes"):
+        return True
+
+    '''change name'''
+    if new_bson.get("name") != old_bson.get("name"):
+        return True
+    
+    '''change dimensions'''
+    if new_bson.get("dimensions") != old_bson.get("dimensions"):
+        return True
+    
+    '''change attributes'''
+    if new_bson.get("attributes") != old_bson.get("attributes"):
         return True
 
     return False
 
-@timeit("commons.series_update", stats_only=True)
-def series_update(new_bson, old_bson=None, last_update=None):
+@timeit("commons.series_verify", stats_only=True)
+def series_verify(new_bson, old_bson=None):
 
     if not new_bson or not isinstance(new_bson, dict):
         raise ValueError("no new_bson or not dict instance")            
@@ -1178,8 +1068,8 @@ def series_update(new_bson, old_bson=None, last_update=None):
     if old_bson and not isinstance(old_bson, dict):
         raise ValueError("old_bson is not dict instance")            
 
-    if not "values" in new_bson:
-        raise ValueError("not values field in new_bson")
+    #if not "values" in new_bson:
+    #    raise ValueError("not values field in new_bson")
 
     if old_bson and not "values" in old_bson:
         raise ValueError("not values field in old_bson")
@@ -1205,70 +1095,63 @@ def series_update(new_bson, old_bson=None, last_update=None):
             raise Exception(msg)
     """
 
+@timeit("commons.series_get_last_update_dataset", stats_only=True)
+def series_get_last_update_dataset(new_bson, last_update=None):
+    """Return valid last_update value"""
     _last_update = None
     if new_bson.get('last_update'):
         _last_update = clean_datetime(new_bson.pop('last_update', None))
     else:
         _last_update = clean_datetime(last_update)
-    
+        
     new_bson.pop('last_update', None)
+    return _last_update
+
+@timeit("commons.series_set_codelists", stats_only=True)
+def series_set_codelists(bson, codelists):
+    """set/update codelists field in series"""
+    
+    search_codelists = {}
+    
+    if not "codelists" in bson:
+        bson["codelists"] = {}
         
-    #TODO: valeurs manquantes à remplacer par chaine Unique: NaN
+    for k, v in bson.get("dimensions", {}).items():
+        if not k in search_codelists:
+            search_codelists[k] = []
+        if not v in search_codelists[k]:
+            search_codelists[k].append(v)
+    
+    if bson.get("attributes"):
+        for k, v in bson.get("attributes").items():
+            if not k in search_codelists:
+                search_codelists[k] = []
+            if not v in search_codelists[k]:
+                search_codelists[k].append(v)
 
-    series_set_release_date(new_bson, _last_update)
+    for value in bson["values"]:
+        if value.get("attributes"):
+            for k, v in value.get("attributes").items():
+                if not k in search_codelists:
+                    search_codelists[k] = []
+                if not v in search_codelists[k]:
+                    search_codelists[k].append(v)
 
-    if not old_bson:
-        if not IS_SCHEMAS_VALIDATION_DISABLE:
-            schemas.series_schema(new_bson)
-        return new_bson
-    else:
-        changed = series_revisions(new_bson, old_bson, _last_update)
-        
-        if not changed:
-            changed = series_is_changed(new_bson, old_bson)
-            
-        if not changed:
-            return
-
-        if not IS_SCHEMAS_VALIDATION_DISABLE:
-            schemas.series_schema(new_bson)
-        
-    return new_bson
-
-@timeit("commons.update_series_list_unit", stats_only=True)
-def update_series_list_unit(data, old_series=None, last_update=None, 
-                            provider_name=None, dataset_code=None):
-    key = data['key']
-
-    if not data.get("slug", None):
-        txt = "-".join([provider_name, dataset_code, key])
-        data['slug'] = slugify(txt, word_boundary=False, save_order=True)
-
-    if not key in old_series:
-        bson = series_update(data, last_update=last_update)
-        return bson, None
-    else:
-        old_bson = old_series[key]
-        
-        bson = series_update(data, old_bson=old_bson, 
-                             last_update=last_update)
-
-        if bson:
-            query_update = {
-                "start_date": bson["start_date"],     
-                "end_date": bson["end_date"],     
-                "values": bson["values"],     
-                "attributes": bson["attributes"],     
-                "dimensions": bson["dimensions"],     
-                "notes": bson.get("notes"),     
-            }
-            return None, [{'_id': old_bson['_id']},
-                          {'$set': query_update}]
-        else:
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.debug("series[%s] not changed" % old_bson["slug"])                    
-            
-
+    for k, items in search_codelists.items():
+        if k in codelists:
+            for i in items:
+                value = codelists[k].get(i)
+                if value:
+                    if not k in bson["codelists"]:
+                        bson["codelists"][k] = {}
+                    bson["codelists"][k][i] = value
+    
+def clean_values(bson):
+    for value in bson["values"]:
+        value.pop('ordinal', None)
+        value.pop('release_date', None)
+        value.pop('revisions', None)
+    
 class Series:
     """Time Series class
     """
@@ -1307,13 +1190,15 @@ class Series:
         self.fetcher = fetcher        
         self.dataset = dataset
 
-        self.bulk_size = self.fetcher.bulk_size
+        self.bulk_size = bulk_size
 
         # temporary storage necessary to get old_bson in bulks
         self.series_list = deque()
         self.fatal_error = False
         
         self.now = clean_datetime()
+        
+        self.dataset_finalized = False
         
         self.count_accepts = 0
         self.count_rejects = 0
@@ -1342,10 +1227,17 @@ class Series:
                 self.fatal_error = False
                 try:
                     data = next(self.data_iterator)
-    
+                    
                     if isinstance(data, dict):
-                        self.count_accepts += 1
-                        self.series_list.append(data)
+                        if not "values" in data or len(data["values"]) == 0:
+                            self.count_rejects += 1
+                            msg = "Reject empty series for provider[%s] - dataset[%s]"
+                            logger.warning(msg % (self.provider_name, 
+                                                  self.dataset_code))
+                            continue
+                        else:
+                            self.count_accepts += 1
+                            self.series_list.append(data)
     
                     elif isinstance(data, errors.RejectFrequency):
                         self.count_rejects += 1
@@ -1437,6 +1329,9 @@ class Series:
     @timeit("commons.Series.update_series_list", stats_only=True)
     def update_series_list(self):
 
+        if not self.dataset_finalized:
+            self.update_dataset_lists_finalize()
+        
         keys = [s['key'] for s in self.series_list]
 
         query = {
@@ -1444,56 +1339,75 @@ class Series:
             'dataset_code': self.dataset_code,
             'key': {'$in': keys}
         }
-        projection = {"tags": False}
 
         db = self.get_db()
-        cursor = db[constants.COL_SERIES].find(query, projection)
+        cursor = db[constants.COL_SERIES].find(query)
 
         old_series = {s['key']:s for s in cursor}
 
-        bulk_requests = db[constants.COL_SERIES].initialize_unordered_bulk_op()
+        bulk_requests = db[constants.COL_SERIES].initialize_ordered_bulk_op()
+        bulk_requests_archives = db[constants.COL_SERIES_ARCHIVES].initialize_ordered_bulk_op()
         is_operation = False
-        for data in self.series_list:
+        is_operation_archives = False
+        
+        for bson in self.series_list:
+            
+            key = bson['key']
 
-            key = data['key']
+            if not "version" in bson:
+                bson["version"] = 0
 
-            if not data.get("slug", None):
+            if not bson.get("slug", None):
                 txt = "-".join([self.provider_name, self.dataset_code, key])
-                data['slug'] = slugify(txt, word_boundary=False, save_order=True)
-
+                bson['slug'] = slugify(txt, word_boundary=False, save_order=True)
+            
+            last_update_ds = series_get_last_update_dataset(bson, 
+                                                            last_update=self.last_update)
+            
+            clean_values(bson)
+            
             if not key in old_series:
-                bson = series_update(data, last_update=self.last_update)
-                """
-                bson["tags"] = generate_tags_series(self.fetcher.db, 
-                                                    bson, 
-                                                    self.fetcher.provider.bson, 
-                                                    self.dataset.bson)
-                """
+                series_verify(bson)
+                bson["last_update_ds"] = last_update_ds 
+                bson["last_update_widu"] = clean_datetime()
+                series_set_codelists(bson, self.dataset.codelists)
+                if not IS_SCHEMAS_VALIDATION_DISABLE:
+                    schemas.series_schema(bson)
                 bulk_requests.insert(bson)
                 is_operation = True
                 self.count_inserts += 1
             else:
                 old_bson = old_series[key]
+                series_verify(bson, old_bson=old_bson)
+                clean_values(old_bson)
                 
-                bson = series_update(data, old_bson=old_bson, 
-                                     last_update=self.last_update)
+                _id = old_bson.pop('_id')
+                tags = old_bson.pop('tags', None)
 
-                if bson:
-                    query_update = {
-                        "start_date": bson["start_date"],     
-                        "end_date": bson["end_date"],     
-                        "values": bson["values"],     
-                        "attributes": bson["attributes"],     
-                        "dimensions": bson["dimensions"],     
-                        "notes": bson.get("notes"),     
-                    }
-                    bulk_requests.find({'_id': old_bson['_id']}).update_one({'$set': query_update})
+                if series_is_changed(bson, old_bson): 
+                    old_bson["tags"] = tags
+                    if not "version" in old_bson:
+                        old_bson["version"] = 0
+                    old_version = old_bson["version"]
+                    bulk_requests_archives.insert(series_archives_store(old_bson))
                     is_operation = True
+                    is_operation_archives = True
                     self.count_updates += 1
+                    bson["tags"] = tags
+                    bson["last_update_ds"] = last_update_ds 
+                    bson["last_update_widu"] = clean_datetime()
+                    bson["version"] = old_version + 1
+                    
+                    series_set_codelists(bson, self.dataset.codelists)
+                    
+                    if not IS_SCHEMAS_VALIDATION_DISABLE:
+                        schemas.series_schema(bson)
+                    
+                    bson["_id"] = _id
+                    bulk_requests.find({"_id": _id}).replace_one(bson)
                 else:
                     if logger.isEnabledFor(logging.DEBUG):
                         logger.debug("series[%s] not changed" % old_bson["slug"])                    
-                    
 
         result = None        
         if is_operation is True:
@@ -1505,6 +1419,18 @@ class Series:
             except pymongo.errors.BulkWriteError as err:
                 self.dataset.enable = False
                 self.dataset.metadata["disable_reason"] = "critical bulk error"
+                logger.critical(str(err.details))
+                raise
+
+        if is_operation_archives is True:
+            try:
+                @timeit("commons.Series.update_series_list.execute_archives")
+                def _execute_archives():
+                    bulk_requests_archives.execute()
+                _execute_archives()
+            except pymongo.errors.BulkWriteError as err:
+                #self.dataset.enable = False
+                #self.dataset.metadata["disable_reason"] = "critical bulk error"
                 logger.critical(str(err.details))
                 raise
                  

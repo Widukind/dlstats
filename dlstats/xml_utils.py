@@ -1146,7 +1146,6 @@ class XMLDataMixIn:
             #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
             if localname == "Obs":
                 item["period"] = obs.attrib["TIME_PERIOD"]
-                item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
 
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("OBS_VALUE", "")
@@ -1349,7 +1348,6 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
                 
                 item["period"] = period
                 
-                item["ordinal"] = get_ordinal_from_period(period, freq=frequency)
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("VALUE", "")
                 
@@ -1427,8 +1425,6 @@ class XMLGenericData_2_0(XMLDataBase):
                 
                 if etree.QName(child.tag).localname == "Time":
                     item["period"] = child.text
-                    #item["period_o"] = item["period"]
-                    item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
                 
                 elif etree.QName(child.tag).localname == 'ObsValue':
                     #TODO: valeur manquante
@@ -1528,8 +1524,6 @@ class XMLGenericData_2_1(XMLDataBase):
                 
                 if child.tag == self.fixtag(self.ns_tag_data, 'ObsDimension'):
                     item["period"] = child.attrib["value"]
-                    #item["period_o"] = item["period"]
-                    item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
                 
                 elif child.tag == self.fixtag(self.ns_tag_data, 'ObsValue'):
                     #TODO: valeur manquante
@@ -1708,7 +1702,6 @@ class XMLSpecificData_2_1(XMLDataBase):
             item = {"period": None, "value": None, "attributes": {}}
             
             item["period"] = observation.attrib[self.field_obs_time_period]
-            item["ordinal"] = get_ordinal_from_period(item["period"], freq=frequency)
             item["value"] = observation.attrib[self.field_obs_value]
             
             for key, value in observation.attrib.items():
