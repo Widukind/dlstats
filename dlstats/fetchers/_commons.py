@@ -647,7 +647,6 @@ class Datasets(DlstatsCollection):
         self.series = series_klass(dataset=self,
                                    provider_name=self.provider_name, 
                                    dataset_code=self.dataset_code, 
-                                   last_update=self.last_update, 
                                    bulk_size=self.bulk_size, 
                                    fetcher=self.fetcher)
 
@@ -1160,7 +1159,6 @@ class Series:
                  dataset=None,
                  provider_name=None, 
                  dataset_code=None, 
-                 last_update=None, 
                  bulk_size=500,
                  fetcher=None):
         """        
@@ -1173,7 +1171,6 @@ class Series:
         self.dataset = None
         self.provider_name = provider_name
         self.dataset_code = dataset_code
-        self.last_update = last_update
         
         if not fetcher:
             raise ValueError("fetcher is required")
@@ -1216,7 +1213,7 @@ class Series:
     def __repr__(self):
         return pprint.pformat([('provider_name', self.provider_name),
                                ('dataset_code', self.dataset_code),
-                               ('last_update', self.last_update)])
+                               ('last_update', self.dataset.last_update)])
 
     @timeit("commons.Series.process_series_data")
     def process_series_data(self):
@@ -1362,7 +1359,7 @@ class Series:
                 bson['slug'] = slugify(txt, word_boundary=False, save_order=True)
             
             last_update_ds = series_get_last_update_dataset(bson, 
-                                                            last_update=self.last_update)
+                                                            last_update=self.dataset.last_update)
             
             clean_values(bson)
             

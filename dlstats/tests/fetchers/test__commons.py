@@ -322,7 +322,6 @@ class SeriesTestCase(BaseTestCase):
         s = Series(dataset=d,
                    provider_name="p1", 
                    dataset_code="d1", 
-                   last_update=None, 
                    bulk_size=1, 
                    fetcher=f)
         
@@ -929,7 +928,6 @@ class SeriesTestCase(BaseTestCase):
         s = MockSeries(dataset=dataset,
                        provider_name="p1", 
                        dataset_code="d1", 
-                       last_update=None, 
                        fetcher=f)
         
         class MyFetcher_Data(SeriesIterator):
@@ -1509,7 +1507,7 @@ class DB_SeriesTestCase(BaseDBTestCase):
         d = Datasets(provider_name=provider_name, 
                     dataset_code=dataset_code,
                     name=dataset_name,
-                    last_update=datetime.now(),
+                    last_update=datetime(2013,10,28),
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
@@ -1517,7 +1515,6 @@ class DB_SeriesTestCase(BaseDBTestCase):
         s = Series(dataset=d,
                    provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
-                   last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
 
@@ -1568,7 +1565,7 @@ class DB_SeriesTestCase(BaseDBTestCase):
         d = Datasets(provider_name=provider_name, 
                     dataset_code=dataset_code,
                     name=dataset_name,
-                    last_update=datetime.now(),
+                    last_update=datetime(2013,10,28),
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
@@ -1576,7 +1573,6 @@ class DB_SeriesTestCase(BaseDBTestCase):
         s = Series(dataset=d,
                    provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
-                   last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
 
@@ -1627,7 +1623,7 @@ class DB_SeriesTestCase(BaseDBTestCase):
         dataset = Datasets(provider_name=provider_name, 
                     dataset_code=dataset_code,
                     name=dataset_name,
-                    last_update=datetime.now(),
+                    last_update=datetime(2013,10,28),
                     doc_href="http://www.example.com",
                     fetcher=f, 
                     is_load_previous_version=False)
@@ -1635,7 +1631,6 @@ class DB_SeriesTestCase(BaseDBTestCase):
         s = Series(dataset=dataset,
                    provider_name=f.provider_name, 
                    dataset_code=dataset_code, 
-                   last_update=datetime(2013,10,28), 
                    bulk_size=1, 
                    fetcher=f)
 
@@ -1796,7 +1791,6 @@ class DB_SeriesTestCase(BaseDBTestCase):
         s1 = Series(dataset=d,
                     provider_name=f.provider_name, 
                     dataset_code=dataset_code, 
-                    last_update=d.last_update, 
                     bulk_size=1, 
                     fetcher=f)
 
