@@ -361,7 +361,11 @@ class BEA(Fetcher):
 
             self._current_urls[url] = filepath
             
-            zipfile_ = zipfile.ZipFile(filepath)
+            try:
+                zipfile_ = zipfile.ZipFile(filepath)
+            except Exception as err:
+                logger.error("bea zip error - url[%s] - filepath[%s] - error[%s]" % (url, filepath, str(err)))
+                continue
             
             for section in zipfile_.namelist():
                 
