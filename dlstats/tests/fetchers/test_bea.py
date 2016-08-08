@@ -55,13 +55,11 @@ DATA_BEA_10101_An = {
         'last_update': None,
         'first_value': {
             'value': '3.1',
-            'ordinal': -1,
             'period': '1969',
             'attributes': None,
         },
         'last_value': {
             'value': '2.4',
-            'ordinal': 45,
             'period': '2015',
             'attributes': None,
         },
@@ -140,6 +138,22 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files(dataset_code)
     
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)
+
+        names = {
+         'dpcerl1': 'Personal consumption expenditures',
+         'dgdsrl1': 'Personal consumption expenditures.Goods',
+         'ddurrl1': 'Personal consumption expenditures.Goods.Durable goods',
+         'dndgrl1': 'Personal consumption expenditures.Goods.Nondurable goods',
+         'dserrl1': 'Personal consumption expenditures.Goods.Services',        
+        }
+        for k, v in names.items():
+            self.assertTrue(k in dataset["codelists"]["concept"])
+            self.assertEquals(dataset["codelists"]["concept"][k], v)
+        
+        series_list = self.assertSeries(dataset_code)
+        self.assertEquals(series_list[0]['name'], "Gross domestic product - Annually")
+        self.assertEquals(series_list[1]['name'], 'Personal consumption expenditures - Annually')
+        self.assertEquals(series_list[2]['name'], 'Personal consumption expenditures.Goods - Annually')
+        self.assertEquals(series_list[3]['name'], 'Personal consumption expenditures.Goods.Durable goods - Annually')
 

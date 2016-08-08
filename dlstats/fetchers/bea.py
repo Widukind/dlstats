@@ -5,6 +5,7 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
+import itertools
 from datetime import datetime
 import zipfile
 import logging
@@ -499,15 +500,32 @@ class BeaData(SeriesIterator):
             self.dataset.notes = row_notes[0].strip()
 
         self.keys = []
+        self.names = []
+        self.count_space = 0
         self.rows = self._get_datas()
         
     def _get_datas(self):
         try:
-            for row_num in self.row_ranges:
+            for i, row_num in enumerate(self.row_ranges):
 
                 row = self.sheet.row_values(row_num)
                 
                 key = row[2]
+                name = row[1]
+                
+                if i == 0:
+                    self.names.append(name.strip())
+                else:
+                    count_space = sum( 1 for _ in itertools.takewhile(str.isspace, name) )
+                    
+                    if count_space == 0:
+                        self.names = []
+                        self.count_space = 0
+                    elif count_space <= self.count_space:
+                        self.names.pop()
+                    
+                    self.count_space = count_space
+                    self.names.append(name.strip())
 
                 # skip lines without key or with ZZZZZZx key
                 if len(key.replace(' ','')) == 0 or key[0:6] == 'ZZZZZZ':
@@ -526,11 +544,13 @@ class BeaData(SeriesIterator):
             
     def build_series(self, row):
         dimensions = {}
+        
         series = {}
         series_values = [] 
 
-        series_name = "%s - %s" % (row[1].strip(), constants.FREQUENCIES_DICT[self.frequency]) 
         series_key = "%s-%s" % (row[2], self.frequency)
+
+        series_name = "%s - %s" % (".".join(self.names), constants.FREQUENCIES_DICT[self.frequency]) 
 
         dimensions['concept'] = row[2]
         dimensions['frequency'] = self.frequency
@@ -539,7 +559,7 @@ class BeaData(SeriesIterator):
             self.dataset.codelists["frequency"][dimensions["frequency"]] = constants.FREQUENCIES_DICT[self.frequency]
         
         if not dimensions["concept"] in self.dataset.codelists["concept"]:
-            self.dataset.codelists["concept"][dimensions["concept"]] = dimensions["concept"]
+            self.dataset.codelists["concept"][dimensions["concept"]] = ".".join(self.names)
 
         start_date = pandas.Period(self.years[0], freq=self.frequency)
         end_date = pandas.Period(self.years[1], freq=self.frequency)
@@ -558,8 +578,6 @@ class BeaData(SeriesIterator):
         for v in row[3:]:
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
-                'ordinal': start_date.ordinal,
                 'period': str(start_date),
                 'value': str(v)
             }
