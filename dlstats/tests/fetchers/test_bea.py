@@ -141,19 +141,38 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset = self.assertDataset(dataset_code)
 
         names = {
+         'a191rl1': 'Gross domestic product',
          'dpcerl1': 'Personal consumption expenditures',
-         'dgdsrl1': 'Personal consumption expenditures.Goods',
-         'ddurrl1': 'Personal consumption expenditures.Goods.Durable goods',
-         'dndgrl1': 'Personal consumption expenditures.Goods.Nondurable goods',
-         'dserrl1': 'Personal consumption expenditures.Goods.Services',        
+         'dgdsrl1': 'Personal consumption expenditures - Goods',
+         'ddurrl1': 'Personal consumption expenditures - Goods - Durable goods',
+         'dndgrl1': 'Personal consumption expenditures - Goods - Nondurable goods',
+         'dserrl1': 'Personal consumption expenditures - Services',        
+         'a006rl1': 'Gross private domestic investment',
+         'a007rl1': 'Gross private domestic investment - Fixed investment',
+         'a008rl1': 'Gross private domestic investment - Fixed investment - Nonresidential',
+         'y033rl1': 'Gross private domestic investment - Fixed investment - Nonresidential - Equipment',
+         'a011rl1': 'Gross private domestic investment - Fixed investment - Residential',
+         'a020rl1': 'Net exports of goods and services - Exports',
+         'a191rp1': 'Addendum: - Gross domestic product, current dollars'
         }
+
         for k, v in names.items():
             self.assertTrue(k in dataset["codelists"]["concept"])
             self.assertEquals(dataset["codelists"]["concept"][k], v)
         
         series_list = self.assertSeries(dataset_code)
+        series_keys = {s["key"].lower(): s for s in series_list}
+
+        for k, v in names.items():
+            search_k = "%s-a" % k
+            search_name = "%s - Annually" % v 
+            self.assertTrue(search_k in series_keys, "%s not in series_keys" % search_k)
+            self.assertEquals(series_keys[search_k]["name"], search_name)
+        
+        """
         self.assertEquals(series_list[0]['name'], "Gross domestic product - Annually")
         self.assertEquals(series_list[1]['name'], 'Personal consumption expenditures - Annually')
-        self.assertEquals(series_list[2]['name'], 'Personal consumption expenditures.Goods - Annually')
-        self.assertEquals(series_list[3]['name'], 'Personal consumption expenditures.Goods.Durable goods - Annually')
+        self.assertEquals(series_list[2]['name'], 'Personal consumption expenditures - Goods - Annually')
+        self.assertEquals(series_list[3]['name'], 'Personal consumption expenditures - Goods - Durable goods - Annually')
+        """
 
