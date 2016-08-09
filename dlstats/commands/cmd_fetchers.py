@@ -670,6 +670,10 @@ def cmd_purge(fetcher=None, dataset=None, purge_all=False, **kwargs):
                                                      ordered=False)
         ctx.log("Series deleted: %s" % result.deleted_count)
 
+        result = db[constants.COL_SERIES_ARCHIVES].bulk_write(bulk_requests,
+                                                     ordered=False)
+        ctx.log("Series archives deleted: %s" % result.deleted_count)
+
         end = time.time() - start
         
         ctx.log("END purge for [%s] - time[%.3f]" % (fetcher, end))
