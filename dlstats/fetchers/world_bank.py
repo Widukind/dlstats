@@ -401,9 +401,15 @@ class WorldBankAPIData(SeriesIterator):
         else:
             self.available_countries = self.fetcher.available_countries()
             
-        self.dataset.dimension_keys = ["country"]
+        self.dataset.dimension_keys = ["indicator", "country", "frequency"]
+
         self.dataset.concepts["country"] = "Country"
+        self.dataset.concepts["indicator"] = "Indicator"
+        self.dataset.concepts["frequency"] = "Frequency"
+        
         self.dataset.codelists["country"] = dict([(k, c["name"]) for k, c in self.available_countries.items()])
+        self.dataset.codelists["indicator"] = {}
+        self.dataset.codelists["frequency"] = {}
         
         self.dataset.set_dimension_country("country")
         
@@ -641,7 +647,7 @@ class WorldBankAPIData(SeriesIterator):
                     self.dataset.metadata["indicators"][slug_indicator] = self.release_date
                 
                 count += 1
-    
+                
                 yield {"datas": datas}, None
             
             if not is_rejected:
@@ -669,9 +675,16 @@ class WorldBankAPIData(SeriesIterator):
         datas = datas["datas"]
         
         series = {}
-        series['key'] = "%s.%s" % (self.current_indicator["id"], self.current_country)
-        series['name'] = "%s - %s" % (self.current_indicator["name"], self.available_countries[self.current_country]["name"])
+        series["last_update"] = self.release_date
         series['frequency'] = self._search_frequency(datas[0])
+        
+        series['key'] = "%s.%s.%s" % (self.current_indicator["id"], 
+                                      self.current_country, 
+                                      series['frequency'])
+        
+        series['name'] = "%s - %s - %s" % (self.current_indicator["name"], 
+                                           self.available_countries[self.current_country]["name"], 
+                                           constants.FREQUENCIES_DICT[series["frequency"]])
 
         #if self.current_indicator.get("sourceNote"):
         #    series["notes"] = self.current_indicator.get("sourceNote")
@@ -686,9 +699,8 @@ class WorldBankAPIData(SeriesIterator):
             
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
                 'value': str(point["value"]).replace("None", ""),
-                'ordinal': get_ordinal_from_period(point["date"], freq=series['frequency']),
+                'ordinal': get_ordinal_from_period(point["date"], freq=series['frequency']), #tmp value
                 'period': point["date"],
             }
             if not value_found and value["value"] != "":
@@ -720,8 +732,22 @@ class WorldBankAPIData(SeriesIterator):
                 
         series['start_date'] = series['values'][0]["ordinal"]
         series['end_date'] = series['values'][-1]["ordinal"]
+        
+        #PATCH
+        for v in series['values']:
+            v.pop("ordinal")
 
-        series['dimensions'] = {'country': self.current_country}
+        series['dimensions'] = {
+            'country': self.current_country,
+            'indicator': self.current_indicator["id"],
+            'frequency': series["frequency"]
+        }
+        if not self.current_indicator["id"] in self.dataset.codelists['indicator']:
+            self.dataset.codelists['indicator'][self.current_indicator["id"]] = self.current_indicator["name"]
+        
+        if not series["frequency"] in self.dataset.codelists['frequency']:
+            self.dataset.codelists['frequency'][series["frequency"]] = constants.FREQUENCIES_DICT[series["frequency"]]
+            
         series['attributes'] = None
         
         self.dataset.add_frequency(series["frequency"])
@@ -851,31 +877,27 @@ class ExcelData(SeriesIterator):
                     start_date = get_ordinal_from_period(str(int(start_period)), freq='A')
                     end_date = get_ordinal_from_period(str(int(end_period)), freq='A')
                     periods = [str(int(p.value)) for p in periods]
-                    
                 elif sheet.name == 'quarterly':    
                     frequency = 'Q'
                     start_date = get_ordinal_from_period(start_period,freq='Q')
                     end_date = get_ordinal_from_period(end_period,freq='Q')
                     periods = [p.value for p in periods]
-                    
                 elif sheet.name == 'monthly':    
                     frequency = 'M'
                     start_date = get_ordinal_from_period(start_period.replace('M','-'),freq='M')
                     end_date = get_ordinal_from_period(end_period.replace('M','-'),freq='M')
                     periods = [p.value.replace('M','-') for p in periods]
-                    
+                #elif sheet.name == 'daily':    
+                #    frequency = 'D'
+                #    start_date = self._translate_daily_dates(start_period)
+                #    end_date = self._translate_daily_dates(end_period)
+                #    TODO: periods = [p.value for p in periods]
                 else:
                     msg = {"provider_name": self.provider_name, 
                            "dataset_code": self.dataset_code,
                            "frequency": sheet.name}
                     raise errors.RejectFrequency(**msg)
-                """
-                elif sheet.name == 'daily':    
-                    frequency = 'D'
-                    start_date = self._translate_daily_dates(start_period)
-                    end_date = self._translate_daily_dates(end_period)
-                    TODO: periods = [p.value for p in periods]
-                """
+                
                 self.dataset.add_frequency(frequency)
             
                 columns = iter(range(1, sheet.row_len(0)))
@@ -933,8 +955,6 @@ class ExcelData(SeriesIterator):
         for i, v in enumerate(_values):            
             value = {
                 'attributes': None,
-                'release_date': self.dataset.last_update,
-                'ordinal': get_ordinal_from_period(periods[i], freq=bson['frequency']),
                 'period': str(periods[i]),
                 'value': str(v).replace(",", ".")    
             }
