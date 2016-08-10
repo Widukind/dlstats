@@ -32,6 +32,10 @@ DATASETS = {
         'name': 'World Economic Outlook',
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
     },
+    'WEO-GROUPS': { 
+        'name': 'World Economic Outlook (groups)',
+        'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
+    },
     'BOP': { 
         'name': 'Balance of Payments',
         'doc_href': 'http://data.imf.org/BOP',
@@ -526,6 +530,26 @@ CATEGORIES = [
     },
     {
         "provider_name": "IMF",
+        "category_code": "WEO-GROUPS",
+        "name": DATASETS["WEO-GROUPS"]["name"],
+        "position": 14,
+        "parent": None,
+        "all_parents": [],
+        "doc_href": None,
+        "datasets": [
+            {
+                "dataset_code": "WEO-GROUPS",
+                "name": DATASETS["WEO-GROUPS"]["name"], 
+                "last_update": None,                 
+                "metadata": {
+                    "doc_href": DATASETS["WEO-GROUPS"]["doc_href"]
+                }
+            },
+        ],
+        "metadata": {}
+    },
+    {
+        "provider_name": "IMF",
         "category_code": "PGI",
         "name": DATASETS["PGI"]["name"],
         "position": 15,
@@ -810,13 +834,18 @@ class WeoData(SeriesIterator):
         self.dataset.add_frequency(self.frequency)
 
         #WEO Country Code    ISO    WEO Subject Code    Country    Subject Descriptor    Subject Notes    Units    Scale    Country/Series-specific Notes
-        self.dataset.dimension_keys = ['WEO Subject Code', 'ISO', 'WEO Country Code', 'Units']
-        self.dataset.attribute_keys = ['Scale', 'flag']
+        self.dataset.dimension_keys = ['WEO Subject Code', 'ISO', 'Units']
+        self.dataset.attribute_keys = ['WEO Country Code', 'Scale', 'flag']
         concepts = ['ISO', 'WEO Country Code', 'Scale', 'WEO Subject Code', 'Units', 'flag']
         self.dataset.concepts = dict(zip(concepts, concepts))
 
         #self.attribute_list.update_entry('flag', 'e', 'Estimates Start After')
         self.dataset.codelists["flag"] = {"e": 'Estimates Start After'}
+        self.dataset.codelists['WEO Subject Code'] = {}
+        self.dataset.codelists['ISO'] = {}
+        self.dataset.codelists['Units'] = {}
+        self.dataset.codelists['WEO Country Code'] = {}
+        self.dataset.codelists['Scale'] = {}
         
         self.rows = self._process()
 
@@ -849,20 +878,13 @@ class WeoData(SeriesIterator):
             webpage = requests.get(link)
             html = etree.HTML(webpage.text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
-            #final_link = final_link[0].values()
-            #['WEOOct2015all.xls']
             output.append(link[:-13]+final_link[0].values()[0])
             
-            #['WEOOct2015alla.xls']
-            #TODO: output.append(link[:-13]+final_link[1].values()[0])
-    
         # we need to handle the issue in chronological order
         return sorted(output)
             
     def _process(self):        
         for url in self.urls:
-            
-            #TODO: if not url.endswith("alla.xls"):
             
             #ex: http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls]
             date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
@@ -896,11 +918,9 @@ class WeoData(SeriesIterator):
                 
                 for row in self.sheet:
                     if not row or not row.get('Country'):
-                        break       
+                        break
                     yield row, None
 
-            #self.dataset.update_database(save_only=True)
-        
         yield None, None
         
     def _is_updated(self):
@@ -919,65 +939,52 @@ class WeoData(SeriesIterator):
         attributes = {}
         
         #'WEO Subject Code': (BCA, Current account balance)
-        dimensions['WEO Subject Code'] = self.dimension_list.update_entry('WEO Subject Code', 
-                                                                row['WEO Subject Code'], 
-                                                                row['Subject Descriptor'])
-        if not 'WEO Subject Code' in self.dataset.codelists:
-            self.dataset.codelists['WEO Subject Code'] = {}
+        weo_subject_code = row['WEO Subject Code']
 
-        if not dimensions['WEO Subject Code'] in self.dataset.codelists['WEO Subject Code']:
-            self.dataset.codelists['WEO Subject Code'][dimensions['WEO Subject Code']] = row['Subject Descriptor']
+        dimensions['WEO Subject Code'] = weo_subject_code
+        if not weo_subject_code in self.dataset.codelists['WEO Subject Code']:
+            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'], 
+                                                                                        row['Units'])
                                                                           
         #'ISO': (DEU, Germany)
         dimensions['ISO'] = self.dimension_list.update_entry('ISO', 
                                                              row['ISO'], 
                                                              row['Country'])
 
-        if not 'ISO' in self.dataset.codelists:
-            self.dataset.codelists['ISO'] = {}
-
         if not dimensions['ISO'] in self.dataset.codelists['ISO']:
             self.dataset.codelists['ISO'][dimensions['ISO']] = row['Country']
-
-        #'WEO Country Code': (134, Germany)    
-        dimensions['WEO Country Code'] = self.dimension_list.update_entry('WEO Country Code', 
-                                                             row['WEO Country Code'], 
-                                                             row['Country'])
-
-        if not 'WEO Country Code' in self.dataset.codelists:
-            self.dataset.codelists['WEO Country Code'] = {}
-
-        if not dimensions['WEO Country Code'] in self.dataset.codelists['WEO Country Code']:
-            self.dataset.codelists['WEO Country Code'][dimensions['WEO Country Code']] = row['Country']
 
         #'Units': (2, U.S. dollars)
         dimensions['Units'] = self.dimension_list.update_entry('Units', 
                                                                '', 
                                                                row['Units'])
 
-        if not 'Units' in self.dataset.codelists:
-            self.dataset.codelists['Units'] = {}
-
         if not dimensions['Units'] in self.dataset.codelists['Units']:
             self.dataset.codelists['Units'][dimensions['Units']] = row['Units']
 
-        attributes['Scale'] = self.attribute_list.update_entry('Scale', 
-                                                               '', #row['Scale'], 
-                                                               row['Scale'])
+        #'WEO Country Code': (134, Germany)    
+        attributes['WEO Country Code'] = self.attribute_list.update_entry('WEO Country Code', 
+                                                             row['WEO Country Code'], 
+                                                             row['Country'])
 
-        if not 'Scale' in self.dataset.codelists:
-            self.dataset.codelists['Scale'] = {}
+        if not attributes['WEO Country Code'] in self.dataset.codelists['WEO Country Code']:
+            self.dataset.codelists['WEO Country Code'][attributes['WEO Country Code']] = row['Country']
 
-        if not attributes['Scale'] in self.dataset.codelists['Scale']:
-            self.dataset.codelists['Scale'][attributes['Scale']] = row['Scale']
-
+        
+        if row['Scale']:
+            attributes['Scale'] = self.attribute_list.update_entry('Scale', 
+                                                                   '', #row['Scale'], 
+                                                                   row['Scale'])
+    
+            if not attributes['Scale'] in self.dataset.codelists['Scale']:
+                self.dataset.codelists['Scale'][attributes['Scale']] = row['Scale']
 
         #'BCA.DEU.2'
         # TODO: <Series FREQ="A" WEO Country Code="122" INDICATOR="AIP_IX" SCALE="0" SERIESCODE="122AIP_IX.A" BASE_YEAR="2010" TIME_FORMAT="P1Y" xmlns="http://dataservices.imf.org/compact/IFS">
-        series_key = "%s.%s.%s" % (dimensions['WEO Subject Code'],
+        series_key = "%s.%s.%s" % (weo_subject_code,
                                    dimensions['ISO'],
                                    dimensions['Units'])
-
+        
         #'Current account balance - Germany - U.S. dollars',
         series_name = "%s - %s - %s" % (row['Subject Descriptor'], 
                                         row['Country'],
@@ -993,8 +1000,6 @@ class WeoData(SeriesIterator):
         for period in self.years:
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
-                'ordinal': get_ordinal_from_period(period, freq=self.frequency),
                 'period': period,
                 'value': row[period].replace(',' ,'')
             }
@@ -1032,8 +1037,212 @@ class WeoData(SeriesIterator):
         return bson
 
 
+class WeoGroupsData(SeriesIterator):
+    
+    def __init__(self, dataset):
+        super().__init__(dataset)
+        
+        self.store_path = self.get_store_path()
+        self.urls = self.weo_urls()
+        
+        self.release_date = None
+
+        self.frequency = 'A'
+        self.dataset.add_frequency(self.frequency)
+        self.dataset.dimension_keys = ['WEO Subject Code', 'WEO Country Group Code', 'Units']
+        self.dataset.attribute_keys = ['Scale', 'flag']
+        concepts = ['WEO Country Group Code', 'Scale', 'WEO Subject Code', 'Units', 'flag']
+        self.dataset.concepts = dict(zip(concepts, concepts))
+
+        #self.attribute_list.update_entry('flag', 'e', 'Estimates Start After')
+        self.dataset.codelists["flag"] = {"e": 'Estimates Start After'}
+        self.dataset.codelists['WEO Subject Code'] = {}
+        self.dataset.codelists['Units'] = {}
+        self.dataset.codelists['WEO Country Group Code'] = {}
+        self.dataset.codelists['Scale'] = {}
+        
+        self.rows = self._process()
+
+    def weo_urls(self):
+        download = Downloader(url='http://www.imf.org/external/ns/cs.aspx?id=28',
+                              filename="weo.html",
+                              store_filepath=self.store_path)
+        
+        filepath = download.get_filepath()
+        with open(filepath, 'rb') as fp:
+            webpage = fp.read()
+        
+        self.fetcher.for_delete.append(filepath)
+            
+        #TODO: replace by beautifoulsoup ?
+        html = etree.HTML(webpage)
+        hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
+        links = [href.values() for href in hrefs]
+        
+        #The last links of the WEO webpage lead to data we dont want to pull.
+        links = links[:-16]
+        #These are other links we don't want.
+        links.pop(-8)
+        links.pop(-10)
+        links = [link[0][:-10]+'download.aspx' for link in links]
+
+        output = []
+    
+        for link in links:
+            webpage = requests.get(link)
+            html = etree.HTML(webpage.text)
+            final_link = html.xpath("//div[@id = 'content']//table//a['href']")
+            output.append(link[:-13]+final_link[1].values()[0])
+    
+        # we need to handle the issue in chronological order
+        return sorted(output)
+            
+    def _process(self):        
+        for url in self.urls:
+            
+            #TODO: if not url.endswith("alla.xls"):
+            
+            #ex: http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls]
+            date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
+            self.release_date = datetime.strptime(date_str, "%b%Y") #2006-09-01 00:00:00
+            
+            if not self._is_updated():
+                msg = "upsert dataset[%s] bypass because is updated from release_date[%s]"
+                logger.info(msg % (self.dataset_code, self.release_date))
+                continue
+
+            self.dataset.last_update = self.release_date        
+                
+            logger.info("load url[%s]" % url)
+            
+            download = Downloader(url=url,
+                                  store_filepath=self.store_path, 
+                                  filename=os.path.basename(url),
+                                  use_existing_file=self.fetcher.use_existing_file)        
+            
+            data_filepath = download.get_filepath()
+            self.fetcher.for_delete.append(data_filepath)
+            
+            with open(data_filepath, encoding='latin-1') as fp:
+                
+                self.sheet = csv.DictReader(fp, dialect=csv.excel_tab)
+                self.years = self.sheet.fieldnames[8:-1]
+                self.start_date = get_ordinal_from_period(self.years[0], 
+                                                          freq=self.frequency)
+                self.end_date = get_ordinal_from_period(self.years[-1], 
+                                                        freq=self.frequency)
+                
+                for row in self.sheet:
+                    if not row or not row.get('Country Group Name'):
+                        break
+                    yield row, None
+
+        yield None, None
+        
+    def _is_updated(self):
+
+        if not self.dataset.last_update:
+            return True
+        
+        if self.release_date > self.dataset.last_update:            
+            return True
+
+        return False
+        
+    def build_series(self, row):
+
+        dimensions = {}
+        attributes = {}
+        
+        #'WEO Subject Code': (BCA, Current account balance)
+        weo_subject_code = row['WEO Subject Code']
+        country = row['Country Group Name']
+
+        dimensions['WEO Subject Code'] = weo_subject_code
+        if not weo_subject_code in self.dataset.codelists['WEO Subject Code']:
+            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'], 
+                                                                                        row['Units'])
+                                                                          
+        #'ISO': (DEU, Germany)
+        dimensions['WEO Country Group Code'] = row['WEO Country Group Code']
+
+        if not dimensions['WEO Country Group Code'] in self.dataset.codelists['WEO Country Group Code']:
+            self.dataset.codelists['WEO Country Group Code'][dimensions['WEO Country Group Code']] = country
+
+        #'Units': (2, U.S. dollars)
+        dimensions['Units'] = self.dimension_list.update_entry('Units', 
+                                                               '', 
+                                                               row['Units'])
+
+        if not dimensions['Units'] in self.dataset.codelists['Units']:
+            self.dataset.codelists['Units'][dimensions['Units']] = row['Units']
+
+        if row['Scale']:
+            attributes['Scale'] = self.attribute_list.update_entry('Scale', 
+                                                                   '', 
+                                                                   row['Scale'])
+    
+            if not attributes['Scale'] in self.dataset.codelists['Scale']:
+                self.dataset.codelists['Scale'][attributes['Scale']] = row['Scale']
+
+        series_key = "%s.%s.%s" % (weo_subject_code,
+                                   dimensions['WEO Country Group Code'],
+                                   dimensions['Units'])
+        
+        series_name = "%s - %s - %s" % (row['Subject Descriptor'], 
+                                        country,
+                                        row['Units'])
+
+
+        values = []
+        estimation_start = None
+
+        if row['Estimates Start After']:
+            estimation_start = int(row['Estimates Start After'])
+            
+        for period in self.years:
+            value = {
+                'attributes': None,
+                'period': period,
+                'value': row[period].replace(',' ,'') if row[period] else ''
+            }
+            if estimation_start:
+                if int(period) >= estimation_start:
+                    value["attributes"] = {'flag': 'e'}
+            
+            values.append(value)
+    
+        bson = {
+            'provider_name': self.dataset.provider_name,
+            'dataset_code': self.dataset.dataset_code,
+            'name': series_name,
+            'key': series_key,
+            'values': values,
+            'attributes': attributes,
+            'dimensions': dimensions,
+            'last_update': self.release_date,
+            'start_date': self.start_date,
+            'end_date': self.end_date,
+            'frequency': self.frequency
+        }
+            
+        notes = []
+        
+        if row['Subject Notes']:
+            notes.append(row['Subject Notes'])
+        
+        if row['Series-specific Notes']:
+            notes.append(row['Series-specific Notes'])
+            
+        if notes:
+            bson["notes"] = "\n".join(notes)
+
+        return bson
+
+
 DATASETS_KLASS = {
     "WEO": WeoData,
+    "WEO-GROUPS": WeoGroupsData,
     "XML": IMF_XML_Data
 }
         
