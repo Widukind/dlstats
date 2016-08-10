@@ -19,6 +19,9 @@ from dlstats.fetchers._commons import (Fetcher,
                                        Categories,
                                        Datasets, 
                                        Series,
+                                       series_is_changed,
+                                       series_get_last_update_dataset,
+                                       series_verify,
                                        SeriesIterator)
 from dlstats.utils import clean_datetime 
 
@@ -326,189 +329,204 @@ class SeriesTestCase(BaseTestCase):
                    fetcher=f)
         
         self.assertFalse(hasattr(s, "data_iterator"))
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_set_release_date(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_set_release_date
         
-        bson = None
-        last_update = None
-        with self.assertRaises(ValueError) as err:
-            series_set_release_date(bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "no bson or not dict instance")
-        
-        bson = {"field": None}
-        last_update = None
-        with self.assertRaises(ValueError) as err:
-            series_set_release_date(bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "no last_update or not datetime instance")
+    def test_series_verify(self):
 
-        bson = {"field": None}
-        last_update = datetime.now()
-        with self.assertRaises(ValueError) as err:
-            series_set_release_date(bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "not values field in bson")
-
-        '''Add release_date field to values'''
-        bson = {
-            "values": [
-                {"period": "2000", "value": "1"},
-                {"period": "2001", "value": "2"},
-            ]
-        }
-        last_update = datetime.now()
-        series_set_release_date(bson, last_update)
-        self.assertTrue("release_date" in bson["values"][0])
-        self.assertTrue("release_date" in bson["values"][1])
-        self.assertEqual(bson["values"][0]["release_date"], last_update)
-        self.assertEqual(bson["values"][1]["release_date"], last_update)
-
-        '''Existing release_date field'''
-        bson = {
-            "values": [
-                {"period": "2000", "value": "1", "release_date": datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)},
-            ]
-        }
-        series_set_release_date(bson, last_update)
-        self.assertTrue(bson["values"][0]["release_date"],
-                        datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None))
-
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_is_changed(self):
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_verify
 
         old_bson = None
         new_bson = None
         with self.assertRaises(ValueError) as err:
-            series_is_changed(new_bson, old_bson)
+            series_verify(new_bson, old_bson)
         self.assertEqual(str(err.exception), 
                          "no new_bson or not dict instance")
 
-        old_bson = None
+        old_bson = 1
         new_bson = {"field": None}
         with self.assertRaises(ValueError) as err:
-            series_is_changed(new_bson, old_bson)
+            series_verify(new_bson, old_bson)
         self.assertEqual(str(err.exception), 
-                         "no old_bson or not dict instance")
+                         "old_bson is not dict instance")
 
         old_bson = {"field": None}
         new_bson = {"field": None}
         with self.assertRaises(ValueError) as err:
-            series_is_changed(new_bson, old_bson)
+            series_verify(new_bson, old_bson)
         self.assertEqual(str(err.exception), 
                          "not values field in new_bson")
                 
         old_bson = {"field": None}
         new_bson = {"values": None}
         with self.assertRaises(ValueError) as err:
-            series_is_changed(new_bson, old_bson)
+            series_verify(new_bson, old_bson)
         self.assertEqual(str(err.exception), 
                          "not values field in old_bson")
         
+        old_bson = None
+        new_bson = {"values": [1]}
+        with self.assertRaises(ValueError) as err:
+            series_verify(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "Invalid format for this series")
+
+        old_bson = None
+        new_bson = {
+            "provider_name": "p1",
+            "dataset_code": "d1",
+            "values": [{}], 
+            "start_date": datetime(2001, 1, 1, 0, 0), 
+            "end_date": datetime(1999, 1, 1, 0, 0)
+        }
+        with self.assertRaises(errors.RejectInvalidSeries) as err:
+            series_verify(new_bson, old_bson)
+        self.assertEqual(str(err.exception), 
+                         "Invalid dates. start_date > end_date")
+
+    def test_series_is_changed(self):
+        "series_is_changed function"
+
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_is_changed
         
         '''No change'''        
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertFalse(series_is_changed(new_bson, old_bson))
 
         '''Add values entry'''
-        #Already in revisions process - before run series_is_changed
-        """
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
             "values": [{}, {}],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
-        """
+
+        '''First period change'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2001"}, {"period": "2002"}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2002"}, {"period": "2002"}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Last period change'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2001"}, {"period": "2002"}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2001"}, {"period": "2003"}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Value(s) change'''
+        old_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2001", "value": "1"}, {"period": "2002", "value": "2"}],
+        }
+        new_bson = {
+            "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [{"period": "2001", "value": "1"}, {"period": "2002", "value": "3"}],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
 
         '''Change notes'''        
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": "xxx",
-            "values": [{}],
+            "values": [],
+        }
+        self.assertTrue(series_is_changed(new_bson, old_bson))
+
+        '''Name change'''        
+        old_bson = {
+            "name": "x1", "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [],
+        }
+        new_bson = {
+            "name": "x2", "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
 
         '''Change dimension keys'''
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1", "b": "2"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
 
         '''Change dimension values'''        
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "20"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
         
         '''Change attribute keys'''
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "e"}, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
         
         '''Change attribute values'''        
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "e"}, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": {"OBS_STATUS": "f"}, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
 
         '''Change start_date'''        
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 5, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
         
-        '''Change end_date'''        
+        '''Change end_date'''
         old_bson = {
             "start_date": 10, "end_date": 20, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         new_bson = {
             "start_date": 10, "end_date": 30, "dimensions": {"a": "1"}, "attributes": None, "notes": None,
-            "values": [{}],
+            "values": [],
         }
         self.assertTrue(series_is_changed(new_bson, old_bson))
 
@@ -541,368 +559,31 @@ class SeriesTestCase(BaseTestCase):
         schemas.series_value_schema(bson["values"][0])
         schemas.series_schema(bson)
 
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_update(self):
+    def test_series_get_last_update_dataset(self):
 
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_update
+        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_get_last_update_dataset
 
-        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        
-        '''No old_bson - insert'''
-        new_bson = {
-            'provider_name': "p1", 'dataset_code': "d1",
-            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
-            'attributes': None,
-            'dimensions': {"COUNTRY": "FRA"},
-            'start_date': 30, 'end_date': 30,
-            'start_ts': datetime(2000, 1, 1, 0, 0),
-            'end_ts': datetime(2000, 12, 31, 23, 59, 59, 999999),
-            'frequency': "A",
-            'last_update': last_update,
-            'values': [
-                {"period": "2000", 
-                 "value": "1", "attributes": None}
-            ],                
+        '''last_update from bson'''
+        bson = {
+            'last_update': datetime(2000, 1, 1, 0, 0),
         }
-        modify_bson = series_update(new_bson, last_update=last_update)
-        self.assertIsNotNone(modify_bson)
-        
-        values_0 = modify_bson["values"][0]
-        #self.assertTrue("release_date" in values_0) 
-        #self.assertEqual(values_0["release_date"], last_update)
+        last_update = series_get_last_update_dataset(bson, None)
+        self.assertEquals(last_update, datetime(2000, 1, 1, 0, 0))
+        self.assertFalse("last_update" in bson)
 
+        '''last_update from dataset'''
+        bson = {}
+        last_update = series_get_last_update_dataset(bson, datetime(2000, 1, 1, 0, 0))
+        self.assertEquals(last_update, datetime(2000, 1, 1, 0, 0))
+        self.assertFalse("last_update" in bson)
 
-        '''old_bson without change - bypass'''
-        new_bson = {
-            'provider_name': "p1", 'dataset_code': "d1",
-            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
-            'attributes': None,
-            'dimensions': {"COUNTRY": "FRA"},
-            'start_date': 30, 'end_date': 30,
-            'start_ts': datetime(2000, 1, 1, 0, 0),
-            'end_ts': datetime(2000, 12, 31, 23, 59, 59, 999999),
-            'frequency': "A",
-            'last_update': last_update,
-            'values': [
-                {"period": "2000", 
-                 #"period_o": "2000", 
-                 "value": "1", "attributes": None}
-            ],                
+        '''last_update from bson'''
+        bson = {
+            'last_update': datetime(2000, 1, 1, 0, 0),
         }
-        old_bson = deepcopy(new_bson)
-        modify_bson = series_update(new_bson, old_bson=old_bson, last_update=last_update)
-        self.assertIsNone(modify_bson)
-
-        '''Trou dans les periodes'''
-        new_bson = {
-            'provider_name': "p1", 'dataset_code': "d1",
-            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
-            'attributes': None,
-            'dimensions': {"COUNTRY": "FRA"},
-            'start_date': 30, 'end_date': 34,
-            'start_ts': datetime(2000, 1, 1, 0, 0),
-            'end_ts': datetime(2000, 12, 31, 23, 59, 59, 999999),
-            'frequency': "A",
-            'last_update': last_update,
-            'values': [
-                {"period": "2000", "value": "1", "attributes": None},
-                {"period": "2001", "value": "1", "attributes": None},
-                {"period": "2002", "value": "1", "attributes": None},
-                {"period": "2003", "value": "1", "attributes": None},
-            ],                
-        }
-        modify_bson = series_update(new_bson, last_update=last_update)
-
-        '''Avec trou'''
-        new_bson = {
-            'provider_name': "p1", 'dataset_code': "d1",
-            'name': "name1", 'key': "key1", "slug": "p1-d1-key1",             
-            'attributes': None,
-            'dimensions': {"COUNTRY": "FRA"},
-            'start_date': 30, 'end_date': 34,
-            'start_ts': datetime(2000, 1, 1, 0, 0),
-            'end_ts': datetime(2000, 12, 31, 23, 59, 59, 999999),
-            'frequency': "A",
-            'last_update': last_update,
-            'values': [
-                {"period": "2000", "value": "1", "attributes": None},
-                {"period": "2002", "value": "1", "attributes": None},
-                {"period": "2003", "value": "1", "attributes": None},
-            ],                
-        }
-        
-        modify_bson = series_update(new_bson, last_update=last_update)
-        #print("modify_bson : ", modify_bson)
-        with self.assertRaises(Exception) as err:
-            modify_bson = series_update(new_bson, last_update=last_update)
-        self.assertEqual(str(err.exception), 
-                         "Missing values for provider[p1] - dataset[d1] - current[3] - attempt[4]")
-        
-        
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_revisions_exceptions(self):
-
-        new_bson = None
-        old_bson = None
-        last_update = None
-        with self.assertRaises(ValueError) as err:
-            series_revisions(new_bson, old_bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "no new_bson or not dict instance")
-
-        new_bson = {"field": None}
-        old_bson = None
-        last_update = None
-        with self.assertRaises(ValueError) as err:
-            series_revisions(new_bson, old_bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "no old_bson or not dict instance")
-
-        new_bson = {"field": None}
-        old_bson = {"field": None}
-        last_update = None
-        with self.assertRaises(ValueError) as err:
-            series_revisions(new_bson, old_bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "no last_update or not datetime instance")
-
-        new_bson = {"field": None}
-        old_bson = {"field": None}
-        last_update = datetime.now()
-        with self.assertRaises(ValueError) as err:
-            series_revisions(new_bson, old_bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "not values field in new_bson")
-                
-        new_bson = {"values": None}
-        old_bson = {"field": None}
-        last_update = datetime.now()
-        with self.assertRaises(ValueError) as err:
-            series_revisions(new_bson, old_bson, last_update)
-        self.assertEqual(str(err.exception), 
-                         "not values field in old_bson")
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_revisions_no_change(self):
-
-        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        last_update = datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None)
-
-        old_bson = {
-            "values": [
-                {"period": "2000", "value": "1", "attributes": None},
-            ]
-        }
-        new_bson = {
-            "values": [
-                {"period": "2000", "value": "1", "attributes": None},
-            ]
-        }
-        
-        changed = series_revisions(new_bson, old_bson, last_update)
-        self.assertFalse(changed)
-
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_revisions_change_one_value(self):
-
-        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
-
-        '''Change one value - add one revision'''
-        old_bson = {
-            "values": [
-                {"period": "2000", "value": "1", "attributes": None},
-            ]
-        }
-        new_bson = {
-            "values": [
-                {"period": "2000", "value": "1000", "attributes": None},
-            ]
-        }
-        
-        changed = series_revisions(new_bson, old_bson, last_update)
-        self.assertTrue(changed)
-        self.assertTrue("revisions" in new_bson["values"][0])
-        self.assertEqual(len(new_bson["values"][0]["revisions"]), 1)
-        revision_entry = {
-            "revision_date": release_date,
-            "value": "1",
-            "attributes": None
-        } 
-        
-        self.assertEqual(new_bson["values"][0]["value"], "1000")
-        self.assertEqual(new_bson["values"][0]["release_date"], last_update)
-        self.assertEqual(new_bson["values"][0]["revisions"][0], revision_entry)
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_more_values_in_old_json(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test__commons:SeriesTestCase.test_series_more_values_in_old_json
-
-        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        
-        '''Plus de values avant que apres ou plages diff - cas OECD/EO'''
-        
-        """
-        cas EO: 
-            2010 -> 2060 PUIS 2007 -> 2017
-            Chevauchement de: 2010 -> 2017
-            Result final: 2007 -> 2060
-        """
-
-        '''Change one value - add one revision AND add new value'''
-        old_bson = {
-            "start_date": 40, # 2010
-            "end_date": 90,   # 2060
-            "values": []
-        }
-        '''Generate period FROM 2010 TO 2060'''
-        start_date = old_bson["start_date"] - 1 #39        
-        for i in range(2010, 2060+1):
-            start_date += 1
-            old_bson["values"].append({
-                "period": str(i), "value": "1", "attributes": None
-            })
-
-        self.assertEqual(len(old_bson["values"]), 51)
-
-        self.assertEqual(old_bson["values"][0]["period"], "2010")
-        self.assertEqual(old_bson["values"][-1]["period"], "2060")
-                
-        new_bson = {
-            "start_date": 37, # 2007
-            "end_date": 47,   # 2017
-            "values": []
-        }
-        '''Generate period FROM 2007 TO 2017'''
-        start_date = new_bson["start_date"] -1 #36
-        for i in range(2007, 2017+1):
-            start_date += 1 #37
-            new_bson["values"].append({
-                "period": str(i), "value": "1", "attributes": None
-            })
-
-        self.assertEqual(len(new_bson["values"]), 11)
-
-        self.assertEqual(new_bson["values"][0]["period"], "2007")
-        self.assertEqual(new_bson["values"][-1]["period"], "2017")
-
-        '''Change value for 2010 TO 2017'''
-        for i in range(3, 11):
-            new_bson["values"][i]["value"] = "2"
-        
-        '''Verify changes'''
-        self.assertEqual(new_bson["values"][2]["period"], "2009")
-        self.assertEqual(new_bson["values"][2]["value"], "1")
-        self.assertEqual(new_bson["values"][3]["period"], "2010")
-        self.assertEqual(new_bson["values"][3]["value"], "2")
-        self.assertEqual(new_bson["values"][10]["period"], "2017")
-        self.assertEqual(new_bson["values"][10]["value"], "2")
-
-        changed = series_revisions(new_bson, old_bson, last_update)
-        
-        self.assertTrue(changed)
-        #print()
-        #for v in new_bson["values"]:
-        #    print(v["period"], v["value"], "revisions" in v)
-        """
-        2007 1 False
-        2008 1 False
-        2009 1 False
-        2010 2 True
-        2011 2 True
-        2012 2 True
-        2013 2 True
-        2014 2 True
-        2015 2 True
-        2016 2 True
-        2017 2 True
-        2018 1 False
-        """
-
-        self.assertEqual(len(new_bson["values"]), 54)
-        self.assertTrue("revisions" in new_bson["values"][3])
-        self.assertEqual(len(new_bson["values"][3]["revisions"]), 1)
-
-        revision_entry = {
-            "revision_date": release_date,
-            "value": "1", #old value
-            "attributes": None
-        }
-        self.assertEqual(new_bson["values"][3]["value"], "2")
-        self.assertEqual(new_bson["values"][3]["release_date"], last_update)
-        self.assertEqual(new_bson["values"][3]["revisions"][0], revision_entry)
-
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_revisions_change_one_value_add_existing_revision(self):
-
-        release_date = datetime(2016, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
-
-        '''Change one value - add revision entry'''
-
-        old_bson = {
-            "values": [
-                {"period": "2000", "value": "10", "attributes": None,
-                 "revisions": [{
-                    "revision_date": datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None),
-                    "value": "5",
-                    "attributes": None
-                }]},
-            ]
-        }
-        new_bson = {
-            "values": [
-                {"period": "2000", "value": "20", "attributes": None},
-            ]
-        }
-        changed = series_revisions(new_bson, old_bson, last_update)
-
-        self.assertTrue(changed)
-        self.assertEqual(len(new_bson["values"][0]["revisions"]), 2)
-
-        self.assertEqual(new_bson["values"][0]["value"], "20")
-        revision_0 = new_bson["values"][0]["revisions"][0]
-        revision_1 = new_bson["values"][0]["revisions"][1]
-        self.assertEqual(revision_0["value"], "5")
-        self.assertEqual(revision_1["value"], "10")
-        
-        self.assertEqual(revision_0["revision_date"].year, 2015)
-        self.assertEqual(revision_1["revision_date"].year, 2016)
-
-    @unittest.skipIf(True, "REMOVE OR UPDATE")    
-    def test_series_revisions_change_only_attribute(self):
-
-        #FIXME: not only attribute change
-
-        release_date = datetime(2015, 1, 1, 0, 0, 0, 0, tzinfo=None)
-        last_update = datetime(2017, 1, 1, 0, 0, 0, 0, tzinfo=None)
-
-        '''change only one attribute'''
-        
-        old_bson = {
-            "values": [
-                {"period": "2000", "value": "1", "attributes": {"OBS_STATUS": "e"}}, # estimated
-            ]
-        }
-        new_bson = {
-            "values": [
-                {"period": "2000", "value": "10", "attributes": None}, # fixe value
-            ]
-        }
-        
-        changed = series_revisions(new_bson, old_bson, last_update)
-        self.assertTrue(changed)
-        self.assertTrue("revisions" in new_bson["values"][0])
-        self.assertEqual(len(new_bson["values"][0]["revisions"]), 1)
-
-        self.assertIsNone(new_bson["values"][0]["attributes"])
-        
-        revision_0 = new_bson["values"][0]["revisions"][0]
-        self.assertEqual(revision_0["attributes"], {"OBS_STATUS": "e"})
+        last_update = series_get_last_update_dataset(bson, datetime(1999, 1, 1, 0, 0))
+        self.assertEquals(last_update, datetime(2000, 1, 1, 0, 0))
+        self.assertFalse("last_update" in bson)
 
     #@mock.patch("dlstats.fetchers._commons.DlstatsCollection.update_mongo_collection", update_mongo_collection)
     @unittest.skipIf(True, "REMOVE OR UPDATE")    
