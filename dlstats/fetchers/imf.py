@@ -42,7 +42,7 @@ DATASETS = {
     },
     'BOPAGG': {
         'name': 'Balance of Payments, World and Regional Aggregates',
-        'doc_href': 'http://data.imf.org/BOPAGG',
+        'doc_href': 'http://data.imf.org/BOP',
     },
     'DOT': { 
         'name': 'Direction of Trade Statistics',
@@ -54,39 +54,39 @@ DATASETS = {
     },
     'COMMP': { 
         'name': 'Primary Commodity Prices',
-        'doc_href': 'http://data.imf.org/COMMP',
+        'doc_href': 'http://data.imf.org',
     },
     'COMMPP': { 
         'name': 'Primary Commodity Prices Projections',
-        'doc_href': 'http://data.imf.org/COMMPP',
+        'doc_href': 'http://data.imf.org',
     },
     'GFSR': { 
         'name': 'Government Finance Statistics, Revenue',
-        'doc_href': 'http://data.imf.org/GFSR',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSSSUC': { 
         'name': 'Government Finance Statistics, Statement of Sources and Uses of Cash',
-        'doc_href': 'http://data.imf.org/GFSSSUC',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSCOFOG': { 
         'name': 'Government Finance Statistics, Expenditure by Function of Government',
-        'doc_href': 'http://data.imf.org/GFSCOFOG',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSFALCS': { 
         'name': 'Government Finance Statistics, Financial Assets and Liabilities by Counterpart Sector',
-        'doc_href': 'http://data.imf.org/GFSFALCS',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSIBS': { 
         'name': 'Government Finance Statistics, Integrated Balance Sheet (Stock Positions and Flows in Assets and Liabilities)',
-        'doc_href': 'http://data.imf.org/GFSIBS',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSMAB': { 
         'name': 'Government Finance Statistics, Main Aggregates and Balances',
-        'doc_href': 'http://data.imf.org/GFSMAB',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'GFSE': { 
         'name': 'Government Finance Statistics, Expense',
-        'doc_href': 'http://data.imf.org/GFSE',
+        'doc_href': 'http://data.imf.org/COFR',
     },
     'FSI': { 
         'name': 'Financial Soundness Indicators',
@@ -114,7 +114,7 @@ DATASETS = {
     },
     'WoRLD': { 
         'name': 'World Revenue Longitudinal Data',
-        'doc_href': 'http://data.imf.org/WoRLD',
+        'doc_href': 'http://data.imf.org',
     },
     'MCDREO': { 
         'name': 'Middle East and Central Asia Regional Economic Outlook',
