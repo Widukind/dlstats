@@ -322,9 +322,9 @@ def get_datetime_from_period(date_str, freq=None):
             S: Half Yearly
         """
         year = int(get_year(date_str))
-        if freq.endswith("S1"):
+        if date_str.endswith("S1"):
             month = 1
-        elif freq.endswith("S2"):
+        elif date_str.endswith("S2"):
             month = 7
         else:
             raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
@@ -369,6 +369,14 @@ def get_ordinal_from_period(date_str, freq=None):
     if freq == "A":
         year = int(get_year(date_str))
         period_ordinal = year - 1970
+    elif freq == "S":
+        year = int(get_year(date_str))
+        if date_str.endswith("S1"):
+            date_str = '%s-01' % year
+        elif date_str.endswith("S2"):
+            date_str = '%s-07' % year
+        else:
+            raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
     """
     elif freq == "M":
         year = int(get_year(date_str))

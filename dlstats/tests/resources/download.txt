@@ -16,6 +16,8 @@ http "http://sdw-wsrest.ecb.int/service/dataflow/ECB/EXR" > xmlutils/ecb/ecb-dat
 http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" > xmlutils/ecb/ecb-data-generic-2.1.xml
 http "http://sdw-wsrest.ecb.int/service/data/EXR/M.NOK.EUR.SP00.A" Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1 > xmlutils/ecb/ecb-data-specific-2.1.xml
 http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_EXR1?references=all" > xmlutils/ecb/ecb-datastructure-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/datastructure/ECB/ECB_SAFE?references=all" > ecb/ecb-SAFE-datastructure-2.1.xml
+http "http://sdw-wsrest.ecb.int/service/data/SAFE/H.ES.MED.......NT.. Accept:application/vnd.sdmx.structurespecificdata+xml;version=2.1" > ecb/ecb-data-SAFE-partial.xml
 
 #INSEE - xmlutils tests:
 http "http://www.bdm.insee.fr/series/sdmx/dataflow/INSEE" > xmlutils/insee/insee-dataflow-2.1.xml

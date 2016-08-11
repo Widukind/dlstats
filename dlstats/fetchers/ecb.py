@@ -32,8 +32,8 @@ SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;v
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
 #TODO: intégré à metadata du provider ou du dataset ?
-FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
-FREQUENCIES_REJECTED = ["E", "B", "H", "N", "S"] 
+FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D", "S"]
+FREQUENCIES_REJECTED = ["E", "B", "H", "N"] 
 
 """
 https://sdw-wsrest.ecb.europa.eu/service/codelist/ECB/CL_FREQ
