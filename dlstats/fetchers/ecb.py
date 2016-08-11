@@ -6,6 +6,7 @@ import logging
 import re
 
 import lxml.html
+import requests
 
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import utils
@@ -247,7 +248,7 @@ class ECB(Fetcher):
                            doc_href=self.provider.website,
                            last_update=utils.clean_datetime(),
                            fetcher=self)
-
+        
         _data = ECB_Data(dataset=dataset)
         dataset.series.data_iterator = _data
         return dataset.update_database()
@@ -292,7 +293,7 @@ class ECB_Data(SeriesIterator):
         
     def _get_dimensions_from_dsd(self):
         return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
-
+    
     def _get_data_by_dimension(self):
         
         self.xml_data = XMLData(provider_name=self.provider_name,
@@ -319,11 +320,6 @@ class ECB_Data(SeriesIterator):
             
             headers = SDMX_DATA_HEADERS
             
-            last_modified = None
-            if self.dataset.metadata and "Last-Modified" in self.dataset.metadata:
-                headers["If-Modified-Since"] = self.dataset.metadata["Last-Modified"]
-                last_modified = self.dataset.metadata["Last-Modified"]
-        
             filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))               
             download = Downloader(url=url, 
                                   filename=filename,
@@ -341,21 +337,11 @@ class ECB_Data(SeriesIterator):
 
             if response:
                 self._add_url_cache(url, response.status_code)
-
-            if response and response.status_code == HTTP_ERROR_NOT_MODIFIED:
-                msg = "Reject dataset updated for provider[%s] - dataset[%s] - update-date[%s]"
-                logger.warning(msg % (self.provider_name, self.dataset_code, last_modified))
-                continue
-            
             elif response and response.status_code == HTTP_ERROR_NO_RESULT:
                 continue
-            
             elif response and response.status_code >= 400:
                 raise response.raise_for_status()
     
-            if response and not self.last_modified and "Last-Modified" in response.headers:
-                self.last_modified = response.headers["Last-Modified"]
-            
             for row, err in self.xml_data.process(filepath):
                 yield row, err
 
@@ -367,10 +353,6 @@ class ECB_Data(SeriesIterator):
         self.dataset.attribute_keys = dataset["attribute_keys"] 
         self.dataset.concepts = dataset["concepts"] 
         self.dataset.codelists = dataset["codelists"]
-        if self.last_modified:
-            if not self.dataset.metadata:
-                self.dataset.metadata = {}
-            self.dataset.metadata["Last-Modified"] = self.last_modified
         
     def clean_field(self, bson):
         bson["attributes"].pop("TITLE", None)
