@@ -755,9 +755,9 @@ class Datasets(DlstatsCollection):
         msg = None
 
         try:
-            if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
-                msg = "fetcher max errors exceeded [%s]" % self.fetcher.errors
-                return False
+            #if self.fetcher.max_errors and self.fetcher.errors >= self.fetcher.max_errors:
+            #    msg = "fetcher max errors exceeded [%s]" % self.fetcher.errors
+            #    return False
             
             if self.fetcher.db[constants.COL_PROVIDERS].count({"name": self.provider_name}) == 0:
                 msg = "provider[%s] not found in DB" % self.provider_name
