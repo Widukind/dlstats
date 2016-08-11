@@ -383,8 +383,7 @@ class WorldBankAPI(Fetcher):
             dataset.series.data_iterator = ExcelData(dataset, DATASETS[dataset_code]["url"])
             dataset.doc_href = DATASETS[dataset_code]["doc_href"]
         else:
-            if not dataset.last_update:
-                dataset.last_update = clean_datetime()
+            dataset.last_update = clean_datetime()
             dataset.series.data_iterator = WorldBankAPIData(dataset, dataset_settings)
         
         return dataset.update_database()
@@ -645,6 +644,7 @@ class WorldBankAPIData(SeriesIterator):
                             break
 
                     self.dataset.metadata["indicators"][slug_indicator] = self.release_date
+                    self.dataset.last_update = clean_datetime()
                 
                 count += 1
                 
@@ -918,22 +918,28 @@ class ExcelData(SeriesIterator):
                 
 
     def _translate_daily_dates(self,value):
-            date = xlrd.xldate_as_tuple(value, self.excel_book.datemode)
-            return pandas.Period(year=date[0], month=date[1], day=date[2], freq=self.frequency)
+        date = xlrd.xldate_as_tuple(value, self.excel_book.datemode)
+        return pandas.Period(year=date[0], month=date[1], day=date[2], freq=self.frequency)
         
     def _get_country(self, col_header):
         
         country = None
+        country_item = None
         if col_header in self.available_countries:
             country = self.available_countries[col_header]["id"]
-        elif col_header in self.manual_countries:
-            country = self.manual_countries[col_header]
+            country_item = col_header
         else:
+            for k, v in self.manual_countries.items():
+                if k.lower() == col_header.lower(): 
+                    country = v
+                    country_item = k
+
+        if not country:
             logger.error("country not found [%s]" % col_header)
             raise Exception("country not found [%s]" % col_header)
 
         if country and not country in self.dataset.codelists["country"]:
-            self.dataset.codelists["country"][country] = col_header
+            self.dataset.codelists["country"][country] = country_item
         
         return country
 

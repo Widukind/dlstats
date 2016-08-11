@@ -234,8 +234,12 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset_code = "GEP"
         self._load_files_gep()
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        self.assertTrue(dataset["last_update"] > datetime(2016, 1, 6))
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 1, 6))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2016, 1, 6))
 
     @httpretty.activate
     @mock.patch("dlstats.fetchers.world_bank.WorldBankAPI.available_countries", available_countries)
@@ -246,6 +250,10 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset_code = "GEM"
         self._load_files_excel_gem()
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        self.assertEquals(dataset["last_update"], datetime(2016, 4, 5, 15, 5, 11))
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 4, 5, 15, 5, 11))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2016, 4, 5, 15, 5, 11))
 
