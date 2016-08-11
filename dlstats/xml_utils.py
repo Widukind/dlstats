@@ -1613,7 +1613,7 @@ class DataMixIn_ECB:
     def fixe_frequency(self, frequency, series, dimensions, attributes):
         if frequency == "H": #Half Yearly (semestriel)
             frequency = "S"
-            logger.warning("Replace H frequency by S - dataset[%s]" % self.dataset_code)
+            #logger.warning("Replace H frequency by S - dataset[%s]" % self.dataset_code)
         return frequency
     
 
@@ -1652,8 +1652,8 @@ class DataMixIn_INSEE:
         if frequency == "T":
             #TODO: T equal Trimestrial for INSEE
             frequency = "Q"
-            idbank = self.get_key(series, dimensions, attributes)
-            logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, idbank))
+            #idbank = self.get_key(series, dimensions, attributes)
+            #logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, idbank))
 
         return frequency
 
