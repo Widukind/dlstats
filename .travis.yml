@@ -12,7 +12,6 @@ cache:
   - apt
   
 env:
-  - MONGO_IMAGE=mongo:3.2.4 DOCKER_OPTIONS="-e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000 --link=mongodb:mongodb --rm"
   - MONGO_IMAGE=mongo:3.2.7 DOCKER_OPTIONS="-e USE_MONGO_SERVER=1 -e WIDUKIND_MONGODB_URL=mongodb://mongodb/widukind_test?connectTimeoutMS=60000&serverSelectionTimeoutMS=60000 --link=mongodb:mongodb --rm"
 
 before_install:
@@ -31,7 +30,7 @@ before_script:
 script:
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats --version
   - docker run $DOCKER_OPTIONS widukind/dlstats dlstats mongo check
-  - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests -x --with-coverage dlstats
+  - docker run $DOCKER_OPTIONS -e COVERAGE_FILE=/coverage/.coverage -v $PWD/coverage:/coverage widukind/dlstats nosetests --with-coverage dlstats
   - docker run $DOCKER_OPTIONS widukind/dlstats flake8 --exit-zero dlstats
   
 after_script: COVERAGE_FILE=./coverage/.coverage coveralls --verbose

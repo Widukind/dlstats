@@ -55,13 +55,11 @@ DATA_BEA_10101_An = {
         'last_update': None,
         'first_value': {
             'value': '3.1',
-            'ordinal': -1,
             'period': '1969',
             'attributes': None,
         },
         'last_value': {
             'value': '2.4',
-            'ordinal': 45,
             'period': '2015',
             'attributes': None,
         },
@@ -140,6 +138,37 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files(dataset_code)
     
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)
+
+        names = {
+         'a191rl1': 'Gross domestic product',
+         'dpcerl1': 'Personal consumption expenditures',
+         'dgdsrl1': 'Personal consumption expenditures - Goods',
+         'ddurrl1': 'Personal consumption expenditures - Goods - Durable goods',
+         'dndgrl1': 'Personal consumption expenditures - Goods - Nondurable goods',
+         'dserrl1': 'Personal consumption expenditures - Services',        
+         'a006rl1': 'Gross private domestic investment',
+         'a007rl1': 'Gross private domestic investment - Fixed investment',
+         'a008rl1': 'Gross private domestic investment - Fixed investment - Nonresidential',
+         'y033rl1': 'Gross private domestic investment - Fixed investment - Nonresidential - Equipment',
+         'a011rl1': 'Gross private domestic investment - Fixed investment - Residential',
+         'a020rl1': 'Net exports of goods and services - Exports',
+         'a191rp1': 'Addendum: - Gross domestic product, current dollars'
+        }
+
+        for k, v in names.items():
+            self.assertTrue(k in dataset["codelists"]["concept"])
+            self.assertEquals(dataset["codelists"]["concept"][k], v)
+        
+        series_list = self.assertSeries(dataset_code)
+        series_keys = {s["key"].lower(): s for s in series_list}
+
+        for k, v in names.items():
+            search_k = "%s-a" % k
+            search_name = "%s - Annually" % v 
+            self.assertTrue(search_k in series_keys, "%s not in series_keys" % search_k)
+            self.assertEquals(series_keys[search_k]["name"], search_name)
+        
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])
 

@@ -49,15 +49,19 @@ DATA_WB_GEP = {
         "categories_root": ['ADI', 'DBS', 'ED1', 'EDS', 'FDX', 'G2F', 'GDS', 'GEM', 'GEP', 'GFD', 'GMC', 'GPE', 'HNP', 'HNQ', 'HPP', 'IDA', 'IDS', 'JOB', 'MDG', 'POV', 'PSD', 'QDG', 'QDS', 'SE4', 'SNM', 'SNP', 'SNT', 'WAT', 'WDI', 'WGI'],
         "frequencies": ['A'],#, 'M', 'Q'],
         #'last_update': datetime(2016, 4, 5, 0, 0),
-        "concept_keys": ['country', 'obs-status'],
-        "codelist_keys": ['country', 'obs-status'],
+        "concept_keys": ['country', 'indicator', 'frequency', 'obs-status'],
+        "codelist_keys": ['country', 'indicator', 'frequency', 'obs-status'],
         "codelist_count": {
             "country": 1,
             "obs-status": 2,
+            "indicator": 1,
+            "frequency": 1,
         },        
-        "dimension_keys": ['country'],
+        "dimension_keys": ['indicator', 'country', 'frequency'],
         "dimension_count": {
+            "indicator": 1,
             "country": 1,
+            "frequency": 1,
         },
         "attribute_keys": ['obs-status'],
         "attribute_count": {
@@ -68,28 +72,28 @@ DATA_WB_GEP = {
     "series_reject_frequency": 0,
     "series_reject_empty": 0,
     "series_all_values": 20,
-    "series_key_first": "NYGDPMKTPKDZ.FRA",
-    "series_key_last": "NYGDPMKTPKDZ.FRA",
+    "series_key_first": "NYGDPMKTPKDZ.FRA.A",
+    "series_key_last": "NYGDPMKTPKDZ.FRA.A",
     "series_sample": {
         'provider_name': 'WORLDBANK',
         'dataset_code': 'GEP',
-        'key': 'NYGDPMKTPKDZ.FRA',
-        'name': 'Annual percentage growth rate of GDP at market prices based on constant 2010 US Dollars. - France',
+        'key': 'NYGDPMKTPKDZ.FRA.A',
+        'name': 'Annual percentage growth rate of GDP at market prices based on constant 2010 US Dollars. - France - Annually',
         'frequency': 'A',
         'first_value': {
             'value': '',
-            'ordinal': 29,
             'period': '1999',
             'attributes': None,
         },
         'last_value': {
             'value': '1.4',
-            'ordinal': 48,
             'period': '2018',
             'attributes': None,
         },
         'dimensions': {
             'country': 'FRA',
+            'frequency': 'A',
+            'indicator': 'NYGDPMKTPKDZ',
         },
         'attributes': None,
     }
@@ -133,13 +137,11 @@ DATA_WB_GEM = {
         'frequency': 'A',
         'first_value': {
             'value': '6.22842',
-            'ordinal': 27,
             'period': '1997',
             'attributes': None,
         },
         'last_value': {
             'value': '1.474426',
-            'ordinal': 46,
             'period': '2016',
             'attributes': None,
         },
@@ -232,8 +234,12 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset_code = "GEP"
         self._load_files_gep()
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        self.assertTrue(dataset["last_update"] > datetime(2016, 1, 6))
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 1, 6))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2016, 1, 6))
 
     @httpretty.activate
     @mock.patch("dlstats.fetchers.world_bank.WorldBankAPI.available_countries", available_countries)
@@ -244,6 +250,10 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset_code = "GEM"
         self._load_files_excel_gem()
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        self.assertEquals(dataset["last_update"], datetime(2016, 4, 5, 15, 5, 11))
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 4, 5, 15, 5, 11))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2016, 4, 5, 15, 5, 11))
 

@@ -29,28 +29,28 @@ DATA_WEO = {
         "dsd_id": "WEO",
         "is_completed": True,
         "categories_key": "WEO",
-        "categories_parents": None,
-        "categories_root": ['DOT', 'WEO'],
+        "categories_parents": [],
+        "categories_root": ['BOFS', 'CDIS', 'COFER', 'COFR', 'CPI', 'CPIS', 'DOT', 'FAS', 'FSI', 'GFS', 'HPDD', 'ICSD', 'IFS', 'PCP', 'PGI', 'REO', 'RT', 'WCED', 'WEO', 'WEO-GROUPS', 'WoRLD'],
         "concept_keys": ['flag', 'iso', 'scale', 'units', 'weo-country-code', 'weo-subject-code'],
         "codelist_keys": ['flag', 'iso', 'scale', 'units', 'weo-country-code', 'weo-subject-code'],
         "codelist_count": {
             "flag": 1,
             "iso": 182,
-            "scale": 4,
+            "scale": 3,
             "units": 12,
             "weo-country-code": 182,
-            "weo-subject-code": 23,
+            "weo-subject-code": 33,
         },        
-        "dimension_keys": ['weo-subject-code', 'iso', 'weo-country-code', 'units'],
+        "dimension_keys": ['weo-subject-code', 'iso', 'units'],
         "dimension_count": {
-            "weo-subject-code": 23,
+            "weo-subject-code": 33,
             "iso": 182,
-            "weo-country-code": 182,
             "units": 12,
         },
-        "attribute_keys": ['scale', 'flag'],
+        "attribute_keys": ['weo-country-code', 'scale', 'flag'],
         "attribute_count": {
-            "scale": 4,
+            "weo-country-code": 182,
+            "scale": 3,
             "flag": 1,
         },
     },
@@ -59,7 +59,7 @@ DATA_WEO = {
     "series_reject_empty": 0,
     "series_all_values": 210210,
     "series_key_first": "NGDP_R.AFG.0",
-    "series_key_last": "BCA.ZWE.8", #FIXME: BCA_NGDPD.ZWE.8",
+    "series_key_last": "BCA_NGDPD.ZWE.8",
     "series_sample": {
         'provider_name': 'IMF',
         'dataset_code': 'WEO',
@@ -69,31 +69,92 @@ DATA_WEO = {
         'last_update': datetime(2009, 4, 1, 0, 0),
         'first_value': {
             'value': 'n/a',
-            'ordinal': 10,
             'period': '1980',
-            'period_o': '1980',
             'attributes': None,
         },
         'last_value': {
             'value': '536.521',
-            'ordinal': 44,
             'period': '2014',
-            'period_o': '2014',
             'attributes': {
                 "flag": 'e'
             },
         },
         'dimensions': {
             'ISO': 'AFG',
-            'WEO Country Code': '512',
             'WEO Subject Code': 'NGDP_R',
             'Units': '0',
         },
         'attributes': {
             'Scale': '0',
+            'WEO Country Code': '512',
         }
     }
 }
+
+DATA_WEO_GROUPS = {
+    "filepath": os.path.abspath(os.path.join(RESOURCES_DIR, "WEOApr2009alla.xls")),
+    "DSD": {
+        "provider": "IMF",
+        "filepath": None,
+        "dataset_code": "WEO-GROUPS",
+        "dsd_id": "WEO-GROUPS",
+        "is_completed": True,
+        "categories_key": "WEO-GROUPS",
+        "categories_parents": [],
+        "categories_root": ['BOFS', 'CDIS', 'COFER', 'COFR', 'CPI', 'CPIS', 'DOT', 'FAS', 'FSI', 'GFS', 'HPDD', 'ICSD', 'IFS', 'PCP', 'PGI', 'REO', 'RT', 'WCED', 'WEO', 'WEO-GROUPS', 'WoRLD'],
+        "concept_keys": ['flag', 'scale', 'units', 'weo-country-group-code', 'weo-subject-code'],
+        "codelist_keys": ['flag', 'scale', 'units', 'weo-country-group-code', 'weo-subject-code'],
+        "codelist_count": {
+            "flag": 1,
+            "scale": 2,
+            "units": 14,
+            "weo-country-group-code": 16,
+            "weo-subject-code": 121,            
+        },        
+        "dimension_keys": ['weo-subject-code', 'weo-country-group-code', 'units'],
+        "dimension_count": {
+            "weo-subject-code": 121,
+            "weo-country-group-code": 16,
+            "units": 14,
+        },
+        "attribute_keys": ['scale', 'flag'],
+        "attribute_count": {
+            "scale": 2,
+            "flag": 1,
+        },
+    },
+    "series_accept": 1936,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 67760,
+    "series_key_first": "NGDP_RPCH.1.0",
+    "series_key_last": "PURANW.205.12",
+    "series_sample": {
+        'provider_name': 'IMF',
+        'dataset_code': 'WEO-GROUPS',
+        'key': 'NGDP_RPCH.1.0',
+        'name': 'Gross domestic product, constant prices - World - Annual percent change',
+        'frequency': 'A',
+        'last_update': datetime(2009, 4, 1, 0, 0),
+        'first_value': {
+            'value': '2.016',
+            'period': '1980',
+            'attributes': None,
+        },
+        'last_value': {
+            'value': '4.762',
+            'period': '2014',
+            'attributes': None,
+        },
+        'dimensions': {
+            'WEO Country Group Code': '1',
+            'WEO Subject Code': 'NGDP_RPCH',
+            'Units': '0',
+        },
+        'attributes': None
+    }
+}
+
 
 def get_dimensions_from_dsd(self, xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
     dimension_keys = ['REF_AREA', 'INDICATOR', 'VIS_AREA', 'FREQ', 'SCALE']
@@ -144,12 +205,19 @@ def weo_urls_patch(self):
         "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls",
     ]
 
+def weo_groups_urls_patch(self):
+    return [
+        "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009alla.xls",
+    ]
+
 def weo_urls_patch_revision(self):
     return [
         "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls",
         #"http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009alla.xls",
         "http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls",
         #"http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009alla.xls",
+        "http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls",
+        #"http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010alla.xls",
     ]
     
 class UtilsTestCase(BaseTestCase):
@@ -178,6 +246,7 @@ class FetcherTestCase(BaseFetcherTestCase):
     FETCHER_KLASS = Fetcher    
     DATASETS = {
         'WEO': DATA_WEO,
+        'WEO-GROUPS': DATA_WEO_GROUPS,
         'DOT': deepcopy(xml_samples.DATA_IMF_DOT),
     }    
     DATASET_FIRST = "AFRREO"
@@ -186,6 +255,11 @@ class FetcherTestCase(BaseFetcherTestCase):
 
     def _load_files_weo(self, dataset_code):
         url = "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls"
+        self.register_url(url, 
+                          self.DATASETS[dataset_code]["filepath"])
+
+    def _load_files_weo_groups(self, dataset_code):
+        url = "http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009alla.xls"
         self.register_url(url, 
                           self.DATASETS[dataset_code]["filepath"])
         
@@ -209,41 +283,19 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files_weo(dataset_code)
         self.assertLoadDatasetsFirst([dataset_code])
 
-    #@httpretty.activate     
-    #@unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
-    #@mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch_revision)
-    @unittest.skipIf(True, "TODO")
+    @httpretty.activate     
+    @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch_revision)
     def test_load_datasets_update(self):
-
-        # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_load_datasets_update
         
         dataset_code = "WEO"
-
-        self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls", 
-                          os.path.abspath(os.path.join(RESOURCES_DIR, "WEOApr2009all.xls")))
-
-        #self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009alla.xls", 
-        #                  os.path.abspath(os.path.join(RESOURCES_DIR, "WEOApr2009alla.xls")))
-
-        self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls", 
-                          os.path.abspath(os.path.join(RESOURCES_DIR, "WEOOct2009all.xls")))
-
-        #self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009alla.xls", 
-        #                  os.path.abspath(os.path.join(RESOURCES_DIR, "WEOOct2009alla.xls")))
-    
+        self._load_files_weo(dataset_code)
         self.assertLoadDatasetsUpdate([dataset_code])
-        
-        query = {"provider_name": "IMF", 
-                 "dataset_code": dataset_code, 
-                 "values.revisions": {"$ne": None}}
-                
-        series_count_revisions = self.db[constants.COL_SERIES].count(query)
-        
-        self.assertEqual(series_count_revisions, 665)
 
     @httpretty.activate     
-    @unittest.skipIf(True, "TODO")
     def test_build_data_tree(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_build_data_tree
 
         dataset_code = "WEO"
         self.assertDataTree(dataset_code)
@@ -260,6 +312,56 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertProvider()
         self.assertDataset(dataset_code)        
         self.assertSeries(dataset_code)
+
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.imf.WeoGroupsData.weo_urls', weo_groups_urls_patch)
+    def test_upsert_dataset_weo_groups(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_upsert_dataset_weo_groups
+        
+        dataset_code = "WEO-GROUPS"
+        self._load_files_weo_groups(dataset_code)
+    
+        self.assertProvider()
+        self.assertDataset(dataset_code)        
+        self.assertSeries(dataset_code)
+
+    @httpretty.activate     
+    @mock.patch('dlstats.fetchers.imf.WeoData.weo_urls', weo_urls_patch_revision)
+    def test_revisions_weo(self):
+
+        # nosetests -s -v dlstats.tests.fetchers.test_imf:FetcherTestCase.test_revisions_weo
+        
+        dataset_code = "WEO"
+
+        self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/01/weodata/WEOApr2009all.xls", 
+                          os.path.abspath(os.path.join(RESOURCES_DIR, "WEOApr2009all.xls")))
+
+        self.register_url("http://www.imf.org/external/pubs/ft/weo/2009/02/weodata/WEOOct2009all.xls", 
+                          os.path.abspath(os.path.join(RESOURCES_DIR, "WEOOct2009all.xls")))
+
+        self.register_url("http://www.imf.org/external/pubs/ft/weo/2010/01/weodata/WEOApr2010all.xls", 
+                          os.path.abspath(os.path.join(RESOURCES_DIR, "WEOApr2010all.xls")))
+    
+        #self.assertLoadDatasetsUpdate([dataset_code])
+        self.assertProvider()
+        result = self.fetcher.wrap_upsert_dataset(dataset_code)
+        self.assertIsNotNone(result)
+        
+        query = {
+            'provider_name': self.fetcher.provider_name,
+            "dataset_code": dataset_code
+        }
+
+        dataset = self.db[constants.COL_DATASETS].find_one(query)
+        self.assertIsNotNone(dataset)
+        
+        if self.is_debug:
+            self._debug_dataset(dataset)
+            
+        count_revisions = self.db[constants.COL_SERIES_ARCHIVES].count(query)
+        
+        self.assertEqual(count_revisions, 9055)
 
     @httpretty.activate     
     @mock.patch('dlstats.fetchers.imf.IMF_XML_Data._get_dimensions_from_dsd', get_dimensions_from_dsd)

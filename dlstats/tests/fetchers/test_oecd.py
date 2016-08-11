@@ -169,8 +169,11 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files(dataset_code, data_key="...A")
         
         self.assertProvider()
-        self.assertDataset(dataset_code)
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)
+        series_list = self.assertSeries(dataset_code)
+        
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])
 
     @httpretty.activate     
     @mock.patch('dlstats.fetchers.oecd.OECD_Data._get_dimensions_from_dsd', get_dimensions_from_dsd_EO)
@@ -183,6 +186,8 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files(dataset_code, data_key="..A")
         
         self.assertProvider()
-        self.assertDataset(dataset_code)
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)
+        series_list = self.assertSeries(dataset_code)
         
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])

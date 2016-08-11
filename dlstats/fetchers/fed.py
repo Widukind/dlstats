@@ -1281,8 +1281,8 @@ class FED(Fetcher):
                            dataset_code=dataset_code,
                            name=DATASETS[dataset_code]['name'],
                            doc_href=DATASETS[dataset_code]['doc_href'],                           
-                           last_update=clean_datetime(),
                            fetcher=self)
+        dataset.last_update = clean_datetime()
         
         dataset.series.data_iterator = FED_Data(dataset, 
                                                 url=DATASETS[dataset_code]['url'])

@@ -80,8 +80,8 @@ class OECD(Fetcher):
                            dataset_code=dataset_code, 
                            name=DATASETS[dataset_code]['name'], 
                            doc_href=DATASETS[dataset_code]['doc_href'],
-                           last_update=clean_datetime(),
                            fetcher=self)
+        dataset.last_update = clean_datetime()
         
         dataset.series.data_iterator = OECD_Data(dataset, 
                                                  sdmx_filter=DATASETS[dataset_code]['sdmx_filter'])

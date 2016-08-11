@@ -209,7 +209,7 @@ class Context(object):
 
     def mongo_client(self):
         if not self.client_mongo:
-            self.client_mongo = get_mongo_client(self.mongo_url)
+            self.client_mongo = get_mongo_client(self.mongo_url.strip('"'))
         return self.client_mongo
     
     @contextlib.contextmanager

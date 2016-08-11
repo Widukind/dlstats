@@ -66,16 +66,12 @@ DATA_KDED_CY = {
         'last_update': None,
         'first_value': {
             'value': '105.7',
-            'ordinal': 24,
             'period': '1994',
-            #'period_o': '1994',
             'attributes': None,
         },
         'last_value': {
             'value': '95.2',
-            'ordinal': 44,
             'period': '2014',
-            #'period_o': '2014',
             'attributes': None
         },
         'dimensions': {
@@ -122,16 +118,12 @@ DATA_KRITU_JG = {
         'last_update': None,
         'first_value': {
             'value': 'nan',
-            'ordinal': 96,
             'period': '1994Q1',
-            'period_o': '1994Q1',
             'attributes': None,
         },
         'last_value': {
             'value': '0.3',
-            'ordinal': 182,
             'period': '2015Q3',
-            'period_o': '2015Q3',
             'attributes': None
         },
         'dimensions': {
@@ -203,8 +195,13 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files_dataset_kdef_cy()
     
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        dataset["last_update"] = datetime(2015, 12 , 4)
+
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])
 
     @httpretty.activate     
     def test_upsert_dataset_kritu_jg(self):
@@ -219,6 +216,11 @@ class FetcherTestCase(BaseFetcherTestCase):
                           content_type='text/html')
     
         self.assertProvider()
-        self.assertDataset(dataset_code)        
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)        
+        series_list = self.assertSeries(dataset_code)
+        
+        print(dataset["last_update"] )
+        dataset["last_update"] = datetime(2015, 12 , 4)
 
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])

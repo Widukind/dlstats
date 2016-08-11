@@ -443,6 +443,9 @@ class BIS_Data(SeriesIterator):
         
         self.dataset.dimension_keys = self.dimension_keys
         
+        #TODO: if "frequency" in self.dataset.dimension_keys:
+        #    self.dataset.set_dimension_frequency("frequency")
+        
         self.dataset.last_update = self.release_date
         
         self.start_date = get_ordinal_from_period(self.periods[0], freq=self.frequency)
@@ -498,9 +501,6 @@ class BIS_Data(SeriesIterator):
         for period in self.periods:
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
-                'ordinal': get_ordinal_from_period(period, freq=self.frequency),
-                #'period_o': period,
                 'period': period,
                 'value': row[period]
             }

@@ -5,6 +5,8 @@ Created on Thu Sep 10 11:35:26 2015
 @author: salimeh
 """
 
+from collections import OrderedDict
+import itertools
 from datetime import datetime
 import zipfile
 import logging
@@ -274,7 +276,7 @@ class BEA(Fetcher):
                                   use_existing_file=self.use_existing_file)
             
             filepath = download.get_filepath()
-            self.for_delete.append(filepath)
+            #self.for_delete.append(filepath)
             self._current_urls[url] = filepath        
 
         zipfile_ = zipfile.ZipFile(filepath)
@@ -303,7 +305,7 @@ class BEA(Fetcher):
         sheet = self._get_sheet(url, filename, sheet_name)
         fetcher_data = BeaData(dataset, url=url, sheet=sheet)
         
-        if dataset.last_update and fetcher_data.release_date >= dataset.last_update: 
+        if dataset.last_update and fetcher_data.release_date >= dataset.last_update and not self.force_update: 
             comments = "update-date[%s]" % fetcher_data.release_date
             raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
                                               dataset_code=dataset_code,
@@ -356,11 +358,15 @@ class BEA(Fetcher):
                                   store_filepath=self.store_path,
                                   use_existing_file=self.use_existing_file)
             filepath = download.get_filepath()
-            self.for_delete.append(filepath)        
+            #self.for_delete.append(filepath)        
 
             self._current_urls[url] = filepath
             
-            zipfile_ = zipfile.ZipFile(filepath)
+            try:
+                zipfile_ = zipfile.ZipFile(filepath)
+            except Exception as err:
+                logger.error("bea zip error - url[%s] - filepath[%s] - error[%s]" % (url, filepath, str(err)))
+                continue
             
             for section in zipfile_.namelist():
                 
@@ -500,23 +506,39 @@ class BeaData(SeriesIterator):
 
         self.keys = []
         self.rows = self._get_datas()
+        self.last_title = OrderedDict()
+        self.name = None
         
     def _get_datas(self):
         try:
-            for row_num in self.row_ranges:
+            for i, row_num in enumerate(self.row_ranges):
 
                 row = self.sheet.row_values(row_num)
                 
                 key = row[2]
+                name = row[1]
+                
+                count_space = sum( 1 for _ in itertools.takewhile(str.isspace, name) )
+                if i == 0 or count_space == 0:
+                    self.last_title = OrderedDict()
+                    self.last_title[0] = name.strip()
+                else:
+                    self.last_title[count_space] = name.strip()
+                
+                _name = []
+                for c in list(self.last_title.keys()):
+                    if c <= count_space:
+                        _name.append(self.last_title[c])
+                self.name = " - ".join(_name)
 
                 # skip lines without key or with ZZZZZZx key
-                if len(key.replace(' ','')) == 0 or key[0:6] == 'ZZZZZZ':
+                if len(key.replace(' ','')) == 0 or key.startswith('ZZZZZZ'):
                     continue
                 elif key in self.keys:
                     continue
                 else:
                     self.keys.append(key)
-                
+
                 yield row, None
         finally:
             try:
@@ -526,11 +548,12 @@ class BeaData(SeriesIterator):
             
     def build_series(self, row):
         dimensions = {}
+        
         series = {}
         series_values = [] 
 
-        series_name = "%s - %s" % (row[1].strip(), constants.FREQUENCIES_DICT[self.frequency]) 
         series_key = "%s-%s" % (row[2], self.frequency)
+        series_name = "%s - %s" % (self.name, constants.FREQUENCIES_DICT[self.frequency])
 
         dimensions['concept'] = row[2]
         dimensions['frequency'] = self.frequency
@@ -539,7 +562,7 @@ class BeaData(SeriesIterator):
             self.dataset.codelists["frequency"][dimensions["frequency"]] = constants.FREQUENCIES_DICT[self.frequency]
         
         if not dimensions["concept"] in self.dataset.codelists["concept"]:
-            self.dataset.codelists["concept"][dimensions["concept"]] = dimensions["concept"]
+            self.dataset.codelists["concept"][dimensions["concept"]] = self.name
 
         start_date = pandas.Period(self.years[0], freq=self.frequency)
         end_date = pandas.Period(self.years[1], freq=self.frequency)
@@ -558,8 +581,6 @@ class BeaData(SeriesIterator):
         for v in row[3:]:
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
-                'ordinal': start_date.ordinal,
                 'period': str(start_date),
                 'value': str(v)
             }

@@ -3,3 +3,4 @@ coverage
 flake8
 httpretty==0.8.10
 mongomock
+pep8

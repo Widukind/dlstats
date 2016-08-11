@@ -689,8 +689,6 @@ class EsriData:
         for v in series_value:            
             value = {
                 'attributes': None,
-                'release_date': self.release_date,
-                'ordinal': period.ordinal,
                 'period': str(period),
                 'value': v
             }

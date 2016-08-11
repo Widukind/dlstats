@@ -256,6 +256,8 @@ class BaseFetcherTestCase(BaseDBTestCase):
                 self.assertEqual(len(dataset["codelists"][key]), dsd["attribute_count"][key])
                 self.assertTrue(key in dataset["concepts"])
 
+        return dataset
+
     def _debug_series(self, series):
         print()
         print("---------------- SERIES ------------------------")
@@ -325,3 +327,5 @@ class BaseFetcherTestCase(BaseDBTestCase):
                     self.assertTrue(key in dsd["attribute_keys"],
                                     "not key[%s] in attribute_keys" % key)
 
+        return series_list
+    

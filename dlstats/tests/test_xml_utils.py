@@ -615,8 +615,6 @@ class BaseXMLDataTestCase(BaseTestCase):
         self.assertEqual(series["name"], series_sample["name"])
         self.assertEqual(series["frequency"], series_sample["frequency"])
         
-        self.assertEqual(series["start_date"], series_sample["first_value"]["ordinal"])
-        self.assertEqual(series["end_date"], series_sample["last_value"]["ordinal"])
         self.assertTrue(series["end_date"] >= series["start_date"])
         
         self.assertEqual(series["dimensions"], series_sample["dimensions"])
@@ -631,9 +629,7 @@ class BaseXMLDataTestCase(BaseTestCase):
         
         for source, target in [(first_value, first_sample), (last_value, last_sample)]:
             self.assertEqual(source["value"], target["value"])
-            self.assertEqual(source["ordinal"], target["ordinal"])
             self.assertEqual(source["period"], target["period"])
-            #self.assertEqual(source["period_o"], target["period_o"])
             self.assertEqual(source["attributes"], target["attributes"])
             
     def _commons_tests(self, test_name=None):
