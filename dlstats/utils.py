@@ -322,9 +322,9 @@ def get_datetime_from_period(date_str, freq=None):
             S: Half Yearly
         """
         year = int(get_year(date_str))
-        if freq.endswith("1"):
+        if freq.endswith("S1"):
             month = 1
-        elif freq.endswith("2"):
+        elif freq.endswith("S2"):
             month = 7
         else:
             raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
