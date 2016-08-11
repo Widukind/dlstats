@@ -457,18 +457,14 @@ DATA_FED_TERMS = {
         'last_update': None,
         'first_value': {
             'value': '10.20',
-            'ordinal': 25,
             'period': '1972-02-29',
-            'period_o': '1972-02-29',
             'attributes': {
                 'OBS_STATUS': 'A',
             },
         },
         'last_value': {
             'value': '4.11',
-            'ordinal': 547,
             'period': '2015-08-31',
-            'period_o': '2015-08-31',
             'attributes': {
                 'OBS_STATUS': 'A',
             },
@@ -515,16 +511,12 @@ DATA_EUROSTAT = {
         'last_update': None,
         'first_value': {
             'value': '10452.9',
-            'ordinal': 25,
             'period': '1995',
-            'period_o': '1995',
             'attributes': {},
         },
         'last_value': {
             'value': '17517.5',
-            'ordinal': 44,
             'period': '2014',
-            'period_o': '2014',
             'attributes': {},
         },
         'dimensions': {
@@ -564,13 +556,11 @@ DATA_IMF_DOT = {
         'last_update': None,
         'first_value': {
             'value': '0',
-            'ordinal': -20,
             'period': '1950',
             'attributes': {},
         },
         'last_value': {
             'value': '69900',
-            'ordinal': 44,
             'period': '2014',
             'attributes': {},
         },
@@ -616,18 +606,14 @@ DATA_DESTATIS = {
         'last_update': None,
         'first_value': {
             'value': '593935',
-            'ordinal': 380,
             'period': '1972-02-29',
-            'period_o': '1972-02-29',
             'attributes': {
                 'OBS_STATUS': 'A',
             },
         },
         'last_value': {
             'value': '1789542',
-            'ordinal': 550,
             'period': '2015-08-31',
-            'period_o': '2015-08-31',
             'attributes': {
                 'OBS_STATUS': 'A',
             },
@@ -668,15 +654,12 @@ DATA_OECD_MEI = {
         'last_update': None,
         'first_value': {
             'value': '12.8770244930154',
-            'ordinal': -14,
             'period': '1956',
             'attributes': {},
         },
         'last_value': {
             'value': '108.920383493122',
-            'ordinal': 44,
             'period': '2014',
-            'period_o': '2014',
             'attributes': {},
         },
         'dimensions': {
@@ -719,15 +702,12 @@ DATA_OECD_EO = {
         'last_update': None,
         'first_value': {
             'value': '4295445496.82796',
-            'ordinal': 12,
             'period': '1973-Q1',
             'attributes': {},
         },
         'last_value': {
             'value': '9811246401.83801',
-            'ordinal': 191,
             'period': '2017-Q4',
-            'period_o': '2017-Q4',
             'attributes': {},
         },
         'dimensions': {
@@ -771,9 +751,7 @@ _DATA_ECB = {
         'last_update': None,
         'first_value': {
             'value': '0.895263095238095',
-            'ordinal': 31,
             'period': '2001',
-            'period_o': '2001',
             'attributes': {
                 'OBS_STATUS': 'A',
                 'OBS_COM': "Indicative rate"
@@ -781,9 +759,7 @@ _DATA_ECB = {
         },
         'last_value': {
             'value': '10.252814453125001',
-            'ordinal': 45,
             'period': '2015',
-            'period_o': '2015',
             'attributes': {
                 'OBS_STATUS': 'A',
                 'OBS_COM': "Indicative rate"
@@ -833,18 +809,14 @@ _DATA_INSEE = {
         'last_update': None,
         'first_value': {
             'value': '139.22',
-            'ordinal': 240,
             'period': '1990-01',
-            'period_o': '1990-01',
             'attributes': {
                 "OBS_STATUS": "A"
             },
         },
         'last_value': {
             'value': '96.98',
-            'ordinal': 550,
             'period': '2015-11',
-            'period_o': '2015-11',
             'attributes': {
                 "OBS_STATUS": "A"
             },
