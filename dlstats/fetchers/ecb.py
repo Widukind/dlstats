@@ -246,8 +246,8 @@ class ECB(Fetcher):
                            dataset_code=dataset_code,
                            name=None,
                            doc_href=self.provider.website,
-                           last_update=utils.clean_datetime(),
                            fetcher=self)
+        dataset.last_update = utils.clean_datetime()
         
         _data = ECB_Data(dataset=dataset)
         dataset.series.data_iterator = _data

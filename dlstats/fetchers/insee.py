@@ -268,8 +268,8 @@ class INSEE(Fetcher):
                            dataset_code=dataset_code,
                            name=None,
                            doc_href=None,
-                           last_update=clean_datetime(),
                            fetcher=self)
+        dataset.last_update = clean_datetime()
         
         insee_data = INSEE_Data(dataset)
         dataset.series.data_iterator = insee_data
@@ -340,9 +340,6 @@ class INSEE_Data(SeriesIterator):
         #TODO: prendre cette info dans la DSD sans utiliser dataflows
         self.dataset.name = self.fetcher._dataflows[self.dataset_code]["name"]        
         self.dsd_id = self.fetcher._dataflows[self.dataset_code]["dsd_id"]
-        
-        self.dataset_updated = False
-        self.last_update = self.dataset.last_update
         
         self.xml_dsd = XMLStructure(provider_name=self.provider_name,
                                     sdmx_client=self.fetcher.xml_sdmx)        
@@ -505,9 +502,5 @@ class INSEE_Data(SeriesIterator):
             raise errors.RejectUpdatedSeries(provider_name=self.provider_name,
                                              dataset_code=self.dataset_code,
                                              key=bson.get('key'))
-            
-        if not self.dataset_updated:
-            self.dataset_updated = True
-            self.dataset.last_update = self.dataset.series.now
             
         return bson

@@ -161,7 +161,6 @@ DATA_INSEE_CHO_AN_AGE = {
         'last_update': None,
         'first_value': {
             'value': '143',
-            'ordinal': 5,
             'period': '1975',
             'attributes': {
                 "OBS_STATUS": "A"
@@ -169,7 +168,6 @@ DATA_INSEE_CHO_AN_AGE = {
         },
         'last_value': {
             'value': '359',
-            'ordinal': 44,
             'period': '2014',
             'attributes': {
                 "OBS_STATUS": "A"
@@ -292,9 +290,14 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.DATASETS[dataset_code]["series_sample"]["attributes"].pop("IDBANK", None)
         self._load_files(dataset_code, data_key="M..")
         self.assertProvider()
-        self.assertDataset(dataset_code)
-        self.assertSeries(dataset_code)
-
+        dataset = self.assertDataset(dataset_code)
+        series_list = self.assertSeries(dataset_code)
+        
+        self.assertTrue(dataset["last_update"] >= datetime(2016, 1, 8))
+        
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 1, 8))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2013, 3, 11))
+        
     @httpretty.activate     
     @mock.patch('dlstats.fetchers.insee.INSEE_Data._get_dimensions_from_dsd', get_dimensions_from_dsd_CHO_AN_AGE)
     def test_upsert_dataset_cho_an_age(self):
@@ -304,9 +307,14 @@ class FetcherTestCase(BaseFetcherTestCase):
         dataset_code = 'CHO-AN-AGE'
         self._load_files(dataset_code, data_key="Nbre..")
         self.assertProvider()
-        self.assertDataset(dataset_code)
-        self.assertSeries(dataset_code)
+        dataset = self.assertDataset(dataset_code)
+        series_list = self.assertSeries(dataset_code)
 
+        self.assertTrue(dataset["last_update"] >= datetime(2016, 2, 10))
+        
+        self.assertEquals(series_list[0]["last_update_ds"], datetime(2016, 2, 10))
+        self.assertEquals(series_list[-1]["last_update_ds"], datetime(2016, 2, 12))
+        
     @httpretty.activate     
     @unittest.skipIf(True, "TODO")
     def test_is_updated(self):
