@@ -729,3 +729,35 @@ def cmd_stats_run(fetcher=None, limit=20, **kwargs):
         
     print(sep)
 
+@cli.command('providers', context_settings=client.DLSTATS_SETTINGS)
+@client.opt_verbose
+@client.opt_silent
+@client.opt_debug
+@client.opt_logger
+@client.opt_logger_conf
+@client.opt_logger_file
+@client.opt_mongo_url
+@opt_fetcher_not_required
+def cmd_providers(fetcher=None, **kwargs):
+    """Create or Update fetcher Providers"""
+
+    ctx = client.Context(**kwargs)
+
+    ctx.log_ok("Create/Update Provider for %s fetcher:" % fetcher)
+
+    if ctx.silent or click.confirm('Do you want to continue?', abort=True):
+        
+        _fetchers = []
+        if fetcher:
+            _fetchers = [fetcher]
+        else:
+            _fetchers = list(FETCHERS.keys())
+                
+        for _fetcher in _fetchers:
+            ctx.log("Run provider for [%s]" % _fetcher)
+            f = FETCHERS[_fetcher](db=ctx.mongo_database())
+            result = f.provider.update_database()
+            if result:
+                ctx.log_ok("Provider [%s] updated." % _fetcher)
+            else:
+                ctx.log_error("Provider [%s] update ERROR." % _fetcher)

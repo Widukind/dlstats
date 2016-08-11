@@ -37,7 +37,7 @@ xpath_ds_data_start = etree.XPath("nt:dataStart/text()", namespaces=TABLE_OF_CON
 xpath_ds_data_end = etree.XPath("nt:dataEnd/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 xpath_ds_values = etree.XPath("nt:values/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
 
-VERSION = 3
+VERSION = 4
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,7 @@ class Eurostat(Fetcher):
                                   version=VERSION,
                                   region='Europe',
                                   website='http://ec.europa.eu/eurostat',
+                                  terms_of_use='http://ec.europa.eu/eurostat/about/our-partners/copyright',
                                   fetcher=self)
         
         self.categories_filter = [
@@ -114,7 +115,28 @@ class Eurostat(Fetcher):
         ]
         
         self.url_table_of_contents = "http://ec.europa.eu/eurostat/estat-navtree-portlet-prod/BulkDownloadListing?sort=1&file=table_of_contents.xml"
+        self.updated_catalog = False
+
+    def _is_updated_catalog(self, creation_date):
         
+        if not self.provider.from_db:
+            self.provider_verify()
+        
+        if not self.provider.metadata:
+            self.provider.metadata = {}
+        
+        if not "creation_date" in self.provider.metadata:
+            self.provider.metadata["creation_date"] = creation_date
+            self.provider.update_database()
+            return True
+            
+        if creation_date > self.provider.metadata["creation_date"]:
+            self.provider.metadata["creation_date"] = creation_date
+            self.provider.update_database()
+            return True
+        
+        return False
+
     def build_data_tree(self):
         """Builds the data tree
         """
@@ -129,7 +151,7 @@ class Eurostat(Fetcher):
         categories_keys = []
         
         it = etree.iterparse(filepath, events=['end'], tag="{urn:eu.europa.ec.eurostat.navtree}leaf")
-
+        
         def is_selected(parent_codes):
             """parent_codes is array of category_code
             """
@@ -143,8 +165,6 @@ class Eurostat(Fetcher):
                 if c["category_code"] == category_code:
                     return c
 
-        #TODO: date TOC à stocker dans provider !!!
-        
         def create_categories(parent_codes, parent_titles, position):
             
             position += 1
@@ -171,11 +191,26 @@ class Eurostat(Fetcher):
                     categories_keys.append(category_code)
                     categories.append(_category)
         
-        #    .getroottree().creationDate="20160225T1102"
-
         position = 0
-        
+        is_verify_creation_date = False
+
         for event, dataset in it:
+            
+            if is_verify_creation_date is False:
+                _root = dataset.getroottree().getroot()
+                creation_date_str = _root.attrib.get("creationDate")
+                creation_date = clean_datetime(datetime.strptime(creation_date_str, 
+                                                                 '%Y%m%dT%H%M'))
+                
+                if self._is_updated_catalog(creation_date) is False:
+                    msg = "no update from eurostat catalog. current[%s] - db[%s]"
+                    logger.warning(msg % (creation_date, self.provider.metadata["creation_date"]))
+                    if not self.force_update:
+                        return []
+                
+                is_verify_creation_date = True
+                if not self.force_update:
+                    self.updated_catalog = True
             
             parent_codes = dataset.xpath("ancestor::nt:branch/nt:code/text()", namespaces=TABLE_OF_CONTENT_NSMAP)
             
@@ -282,7 +317,11 @@ class Eurostat(Fetcher):
     def load_datasets_update(self):
 
         datasets_list = self.datasets_list()
-        dataset_codes = [d["dataset_code"] for d in self.datasets_list()]
+        if not self.updated_catalog and not self.force_update:
+            msg = "update aborted for updated catalog"
+            logger.warning(msg)
+        
+        dataset_codes = [d["dataset_code"] for d in datasets_list]
         
         #TODO: enable ?
         cursor = self.db[constants.COL_DATASETS].find(
@@ -295,8 +334,8 @@ class Eurostat(Fetcher):
         for dataset in datasets_list:
             dataset_code = dataset["dataset_code"]
             
-            last_update_from_dataset = dataset['last_update']
-            last_update_from_catalog = selected_datasets.get(dataset_code, {}).get('last_update')
+            last_update_from_catalog = dataset['last_update']
+            last_update_from_dataset = selected_datasets.get(dataset_code, {}).get('last_update')
              
             if (dataset_code not in selected_datasets) or (last_update_from_catalog > last_update_from_dataset):
                 try:

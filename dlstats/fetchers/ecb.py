@@ -24,7 +24,7 @@ HTTP_ERROR_NO_RESULT = 404
 HTTP_ERROR_BAD_REQUEST = 400
 HTTP_ERROR_SERVER_ERROR = 500
 
-VERSION = 4
+VERSION = 5
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ SDMX_DATA_HEADERS = {'Accept': 'application/vnd.sdmx.structurespecificdata+xml;v
 SDMX_METADATA_HEADERS = {'Accept': 'application/vnd.sdmx.structure+xml;version=2.1'}
 
 #TODO: intégré à metadata du provider ou du dataset ?
-FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D"]
-FREQUENCIES_REJECTED = ["E", "B", "H", "N", "S"] 
+FREQUENCIES_SUPPORTED = ["A", "M", "Q", "W", "D", "S"]
+FREQUENCIES_REJECTED = ["E", "B", "H", "N"] 
 
 """
 https://sdw-wsrest.ecb.europa.eu/service/codelist/ECB/CL_FREQ
@@ -76,6 +76,7 @@ class ECB(Fetcher):
                                   version=VERSION,
                                   region='Europe',
                                   website='http://www.ecb.europa.eu',
+                                  terms_of_use='https://www.ecb.europa.eu/home/disclaimer/html/index.en.html',
                                   fetcher=self)
     
         self.xml_sdmx = None

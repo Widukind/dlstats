@@ -1596,7 +1596,7 @@ class DataMixIn_ECB:
     
     PROVIDER_NAME = "ECB"
     
-    _frequencies_supported = ["A", "M", "Q", "W", "D"]
+    _frequencies_supported = ["A", "M", "Q", "W", "D", "S"]
     
     def get_name(self, series, dimensions, attributes):
         if "TITLE_COMPL" in attributes:
@@ -1608,6 +1608,14 @@ class DataMixIn_ECB:
             return attributes.get("TITLE")
         
         return super().get_name(series, dimensions, attributes)
+    
+    @timeit("xml_utils.DataMixIn_ECB.fixe_frequency", stats_only=True)
+    def fixe_frequency(self, frequency, series, dimensions, attributes):
+        if frequency == "H": #Half Yearly (semestriel)
+            frequency = "S"
+            #logger.warning("Replace H frequency by S - dataset[%s]" % self.dataset_code)
+        return frequency
+    
 
 class DataMixIn_INSEE:
     """Common class for INSEE datas
@@ -1644,8 +1652,8 @@ class DataMixIn_INSEE:
         if frequency == "T":
             #TODO: T equal Trimestrial for INSEE
             frequency = "Q"
-            idbank = self.get_key(series, dimensions, attributes)
-            logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, idbank))
+            #idbank = self.get_key(series, dimensions, attributes)
+            #logger.warning("Replace T frequency by Q - dataset[%s] - idbank[%s]" % (self.dataset_code, idbank))
 
         return frequency
 

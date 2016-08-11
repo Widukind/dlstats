@@ -20,7 +20,7 @@ from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterat
 from dlstats.utils import Downloader, clean_datetime
 from dlstats import constants
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +250,7 @@ class BEA(Fetcher):
                                   region='USA',
                                   version=VERSION,
                                   website='http://www.bea.gov',
+                                  terms_of_use='http://www.bea.gov/about/BEAciting.htm',
                                   fetcher=self)
         
         self._datasets_settings = None

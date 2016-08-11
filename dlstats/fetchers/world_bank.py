@@ -24,7 +24,7 @@ from dlstats import constants
 
 logger = logging.getLogger(__name__)
 
-VERSION = 1
+VERSION = 2
 
 HTTP_ERROR_SERVICE_CURRENTLY_UNAVAILABLE = 503 #Service currently unavailable
 
@@ -74,6 +74,7 @@ class WorldBankAPI(Fetcher):
                                  version=VERSION,
                                  region='World',
                                  website='http://www.worldbank.org/',
+                                 terms_of_use='http://data.worldbank.org/summary-terms-of-use',
                                  fetcher=self)
 
         self.api_url = 'http://api.worldbank.org/v2/'

@@ -37,6 +37,7 @@ provider_schema = Schema({
     'region': All(str, Length(min=1)),
     'website': All(str, Length(min=9)),
     'metadata': Any(None, dict),
+    Optional('terms_of_use'): Any(None, str),
 },required=True)
 
 data_tree_datasets_schema = Schema({
