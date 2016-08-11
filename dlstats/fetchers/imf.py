@@ -20,7 +20,7 @@ from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure,
                                select_dimension,
                                get_dimensions_from_dsd)
 
-VERSION = 2
+VERSION = 3
 
 logger = logging.getLogger(__name__)
 
@@ -679,7 +679,8 @@ class IMF(Fetcher):
                                   long_name="International Monetary Fund",
                                   version=VERSION, 
                                   region='World', 
-                                  website='http://www.imf.org/', 
+                                  website='http://www.imf.org/',
+                                  terms_of_use='http://www.imf.org/external/terms.htm',
                                   fetcher=self)
         
         self.requests_client = requests.Session()

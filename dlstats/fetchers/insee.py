@@ -74,6 +74,7 @@ class INSEE(Fetcher):
                                  version=VERSION,
                                  region='France',
                                  website='http://www.insee.fr',
+                                 terms_of_use='http://www.insee.fr/en/service/default.asp?page=rediffusion/rediffusion.htm',
                                  fetcher=self)
         
         self.xml_sdmx = XMLSDMX(agencyID=self.provider_name, 

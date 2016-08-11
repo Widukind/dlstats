@@ -17,7 +17,7 @@ FIXME: Attention à EO dont le dataset NAME change à chaque publication !
 - use hook dataset mais attention à series qui use eo
 """
 
-VERSION = 1
+VERSION = 2
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,8 @@ class OECD(Fetcher):
                                   long_name='Organisation for Economic Co-operation and Development',
                                   version=VERSION,
                                   region='World',
-                                  website='http://www.oecd.org', 
+                                  website='http://www.oecd.org',
+                                  terms_of_use='http://www.oecd.org/termsandconditions/', 
                                   fetcher=self)
 
         self.requests_client = requests.Session()

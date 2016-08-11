@@ -18,7 +18,7 @@ from dlstats import constants
 from dlstats.utils import Downloader, get_ordinal_from_period
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 
-VERSION = 3
+VERSION = 4
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +217,8 @@ class BIS(Fetcher):
                                   long_name='Bank for International Settlements',
                                   version=VERSION,
                                   region='World',
-                                  website='http://www.bis.org', 
+                                  website='http://www.bis.org',
+                                  terms_of_use='https://www.bis.org/terms_conditions.htm', 
                                   fetcher=self)
         
     def upsert_dataset(self, dataset_code):

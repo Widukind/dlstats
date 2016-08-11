@@ -190,7 +190,7 @@ class Fetcher(object):
         if provider:
             self.provider = provider
         
-        if not provider or self.provider.version != self.version:
+        if provider and self.provider.version != self.version:
             self.provider.update_database()
 
         self.provider_verified = True
@@ -393,7 +393,8 @@ class Providers(DlstatsCollection):
                  version=0,
                  region=None,
                  website=None,
-                 metadata=None,
+                 terms_of_use=None,
+                 metadata={},
                  enable=True,
                  lock=False,
                  from_db=False,
@@ -412,6 +413,7 @@ class Providers(DlstatsCollection):
         self.version = version
         self.region = region
         self.website = website
+        self.terms_of_use = terms_of_use
         self.metadata = metadata or {}
         self.enable = enable
         self.lock = lock
@@ -435,6 +437,7 @@ class Providers(DlstatsCollection):
                 'slug': self.slug(),
                 'region': self.region,
                 'website': self.website,
+                'terms_of_use': self.terms_of_use,
                 'metadata': self.metadata,
                 "enable": self.enable,
                 "lock": self.lock}

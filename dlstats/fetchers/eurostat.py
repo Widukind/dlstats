@@ -88,6 +88,7 @@ class Eurostat(Fetcher):
                                   version=VERSION,
                                   region='Europe',
                                   website='http://ec.europa.eu/eurostat',
+                                  terms_of_use='http://ec.europa.eu/eurostat/about/our-partners/copyright',
                                   fetcher=self)
         
         self.categories_filter = [
