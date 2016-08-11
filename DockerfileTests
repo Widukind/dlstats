@@ -2,6 +2,6 @@ FROM widukind/docker-base
 
 ADD . /code/
 
-RUN pip install -r requirements.txt \
-	&& pip install -r requirements-tests.txt \
+RUN pip install -U -r requirements.txt \
+	&& pip install -U -r requirements-tests.txt \
     && pip install --no-deps -e .
