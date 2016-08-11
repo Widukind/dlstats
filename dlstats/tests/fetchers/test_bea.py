@@ -169,10 +169,6 @@ class FetcherTestCase(BaseFetcherTestCase):
             self.assertTrue(search_k in series_keys, "%s not in series_keys" % search_k)
             self.assertEquals(series_keys[search_k]["name"], search_name)
         
-        """
-        self.assertEquals(series_list[0]['name'], "Gross domestic product - Annually")
-        self.assertEquals(series_list[1]['name'], 'Personal consumption expenditures - Annually')
-        self.assertEquals(series_list[2]['name'], 'Personal consumption expenditures - Goods - Annually')
-        self.assertEquals(series_list[3]['name'], 'Personal consumption expenditures - Goods - Durable goods - Annually')
-        """
+        for series in series_list:
+            self.assertEquals(series["last_update_ds"], dataset["last_update"])
 
