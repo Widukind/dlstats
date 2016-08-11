@@ -113,10 +113,15 @@ class FetcherTestCase(BaseFetcherTestCase):
     @httpretty.activate     
     def test_build_data_tree(self):
 
+        # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase.test_build_data_tree
+
         dataset_code = "nama_10_fcs"
         self._load_files_datatree()
         self.assertDataTree(dataset_code)
         
+        result = self.fetcher.build_data_tree()
+        self.assertEqual(len(result), 0)
+
     def test_upsert_dataset_nama_10_fcs(self):
         
         # nosetests -s -v dlstats.tests.fetchers.test_eurostat:FetcherTestCase.test_upsert_dataset_nama_10_fcs
@@ -131,7 +136,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertProvider()
         self.assertDataset(dataset_code)
         self.assertSeries(dataset_code)
-
+        
         '''Reload upsert_dataset for normal fail'''
         with self.assertRaises(RejectUpdatedDataset) as err:
             self.fetcher.upsert_dataset(dataset_code)
@@ -154,16 +159,18 @@ class FetcherTestCase(BaseFetcherTestCase):
         httpretty.disable()
         httpretty.enable()
         self._load_files(dataset_code)
-            
+
         '''Change last_update in catalog.xml for force update dataset'''
-        toc = open(TOC_FP, 'rb').read()
+        with open(TOC_FP, 'rb') as fp:
+            toc = fp.read()   
+        self.assertFalse(b'27.10.2015' in toc)
         toc = toc.replace(b'26.10.2015', b'27.10.2015')
         self.assertTrue(b'27.10.2015' in toc)
         self._load_files_datatree(toc=toc)
+        self.fetcher.provider.metadata["creation_date"] = datetime.datetime(1900, 1 , 1)
         results = self.fetcher.upsert_data_tree(force_update=True)
         self.assertIsNotNone(results)
         self.fetcher.get_selected_datasets(force=True)
-
 
         query = {
             'provider_name': self.fetcher.provider_name,
@@ -173,6 +180,10 @@ class FetcherTestCase(BaseFetcherTestCase):
         deleted = self.db[constants.COL_SERIES].delete_one({"_id": _id})
         self.assertEqual(deleted.deleted_count, 1)
 
+        dataset_settings = self.fetcher.selected_datasets[dataset_code]
+        self.assertEqual(dataset_settings["last_update"],
+                         datetime.datetime(2015, 10, 27, 0, 0))
+        
         result = self.fetcher.upsert_dataset(dataset_code)
         self.assertIsNotNone(result) #_id du dataset
         dataset = self.db[constants.COL_DATASETS].find_one(query)
