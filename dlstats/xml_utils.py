@@ -1314,55 +1314,6 @@ class XMLCompactData_2_0_DESTATIS(XMLCompactData_2_0):
     NS_TAG_DATA = "ns1"
     PROVIDER_NAME = "DESTATIS"
 
-class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
-
-    PROVIDER_NAME = "IMF"
-    
-    def get_key(self, series, dimensions, attributes):
-        return "%s.%s" % (self.dataset_code, attributes["SERIESCODE"])
-    
-    def is_series_tag(self, element):
-        localname = etree.QName(element.tag).localname
-        return localname == 'Series'
-
-    def get_observations(self, series, frequency):
-        """
-        <Series FREQ="A" REF_AREA="122" INDICATOR="TMG_CIF_USD" VIS_AREA="369" SCALE="6" SERIESCODE="122TMG_CIF_USD369.A" TIME_FORMAT="P1Y">
-            <Obs TIME_PERIOD="1950" VALUE="0"/>
-            <Obs TIME_PERIOD="1951" VALUE="0"/>
-        </Series>
-        
-        """
-        observations = deque()
-        for obs in series.iterchildren():
-
-            item = {"period": None, "value": None, "attributes": {}}
-        
-            localname = etree.QName(obs.tag).localname
-                
-            if localname == "Obs":
-                 
-                period = obs.attrib["TIME_PERIOD"]                
-                if frequency == "Q" and len(period.split("-")) == 2:
-                    period = period.replace("-0", "-Q")
-                
-                item["period"] = period
-                
-                #TODO: value manquante
-                item["value"] = obs.attrib.get("VALUE", "")
-                
-                for key, value in obs.attrib.items():
-                    if not key in ['TIME_PERIOD', 'VALUE']:
-                        item["attributes"][key] = value
-                
-                observations.append(item)
-            
-                obs.clear()
-
-        return list(observations)
-    
-    
-    
 class XMLCompactData_2_0_EUROSTAT(XMLCompactData_2_0):
 
     PROVIDER_NAME = "EUROSTAT"    
@@ -1779,7 +1730,6 @@ XML_STRUCTURE_KLASS = {
     "XMLCompactData_2_0": XMLCompactData_2_0,
     "XMLCompactData_2_0_EUROSTAT": XMLCompactData_2_0_EUROSTAT,
     "XMLCompactData_2_0_DESTATIS": XMLCompactData_2_0_DESTATIS,
-    "XMLCompactData_2_0_IMF": XMLCompactData_2_0_IMF,    
     "XMLGenericData_2_1": XMLGenericData_2_1,
     "XMLGenericData_2_1_ECB": XMLGenericData_2_1_ECB,
     "XMLGenericData_2_1_INSEE": XMLGenericData_2_1_INSEE,

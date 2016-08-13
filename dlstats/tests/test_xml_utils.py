@@ -28,7 +28,6 @@ SAMPLES_DSD_2_0 = {
     #"DESTATIS": xml_samples.DSD_DESTATIS,
     "OECD-MEI": xml_samples.DSD_OECD_MEI,
     "OECD-EO": xml_samples.DSD_OECD_EO,
-    "IMF_DOT": xml_samples.DSD_IMF_DOT,
 }
 
 SAMPLES_DSD_2_1 = {
@@ -43,7 +42,6 @@ SAMPLES_DATA_1_0 = {
 SAMPLES_DATA_COMPACT_2_0 = {
     "EUROSTAT": xml_samples.DATA_EUROSTAT, 
     #"DESTATIS": xml_samples.DATA_DESTATIS, 
-    "IMF-DOT": xml_samples.DATA_IMF_DOT, 
 }
 
 SAMPLES_DATA_GENERIC_2_0 = {

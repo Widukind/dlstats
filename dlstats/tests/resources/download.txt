@@ -139,8 +139,10 @@ http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2
 http "http://www.esri.cao.go.jp/jp/sna/data/data_list/sokuhou/files/2015/qe153_2/__icsFiles/afieldfile/2015/12/04/ritu-mk1532.csv" >   ritu-mk1532.csv            
 
 # IMF - xmlutils test
-http "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/DOT" > xmlutils/imf/imf-dot-datastructure-2.0.xml
-http "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/DOT/122..369.A." > xmlutils/imf/imf-dot-data-compact-2.0.xml
+#http "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/DOT" > xmlutils/imf/imf-dot-datastructure-2.0.xml
+#http "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/DOT/122..369.A." > xmlutils/imf/imf-dot-data-compact-2.0.xml
+http "http://dataservices.imf.org/REST/SDMX_JSON.svc/DataStructure/DOT" > imf/imf-dot-datastructure-2.1.json
+http "http://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/DOT/A.US.TMG_CIF_USD.AN+FR+EE" > imf/imf-dot-data-compact-2.1.json
 
 # IMF - fetcher tests
 http "http://www.imf.org/external/ns/cs.aspx?id=28" > imf/weo-index.html

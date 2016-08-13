@@ -712,7 +712,8 @@ class Datasets(DlstatsCollection):
                 dimension_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
 
             for key in self.attribute_keys:
-                attribute_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items() if key in self.codelists])
+                if key in self.codelists:
+                    attribute_list[key] = OrderedDict([(k, v) for k, v in self.codelists.get(key).items()])
             
             self.dimension_list.set_dict(dimension_list)
             self.attribute_list.set_dict(attribute_list)
@@ -1240,6 +1241,9 @@ class Series:
                         else:
                             self.count_accepts += 1
                             self.series_list.append(data)
+                    
+                    elif isinstance(data, errors.InterruptBatchSeriesData):
+                        self.update_series_list()
     
                     elif isinstance(data, errors.RejectFrequency):
                         self.count_rejects += 1

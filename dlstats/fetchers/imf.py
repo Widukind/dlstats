@@ -11,14 +11,9 @@ from lxml import etree
 
 from widukind_common import errors
 
-from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime, clean_key, clean_dict
+from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
-from dlstats import constants
-from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
-                               XMLCompactData_2_0_IMF as XMLData,
-                               dataset_converter,
-                               select_dimension,
-                               get_dimensions_from_dsd)
+from dlstats.xml_utils import select_dimension
 
 VERSION = 3
 
@@ -31,132 +26,217 @@ DATASETS = {
     'WEO': { 
         'name': 'World Economic Outlook',
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
+        'previous_datasets': [],
     },
     'WEO-GROUPS': { 
         'name': 'World Economic Outlook (groups)',
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
+        'previous_datasets': [],
     },
     'BOP': { 
         'name': 'Balance of Payments',
         'doc_href': 'http://data.imf.org/BOP',
+        'previous_datasets': [],
     },
     'BOPAGG': {
         'name': 'Balance of Payments, World and Regional Aggregates',
         'doc_href': 'http://data.imf.org/BOP',
+        'previous_datasets': [],
     },
     'DOT': { 
         'name': 'Direction of Trade Statistics',
         'doc_href': 'http://data.imf.org/DOT',
+        'previous_datasets': [],
     },                         
     'IFS': { 
         'name': 'International Financial Statistics',
         'doc_href': 'http://data.imf.org/IFS',
+        'previous_datasets': [],
     },
     'COMMP': { 
         'name': 'Primary Commodity Prices',
         'doc_href': 'http://data.imf.org',
+        'previous_datasets': [],
     },
     'COMMPP': { 
         'name': 'Primary Commodity Prices Projections',
         'doc_href': 'http://data.imf.org',
+        'previous_datasets': [],
     },
     'GFSR': { 
         'name': 'Government Finance Statistics, Revenue',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSR2015']
     },
     'GFSSSUC': { 
         'name': 'Government Finance Statistics, Statement of Sources and Uses of Cash',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSSSUC2015']
     },
     'GFSCOFOG': { 
         'name': 'Government Finance Statistics, Expenditure by Function of Government',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSCOFOG2015']
     },
     'GFSFALCS': { 
         'name': 'Government Finance Statistics, Financial Assets and Liabilities by Counterpart Sector',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSFALCS2015']
     },
     'GFSIBS': { 
         'name': 'Government Finance Statistics, Integrated Balance Sheet (Stock Positions and Flows in Assets and Liabilities)',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSIBS2015']
     },
     'GFSMAB': { 
         'name': 'Government Finance Statistics, Main Aggregates and Balances',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSMAB2015']
     },
     'GFSE': { 
         'name': 'Government Finance Statistics, Expense',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': ['GFSE2015']
     },
     'FSI': { 
         'name': 'Financial Soundness Indicators',
         'doc_href': 'http://data.imf.org/FSI',
+        'previous_datasets': [],
     },
-    'RT': { 
-        'name': 'International Reserves Template',
-        'doc_href': 'http://data.imf.org/RT',
-    },
+    #'RT': { 
+    #    'name': 'International Reserves Template',
+    #    'doc_href': 'http://data.imf.org/RT',
+    #    'previous_datasets': [],
+    #},
     'FAS': { 
         'name': 'Financial Access Survey',
         'doc_href': 'http://data.imf.org/FAS',
+        'previous_datasets': [],
     },
     'COFER': { 
         'name': 'Currency Composition of Official Foreign Exchange Reserves',
         'doc_href': 'http://data.imf.org/COFER',
+        'previous_datasets': [],
     },
     'CDIS': { 
         'name': 'Coordinated Direct Investment Survey',
         'doc_href': 'http://data.imf.org/CDIS',
+        'previous_datasets': [],
     },
     'CPIS': {                                    # frequency S (semi annual)
         'name': 'Coordinated Portfolio Investment Survey',
         'doc_href': 'http://data.imf.org/CPIS',
+        'previous_datasets': [],
     },
     'WoRLD': { 
         'name': 'World Revenue Longitudinal Data',
         'doc_href': 'http://data.imf.org',
+        'previous_datasets': [],
     },
     'MCDREO': { 
         'name': 'Middle East and Central Asia Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/MCDREO',
+        'previous_datasets': ['MCDREO201410', 'MCDREO201501', 'MCDREO201505', 'MCDREO201510']
     },
     'APDREO': { 
         'name': 'Asia and Pacific Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/APDREO',
+        'previous_datasets': ['APDREO201410', 'APDREO201504', 'APDREO201510']
     },
     'AFRREO': { 
         'name': 'Sub-Saharan Africa Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/AFRREO',
+        'previous_datasets': ['AFRREO201410', 'AFRREO201504', 'AFRREO201510']
     },
     'WHDREO': {                                   # bug: KeyError: 'NGDP_FY'
         'name': 'Western Hemisphere Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/WHDREO',
+        'previous_datasets': ['WHDREO201504', 'WHDREO201510']
     },
     'WCED': {                                     # bug: KeyError: 'OP'
         'name': 'World Commodity Exporters',
         'doc_href': 'http://data.imf.org/WCED',
+        'previous_datasets': [],
     },
     'CPI': {
         'name': 'Consumer Price Index',
         'doc_href': 'http://data.imf.org/CPI',
+        'previous_datasets': [],
     },
     'COFR': {                                     # Erreur 500
         'name': 'Coverage of Fiscal Reporting',
         'doc_href': 'http://data.imf.org/COFR',
+        'previous_datasets': [],
     },
     'ICSD': {                                     # bug: KeyError: 'IGOV'
         'name': 'Investment and Capital Stock',
         'doc_href': 'http://data.imf.org/ICSD',
+        'previous_datasets': [],
     },
     'HPDD': {                                     # bug: KeyError: 'GGXWDG'
         'name': 'Historical Public Debt',
         'doc_href': 'http://data.imf.org/HPDD',
+        'previous_datasets': [],
     },
     'PGI': { 
         'name': 'Principal Global Indicators',
         'doc_href': 'http://data.imf.org/PGI',
+        'previous_datasets': [],
     },
 }
+
+"""
+FSIRE
+Financial Soundness Indicators (FSI), Balance Sheets
+
+FSIBS
+Financial Soundness Indicators (FSI), Reporting Entities
+
+FSIREM
+Financial Soundness Indicators (FSI), Reporting Entities - Multidimensional
+
+GFS01M
+Government Finance Statistics (GFS 2001) - Multidimensional
+
+GFS01
+Government Finance Statistics (GFS 2001)
+
+FM (FM201410, FM201504, FM201510)
+Fiscal Monitor (FM)
+
+CDISARCHIVE
+Coordinated Direct Investment Survey (CDIS) - Archive
+
+IRFCL
+International Reserves and Foreign Currency Liquidity (IRFCL)
+
+RAFIT2AGG
+RA-FIT Round 2 Aggregates
+
+GFSYR2014
+Government Finance Statistics Yearbook (GFSY 2014), Revenue
+
+GFSYSSUC2014
+Government Finance Statistics Yearbook (GFSY 2014), Statement of Sources and Uses of Cash
+
+GFSYCOFOG2014
+Government Finance Statistics Yearbook (GFSY 2014), Expenditure by Function of Government (COFOG)
+
+GFSYIBS2014
+Government Finance Statistics Yearbook (GFSY 2014), Integrated Balance Sheet (Stock Positions and Flows in Assets and Liabilities)
+
+GFSYMAB2014
+Government Finance Statistics Yearbook (GFSY 2014), Main Aggregates and Balances
+
+GFSYFALCS2014
+Government Finance Statistics Yearbook (GFSY 2014), Financial Assets and Liabilities by Counterpart Sector
+
+GFSYE2014
+Government Finance Statistics Yearbook (GFSY 2014), Expense
+
+BOPSDMXUSD
+Balance of Payments (BOP), Global SDMX (US Dollars)
+"""
 
 
 CATEGORIES = [
@@ -468,26 +548,26 @@ CATEGORIES = [
         ],
         "metadata": {}
     },
-    {
-        "provider_name": "IMF",
-        "category_code": "RT",
-        "name": DATASETS["RT"]["name"],
-        "position": 12,
-        "parent": None,
-        "all_parents": [],
-        "doc_href": None,
-        "datasets": [
-            {
-                "dataset_code": "RT",
-                "name": DATASETS["RT"]["name"], 
-                "last_update": None,                 
-                "metadata": {
-                    "doc_href": DATASETS["RT"]["doc_href"]
-                }
-            },
-        ],
-        "metadata": {}
-    },
+    #{
+    #    "provider_name": "IMF",
+    #    "category_code": "RT",
+    #    "name": DATASETS["RT"]["name"],
+    #    "position": 12,
+    #    "parent": None,
+    #    "all_parents": [],
+    #    "doc_href": None,
+    #    "datasets": [
+    #        {
+    #            "dataset_code": "RT",
+    #            "name": DATASETS["RT"]["name"], 
+    #            "last_update": None,                 
+    #            "metadata": {
+    #                "doc_href": DATASETS["RT"]["doc_href"]
+    #            }
+    #        },
+    #    ],
+    #    "metadata": {}
+    #},
     {
         "provider_name": "IMF",
         "category_code": "WoRLD",
@@ -703,71 +783,213 @@ class IMF(Fetcher):
         if dataset_code in DATASETS_KLASS:
             klass = DATASETS_KLASS[dataset_code]
         else:
-            klass = DATASETS_KLASS["XML"]
+            klass = DATASETS_KLASS["JSON"]
 
         dataset.series.data_iterator = klass(dataset)
         
         return dataset.update_database()
-        
-        
-class IMF_XML_Data(SeriesIterator):
+
+import time
+import hashlib
+import json
+from pprint import pprint
+
+def retry(tries=1, sleep_time=2):
+    """Retry calling the decorated function
+    :param tries: number of times to try
+    :type tries: int
+    """
+    def try_it(func):
+        def f(*args, **kwargs):
+            attempts = 0
+            while True:
+                try:
+                    return func(*args,**kwargs)
+                except Exception as e:
+                    logger.warning("retry url[%s]" % args[1])
+                    args[0].retry_count += 1
+                    attempts += 1
+                    if attempts > tries:
+                        raise e
+                    time.sleep(sleep_time * attempts)
+        return f
+    return try_it
+
+class IMF_JSON_Data(SeriesIterator):
     
     def __init__(self, dataset=None):
         super().__init__(dataset)
 
         self.store_path = self.get_store_path()
-        self.xml_dsd = XMLStructure(provider_name=self.provider_name)
         
-        self._load_dsd()
+        self.url_base = "http://dataservices.imf.org/REST/SDMX_JSON.svc"
+        self.frequency_field = None
+        
+        self.retry_count = 0
+        
+        self.current_dataset_code = self.dataset_code
+        
+        self.previous_datasets = []
+        self.previous_last_update = None
+        if not self.dataset.last_update and DATASETS[self.dataset_code].get('previous_datasets'):
+            self.previous_datasets = DATASETS[self.dataset_code].get('previous_datasets')
+            self.previous_datasets.append(self.dataset_code)
+            self.rows = self._get_data_by_dimension_multi_datasets()
+        else:
+            self.load_dsd()
+            self.rows = self._get_data_by_dimension()
 
-        if self.dataset.last_update and self.xml_dsd.last_update:
+    @retry(tries=10, sleep_time=2)
+    def download_json(self, url, params={}):
+        
+        if not os.path.exists(self.store_path):
+            os.makedirs(self.store_path, exist_ok=True)
+        
+        filename = "%s.json" % hashlib.sha224(url.encode("utf-8")).hexdigest()
+        filepath = os.path.abspath(os.path.join(self.store_path, filename))
+        
+        if os.path.exists(filepath):
+            if os.path.getsize(filepath) == 0:
+                os.remove(filepath)
+            elif not self.fetcher.use_existing_file:
+                os.remove(filepath)
+                
+        if not os.path.exists(filepath):
+            response = self.fetcher.requests_client.get(url, params=params, stream=True, allow_redirects=False)
+            #response = requests.get(url, params=params, stream=True, allow_redirects=False)
             
-            if self.dataset.last_update > self.xml_dsd.last_update:
-                comments = "update-date[%s]" % self.xml_dsd.last_update
-                raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
-                                                  dataset_code=self.dataset.dataset_code,
-                                                  comments=comments)
-        
-        self.dataset.last_update = clean_datetime(self.xml_dsd.last_update)        
-
-        self.xml_data = XMLData(provider_name=self.provider_name,
-                                dataset_code=self.dataset_code,
-                                xml_dsd=self.xml_dsd,
-                                dsd_id=self.dataset_code,
-                                frequencies_supported=FREQUENCIES_SUPPORTED)
-        
-        self.rows = self._get_data_by_dimension()
+            logger.info("download url[%s] - filepath[%s] - status_code[%s]" %  (response.url, filepath, response.status_code))
+            
+            if response.status_code >= 400:
+                return
+    
+            response.raise_for_status()
+    
+            with open(filepath, mode='wb') as f:
+                for chunk in response.iter_content():
+                    f.write(chunk)
+                    
+            self.fetcher.for_delete.append(filepath)
+        else:
+            logger.info("use exist filepath[%s]" % filepath)
+                
+        with open(filepath) as f:
+            return json.load(f)
 
     def _get_url_dsd(self):
-        return "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/%s" % self.dataset_code 
+        return "http://dataservices.imf.org/REST/SDMX_JSON.svc/DataStructure/%s" % self.current_dataset_code 
 
     def _get_url_data(self):
-        return "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/%s" % self.dataset_code 
-        
-    def _load_dsd(self):
+        return "http://dataservices.imf.org/REST/SDMX_JSON.svc/CompactData/%s" % self.current_dataset_code
+    
+    def load_dsd(self):
         url = self._get_url_dsd()
-        download = Downloader(store_filepath=self.store_path,
-                              url=url, 
-                              filename="dsd-%s.xml" % self.dataset_code,
-                              use_existing_file=self.fetcher.use_existing_file,
-                              client=self.fetcher.requests_client)
-        filepath = download.get_filepath()
-        self.fetcher.for_delete.append(filepath)
+        json_dsd = self.download_json(url)
         
-        self.xml_dsd.process(filepath)
-        self._set_dataset()
+        codelists = {}
+        concepts = {}
+        codelists_list = self._get_list(json_dsd['Structure']['CodeLists']['CodeList'])
+        
+        for cl in codelists_list:
+            cl_key = cl["@id"]
+            #cl_name = cl["Name"]["#text"]
+            if not cl_key in codelists:
+                codelists[cl_key] = {}
+            
+            code_list = self._get_list(cl["Code"])
+            for code in code_list:
+                try:
+                    codelists[cl_key][code["@value"]] = code["Description"]["#text"]
+                except Exception as err:
+                    raise
 
-    def _set_dataset(self):
+        concepts_list = self._get_list(json_dsd['Structure']['Concepts']['ConceptScheme']['Concept'])
+        for concept in concepts_list:
+            concepts[concept["@id"]] = concept["Name"]["#text"]
+            
+        dimensions_list = self._get_list(json_dsd['Structure']['KeyFamilies']['KeyFamily']['Components']['Dimension'])
+        for dim in dimensions_list:
+            if not dim["@conceptRef"] in self.dataset.dimension_keys:
+                self.dataset.dimension_keys.append(dim["@conceptRef"])
+            self.dataset.codelists[dim["@conceptRef"]] = codelists[dim["@codelist"]]
+            
+            if dim.get('@isFrequencyDimension') and dim.get('@isFrequencyDimension') == "true":
+                self.frequency_field = dim["@conceptRef"]
 
-        dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-        self.dataset.dimension_keys = dataset["dimension_keys"] 
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
-        self.dataset.concepts = dataset["concepts"] 
-        self.dataset.codelists = dataset["codelists"]
+        attributes_list = self._get_list(json_dsd['Structure']['KeyFamilies']['KeyFamily']['Components']['Attribute'])
+        for attr in attributes_list:
+            if not attr["@conceptRef"] in self.dataset.attribute_keys:
+                self.dataset.attribute_keys.append(attr["@conceptRef"])
+            if "@codelist" in attr:
+                self.dataset.codelists[attr["@conceptRef"]] = codelists[attr["@codelist"]]
+            else:
+                self.dataset.codelists[attr["@conceptRef"]] = {}
+
+        '''last_update process'''
+        last_update_str = None
+        if self.previous_last_update:
+            self.dataset.last_update = self.previous_last_update
+        else:
+            annotations_list = self._get_list(json_dsd['Structure']['KeyFamilies']['KeyFamily']['Annotations']['Annotation'])
+            for annotation in annotations_list:
+                if annotation['AnnotationTitle'] == 'Latest Update Date':
+                    last_update_str = annotation['AnnotationText']['#text']
+                    break
+            if last_update_str:
+                last_update = clean_datetime(datetime.strptime(last_update_str, '%m/%d/%Y'))
+                if not self.dataset.last_update:
+                    self.dataset.last_update = last_update
+                elif not self.previous_datasets:
+                    if self.dataset.last_update >= last_update:
+                        comments = "update-date[%s]" % last_update
+                        raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
+                                                          dataset_code=self.dataset_code,
+                                                          comments=comments)
+                    else:
+                        self.dataset.last_update = last_update
+                else:
+                    self.dataset.last_update = last_update
+            else:
+                self.dataset.last_update = clean_datetime()
+        
+        self.dataset.concepts = concepts
+        
+        #TODO: datasets.notes from Annotations
+        annotations_list = self._get_list(json_dsd['Structure']['KeyFamilies']['KeyFamily']['Annotations']['Annotation'])
+        for annotation in annotations_list:
+            print("AnnotationTitle : ", annotation['AnnotationTitle'])
         
     def _get_dimensions_from_dsd(self):
-        return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
+        dimensions = {}
+        for key in self.dataset.dimension_keys:
+            dimensions[key] = self.dataset.codelists[key]
+        return self.dataset.dimension_keys, dimensions 
 
+    def _get_data_by_dimension_multi_datasets(self):
+        for dataset_code in self.previous_datasets:
+            self.current_dataset_code = dataset_code
+            
+            if self.current_dataset_code != self.dataset_code:
+                year = int(self.current_dataset_code.split(self.dataset_code)[1][:4])
+                try:
+                    month = int(self.current_dataset_code.split(self.dataset_code)[1][-2:])
+                except ValueError:
+                    month = 1
+                if month <= 0 or month > 12:
+                    month = 1
+                self.previous_last_update = clean_datetime(datetime(year, month, 1))
+            else:
+                self.previous_last_update = None
+            
+            self.load_dsd()
+            
+            for row, err in self._get_data_by_dimension():
+                if row or err:
+                    yield row, err
+                else:
+                    continue
+            yield None, errors.InterruptBatchSeriesData()
+                
     def _get_data_by_dimension(self):
         
         dimension_keys, dimensions = self._get_dimensions_from_dsd()
@@ -790,36 +1012,122 @@ class IMF_XML_Data(SeriesIterator):
             key = "".join(sdmx_key)
 
             url = "%s/%s" % (self._get_url_data(), key)
-            filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))
-            download = Downloader(url=url, 
-                                  filename=filename,
-                                  store_filepath=self.store_path,
-                                  client=self.fetcher.requests_client)            
-            filepath, response = download.get_filepath_and_response()
-
-            if filepath:
-                self.fetcher.for_delete.append(filepath)
+            json_data = self.download_json(url)
             
-            if response.status_code >= 400 and response.status_code < 500:
+            if not json_data:
+                logger.warning("no data for dataset[%s] - url[%s]" % (self.dataset_code, url))
                 continue
-            elif response.status_code >= 500:
-                raise response.raise_for_status()
-            
-            for row, err in self.xml_data.process(filepath):
+
+            if not "Series" in json_data["CompactData"]["DataSet"]:
+                logger.warning("no series for url[%s]" % url)
+                continue
+
+            for row, err in self._json_data_process(json_data):
+                if row and len(row["values"]) == 0:
+                    #TODO: log
+                    continue
                 yield row, err
                 local_count += 1
-                
-            if local_count >= 2999:
-                logger.warning("TODO: VRFY - series > 2999 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
 
-            #self.dataset.update_database(save_only=True)
+            if local_count >= 2999:
+                logger.warning('TODO: VRFY - series greater of 2999 for provider[IMF] - dataset[%s] - key[%s]' % (self.dataset_code, url))
+            
+        logger.info("retries count[%s] for dataset[%s]" % (self.retry_count, self.dataset_code))
         
         yield None, None
         
+    def _get_list(self, values):
+        if isinstance(values, list):
+            return values
+        elif isinstance(values, dict):
+            return [values]
+        else:
+            raise TypeError("not list or dict type [%s]" % type(values))
+        
+    def _json_data_process(self, json_data):
+
+        series_list = self._get_list(json_data["CompactData"]["DataSet"]["Series"])
+
+        for series in series_list:
+            
+            if not "Obs" in series:
+                continue
+            
+            bson = {
+                'provider_name': self.provider_name,
+                'dataset_code': self.dataset_code,
+                'name': None,
+                'key': None,
+                'values': [],
+                'attributes': None,
+                'dimensions': {},
+                'last_update': self.dataset.last_update,
+                'start_date': None,
+                'end_date': None,
+                'frequency': None
+            }
+
+            tmp_attribute_keys = ["@%s" % key for key in self.dataset.attribute_keys]
+            
+            obs_list = self._get_list(series["Obs"])
+            
+            for obs in obs_list:
+                if not "@OBS_VALUE" in obs:
+                    continue
+                item = {
+                    "period": obs["@TIME_PERIOD"],
+                    "value": obs["@OBS_VALUE"],
+                    "attributes": None,
+                }
+                for key in tmp_attribute_keys:
+                    if key in obs:
+                        _key = obs[key][1:]
+                        if not item["attributes"]:
+                            item["attributes"] = {}
+                        item["attributes"][_key] = obs[key]
+                bson["values"].append(item)
+                    
+            if len(bson["values"]) == 0:
+                #TODO: log
+                return 
+            
+            for dim in self.dataset.dimension_keys:
+                key = "@%s" % dim
+                bson["dimensions"][dim] = series[key]
+            
+            if self.dataset.attribute_keys:
+                bson["attributes"] = {}
+                for attr in self.dataset.attribute_keys:
+                    key = "@%s" % attr
+                    if key in series:
+                        bson["attributes"][attr] = series[key]
+                    
+            bson["key"] = self.dataset_code + "." + ".".join([bson["dimensions"][key] for key in self.dataset.dimension_keys])
+            bson["name"] = " - ".join([self.dataset.codelists[key][bson["dimensions"][key]] for key in self.dataset.dimension_keys])
+            
+            bson["frequency"] = series["@FREQ"] #series["@%s" % self.frequency_field],
+            
+            bson["start_date"] = get_ordinal_from_period(bson["values"][0]["period"], freq=bson["frequency"])
+            bson["end_date"] = get_ordinal_from_period(bson["values"][-1]["period"], freq=bson["frequency"])
+            
+            """
+            Récupérable dans Annotation du codelist pour l'indicator:
+                Topic: External Sector
+                Alternate Publication Codes: eLibrary Concept: TX_R, WEO publication: TX_RPCH
+                Source Code - Collection: TX_RPCH|PCOPP
+                APDREO Name: Volume of total exports of goods and services, US Dollars, percent change
+                APDREO Code: TX_RPCH.A
+            """
+            
+            #pprint(bson)
+                
+            yield bson, None
+        
     def build_series(self, bson):
-        bson["last_update"] = self.dataset.last_update
+        #bson["last_update"] = self.dataset.last_update
         self.dataset.add_frequency(bson["frequency"])
         return bson
+        
         
 class WeoData(SeriesIterator):
     
@@ -1244,6 +1552,6 @@ class WeoGroupsData(SeriesIterator):
 DATASETS_KLASS = {
     "WEO": WeoData,
     "WEO-GROUPS": WeoGroupsData,
-    "XML": IMF_XML_Data
+    "JSON": IMF_JSON_Data
 }
         
