@@ -1318,8 +1318,8 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
 
     PROVIDER_NAME = "IMF"
 
-    def get_key(self, series, dimensions, attributes):
-        return "%s.%s" % (self.dataset_code, attributes["SERIESCODE"])
+    # def get_key(self, series, dimensions, attributes):
+    #     return "%s.%s" % (self.dataset_code, attributes["SERIESCODE"])
 
     def is_series_tag(self, element):
         localname = etree.QName(element.tag).localname
