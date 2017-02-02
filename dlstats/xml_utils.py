@@ -24,7 +24,7 @@ REGEX_DATE_P1D = re.compile(r"(\d\d\d\d)(\d\d)(\d\d)")
 
 def xml_get_name(element):
     names = path_name_lang(element, lang="en")
-    if not names: 
+    if not names:
         names = path_name_lang(element, lang="fr")
     if names:
         return names[0].text
@@ -35,7 +35,7 @@ def get_nsmap(iterator):
     nsmap = {}
     for event, element in iterator:
         if event == 'start-ns':
-            ns, url = element            
+            ns, url = element
             if len(ns) > 0:
                 nsmap[ns] = url
         else:
@@ -58,7 +58,7 @@ def parse_special_date(period, time_format, dataset_code=None):
     else:
         msg = 'TIME FORMAT[%s] for DATASET[%s] not recognized' % (time_format, dataset_code)
         logger.critical(msg)
-        raise Exception(msg)    
+        raise Exception(msg)
 
 def get_key_for_dimension(count_dimensions, position, dimension_value):
     sdmx_key = []
@@ -70,51 +70,51 @@ def get_key_for_dimension(count_dimensions, position, dimension_value):
     return "".join(sdmx_key)
 
 def select_dimension(dimension_keys, dimensions, choice="avg"):
-    """Renvoi le nom de la dimension qui contiens le nombre de valeures demandés 
+    """Renvoi le nom de la dimension qui contiens le nombre de valeures demandés
     pour servir ensuite de filtre dans le chargement des données (..A.)
-    en tenant compte du nombre de dimension et de la position 
+    en tenant compte du nombre de dimension et de la position
     """
     _dimensions = {}
     _min = None
     _max = None
     _avg = None
-    
+
     import statistics
-    
+
     if not dimension_keys or not dimensions:
         return 0, None, []
-    
+
     counts = [len(values) for values in dimensions.values()]
     average = int(statistics.mean(counts))
-    
+
     #for key, values in dimensions.items():
     for key in dimension_keys:
         values = dimensions[key]
         count = len(values)
         if count == 0:
             continue
-        
+
         if not _min:
             _min = (key, count)
             _max = (key, count)
             _avg = (key, count)
             continue
-        
+
         if count < _min[1]:
             _min = (key, count)
         if count > _max[1]:
             _max = (key, count)
-        
+
         if count >= average and count <= average:
             _avg = (key, count)
-        
+
     if choice == "max":
         _key = _max[0]
-    elif choice == "min":        
+    elif choice == "min":
         _key = _min[0]
     else:
         _key = _avg[0]
-        
+
     position = dimension_keys.index(_key)
     dimension_values = list(dimensions[_key])
     return position, _key, dimension_values
@@ -141,7 +141,7 @@ SDMX_PROVIDERS = {
                 'mes': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message',
                 'str': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure',
                 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'
-            },                                   
+            },
         }
     },
     'INSEE': {
@@ -157,22 +157,22 @@ SDMX_PROVIDERS = {
                 'com': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common',
                 'mes': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message',
                 'str': 'http://www.sdmx.org/resources/sdmxml/schemas/v2_1/structure',
-            }            
+            }
         }
     }
 }
 
 class XMLSDMX:
 
-    def __init__(self, 
+    def __init__(self,
                  sdmx_url=None, agencyID=None, data_headers={}, structure_headers={},
-                 client=None, cache=None, store_filepath=None, use_existing_file=False,  
+                 client=None, cache=None, store_filepath=None, use_existing_file=False,
                  **http_cfg):
-        
+
         self.sdmx_url = sdmx_url
         self.agencyID = agencyID
         if not self.sdmx_url:
-            self.sdmx_url = SDMX_PROVIDERS[self.agencyID]["url"]        
+            self.sdmx_url = SDMX_PROVIDERS[self.agencyID]["url"]
         self.data_headers = data_headers
         self.structure_headers = structure_headers
         self.store_filepath = store_filepath
@@ -183,7 +183,7 @@ class XMLSDMX:
         filename = "%s.xml" % hashlib.sha224(url.encode("utf-8")).hexdigest()
         download = Downloader(url, filename=filename,
                               store_filepath=self.store_filepath,
-                              use_existing_file=self.use_existing_file, 
+                              use_existing_file=self.use_existing_file,
                               **kwargs)
         filepath, response = download.get_filepath_and_response()
         if response:
@@ -200,14 +200,14 @@ class XMLSDMX:
 
 class XMLSDMX_2_1(XMLSDMX):
     pass
-    
+
 
 def dataset_converter(xml, dataset_code, dsd_id=None):
     bson = {}
-    
-    if not dsd_id:    
+
+    if not dsd_id:
         dsd_id = xml.get_dsd_id(dataset_code)
-        
+
     bson["provider_name"] = xml.provider_name
     bson["dataset_code"] = dataset_code
     bson["dsd_id"] = dsd_id
@@ -218,20 +218,20 @@ def dataset_converter(xml, dataset_code, dsd_id=None):
 
     dimensions = xml.dimensions_by_dsd[dsd_id]
     attributes = xml.attributes_by_dsd[dsd_id]
-    
+
     bson["dimension_keys"] = dimension_keys
     bson["attribute_keys"] = attribute_keys
     bson["dimensions"] = {}
     bson["attributes"] = {}
-    
+
     bson["name"] = xml.get_dataset_name(dsd_id)
     #bson["name"] = xml.get_dataset_name(dataset_code)
     #TODO: si not ?
-    #bson["name"] = xml.dataflows.get(dsd_id)    
-    
+    #bson["name"] = xml.dataflows.get(dsd_id)
+
     for key in dimension_keys:
         if dimensions[key]["enum"]:
-            bson["codelists"][key] = dict(dimensions[key]["enum"].items())            
+            bson["codelists"][key] = dict(dimensions[key]["enum"].items())
         else:
             bson["codelists"][key] = {}
         bson["dimensions"][key] = bson["codelists"][key]
@@ -242,20 +242,20 @@ def dataset_converter(xml, dataset_code, dsd_id=None):
         else:
             bson["codelists"][key] = {}
         bson["attributes"][key] = bson["codelists"][key]
-    
+
     bson["concepts"] = {}
     for key in bson["codelists"].keys():
         if key in xml.concepts:
-            bson["concepts"][key] = xml.concepts[key]["name"]    
-    
+            bson["concepts"][key] = xml.concepts[key]["name"]
+
     return bson
 
 def get_dimensions_from_dsd(xml_dsd=None, provider_name=None, dataset_code=None, dsd_id=None):
-    
+
     dataset = dataset_converter(xml_dsd, dataset_code, dsd_id=dsd_id)
-    
+
     dimension_keys = dataset["dimension_keys"]
-    
+
     dimensions = {}
     for key in dimension_keys:
         if key in dataset["codelists"]:
@@ -267,16 +267,16 @@ def get_dimensions_from_dsd(xml_dsd=None, provider_name=None, dataset_code=None,
     return dimension_keys, dimensions
 
 class XMLStructureBase:
-    
+
     TAGS_MAP = {
         'structure': 'structure'
     }
-    
-    def __init__(self, 
+
+    def __init__(self,
                  provider_name=None,
                  field_time_dimension="TIME_PERIOD",
                  sdmx_client=None):
-        
+
         self.provider_name = provider_name
         self.field_time_dimension = field_time_dimension
 
@@ -291,7 +291,7 @@ class XMLStructureBase:
         self.categorisations_categories = OrderedDict()
         self.dataflows = OrderedDict()
         self.datastructures = OrderedDict()
-        
+
         self.codelists = OrderedDict()
         self.concepts = OrderedDict()
 
@@ -299,10 +299,10 @@ class XMLStructureBase:
         self.attribute_keys_by_dsd = OrderedDict()
         self.dimensions_by_dsd = OrderedDict()
         self.attributes_by_dsd = OrderedDict()
-        
+
         self.annotations = []
-        self.last_update = None        
-        
+        self.last_update = None
+
     def fixtag(self, ns, tag):
         ns = self.TAGS_MAP.get(ns, ns)
         return '{' + self.nsmap[ns] + '}' + tag
@@ -315,22 +315,22 @@ class XMLStructureBase:
 
     def process_dataset_name(self, element):
         raise NotImplementedError()
-    
+
     def get_dsd_id(self, dataflow_key):
         return self.dataflows[dataflow_key].get('dsd_id')
 
     def get_dataset_name(self, dataflow_key):
         return self.dataflows[dataflow_key].get('name')
-    
+
     def process_dataflow(self, element):
         raise NotImplementedError()
 
     def process_category(self, element):
         raise NotImplementedError()
-    
+
     def process_categorisation(self, element):
         raise NotImplementedError()
-    
+
     def process_concept(self, element):
         raise NotImplementedError()
 
@@ -345,7 +345,7 @@ class XMLStructureBase:
 
     def process_attribute(self, element):
         raise NotImplementedError()
-    
+
     def process_last_update(self, element):
         pass
 
@@ -361,7 +361,7 @@ class XMLStructureBase:
             parents_keys.extend(result[0])
             parents.extend(result[1])
         return parents_keys, parents
-    
+
     def iter_parent_category(self, category):
         parents_keys, parents = self._iter_parent_category(category)
         parents_keys.reverse()
@@ -377,7 +377,7 @@ class XMLStructureBase:
             parents_keys.append(parent_id)
             parents_keys.extend(self._iter_parent_category_id(self.categories[parent_id]))
         return parents_keys
-    
+
     def iter_parent_category_id(self, category):
         parents_keys = self._iter_parent_category_id(category)
         parents_keys.reverse()
@@ -389,7 +389,7 @@ class XMLStructureBase:
 class XMLStructure_1_0(XMLStructureBase):
     """Parsing SDMX 1.0
     """
-    
+
     def get_name_element(self, element):
         return element[0].text
 
@@ -404,15 +404,15 @@ class XMLStructure_1_0(XMLStructureBase):
     def process_dataset_name(self, element):
         """
         Normal: self.get_name_element(element)
-        
-        For FED: compose HEADER NAME + Name text in KeyFamily 
-        
+
+        For FED: compose HEADER NAME + Name text in KeyFamily
+
         <structure:KeyFamily id="CCOUT" agency="FRB">
-            <structure:Name>Consumer Credit Outstanding</structure:Name>        
+            <structure:Name>Consumer Credit Outstanding</structure:Name>
         """
         name = element.xpath('//message:Header/message:Name/text()', namespaces=self.nsmap)[0]
         return "%s - %s" % (name, self.get_name_element(element))
-    
+
     def process_datastructure(self, element):
 
         """
@@ -423,7 +423,7 @@ class XMLStructure_1_0(XMLStructureBase):
 
         ds_name = self.process_dataset_name(element)
         _id = self.process_dsd_id(element)
-        
+
         if not _id in self.datastructures:
             self.datastructures[_id] = {
                 "id": _id,
@@ -438,22 +438,22 @@ class XMLStructure_1_0(XMLStructureBase):
                 'attrs': dict(element.attrib),
                 "dsd_id": _id,
             }
-            
+
         for child in element.xpath(".//*[local-name()='Dimension']"):
             self.process_dimension(child, _id)
-            
+
         for child in element.xpath(".//*[local-name()='Attribute']"):
             self.process_attribute(child, _id)
-            
+
         annotations = element.xpath(".//*[local-name()='Annotation']")
         self.annotations = annotations
-        
+
         element.clear()
-    
+
     def process_concept(self, element):
 
         _id = element.attrib.get('id')
-        
+
         if not _id in self.concepts:
             self.concepts[_id] = {
                 'id': _id,
@@ -462,30 +462,30 @@ class XMLStructure_1_0(XMLStructureBase):
             }
 
         element.clear()
-        
+
     def process_codelist(self, element):
 
         _id = element.get('id')
-        
+
         if not _id in self.codelists:
             self.codelists[_id] = {
                 "id": _id,
-                'name': self.get_name_element(element), 
+                'name': self.get_name_element(element),
                 "enum": OrderedDict(),
                 "attrs": dict(element.attrib)
             }
-        
+
         for child in element.getchildren():
             if child.tag == self.fixtag("structure", "Code"):
                 key = child.get("value")
                 if not key in self.codelists[_id]["enum"]:
-                    #<structure:Description /> 
+                    #<structure:Description />
                     self.codelists[_id]["enum"][key] = child[0].text
-        
+
         element.clear()
-        
-    def get_concept_ref_id(self, element): 
-        return element.attrib.get('concept')   
+
+    def get_concept_ref_id(self, element):
+        return element.attrib.get('concept')
 
     def fixe_codelist_fed(self, codelist):
         """
@@ -496,38 +496,38 @@ class XMLStructure_1_0(XMLStructureBase):
                                                                    self.provider_name))
             return "CL_UNIT"
         return codelist
-        
+
     def process_dimension(self, element, dsd_id):
-        
+
         if not dsd_id in self.dimensions_by_dsd:
             self.dimensions_by_dsd[dsd_id] = OrderedDict()
 
         if not dsd_id in self.dimension_keys_by_dsd:
             self.dimension_keys_by_dsd[dsd_id] = []
-        
+
         _id = self.get_concept_ref_id(element)
-        
+
         if not _id in self.dimensions_by_dsd[dsd_id]:
             codelist = element.attrib.get('codelist')
             #FIXME: Specific FED
             if self.provider_name == "FED":
                 codelist = self.fixe_codelist_fed(codelist)
-            
+
             if codelist:
                 name = self.codelists[codelist]["name"]
                 values = self.codelists[codelist]["enum"]
             else:
                 name = _id
                 values = {}
-                        
+
             self.dimensions_by_dsd[dsd_id][_id] = {
                 "id": _id,
-                "name": name,                                
+                "name": name,
                 "enum": values,
                 "attrs": dict(element.attrib)
             }
             self.dimension_keys_by_dsd[dsd_id].append(_id)
-                
+
         element.clear()
 
     def process_attribute(self, element, dsd_id):
@@ -539,34 +539,34 @@ class XMLStructure_1_0(XMLStructureBase):
             self.attribute_keys_by_dsd[dsd_id] = []
 
         _id = self.get_concept_ref_id(element)
-        
+
         if not _id in self.attributes_by_dsd[dsd_id]:
             codelist = element.attrib.get('codelist')
             codelist = self.fixe_codelist_fed(codelist)
-            
+
             if codelist:
                 name = self.codelists[codelist]["name"]
                 values = self.codelists[codelist]["enum"]
             else:
                 name = _id
                 values = {}
-                            
+
             self.attributes_by_dsd[dsd_id][_id] = {
                 "id": _id,
-                "name": name,                                
+                "name": name,
                 "enum": values,
                 "attrs": dict(element.attrib)
             }
             self.attribute_keys_by_dsd[dsd_id].append(_id)
-                
-        element.clear()    
-    
+
+        element.clear()
+
     def process(self, filepath):
-        
+
         tree_iterator = etree.iterparse(filepath, events=['end', 'start-ns'])
-        
+
         self.nsmap = get_nsmap(tree_iterator)
-        
+
         for event, element in tree_iterator:
             if event == 'end':
                 if element.tag == self.fixtag('structure', 'CodeList'):
@@ -579,7 +579,7 @@ class XMLStructure_1_0(XMLStructureBase):
 class XMLStructure_2_0(XMLStructure_1_0):
     """Parsing SDMX 2.0
     """
-    
+
     NSMAP = {'common': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/common',
              'compact': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/compact',
              'cross': 'http://www.SDMX.org/resources/SDMXML/schemas/v2_0/cross',
@@ -599,11 +599,11 @@ class XMLStructure_2_0(XMLStructure_1_0):
     def process_dataset_name(self, element):
         return self.get_name_element(element).replace("_DSD", "").strip()
 
-    def get_concept_ref_id(self, element): 
-        return element.attrib.get('conceptRef')   
+    def get_concept_ref_id(self, element):
+        return element.attrib.get('conceptRef')
 
     def process(self, filepath):
-        
+
         tree_iterator = etree.iterparse(filepath, events=['end', 'start-ns'])
 
         if not self.NSMAP:
@@ -613,7 +613,7 @@ class XMLStructure_2_0(XMLStructure_1_0):
 
         for event, element in tree_iterator:
             if event == 'end':
-                
+
                 if element.tag == self.fixtag('structure', 'CodeList'):
                     self.process_codelist(element)
                 elif element.tag == self.fixtag('structure', 'Concept'):
@@ -622,7 +622,7 @@ class XMLStructure_2_0(XMLStructure_1_0):
                     self.process_datastructure(element)
                     self.process_last_update(element)
                     element.clear()
-                    
+
     def process_last_update(self, element):
         if self.annotations:
             try:
@@ -632,32 +632,32 @@ class XMLStructure_2_0(XMLStructure_1_0):
                     self.last_update = datetime.strptime(date_str[0], "%m/%d/%Y")
             except:
                 pass
-    
+
 class XMLStructure_2_1(XMLStructure_2_0):
     """Parsing SDMX 2.1 structure
     """
-    
+
     TAGS_MAP = {
         'structure': 'str'
     }
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         if not self.sdmx_client:
-            self.sdmx_client = XMLSDMX_2_1(sdmx_url=SDMX_PROVIDERS[self.provider_name]["url"], 
+            self.sdmx_client = XMLSDMX_2_1(sdmx_url=SDMX_PROVIDERS[self.provider_name]["url"],
                                            agencyID=self.provider_name)
-    
+
     def get_codelist(self, cl_code):
         """If not cl_code self.codelists, load with remote SDMX
         """
         if not cl_code in self.codelists or not self.codelists.get(cl_code):
             logger.warning("codelist not found [%s] for provider[%s]" % (cl_code, self.provider_name))
-            
+
             try:
                 source = self.sdmx_client.codelist(cl_code=cl_code)
                 tree = etree.parse(source)
-                #TODO: namespace ?            
+                #TODO: namespace ?
                 namespaces = tree.getroot().nsmap
                 #TODO: attention str://
                 codelists = tree.xpath('.//str:Codelist', namespaces=namespaces)
@@ -667,8 +667,8 @@ class XMLStructure_2_1(XMLStructure_2_0):
                 msg = "sdmx error for loading codelist[%s] - provider[%s] - error[%s]" % (cl_code, self.provider_name, str(err))
                 logger.critical(msg)
                 raise Exception(msg)
-        
-        return self.codelists[cl_code]    
+
+        return self.codelists[cl_code]
 
     def process_agency(self, element):
         """
@@ -690,7 +690,7 @@ class XMLStructure_2_1(XMLStructure_2_0):
             return
 
         _id = element.attrib.get('id')
-        
+
         if not _id in self.dataflows:
             dataflow = element.xpath(".//Ref[@class='DataStructure']")[0]
             self.dataflows[_id] = {
@@ -699,9 +699,9 @@ class XMLStructure_2_1(XMLStructure_2_0):
                 'attrs': dict(element.attrib),
                 "dsd_id": dataflow.attrib.get('id'),
             }
-        
+
         element.clear()
-    
+
     def process_category(self, element):
 
         _id = element.attrib.get('id')
@@ -722,36 +722,36 @@ class XMLStructure_2_1(XMLStructure_2_0):
                 'parent': _id
             }
             child.clear()
-    
+
     def process_categorisation(self, element):
         _id = element.attrib.get('id')
-        
+
         dataflow = element.xpath(".//Ref[@class='Dataflow']")[0]
         category = element.xpath(".//Ref[@class='Category']")[0]
-        
+
         dataflow = dict(dataflow.attrib)
         category = dict(category.attrib)
-        
+
         self.categorisations[_id] = {
             "id": _id,
             "name": xml_get_name(element),
             "dataflow": dataflow,
             "category": category
         }
-        
+
         dataflow_id = dataflow["id"]
 
         if not dataflow["id"] in self.categorisations_dataflows:
             self.categorisations_dataflows[dataflow_id] = []
         if not _id in self.categorisations_dataflows[dataflow_id]:
             self.categorisations_dataflows[dataflow_id].append(_id)
-        
+
         category_id = category["id"]
         if not category["id"] in self.categorisations_categories:
             self.categorisations_categories[category_id] = []
         if not _id in self.categorisations_categories[category_id]:
             self.categorisations_categories[category_id].append(_id)
-        
+
         element.clear()
 
     def process_codelist(self, element):
@@ -761,54 +761,54 @@ class XMLStructure_2_1(XMLStructure_2_0):
         if not _id in self.codelists:
             self.codelists[_id] = {
                 "id": _id,
-                'name': self.get_name_element(element), 
+                'name': self.get_name_element(element),
                 "enum": OrderedDict(),
                 "attrs": dict(element.attrib)
             }
-            
+
             for child in element.getchildren():
                 if child.tag == self.fixtag("structure", "Code"):
                     key = child.get("id")
                     self.codelists[_id]["enum"][key] = self.get_name_element(child)
-        
+
         element.clear()
-        
+
     def process_datastructure(self, element):
         """
         TODO:
         <structure:TimeDimension concept="TIME_PERIOD"/>
-        <structure:PrimaryMeasure concept="OBS_VALUE"/>        
+        <structure:PrimaryMeasure concept="OBS_VALUE"/>
         """
 
         _id = element.attrib.get('id')
 
         if not _id in self.datastructures:
-            
+
             self.datastructures[_id] = {
                 "id": _id,
                 "name": xml_get_name(element),
                 'attrs': dict(element.attrib),
             }
-            
+
         if not _id in self.dataflows:
-            
+
             self.dataflows[_id] = {
                 "id": _id,
                 "name": xml_get_name(element),
                 'attrs': dict(element.attrib),
                 "dsd_id": _id,
             }
-            
+
         for child in element.xpath(".//*[local-name()='Dimension']"):
             self.process_dimension(child, _id)
-            
+
         for child in element.xpath(".//*[local-name()='Attribute']"):
             self.process_attribute(child, _id)
-        
+
         element.clear()
-        
+
     def process_dimension(self, element, dsd_id):
-        
+
         if element.getparent().tag != self.fixtag("structure", "DimensionList"):
             return
 
@@ -817,10 +817,10 @@ class XMLStructure_2_1(XMLStructure_2_0):
 
         if not dsd_id in self.dimension_keys_by_dsd:
             self.dimension_keys_by_dsd[dsd_id] = []
-        
+
         concept = element.xpath(".//Ref[@class='Concept']")[0]
         _id = concept.attrib.get('id')
-        
+
         codelist = element.xpath(".//Ref[@class='Codelist']")
 
         if codelist:
@@ -834,19 +834,19 @@ class XMLStructure_2_1(XMLStructure_2_0):
 
         self.dimensions_by_dsd[dsd_id][_id] = {
             "id": _id,
-            "name": name,                                
+            "name": name,
             "enum": values,
             "attrs": dict(element.attrib)
         }
         self.dimension_keys_by_dsd[dsd_id].append(_id)
-        
+
         element.clear()
-        
+
     def process_attribute(self, element, dsd_id):
 
         if element.getparent().tag != self.fixtag("structure", "AttributeList"):
             return
-        
+
         if not dsd_id in self.attributes_by_dsd:
             self.attributes_by_dsd[dsd_id] = OrderedDict()
 
@@ -855,7 +855,7 @@ class XMLStructure_2_1(XMLStructure_2_0):
 
         concept = element.xpath(".//Ref[@class='Concept']")[0]
         _id = concept.attrib.get('id')
-        
+
         codelist = element.xpath(".//Ref[@class='Codelist']")
         if codelist:
             codelist = codelist[0].attrib.get('id')
@@ -865,32 +865,32 @@ class XMLStructure_2_1(XMLStructure_2_0):
         else:
             values = {}
             name = self.concepts[_id]
-            
+
         self.attributes_by_dsd[dsd_id][_id] = {
             "id": _id,
-            "name": name,                                
+            "name": name,
             "enum": values,
             "attrs": dict(element.attrib)
         }
         self.attribute_keys_by_dsd[dsd_id].append(_id)
-        
-        element.clear()    
-        
+
+        element.clear()
+
     def process(self, filepath):
-        
+
         tree_iterator = etree.iterparse(filepath, events=['end', 'start-ns'])
-        
+
         self.nsmap = get_nsmap(tree_iterator)
-        
+
         for event, element in tree_iterator:
             if event == 'end':
-                
+
                 #TODO: OrganisationSchemes
 
                 if element.tag == self.fixtag("structure", "Agency"):
                     self.process_agency(element)
-                
-                elif element.tag == self.fixtag("structure", "Category"):                    
+
+                elif element.tag == self.fixtag("structure", "Category"):
                     self.process_category(element)
 
                 elif element.tag == self.fixtag("structure", "Categorisation"):
@@ -904,25 +904,25 @@ class XMLStructure_2_1(XMLStructure_2_0):
 
                 elif element.tag == self.fixtag("structure", "Concept"):
                     self.process_concept(element)
-                    
+
                 elif element.tag == self.fixtag("structure", "DataStructure"):
                     self.process_datastructure(element)
-                                
+
             #element.clear()
 
 @timeit("xml_utils.series_converter_v2", stats_only=True)
 def series_converter_v2(bson, xml):
-    
+
     bson.pop("series_keys", None)
-    
+
     bson["attributes"] = dict(bson.pop("series_attributes", {}))
     bson["values"] = bson.pop("observations")
-    
+
     last_update = bson.pop("last_update")
     if not last_update:
         last_update = clean_datetime()
     bson["last_update"] = last_update
-        
+
     return bson
 
 SERIES_CONVERTERS = {
@@ -930,26 +930,26 @@ SERIES_CONVERTERS = {
 }
 
 class XMLDataBase:
-    
+
     NS_TAG_DATA = None
     PROVIDER_NAME = None
     XMLStructureKlass = None
-    
-    def __init__(self, 
+
+    def __init__(self,
                  provider_name=None,
                  dataset_code=None,
                  dsd_id=None,
                  ns_tag_data=None,
-                 field_frequency="FREQ", 
+                 field_frequency="FREQ",
                  field_obs_time_period="TIME_PERIOD",
                  field_obs_value="OBS_VALUE",
                  dimension_keys=None,
-                 dsd_filepath=None, 
+                 dsd_filepath=None,
                  xml_dsd=None,
-                 frequencies_supported=None, 
+                 frequencies_supported=None,
                  frequencies_rejected=None,
                  series_converter="dlstats_v2"):
-        
+
         self.provider_name = provider_name or self.PROVIDER_NAME
         self.dataset_code = dataset_code
         self.dsd_id = dsd_id
@@ -957,28 +957,28 @@ class XMLDataBase:
         self.dsd_filepath = dsd_filepath
         self.xml_dsd = xml_dsd
         self.dimensions = {}
-        
+
         if not self.xml_dsd and self.XMLStructureKlass and self.dsd_filepath:
             self.xml_dsd = self.XMLStructureKlass(provider_name=self.provider_name)
             self.xml_dsd.process(dsd_filepath)
             self.dsd_id = self.xml_dsd.get_dsd_id(self.dataset_code)
-        
+
         if self.xml_dsd:
-            
+
             if not self.dsd_id:
                 raise Exception("required dsd_id parameter")
-            
-            self.dimension_keys, self.dimensions = get_dimensions_from_dsd(xml_dsd=self.xml_dsd, 
-                                                                           provider_name=self.provider_name, 
+
+            self.dimension_keys, self.dimensions = get_dimensions_from_dsd(xml_dsd=self.xml_dsd,
+                                                                           provider_name=self.provider_name,
                                                                            dataset_code=self.dataset_code,
                                                                            dsd_id=self.dsd_id)
 
         if not self.dimension_keys:
             raise Exception("required dimension_keys")
-        
+
         if not self.dimensions:
             raise Exception("required dimensions")
-        
+
         self.frequencies_supported = frequencies_supported
         self.frequencies_rejected = frequencies_rejected
 
@@ -990,20 +990,20 @@ class XMLDataBase:
 
         self.nsmap = {}
         self.tree_iterator = None
-        
+
         self._ns_tag_data = ns_tag_data
-                
-    @property    
+
+    @property
     def ns_tag_data(self):
         if self._ns_tag_data:
             return self._ns_tag_data
         else:
             return self.NS_TAG_DATA
-        
+
     def _get_nsmap(self, tree_iterator):
         return get_nsmap(tree_iterator)
 
-    @timeit("xml_utils.XMLDatabase._load_data", stats_only=True)        
+    @timeit("xml_utils.XMLDatabase._load_data", stats_only=True)
     def _load_data(self, filepath):
         self.tree_iterator = etree.iterparse(filepath, events=['end', 'start-ns'])
         self.nsmap = self._get_nsmap(self.tree_iterator)
@@ -1021,12 +1021,12 @@ class XMLDataBase:
 
     @timeit("xml_utils.XMLDatabase.process", stats_only=True)
     def process(self, filepath):
-        
+
         self._load_data(filepath)
-        
+
         for event, element in self.tree_iterator:
             if event == 'end':
-                
+
                 if self.is_series_tag(element):
                     try:
                         yield self.one_series(element), None
@@ -1054,13 +1054,13 @@ class XMLDataBase:
         if self.dimensions:
             for key in self.dimension_keys:
                 search_value = dimensions[key]
-                if key in self.dimensions and search_value in self.dimensions[key]: 
+                if key in self.dimensions and search_value in self.dimensions[key]:
                     values.append(self.dimensions[key][search_value])
                 else:
                     values.append(search_value)
         else:
             values = [dimensions[key] for key in self.dimension_keys]
-        
+
         return " - ".join(values)
 
     def get_key(self, series, dimensions, attributes):
@@ -1070,18 +1070,18 @@ class XMLDataBase:
         return frequency
 
     def valid_frequency(self, frequency, series, dimensions):
-        msg = {"provider_name": self.provider_name, 
+        msg = {"provider_name": self.provider_name,
                "dataset_code": self.dataset_code,
                "frequency": frequency}
-        
+
         if self.frequencies_supported and not frequency in self.frequencies_supported:
             raise errors.RejectFrequency(**msg)
-        
+
         if self.frequencies_rejected and frequency in self.frequencies_rejected:
             raise errors.RejectFrequency(**msg)
-        
+
         return True
-    
+
     @timeit("xml_utils.XMLDatabase.get_frequency", stats_only=True)
     def get_frequency(self, series, dimensions, attributes):
         frequency = self.search_frequency(series, dimensions, attributes)
@@ -1129,55 +1129,55 @@ class XMLDataMixIn:
     def get_observations(self, series, frequency):
         """
         element: <data:Series>
-        
+
         <data:Series FREQ="Q" s_adj="NSA" unit="I10" na_item="NULC_HW" geo="AT" TIME_FORMAT="P3M">
             <data:Obs TIME_PERIOD="1996-Q1" OBS_VALUE="89.4" />
             <data:Obs TIME_PERIOD="1996-Q2" OBS_VALUE="89.9" />
         </data:Series>
-        
+
         """
         observations = deque()
         for obs in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
-        
+
             localname = etree.QName(obs.tag).localname
-                
+
             #if obs.tag == self.fixtag(self.ns_tag_data, 'Obs'):
             if localname == "Obs":
                 item["period"] = obs.attrib["TIME_PERIOD"]
 
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("OBS_VALUE", "")
-                
+
                 for key, value in obs.attrib.items():
                     if not key in ['TIME_PERIOD', 'OBS_VALUE']:
                         item["attributes"][key] = value
-                
+
                 observations.append(item)
-            
+
                 obs.clear()
 
         return list(observations)
-    
+
     def build_series(self, series):
         dimensions = self.get_dimensions(series)
         attributes = self.get_attributes(series)
         frequency = self.get_frequency(series, dimensions, attributes)
         observations = self.get_observations(series, frequency)
-        
+
         if not observations:
-            msg = {"provider_name": self.provider_name, 
-                   "dataset_code": self.dataset_code}            
-            raise errors.RejectEmptySeries(**msg)                
-        
+            msg = {"provider_name": self.provider_name,
+                   "dataset_code": self.dataset_code}
+            raise errors.RejectEmptySeries(**msg)
+
         bson = {
             "provider_name": self.provider_name,
             "dataset_code": self.dataset_code,
             "dimensions": dimensions,
             "frequency": frequency,
             "name": self.get_name(series, dimensions, attributes),
-            "key": self.get_key(series, dimensions, attributes), 
+            "key": self.get_key(series, dimensions, attributes),
             "observations": observations,
             "series_keys": {},
             "series_attributes": attributes,
@@ -1185,7 +1185,7 @@ class XMLDataMixIn:
         bson["start_date"] = self.start_date(series, frequency, observations, bson)
         bson["end_date"] = self.end_date(series, frequency, observations, bson)
         bson["last_update"] = self.get_last_update(series, dimensions, attributes, bson)
-        
+
         return bson
 
 class XMLData_1_0(XMLDataMixIn, XMLDataBase):
@@ -1199,7 +1199,7 @@ class XMLData_1_0(XMLDataMixIn, XMLDataBase):
     def is_series_tag(self, element):
         localname = etree.QName(element.tag).localname
         return localname == 'Series'
-    
+
 class XMLData_1_0_FED(XMLData_1_0):
     """
     TODO: si je stocke FREQ: 129 dans series, il faut retrouver 129 dans les codeslists["FREQ"]
@@ -1207,28 +1207,28 @@ class XMLData_1_0_FED(XMLData_1_0):
 
     PROVIDER_NAME = "FED"
     NS_TAG_DATA = "frb"
-     
+
     _frequency_map = {
         "8": "D",
         #"9": "", #Business day
         "16": "W-SUN", # Weekly (Sunday)
         "17": "W-MON", # Weekly (Monday)
-        "18": "W-TUE", # Weekly (Tuesday)    
+        "18": "W-TUE", # Weekly (Tuesday)
         "19": "W-WED", # Weekly (Wednesday)
         "20": "W-THU", # Weekly (Thursday)
-        "21": "W-FRI", # Weekly (Friday) 
-        "22": "W-SAT", # Weekly (Saturday) 
+        "21": "W-FRI", # Weekly (Friday)
+        "22": "W-SAT", # Weekly (Saturday)
         #"67": "", # Bi-Weekly (AWednesday)
         "129": "M",
         "162": "Q",
-        "203": "A", 
+        "203": "A",
     }
-    
+
     MAP_DSD_ID = {
         "OTHER": "Z.1",
         "Z1": "Z.1",
-    }    
-    
+    }
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         if not self.frequencies_supported:
@@ -1239,20 +1239,20 @@ class XMLData_1_0_FED(XMLData_1_0):
                 'frb': 'http://www.federalreserve.gov/structure/compact/common',
                 'message': 'http://www.SDMX.org/resources/SDMXML/schemas/v1_0/message',
                 'xsi': 'http://www.w3.org/2001/XMLSchema-instance'}
-        
+
     def process(self, filepath):
-        
+
         self._load_data(filepath)
-        
+
         for event, element in self.tree_iterator:
-            
+
             if event == 'end':
 
                 if element.tag == self.fixtag("frb", "DataSet"):
-                    
+
                     dataset = element
-                
-                    _id = element.xpath('//message:Header/message:ID/text()', 
+
+                    _id = element.xpath('//message:Header/message:ID/text()',
                                         namespaces=self.nsmap)[0]
 
                     if _id in self.MAP_DSD_ID:
@@ -1260,11 +1260,11 @@ class XMLData_1_0_FED(XMLData_1_0):
 
                     short_id = dataset.attrib.get('id')
                     long_id = "%s-%s" % (_id, short_id)
-                    
+
                     if not long_id == self.dsd_id:
                         dataset.clear()
                         continue
-                    
+
                     for child in dataset.getchildren():
                         if self.is_series_tag(child):
                             try:
@@ -1277,9 +1277,9 @@ class XMLData_1_0_FED(XMLData_1_0):
                                 child.clear()
                         else:
                             child.clear()
-                    
+
                     dataset.clear()
-    
+
     def get_name(self, series, dimensions, attributes):
         try:
             annotations = series.xpath(".//frb:Annotations/common:Annotation/common:AnnotationText/text()", namespaces=self.nsmap)
@@ -1291,7 +1291,7 @@ class XMLData_1_0_FED(XMLData_1_0):
             logger.warning("fed annotations error[%s]" % str(err))
 
         return super().get_name(series, dimensions, attributes)
-        
+
     def get_key(self, series, dimensions, attributes):
         if 'SERIES_NAME' in attributes:
             return attributes['SERIES_NAME']
@@ -1317,10 +1317,10 @@ class XMLCompactData_2_0_DESTATIS(XMLCompactData_2_0):
 class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
 
     PROVIDER_NAME = "IMF"
-    
+
     def get_key(self, series, dimensions, attributes):
         return "%s.%s" % (self.dataset_code, attributes["SERIESCODE"])
-    
+
     def is_series_tag(self, element):
         localname = etree.QName(element.tag).localname
         return localname == 'Series'
@@ -1331,41 +1331,41 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
             <Obs TIME_PERIOD="1950" VALUE="0"/>
             <Obs TIME_PERIOD="1951" VALUE="0"/>
         </Series>
-        
+
         """
         observations = deque()
         for obs in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
-        
+
             localname = etree.QName(obs.tag).localname
-                
+
             if localname == "Obs":
-                 
-                period = obs.attrib["TIME_PERIOD"]                
+
+                period = obs.attrib["TIME_PERIOD"]
                 if frequency == "Q" and len(period.split("-")) == 2:
                     period = period.replace("-0", "-Q")
-                
+
                 item["period"] = period
-                
+
                 #TODO: value manquante
                 item["value"] = obs.attrib.get("VALUE", "")
-                
+
                 for key, value in obs.attrib.items():
                     if not key in ['TIME_PERIOD', 'VALUE']:
                         item["attributes"][key] = value
-                
+
                 observations.append(item)
-            
+
                 obs.clear()
 
         return list(observations)
-    
-    
-    
+
+
+
 class XMLCompactData_2_0_EUROSTAT(XMLCompactData_2_0):
 
-    PROVIDER_NAME = "EUROSTAT"    
+    PROVIDER_NAME = "EUROSTAT"
 
     def start_date(self, series, frequency, observations=[], bson=None):
         time_format = series.attrib.get('TIME_FORMAT')
@@ -1375,13 +1375,13 @@ class XMLCompactData_2_0_EUROSTAT(XMLCompactData_2_0):
         period = observations[0]["period"]
         (date_string, freq) = parse_special_date(period, time_format, self.dataset_code)
         return get_ordinal_from_period(date_string, freq=freq)
-        
+
     def end_date(self, series, frequency, observations=[], bson=None):
         time_format = series.attrib.get('TIME_FORMAT')
         if not time_format or not time_format in SPECIAL_DATE_FORMATS:
             return super().start_date(series, frequency, observations=observations, bson=bson)
 
-        period = observations[-1]["period"]        
+        period = observations[-1]["period"]
         (date_string, freq) = parse_special_date(period, time_format, self.dataset_code)
         return get_ordinal_from_period(date_string, freq=freq)
 
@@ -1394,7 +1394,7 @@ class XMLGenericData_2_0(XMLDataBase):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.field_frequency = "FREQUENCY"                
+        self.field_frequency = "FREQUENCY"
 
     def is_series_tag(self, element):
         return etree.QName(element.tag).localname == 'Series'
@@ -1404,7 +1404,7 @@ class XMLGenericData_2_0(XMLDataBase):
         <SeriesKey>
             <Value concept="LOCATION" value="AUT"/>
             <Value concept="SUBJECT" value="PRMNTO01"/>
-        </SeriesKey>        
+        </SeriesKey>
         """
         d = OrderedDict()
         for value in element.iterchildren():
@@ -1412,43 +1412,43 @@ class XMLGenericData_2_0(XMLDataBase):
             value =value.attrib["value"]
             d[key] = value
         return d
-    
+
     def get_observations(self, series, frequency):
-        
+
         observations = deque()
-        
+
         for element in series.xpath("./*[local-name()='Obs']"):
 
             item = {"period": None, "value": None, "attributes": {}}
-            
+
             for child in element.getchildren():
-                
+
                 if etree.QName(child.tag).localname == "Time":
                     item["period"] = child.text
-                
+
                 elif etree.QName(child.tag).localname == 'ObsValue':
                     #TODO: valeur manquante
                     item["value"] = child.attrib["value"]
-                
+
                 #TODO:
                 elif etree.QName(child.tag).localname == 'Attributes':
                     """
-                    <Attributes><Value concept="OBS_STATUS" value="M"/></Attributes>                    
-                    AUS.LCEATT02.ST.Q                
-                    """ 
+                    <Attributes><Value concept="OBS_STATUS" value="M"/></Attributes>
+                    AUS.LCEATT02.ST.Q
+                    """
                     for key, value in self._get_values(child).items():
                         item["attributes"][key] = value
-                
+
                 child.clear()
-            
+
             observations.append(item)
             element.clear()
-            
+
         return list(observations)
 
     def get_dimensions(self, series):
         _dimensions = series.xpath("./*[local-name()='SeriesKey']")[0]
-        
+
         dimensions = self._get_values(_dimensions)
         if self.dimension_keys:
             return OrderedDict([(k, v) for k, v in dimensions.items() if k in self.dimension_keys])
@@ -1458,7 +1458,7 @@ class XMLGenericData_2_0(XMLDataBase):
     def get_attributes(self, series):
         _attributes = series.xpath("./*[local-name()='Attributes']")[0]
 
-        attributes = self._get_values(_attributes)        
+        attributes = self._get_values(_attributes)
         if self.dimension_keys:
             return OrderedDict([(k, v) for k, v in attributes.items() if not k in self.dimension_keys])
         else:
@@ -1471,17 +1471,17 @@ class XMLGenericData_2_0(XMLDataBase):
         observations = self.get_observations(series, frequency)
 
         if not observations:
-            msg = {"provider_name": self.provider_name, 
-                   "dataset_code": self.dataset_code}            
-            raise errors.RejectEmptySeries(**msg)                
-        
+            msg = {"provider_name": self.provider_name,
+                   "dataset_code": self.dataset_code}
+            raise errors.RejectEmptySeries(**msg)
+
         bson = {
             "provider_name": self.provider_name,
             "dataset_code": self.dataset_code,
             "dimensions": dimensions,
             "frequency": frequency,
             "name": self.get_name(series, dimensions, attributes),
-            "key": self.get_key(series, dimensions, attributes), 
+            "key": self.get_key(series, dimensions, attributes),
             "observations": observations,
             "series_keys": dimensions,
             "series_attributes": attributes,
@@ -1490,20 +1490,20 @@ class XMLGenericData_2_0(XMLDataBase):
         bson["start_date"] = self.start_date(series, frequency, observations, bson)
         bson["end_date"] = self.end_date(series, frequency, observations, bson)
         bson["last_update"] = self.get_last_update(series, dimensions, attributes, bson)
-        
+
         return bson
-    
+
 class XMLGenericData_2_0_OECD(XMLGenericData_2_0):
-    
-    PROVIDER_NAME = "OECD"    
-    
+
+    PROVIDER_NAME = "OECD"
+
 class XMLGenericData_2_1(XMLDataBase):
     """SDMX 2.1 application/vnd.sdmx.genericdata+xml;version=2.1
     """
 
     NS_TAG_DATA = "generic"
     XMLStructureKlass = XMLStructure_2_1
-    
+
     def _get_values(self, element):
         d = OrderedDict()
         for value in element.iterchildren():
@@ -1511,48 +1511,48 @@ class XMLGenericData_2_1(XMLDataBase):
             value =value.attrib["value"]
             d[key] = value
         return d
-    
+
     def get_observations(self, series, frequency):
-        
+
         observations = deque()
-        
-        for element in series.xpath("child::%s:Obs" % self.ns_tag_data, 
+
+        for element in series.xpath("child::%s:Obs" % self.ns_tag_data,
                                     namespaces=self.nsmap):
 
             item = {"period": None, "value": None, "attributes": {}}
             for child in element.getchildren():
-                
+
                 if child.tag == self.fixtag(self.ns_tag_data, 'ObsDimension'):
                     item["period"] = child.attrib["value"]
-                
+
                 elif child.tag == self.fixtag(self.ns_tag_data, 'ObsValue'):
                     #TODO: valeur manquante
                     item["value"] = child.attrib["value"]
-                
+
                 elif child.tag == self.fixtag(self.ns_tag_data, 'Attributes'):
                     for key, value in self._get_values(child).items():
                         item["attributes"][key] = value
-                
+
                 child.clear()
-            
+
             observations.append(item)
             element.clear()
-            
+
         return list(observations)
 
     def get_dimensions(self, series):
-        _dimensions = series.xpath("child::%s:SeriesKey" % self.ns_tag_data, 
+        _dimensions = series.xpath("child::%s:SeriesKey" % self.ns_tag_data,
                                     namespaces=self.nsmap)[0]
-        dimensions = self._get_values(_dimensions)        
+        dimensions = self._get_values(_dimensions)
         if self.dimension_keys:
             return OrderedDict([(k, v) for k, v in dimensions.items() if k in self.dimension_keys])
         else:
             return OrderedDict([(k, v) for k, v in dimensions.items()])
 
     def get_attributes(self, series):
-        _attributes = series.xpath("child::%s:Attributes" % self.ns_tag_data, 
+        _attributes = series.xpath("child::%s:Attributes" % self.ns_tag_data,
                                   namespaces=self.nsmap)[0]
-        attributes = self._get_values(_attributes)        
+        attributes = self._get_values(_attributes)
         if self.dimension_keys:
             return OrderedDict([(k, v) for k, v in attributes.items() if not k in self.dimension_keys])
         else:
@@ -1565,17 +1565,17 @@ class XMLGenericData_2_1(XMLDataBase):
         observations = self.get_observations(series, frequency)
 
         if not observations:
-            msg = {"provider_name": self.provider_name, 
-                   "dataset_code": self.dataset_code}            
-            raise errors.RejectEmptySeries(**msg)                
-        
+            msg = {"provider_name": self.provider_name,
+                   "dataset_code": self.dataset_code}
+            raise errors.RejectEmptySeries(**msg)
+
         bson = {
             "provider_name": self.provider_name,
             "dataset_code": self.dataset_code,
             "dimensions": dimensions,
             "frequency": frequency,
             "name": self.get_name(series, dimensions, attributes),
-            "key": self.get_key(series, dimensions, attributes), 
+            "key": self.get_key(series, dimensions, attributes),
             "observations": observations,
             "series_keys": dimensions,
             "series_attributes": attributes,
@@ -1583,7 +1583,7 @@ class XMLGenericData_2_1(XMLDataBase):
         bson["start_date"] = self.start_date(series, frequency, observations, bson)
         bson["end_date"] = self.end_date(series, frequency, observations, bson)
         bson["last_update"] = self.get_last_update(series, dimensions, attributes, bson)
-        
+
         return bson
 
 class DataMixIn_ECB:
@@ -1593,11 +1593,11 @@ class DataMixIn_ECB:
     """
     TODO: http://sdw-wsrest.ecb.int/service/contentconstraint/ECB/EXR2_CONSTRAINTS
     """
-    
+
     PROVIDER_NAME = "ECB"
-    
+
     _frequencies_supported = ["A", "M", "Q", "W", "D", "S"]
-    
+
     def get_name(self, series, dimensions, attributes):
         if "TITLE_COMPL" in attributes:
             return attributes["TITLE_COMPL"]
@@ -1606,44 +1606,44 @@ class DataMixIn_ECB:
                                                                                      self.dataset_code))
         if attributes.get("TITLE"):
             return attributes.get("TITLE")
-        
+
         return super().get_name(series, dimensions, attributes)
-    
+
     @timeit("xml_utils.DataMixIn_ECB.fixe_frequency", stats_only=True)
     def fixe_frequency(self, frequency, series, dimensions, attributes):
         if frequency == "H": #Half Yearly (semestriel)
             frequency = "S"
             #logger.warning("Replace H frequency by S - dataset[%s]" % self.dataset_code)
         return frequency
-    
+
 
 class DataMixIn_INSEE:
     """Common class for INSEE datas
     """
-    
+
     PROVIDER_NAME = "INSEE"
 
     #_frequencies_rejected = ["S", "B", "I"]
     _frequencies_supported = ["A", "M", "Q", "W", "D"]
 
-    """    
+    """
     def _dim_attrs(self,  dimensions, attributes):
         attributes_keys = "|".join(list(attributes.keys())) if attributes else ""
         dimensions_keys = "|".join(list(dimensions.keys())) if dimensions else ""
         return "DIMENSIONS[%s] - ATTRIBUTES[%s]" % (attributes_keys, dimensions_keys)
     """
-    
+
     """
-    USE title English by concat dimension + add title ?    
+    USE title English by concat dimension + add title ?
     def get_name(self, series, dimensions, attributes):
-        if "TITLE" in attributes:            
+        if "TITLE" in attributes:
             return attributes["TITLE"]
         elif "TITLE" in dimensions:
             return dimensions["TITLE"]
 
         return super().get_name(series, dimensions, attributes)
     """
-    
+
     def get_key(self, series, dimensions, attributes):
         return attributes["IDBANK"]
 
@@ -1667,7 +1667,7 @@ class DataMixIn_INSEE:
         """Insee Fixe for reverse dates and values
         """
         bson = super().finalize_bson(bson)
-        
+
         start_date = bson["end_date"]
         end_date = bson["start_date"]
         bson["end_date"] = end_date
@@ -1689,9 +1689,9 @@ class XMLGenericData_2_1_INSEE(DataMixIn_INSEE, XMLGenericData_2_1):
         super().__init__(**kwargs)
         if not self.frequencies_supported:
             self.frequencies_supported = self._frequencies_supported
-    
+
 class XMLSpecificData_2_1(XMLDataBase):
-    """SDMX 2.1 application/vnd.sdmx.structurespecificdata+xml;version=2.1    
+    """SDMX 2.1 application/vnd.sdmx.structurespecificdata+xml;version=2.1
     """
 
     XMLStructureKlass = XMLStructure_2_1
@@ -1699,33 +1699,33 @@ class XMLSpecificData_2_1(XMLDataBase):
     @timeit("xml_utils.XMLSpecificData_2_1.is_series_tag", stats_only=True)
     def is_series_tag(self, element):
         return etree.QName(element.tag).localname == 'Series'
-    
+
     @timeit("xml_utils.XMLSpecificData_2_1.get_observations", stats_only=True)
     def get_observations(self, series, frequency):
-        
+
         observations = deque()
 
         for observation in series.iterchildren():
 
             item = {"period": None, "value": None, "attributes": {}}
-            
+
             item["period"] = observation.attrib[self.field_obs_time_period]
             item["value"] = observation.attrib[self.field_obs_value]
-            
+
             for key, value in observation.attrib.items():
                 if not key in [self.field_obs_time_period, self.field_obs_value]:
                     item["attributes"][key] = value
-            
+
             observation.clear()
-            
+
             observations.append(item)
-            
+
         return list(observations)
-    
+
     @timeit("xml_utils.XMLSpecificData_2_1.build_series", stats_only=True)
     def build_series(self, series):
         """
-        :series ElementTree: Element from lxml        
+        :series ElementTree: Element from lxml
         """
         dimensions = self.get_dimensions(series)
         attributes = self.get_attributes(series)
@@ -1733,17 +1733,17 @@ class XMLSpecificData_2_1(XMLDataBase):
         observations = self.get_observations(series, frequency)
 
         if not observations:
-            msg = {"provider_name": self.provider_name, 
-                   "dataset_code": self.dataset_code}            
-            raise errors.RejectEmptySeries(**msg)                
-        
+            msg = {"provider_name": self.provider_name,
+                   "dataset_code": self.dataset_code}
+            raise errors.RejectEmptySeries(**msg)
+
         bson = {
             "provider_name": self.provider_name,
             "dataset_code": self.dataset_code,
             "dimensions": dimensions,
             "frequency": frequency,
             "name": self.get_name(series, dimensions, attributes),
-            "key": self.get_key(series, dimensions, attributes), 
+            "key": self.get_key(series, dimensions, attributes),
             "observations": observations,
             "series_keys": {},
             "series_attributes": attributes,
@@ -1751,7 +1751,7 @@ class XMLSpecificData_2_1(XMLDataBase):
         bson["start_date"] = self.start_date(series, frequency, observations, bson)
         bson["end_date"] = self.end_date(series, frequency, observations, bson)
         bson["last_update"] = self.get_last_update(series, dimensions, attributes, bson)
-        
+
         return bson
 
 class XMLSpecificData_2_1_ECB(DataMixIn_ECB, XMLSpecificData_2_1):
@@ -1779,7 +1779,7 @@ XML_STRUCTURE_KLASS = {
     "XMLCompactData_2_0": XMLCompactData_2_0,
     "XMLCompactData_2_0_EUROSTAT": XMLCompactData_2_0_EUROSTAT,
     "XMLCompactData_2_0_DESTATIS": XMLCompactData_2_0_DESTATIS,
-    "XMLCompactData_2_0_IMF": XMLCompactData_2_0_IMF,    
+    "XMLCompactData_2_0_IMF": XMLCompactData_2_0_IMF,
     "XMLGenericData_2_1": XMLGenericData_2_1,
     "XMLGenericData_2_1_ECB": XMLGenericData_2_1_ECB,
     "XMLGenericData_2_1_INSEE": XMLGenericData_2_1_INSEE,
