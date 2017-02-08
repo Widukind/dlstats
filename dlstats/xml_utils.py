@@ -1327,11 +1327,17 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
 
     def get_observations(self, series, frequency):
         """
+        2016 Format:
         <Series FREQ="A" REF_AREA="122" INDICATOR="TMG_CIF_USD" VIS_AREA="369" SCALE="6" SERIESCODE="122TMG_CIF_USD369.A" TIME_FORMAT="P1Y">
             <Obs TIME_PERIOD="1950" VALUE="0"/>
             <Obs TIME_PERIOD="1951" VALUE="0"/>
         </Series>
 
+        2017 Format:
+        <Series FREQ="A" REF_AREA="IT" INDICATOR="BXGN_BP6_USD" UNIT_MULT="6" TIME_FORMAT="P1Y">
+            <Obs TIME_PERIOD="1974" OBS_VALUE="1.68048511284139"/>
+            <Obs TIME_PERIOD="1975" OBS_VALUE="1.79079666384597"/>
+        </Series>
         """
         observations = deque()
         for obs in series.iterchildren():
@@ -1349,10 +1355,10 @@ class XMLCompactData_2_0_IMF(XMLCompactData_2_0):
                 item["period"] = period
 
                 #TODO: value manquante
-                item["value"] = obs.attrib.get("VALUE", "")
+                item["value"] = obs.attrib.get("OBS_VALUE", "") or obs.attrib.get("VALUE", "")
 
                 for key, value in obs.attrib.items():
-                    if not key in ['TIME_PERIOD', 'VALUE']:
+                    if not key in ['TIME_PERIOD', 'OBS_VALUE', 'VALUE']:
                         item["attributes"][key] = value
 
                 observations.append(item)
