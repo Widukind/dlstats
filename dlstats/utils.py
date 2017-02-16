@@ -100,7 +100,7 @@ class Downloader:
                                     timeout=self.timeout, 
                                     stream=True,
                                     allow_redirects=True,
-                                    verify=False,
+                                    verify=True,
                                     headers=self.headers)
 
             code = int(response.status_code)
@@ -346,7 +346,7 @@ def get_ordinal_from_period(date_str, freq=None):
     Frequency stats - 2016-03-30
     { "_id" : "A", "count" : 36858826 }
     { "_id" : "Q", "count" : 3318158 }
-    { "_id" : "M", "count" : 507243 }
+x    { "_id" : "M", "count" : 507243 }
     { "_id" : "W-WED", "count" : 1713 }
     { "_id" : "D", "count" : 845 }
     { "_id" : "W-MON", "count" : 77 }
