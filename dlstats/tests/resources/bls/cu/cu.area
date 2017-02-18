@@ -1,0 +1,46 @@
+area_code	area_name	display_level	selectable	sort_sequence
+0000	U.S. city average	0	T	1	
+0100	Northeast urban	0	T	5	
+0200	Midwest urban	0	T	12	
+0300	South urban	0	T	24	
+0400	West urban	0	T	34	
+A000	Size Class A (more than 1,500,000)	0	T	2	
+A100	Northeast urban - Size Class A	1	T	10	
+A101	New York-Northern New Jersey-Long Island, NY-NJ-CT-PA	1	T	6	
+A102	Philadelphia-Wilmington-Atlantic City, PA-NJ-DE-MD	1	T	7	
+A103	Boston-Brockton-Nashua, MA-NH-ME-CT	1	T	8	
+A104	Pittsburgh, PA	1	T	9	
+A200	Midwest - Size Class A	1	T	21	
+A207	Chicago-Gary-Kenosha, IL-IN-WI	1	T	13	
+A208	Detroit-Ann Arbor-Flint, MI	1	T	16	
+A209	St. Louis, MO-IL	1	T	20	
+A210	Cleveland-Akron, OH	1	T	15	
+A211	Minneapolis-St. Paul, MN-WI	1	T	19	
+A212	Milwaukee-Racine, WI	1	T	18	
+A213	Cincinnati-Hamilton, OH-KY-IN	1	T	14	
+A214	Kansas City, MO-KS	1	T	17	
+A300	South - Size Class A	1	T	31	
+A311	Washington-Baltimore, DC-MD-VA-WV	1	T	30	
+A316	Dallas-Fort Worth, TX	1	T	26	
+A318	Houston-Galveston-Brazoria, TX	1	T	27	
+A319	Atlanta, GA	1	T	25	
+A320	Miami-Fort Lauderdale, FL	1	T	28	
+A321	Tampa-St. Petersburg-Clearwater, FL	1	T	29	
+A400	West - Size Class A	1	T	44	
+A421	Los Angeles-Riverside-Orange County, CA	1	T	38	
+A422	San Francisco-Oakland-San Jose, CA	1	T	42	
+A423	Seattle-Tacoma-Bremerton, WA	1	T	43	
+A424	San Diego, CA	1	T	41	
+A425	Portland-Salem, OR-WA	1	T	40	
+A426	Honolulu, HI	1	T	37	
+A427	Anchorage, AK	1	T	35	
+A429	Phoenix-Mesa, AZ	1	T	39	
+A433	Denver-Boulder-Greeley, CO	1	T	36	
+D000	Size Class D (under 50,000)	0	T	4	
+D200	Midwest - Size Class D	1	T	23	
+D300	South - Size Class D	1	T	33	
+X000	Size Class B/C (between 50,000 and 1,500,000)	0	T	3	
+X100	Northeast urban - Size Class B/C	1	T	11	
+X200	Midwest - Size Class B/C	1	T	22	
+X300	South - Size Class B/C	1	T	32	
+X400	West - Size Class B/C	1	T	45	
