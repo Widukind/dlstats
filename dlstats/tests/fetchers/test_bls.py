@@ -4,12 +4,14 @@ from datetime import datetime
 import os
 
 from dlstats.fetchers.bls import Bls as Fetcher
+from dlstats.fetchers.bls import SeriesIterator
 
 import httpretty
 import unittest
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
+from dlstats.utils import get_ordinal_from_period
 
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "bls"))
@@ -117,20 +119,139 @@ class FetcherTestCase(BaseFetcherTestCase):
         url = "https://download.bls.gov/pub/time.series/cu/cu.series"
         self.register_url(url, self.DATASETS["cu"]["dirname"]+"/cu.series",
                           content_type='text')
-        print(self.DATASETS["cu"]["dirname"]+"/cu.data.0.Current")
         url = "https://download.bls.gov/pub/time.series/cu/cu.data.0.Current"
         self.register_url(url, self.DATASETS["cu"]["dirname"]+"/cu.data.0.Current",
                           content_type='text')
-        print(self.DATASETS["cu"]["dirname"]+"/cu.data.1.AllItems")
         url = "https://download.bls.gov/pub/time.series/cu/cu.data.1.AllItems"
         self.register_url(url, self.DATASETS["cu"]["dirname"]+"/cu.data.1.AllItems",
+                          content_type='text')
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        self.register_url(url, self.DATASETS["cu"]["dirname"]+"/cu.data.10.OtherWest",
+                          content_type='text')
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.20.USCommoditiesServicesSpecial"
+        self.register_url(url, self.DATASETS["cu"]["dirname"]+"/cu.data.20.USCommoditiesServicesSpecial",
                           content_type='text')
         for name in self.DATASETS["cu"]["code_list_files"]:
             url = "https://download.bls.gov/pub/time.series/cu/cu." + name
             self.register_url(url, self.DATASETS["cu"]["dirname"]+'/cu.'+name,
                               content_type='text')
             
+
+    @httpretty.activate     
+    def test_get_date(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        filename = 'cu.data.10.OtherWest'
+        si = SeriesIterator(url,filename,None,True)
+        date1 = si.get_date('1971','M01','M')[0]
+        period1 = get_ordinal_from_period(date1,freq='M')
+        print(date1,period1)
+        date1 = si.get_date('1971','M12','M')[0]
+        period1 = get_ordinal_from_period(date1,freq='M')
+        print(date1,period1)
+        date1 = si.get_date('1971','M13','M')[0]
+        period1 = get_ordinal_from_period(date1,freq='M')
+        print(date1,period1)
+        date1 = si.get_date('1971','S1','S')[0]
+        period1 = get_ordinal_from_period(date1,freq='S')
+        print(date1,period1)
+        date1 = si.get_date('1971','S2','S')[0]
+        period1 = get_ordinal_from_period(date1,freq='S')
+        print(date1,period1)
         
+    @httpretty.activate     
+    def test_iter_row(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        filename = 'cu.data.10.OtherWest'
+        si = SeriesIterator(url,filename,None,True)
+        row = next(si.iter_row(url,filename,None,True))
+        self.assertEqual(row,['CUUR0400AA0', '1966', 'M12', '53.3', ''])
+
+    @httpretty.activate     
+    def test_get_value(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        filename = 'cu.data.10.OtherWest'
+        si = SeriesIterator(url,filename,None,True)
+        row = ['CUUR0400AA0', '1966', 'M12', '53.3', '']
+        period = -37
+        value_target = {
+            'attributes': None,
+            'period': "-37",
+            'value': "53.3"
+        }
+        value = si.get_value(row,period)
+        self.assertEqual(value,value_target)
+
+    @httpretty.activate     
+    def test_fill_series(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        filename = 'cu.data.10.OtherWest'
+        si = SeriesIterator(url,filename,None,True)
+        series_in = [{
+            'attributes': None,
+            'period': "-37",
+            'value': "53.3"
+        }]
+        previous_period = -37
+        period = -34
+        series_out = si.fill_series(series_in,previous_period,period)
+        series_target = [
+            {
+                'attributes': None,
+                'period': "-37",
+                'value': "53.3"
+            },  
+            {
+                'attributes': None,
+                'period': "-36",
+                'value': "nan"
+            },  
+            {
+                'attributes': None,
+                'period': "-35",
+                'value': "nan"
+            },  
+        ]
+        self.assertEqual(series_out,series_target)
+
+    @httpretty.activate     
+    def test_SeriesIterator(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
+        filename = 'cu.data.10.OtherWest'
+        si = SeriesIterator(url,filename,None,True)
+        series = next(si)
+        values = series['values']
+        self.assertEqual(len(values),12*(2016-1966) + 2) 
+        value_1 = { 
+            'attributes': None,
+            'period': "-37",
+            'value': "53.3"
+        }
+        self.assertEqual(values[0],value_1)
+        value_2 = {
+            'attributes': None,
+            'period': "-36",
+            'value': "nan"
+        }
+        self.assertEqual(values[1],value_2)
+        value_last = {
+            'attributes': None,
+            'period': str(12*(2017-1970)),
+            'value': "405.426"
+        }
+        self.assertEqual(values[-1],value_last)
+        si = SeriesIterator(url,filename,None,True)
+        count = 0
+#        for s in si:
+#            count +=1
+#        print(count)
+#        print(s['values'][-1])
+#        print(s['values_annual'][-1])
+
     @httpretty.activate     
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):

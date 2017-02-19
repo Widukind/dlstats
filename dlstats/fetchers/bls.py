@@ -101,6 +101,141 @@ class Bls(Fetcher):
     def _parse_agenda(self):
         pass
     
+class SeriesIterator:
+    def __init__(self,url,filename,store_path,use_existing_file):
+        self.row_iter = self.iter_row(url,filename,store_path,use_existing_file)
+        self.current_row = None
+        
+    def iter_row(self,url,filename,store_path,use_existing_file):
+        download = Downloader(url=url,
+                              filename = filename,
+                              store_filepath = store_path,
+                              use_existing_file = use_existing_file)
+        filepath = download.get_filepath()
+        with  open(filepath) as source_file:
+            data = csv.reader(source_file,delimiter='\t')
+            fields = [f.strip() for f in next(data)]
+            #check that data are in the right order
+            assert(fields == ['series_id', 'year', 'period', 'value', 'footnote_codes'])
+            for row in data:
+                yield [elem.strip() for elem in row]
+
+    def __iter__(self):
+        return self
+
+    def get_frequency(self,code):
+        """Standardize frequency code
+        Returns character code
+        """
+        if code == 'R':
+            code = 'M'
+        return code
+
+    def get_date(self,year,subperiod,frequency):
+        """Builds date string compatible with get_ordinal_from_period()
+        Change frequency for M13 and S03
+        Returns a date_string and a frequency character code
+        """
+        if frequency == 'A':
+            date_string = year
+        elif frequency == 'S':
+            if subperiod == 'S03':
+                date_string = year
+                frequency = 'A'
+            else:
+                date_string = year + 'S' + subperiod[-1]
+        elif subperiod == 'M13':
+            date_string = year
+            frequency = 'A'
+        else:
+            date_string = year + '-' + subperiod
+        return (date_string, frequency)
+    
+    def get_value(self,row,period):
+        """Forms one value dictionary
+        Returns a dict
+        """
+        if len(row[4]) > 0:
+            attribute = {'footnote': row[4]}
+        else:
+            attribute = None
+        return { 
+            'attributes': attribute,
+            'period': str(period),
+            'value': row[3],
+        }
+
+    def fill_series(self,series,previous_period,period):
+        """Appends nan values to series
+        Returns a list of value dict
+        """
+        while previous_period + 1 < period:
+            series.append({
+                'attributes': None,
+                'period': str(previous_period + 1),
+                'value': 'nan',
+            })
+            previous_period += 1
+        return series
+                
+    def __next__(self):
+        """Iterators for basic data for series
+        Two series are handled when annual avg are intertwined with monthly
+        or semestrial data
+        Returns a dict
+        """
+        values = []
+        values_annual = []
+        previous_period = None
+        previous_period_annual = None
+        start_period_annual = None
+        end_period_annual = None
+        # fetch first row if it is waiting
+        if self.current_row is not None:
+            row = self.current_row
+            self.current_row = None
+        else:
+            row = [elem.strip() for elem in next(self.row_iter)]
+        series_id = row[0]
+        if row[2] == 'M13' or row[2] == 'S03':
+            frequency = 'A'
+            start_date_annual = self.get_date(row[1],None,'A')[0]
+            period_annual = get_ordinal_from_period(row[1],freq='A')
+            start_period_annual = period_annual
+        else:
+            frequency = row[2][0]
+            start_date_annual = self.get_date(row[1],row[2],frequency)[0]
+            print(row[1],frequency)
+            period = get_ordinal_from_period(start_date_annual,freq=frequency)
+            start_period = period
+        while len(row) > 0 and row[0] == series_id:    
+            if row[2] == 'M13' or row[2] == 'S03':
+                start_date_annual = self.get_date(row[1],None,'A')[0]
+                period_annual = get_ordinal_from_period(row[1],freq='A')
+                if previous_period_annual is not None and previous_period_annual + 1 < period_annual:
+                    annual_values = self.fill_series(values_annual,previous_period_annual,period_annual)
+                values_annual.append(self.get_value(row,period))
+                previous_period_annual = period 
+            else:
+                frequency = row[2][0]
+                start_date = self.get_date(row[1],row[2],frequency)[0]
+                period = get_ordinal_from_period(start_date,freq=frequency)
+                if previous_period is not None and previous_period + 1 < period:
+                    values = self.fill_series(values,previous_period,period)
+                values.append(self.get_value(row,period))
+                previous_period = period
+            row = [elem.strip() for elem in next(self.row_iter)]
+            print(row)
+        return({
+            'frequency': frequency,
+            'values': values,
+            'annual_values': values_annual,
+            'start_period': start_period,
+            'end_period': period,
+            'start_period_annual': start_period_annual,
+            'end_period_annual': period_annual,
+        })
+    
 class BlsData:
     
     def __init__(self, dataset,  url):
@@ -111,11 +246,12 @@ class BlsData:
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
         self.dimension_list = self.dataset.dimension_list
-        self.attribute_list = ['footnotes']
+        self.attribute_list = ['footnote']
         
         self.store_path = self.get_store_path()
         self.data_directory = self.get_data_directory()
-        
+        self.data_filenames = self.get_data_filenames(self.data_directory)
+        self.data_iterators = self.get_data_iterators()
         self.code_list = self.get_code_list()
         self.series = self.get_series()
         self.data_iter = self.iter_data()
@@ -184,7 +320,6 @@ class BlsData:
         self.dataset.codelists = code_list
         self.dataset.concepts = code_list
         self.dataset.dimension_keys = [k for k in code_list.keys()]
-        print(self.dataset.dimension_keys)
         return code_list
         
     def get_dimension_data(self,dimension):
@@ -205,7 +340,17 @@ class BlsData:
                 entries[row[0]] = row[1]
         entries['A'] = 'Annual'
         return entries
-
+    
+    def get_data_filenames(self,directory):
+        """Determines the list of data files
+        Returns a list
+        """
+        included_directory = self.dataset_code + '.data'
+        excluded_directory_0 = self.dataset_code + '.data\..\.'
+        return [d
+                for d in self.data_directory
+                if re.match(included_directory,d) and (not re.match(excluded_directory_0,d))]
+    
     def get_series(self):
         """Parse series file for a dataset
         Returns a dict of dict
@@ -224,29 +369,22 @@ class BlsData:
                 series[row[0].strip()] = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
         return series
     
-    def get_data_filename(self):
-        """Determines the name of the data file
-        Returns a string
-        """
-        return self.dataset_code + '.data.1.AllItems'
-    
+    def get_data_iterators(self):
+        iterators = {} 
+        for filename in self.get_data_filenames(self.data_directory):
+            iterators[filename] = data
+        return iterators
+
+
+    def iter_series(self,file_iterator):
+        series = []
+        annual_series = []
     def iter_data(self):
-        """Paris data file for a dataset
+        """Parse data file for a dataset
         Iterates on row
         """
-        filename = self.get_data_filename()
-        download = Downloader(url=self.dataset_url + filename,
-                              filename = filename,
-                              store_filepath = self.store_path,
-                              use_existing_file = self.fetcher.use_existing_file)
-        filepath = download.get_filepath()
-        with open(filepath) as source_file:
-            data = csv.reader(source_file,delimiter='\t')
-            fields = [f.strip() for f in next(data)]
-            #check that data are in the right order
-            assert(fields == ['series_id', 'year', 'period', 'value', 'footnote_codes'])
-            for row in data:
-                yield [f.strip() for f in row]
+        for row in data:
+            yield [f.strip() for f in row]
 
     def get_frequency(self,code):
         """Standardize frequency code
@@ -260,7 +398,7 @@ class BlsData:
         """Sets the release date from the date of the datafile
         Return a datetime
         """
-        dd = self.data_directory[self.get_data_filename()]
+        dd = self.data_directory[self.dataset_code + '.data.0.Current']
         time = dd['hour'][:-2].split(':')
         if dd['hour'][-2:] == 'PM':
             time[0] = int(time[0])+12
@@ -323,6 +461,11 @@ class BlsData:
         """Sets next series bson
         Returns bson
         """
+        print(self.data_iterators)
+        for f,it in self.data_iterators.items():
+            print(it)
+            for row in it:
+                print(row)
         # an annual series is waiting to be sent
         if self.bson_s03:
             bson = self.bson_s03
@@ -364,7 +507,7 @@ class BlsData:
                     continue
                 if row[2] == 'S03':
                     if len(row[4]) > 0:
-                        attribute = {'footnotes': row[4].strip()}
+                        attribute = {'footnote': row[4].strip()}
                     else:
                         attribute = None
                     value = {
@@ -385,7 +528,7 @@ class BlsData:
                         })
                         period1 += 1
                     if len(row[4]) > 0:
-                        attribute = {'footnotes': row[4].strip()}
+                        attribute = {'footnote': row[4].strip()}
                     else:
                         attribute = None
                     value = {
