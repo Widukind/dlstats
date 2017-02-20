@@ -4,14 +4,15 @@ from datetime import datetime
 import os
 
 from dlstats.fetchers.bls import Bls as Fetcher
-from dlstats.fetchers.bls import SeriesIterator
+from dlstats.fetchers.bls import SeriesIterator, BlsData, get_ordinal_from_period
+from dlstats.fetchers._commons import Datasets
 
 import httpretty
 import unittest
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
 from dlstats.tests.fetchers.base import BaseFetcherTestCase
-from dlstats.utils import get_ordinal_from_period
+
 
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "bls"))
@@ -145,20 +146,20 @@ class FetcherTestCase(BaseFetcherTestCase):
         si = SeriesIterator(url,filename,None,True)
         date1 = si.get_date('1971','M01','M')[0]
         period1 = get_ordinal_from_period(date1,freq='M')
-        print(date1,period1)
+        self.assertEqual(period1,12)
         date1 = si.get_date('1971','M12','M')[0]
         period1 = get_ordinal_from_period(date1,freq='M')
-        print(date1,period1)
+        self.assertEqual(period1,23)
         date1 = si.get_date('1971','M13','M')[0]
-        period1 = get_ordinal_from_period(date1,freq='M')
-        print(date1,period1)
+        period1 = get_ordinal_from_period(date1,freq='A')
+        self.assertEqual(period1,1)
         date1 = si.get_date('1971','S1','S')[0]
         period1 = get_ordinal_from_period(date1,freq='S')
-        print(date1,period1)
+        self.assertEqual(period1,2)
         date1 = si.get_date('1971','S2','S')[0]
         period1 = get_ordinal_from_period(date1,freq='S')
-        print(date1,period1)
-        
+        self.assertEqual(period1,3)
+
     @httpretty.activate     
     def test_iter_row(self):
         self._load_files_dataset_cu()
@@ -246,11 +247,11 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertEqual(values[-1],value_last)
         si = SeriesIterator(url,filename,None,True)
         count = 0
-#        for s in si:
-#            count +=1
-#        print(count)
-#        print(s['values'][-1])
-#        print(s['values_annual'][-1])
+        for s in si:
+            count +=1
+        print(count)
+        print(s['values'][-1])
+        print(s['values_annual'][-1])
 
     @httpretty.activate     
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
@@ -278,6 +279,21 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files(dataset_code)
         self.assertDataTree(dataset_code)
         
+    @httpretty.activate
+    def test_BlsData(self):
+        self._load_files_dataset_cu()
+        url = "https://download.bls.gov/pub/time.series/cu/"
+        fetcher = Fetcher(db=self.db)
+        dataset = Datasets(provider_name='BLS', 
+                           dataset_code='cu', 
+                           name='All Urban Consumers', 
+                           doc_href='', 
+                           last_update='2017-02-07', 
+                           fetcher=fetcher)
+        bls_data = BlsData(dataset,url)
+        data_iterators = bls_data.get_data_iterators()
+        self.assertEqual(len(data_iterators),2)
+
         
     @httpretty.activate     
     def test_upsert_dataset_cu(self):

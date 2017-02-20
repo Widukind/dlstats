@@ -17,7 +17,7 @@ import calendar
 from lxml import etree
 import requests
 
-from dlstats.utils import Downloader, get_ordinal_from_period, make_store_path
+from dlstats.utils import Downloader, make_store_path
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, Categories
 
 VERSION = 1
@@ -57,6 +57,45 @@ selected_datasets = {
         'last_update': datetime(2017,2,13),
     }
 }    
+
+# replaces dlstats.fetchers.utils.get_ordinal_from_period until it is fixed for freq='S'
+def get_ordinal_from_period(date_str, freq=None):
+    
+    from dlstats.cache import cache
+    from dlstats import constants
+    from pandas import Period
+    from dlstats.utils import get_year
+    
+    key = "ordinal.%s.%s" % (date_str, freq)
+
+    if cache and freq in constants.CACHE_FREQUENCY:
+        period_from_cache = cache.get(key)
+        if not period_from_cache is None:
+            return period_from_cache
+    
+    period_ordinal = None
+    if freq == "A":
+        year = int(get_year(date_str))
+        period_ordinal = year - 1970
+    elif freq == "S":
+        year = int(get_year(date_str))
+        if date_str.endswith("S1"):
+            semester = 1
+        elif date_str.endswith("S2"):
+            semester = 2
+        else:
+            raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
+        period_ordinal = 2*(year - 1970) + semester - 1
+        
+    if not period_ordinal:
+        period_ordinal = Period(date_str, freq=freq).ordinal
+    
+    if cache and freq in constants.CACHE_FREQUENCY:
+        cache.set(key, period_ordinal)
+    
+    return period_ordinal
+
+
 
 class Bls(Fetcher):
     
@@ -205,7 +244,6 @@ class SeriesIterator:
         else:
             frequency = row[2][0]
             start_date_annual = self.get_date(row[1],row[2],frequency)[0]
-            print(row[1],frequency)
             period = get_ordinal_from_period(start_date_annual,freq=frequency)
             start_period = period
         while len(row) > 0 and row[0] == series_id:    
@@ -225,11 +263,10 @@ class SeriesIterator:
                 values.append(self.get_value(row,period))
                 previous_period = period
             row = [elem.strip() for elem in next(self.row_iter)]
-            print(row)
         return({
             'frequency': frequency,
             'values': values,
-            'annual_values': values_annual,
+            'values_annual': values_annual,
             'start_period': start_period,
             'end_period': period,
             'start_period_annual': start_period_annual,
@@ -254,7 +291,6 @@ class BlsData:
         self.data_iterators = self.get_data_iterators()
         self.code_list = self.get_code_list()
         self.series = self.get_series()
-        self.data_iter = self.iter_data()
         self.current_row = None
         self.bson_s03 = None
         self.release_date = self.get_release_date()
@@ -372,19 +408,11 @@ class BlsData:
     def get_data_iterators(self):
         iterators = {} 
         for filename in self.get_data_filenames(self.data_directory):
-            iterators[filename] = data
+            iterators[filename] = SeriesIterator(self.dataset_url + filename,
+                                                 filename,
+                                                 self.store_path,
+                                                 self.fetcher.use_existing_file)
         return iterators
-
-
-    def iter_series(self,file_iterator):
-        series = []
-        annual_series = []
-    def iter_data(self):
-        """Parse data file for a dataset
-        Iterates on row
-        """
-        for row in data:
-            yield [f.strip() for f in row]
 
     def get_frequency(self,code):
         """Standardize frequency code
