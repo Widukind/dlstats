@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 
 from dlstats.fetchers.bls import Bls as Fetcher
-from dlstats.fetchers.bls import SeriesIterator, BlsData, get_ordinal_from_period
+from dlstats.fetchers.bls import SeriesIterator, BlsData, get_date, get_ordinal_from_period
 from dlstats.fetchers._commons import Datasets
 
 import httpretty
@@ -37,17 +37,18 @@ DATA_CU = {
         "categories_key": "cu",
         "categories_parents": ["BLS", "Inflation"],
         "categories_root": ['BLS'],
-        "concept_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period', 'period', 'footnote'],
-        "codelist_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period', 'period', 'footnote'],
+        "concept_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
+        "codelist_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
         "codelist_count": {
-            'area': None,
+            'area': 3,
             'item':None,
             'seasonal': None,
             'periodicity': None,
             'base': None,
             'base_period': None,
+            'footnote': None,
         },                
-        "dimension_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period','period', 'footnote'],
+        "dimension_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period'],
         "dimension_count": {
             'area': None,
             'item':None,
@@ -55,10 +56,8 @@ DATA_CU = {
             'periodicity': None,
             'base': None,
             'base_period': None,
-            'period': None,
-            'footnote': None,
         },
-        "attribute_keys": ['footnotes'],
+        "attribute_keys": ['footnote'],
         "attribute_count": {
             'footnotes': None,
         },
@@ -140,23 +139,19 @@ class FetcherTestCase(BaseFetcherTestCase):
 
     @httpretty.activate     
     def test_get_date(self):
-        self._load_files_dataset_cu()
-        url = "https://download.bls.gov/pub/time.series/cu/cu.data.10.OtherWest"
-        filename = 'cu.data.10.OtherWest'
-        si = SeriesIterator(url,filename,None,True)
-        date1 = si.get_date('1971','M01','M')[0]
+        date1 = get_date('1971','M01','M')[0]
         period1 = get_ordinal_from_period(date1,freq='M')
         self.assertEqual(period1,12)
-        date1 = si.get_date('1971','M12','M')[0]
+        date1 = get_date('1971','M12','M')[0]
         period1 = get_ordinal_from_period(date1,freq='M')
         self.assertEqual(period1,23)
-        date1 = si.get_date('1971','M13','M')[0]
+        date1 = get_date('1971','M13','M')[0]
         period1 = get_ordinal_from_period(date1,freq='A')
         self.assertEqual(period1,1)
-        date1 = si.get_date('1971','S1','S')[0]
+        date1 = get_date('1971','S1','S')[0]
         period1 = get_ordinal_from_period(date1,freq='S')
         self.assertEqual(period1,2)
-        date1 = si.get_date('1971','S2','S')[0]
+        date1 = get_date('1971','S2','S')[0]
         period1 = get_ordinal_from_period(date1,freq='S')
         self.assertEqual(period1,3)
 
@@ -245,14 +240,32 @@ class FetcherTestCase(BaseFetcherTestCase):
             'value': "405.426"
         }
         self.assertEqual(values[-1],value_last)
+        values_annual = series['values_annual']
+        self.assertEqual(len(values_annual),2016-1967 + 1) 
+        value_1 = { 
+            'attributes': None,
+            'period': "-3",
+            'value': "53.9"
+        }
+        self.assertEqual(values_annual[0],value_1)
+        value_2 = {
+            'attributes': None,
+            'period': "-2",
+            'value': "55.9"
+        }
+        self.assertEqual(values_annual[1],value_2)
+        value_last = {
+            'attributes': None,
+            'period': str(2016-1970),
+            'value': "400.402"
+        }
+        self.assertEqual(values_annual[-1],value_last)
         si = SeriesIterator(url,filename,None,True)
         count = 0
         for s in si:
             count +=1
-        print(count)
-        print(s['values'][-1])
-        print(s['values_annual'][-1])
-
+        self.assertEqual(count,2)
+        
     @httpretty.activate     
     @unittest.skipUnless('FULL_TEST' in os.environ, "Skip - no full test")
     def test_load_datasets_first(self):
@@ -291,9 +304,15 @@ class FetcherTestCase(BaseFetcherTestCase):
                            last_update='2017-02-07', 
                            fetcher=fetcher)
         bls_data = BlsData(dataset,url)
-        data_iterators = bls_data.get_data_iterators()
-        self.assertEqual(len(data_iterators),2)
-
+        self.assertEqual(len(bls_data.data_iterators),2)
+        count = 0
+        while True:
+            try:
+                bson = next(bls_data)
+            except StopIteration:
+                break
+            count += 1
+        self.assertEqual(count,7)
         
     @httpretty.activate     
     def test_upsert_dataset_cu(self):

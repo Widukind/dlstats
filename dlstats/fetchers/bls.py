@@ -13,6 +13,8 @@ import csv
 import collections
 import pandas
 import calendar
+import copy
+import collections
 
 from lxml import etree
 import requests
@@ -95,6 +97,26 @@ def get_ordinal_from_period(date_str, freq=None):
     
     return period_ordinal
 
+def get_date(year,subperiod,frequency):
+    """Builds date string compatible with get_ordinal_from_period()
+    Change frequency for M13 and S03
+    Returns a date_string and a frequency character code
+    """
+    if frequency == 'A':
+        date_string = year
+    elif frequency == 'S':
+        if subperiod == 'S03':
+            date_string = year
+            frequency = 'A'
+        else:
+            date_string = year + 'S' + subperiod[-1]
+    elif subperiod == 'M13':
+        date_string = year
+        frequency = 'A'
+    else:
+        date_string = year + '-' + subperiod
+    return (date_string, frequency)
+    
 
 
 class Bls(Fetcher):
@@ -133,7 +155,12 @@ class Bls(Fetcher):
 
         url = self.dataset_settings['metadata']['url']
         dataset.series.data_iterator = BlsData(dataset, url)
-        
+
+        dataset.dimension_keys = dataset.series.data_iterator.dimension_keys
+        # reconstruct code_list using codes effectively found in the data
+        dataset.code_list = dataset.dimension_list
+        dataset.code_list.update(dataset.attribute_list)
+        print(dataset.dimension_list.code_dict)
         return dataset.update_database()
 
     # TO BE DONE
@@ -144,6 +171,8 @@ class SeriesIterator:
     def __init__(self,url,filename,store_path,use_existing_file):
         self.row_iter = self.iter_row(url,filename,store_path,use_existing_file)
         self.current_row = None
+        self.end_of_file = False
+        self.footnote_list = []
         
     def iter_row(self,url,filename,store_path,use_existing_file):
         download = Downloader(url=url,
@@ -170,32 +199,14 @@ class SeriesIterator:
             code = 'M'
         return code
 
-    def get_date(self,year,subperiod,frequency):
-        """Builds date string compatible with get_ordinal_from_period()
-        Change frequency for M13 and S03
-        Returns a date_string and a frequency character code
-        """
-        if frequency == 'A':
-            date_string = year
-        elif frequency == 'S':
-            if subperiod == 'S03':
-                date_string = year
-                frequency = 'A'
-            else:
-                date_string = year + 'S' + subperiod[-1]
-        elif subperiod == 'M13':
-            date_string = year
-            frequency = 'A'
-        else:
-            date_string = year + '-' + subperiod
-        return (date_string, frequency)
-    
     def get_value(self,row,period):
         """Forms one value dictionary
         Returns a dict
         """
         if len(row[4]) > 0:
             attribute = {'footnote': row[4]}
+            if row[4] not in self.footnote_list:
+                self.footnote_list.append(row[4])
         else:
             attribute = None
         return { 
@@ -223,10 +234,15 @@ class SeriesIterator:
         or semestrial data
         Returns a dict
         """
+        if self.end_of_file:
+            raise StopIteration
         values = []
         values_annual = []
+        period = None
+        period_annual = None
         previous_period = None
         previous_period_annual = None
+        start_period = None
         start_period_annual = None
         end_period_annual = None
         # fetch first row if it is waiting
@@ -238,32 +254,39 @@ class SeriesIterator:
         series_id = row[0]
         if row[2] == 'M13' or row[2] == 'S03':
             frequency = 'A'
-            start_date_annual = self.get_date(row[1],None,'A')[0]
+            start_date_annual = get_date(row[1],None,'A')[0]
             period_annual = get_ordinal_from_period(row[1],freq='A')
             start_period_annual = period_annual
         else:
             frequency = row[2][0]
-            start_date_annual = self.get_date(row[1],row[2],frequency)[0]
+            start_date_annual = get_date(row[1],row[2],frequency)[0]
             period = get_ordinal_from_period(start_date_annual,freq=frequency)
             start_period = period
         while len(row) > 0 and row[0] == series_id:    
             if row[2] == 'M13' or row[2] == 'S03':
-                start_date_annual = self.get_date(row[1],None,'A')[0]
+                start_date_annual = get_date(row[1],None,'A')[0]
                 period_annual = get_ordinal_from_period(row[1],freq='A')
+                start_period_annual = period_annual
                 if previous_period_annual is not None and previous_period_annual + 1 < period_annual:
-                    annual_values = self.fill_series(values_annual,previous_period_annual,period_annual)
-                values_annual.append(self.get_value(row,period))
-                previous_period_annual = period 
+                    values_annual = self.fill_series(values_annual,previous_period_annual,period_annual)
+                values_annual.append(self.get_value(row,period_annual))
+                previous_period_annual = period_annual 
             else:
                 frequency = row[2][0]
-                start_date = self.get_date(row[1],row[2],frequency)[0]
+                start_date = get_date(row[1],row[2],frequency)[0]
                 period = get_ordinal_from_period(start_date,freq=frequency)
                 if previous_period is not None and previous_period + 1 < period:
                     values = self.fill_series(values,previous_period,period)
                 values.append(self.get_value(row,period))
                 previous_period = period
-            row = [elem.strip() for elem in next(self.row_iter)]
+            try:
+                row = [elem.strip() for elem in next(self.row_iter)]
+            except:
+                self.end_of_file = True
+                break
+        self.current_row = row
         return({
+            'series_id': series_id,
             'frequency': frequency,
             'values': values,
             'values_annual': values_annual,
@@ -271,6 +294,7 @@ class SeriesIterator:
             'end_period': period,
             'start_period_annual': start_period_annual,
             'end_period_annual': period_annual,
+            'footnote_list': self.footnote_list,
         })
     
 class BlsData:
@@ -282,17 +306,22 @@ class BlsData:
         
         self.provider_name = self.dataset.provider_name
         self.dataset_code = self.dataset.dataset_code
-        self.dimension_list = self.dataset.dimension_list
-        self.attribute_list = ['footnote']
         
         self.store_path = self.get_store_path()
         self.data_directory = self.get_data_directory()
         self.data_filenames = self.get_data_filenames(self.data_directory)
         self.data_iterators = self.get_data_iterators()
+        series_filepath = self.get_series_filepath()
+        self.series_fields = self.get_series_fields(series_filepath)
+        self.dimension_keys = self.get_dimension_keys()
+        self.attribute_keys = ['footnote']
+        self.dimension_list = collections.OrderedDict((k,{}) for k in self.dimension_keys)
+        self.attribute_list = collections.OrderedDict((k,{}) for k in self.attribute_keys)
+        self.series_iter = self.get_series_iterator(series_filepath)
         self.code_list = self.get_code_list()
-        self.series = self.get_series()
+        self.available_series = self.available_series_init()
+        self.annual_series = None
         self.current_row = None
-        self.bson_s03 = None
         self.release_date = self.get_release_date()
         self.last_update = self.release_date
 
@@ -342,12 +371,20 @@ class BlsData:
             }
         return directory
         
+    def get_dimension_keys(self):
+        return  [
+            f
+            for f in self.series_fields
+            if f not in ['series_id','footnote','begin_year', 'end_year', 'begin_period', 'end_period']]
+
+
     def get_code_list(self):
         """Gets all code lists in a dataset directory
         Returns a dict of dict of dict
         """
-        code_list = {k.split('.',1)[1]: self.get_dimension_data(k) 
-                     for k in self.data_directory if not k.endswith(('.txt','.contacts','.series')) and not '.data.' in k}
+        code_list = {k: self.get_dimension_data(self.dataset_code + '.' + k)
+                     for k in self.dimension_keys + ['footnote']
+                     if k != 'seasonal' and k != 'base_period'}
         # dimensions that often don't have a code file
         if 'seasonal' not in code_list:
             code_list['seasonal'] = {'S': 'Seasonaly adjusted', 'U': 'Unadjusted'}
@@ -355,14 +392,12 @@ class BlsData:
             code_list['base_period'] = {}
         self.dataset.codelists = code_list
         self.dataset.concepts = code_list
-        self.dataset.dimension_keys = [k for k in code_list.keys()]
         return code_list
         
-    def get_dimension_data(self,dimension):
+    def get_dimension_data(self,filename):
         """Parses code file for one dimension
         Returns a dict
         """
-        filename = dimension
         download = Downloader(url=self.dataset_url + filename,
                               filename = filename,
                               store_filepath = self.store_path,
@@ -374,7 +409,8 @@ class BlsData:
             entries = {}
             for row in data:
                 entries[row[0]] = row[1]
-        entries['A'] = 'Annual'
+        if filename == 'periodicity':
+            entries['A'] = 'Annual'
         return entries
     
     def get_data_filenames(self,directory):
@@ -386,8 +422,8 @@ class BlsData:
         return [d
                 for d in self.data_directory
                 if re.match(included_directory,d) and (not re.match(excluded_directory_0,d))]
-    
-    def get_series(self):
+
+    def get_series_filepath(self):
         """Parse series file for a dataset
         Returns a dict of dict
         """
@@ -396,22 +432,38 @@ class BlsData:
                               filename = filename,
                               store_filepath = self.store_path,
                               use_existing_file = self.fetcher.use_existing_file)
-        filepath = download.get_filepath()
-        series = {}
+        return download.get_filepath()
+
+    def get_series_fields(self,filepath):
         with open(filepath) as source_file:
-            data = csv.reader(source_file,delimiter='\t')
-            self.series_fields = next(data)
-            for row in data:
-                series[row[0].strip()] = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
-        return series
+            row_iterator = csv.reader(source_file,delimiter='\t')
+            return [f.replace('_codes','').replace('_code','') for f in next(row_iterator)]        
+            
+    def get_series_iterator(self,filepath):
+        """Parse series file for a dataset
+        Iterates a dict
+        """
+        with open(filepath) as source_file:
+            row_iterator = csv.reader(source_file,delimiter='\t')
+            #skip header row
+            next(row_iterator)
+            for row in row_iterator:
+                series = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
+                if series['begin_period'] == 'M13' or series['begin_period'] == 'S03':
+                    series['begin_period'] = None
+                if series['end_period'] == 'M13':
+                    series['end_period'] = 'M12'
+                if series['end_period'] == 'S03':
+                    series['end_period'] = 'S02'
+                yield series
     
     def get_data_iterators(self):
-        iterators = {} 
+        iterators = []
         for filename in self.get_data_filenames(self.data_directory):
-            iterators[filename] = SeriesIterator(self.dataset_url + filename,
-                                                 filename,
-                                                 self.store_path,
-                                                 self.fetcher.use_existing_file)
+            iterators.append(SeriesIterator(self.dataset_url + filename,
+                                            filename,
+                                            self.store_path,
+                                            self.fetcher.use_existing_file))
         return iterators
 
     def get_frequency(self,code):
@@ -432,19 +484,6 @@ class BlsData:
             time[0] = int(time[0])+12
         return datetime(int(dd['year']), int(dd['month']), int(dd['day']), int(time[0]), int(time[1]))
 
-    def form_date(self,year,subperiod,frequency):
-        if frequency == 'A':
-            date_string = year
-        elif frequency == 'S':
-            if subperiod == 'S03':
-                date_string = year
-                frequency = 'A'
-            else:
-                date_string = year + 'S' + subperiod[-1]
-        else:
-            date_string = year + '-' + subperiod
-        return (date_string, frequency)
-    
     def get_start_ts(self,year,subperiod,frequency):
         year = int(year)
         if frequency == 'A':
@@ -484,162 +523,105 @@ class BlsData:
                 ms = calendar.monthrange(year,month)
                 ts = datetime(year,month,ms[1],23,59)
         return ts
+
+    def available_series_init(self):
+        available_series = []
+        for i in self.data_iterators:
+            available_series.append(next(i))
+        return available_series
     
+    def get_series(self,id,start_period,end_period):
+        series = None
+        for i,a in enumerate(self.available_series):
+            if a is not None and a['series_id'] == id:
+                # the series file may not be up to date
+                if (a['start_period'] is None or a['start_period'] <= start_period) and a['end_period'] >= end_period:
+                    series = a
+                try:
+                    self.available_series[i] = next(self.data_iterators[i])
+                except StopIteration:
+                    self.available_series[i] = None
+        if series is None:
+            raise Exception('Series {} not found'.format(id))
+        else:
+            return series
+        
+    def update_dimensions(self,dims):
+        for f in self.dimension_keys:
+            if f == 'base_period':
+                if dims['base_period'] not in self.dimension_list['base_period']:
+                    self.dimension_list['base_period'][dims[f]] = dims[f]
+            else:
+                if dims[f] not in self.dimension_list:
+                    self.dimension_list[f][dims[f]] = self.code_list[f][dims[f]]
+                
     def __next__(self):
         """Sets next series bson
         Returns bson
         """
-        print(self.data_iterators)
-        for f,it in self.data_iterators.items():
-            print(it)
-            for row in it:
-                print(row)
         # an annual series is waiting to be sent
-        if self.bson_s03:
-            bson = self.bson_s03
-            self.bson_s03 = None
+        if self.annual_series:
+            bson = self.annual_series
+            self.annual_series = None
             return bson
+
+        series_dims = next(self.series_iter)
+        self.update_dimensions(series_dims)
+        # put series footnote in bson['notes'] if any
+        if len(series_dims['footnote']) > 0:
+            bson['notes'] = self.code_list['footnote'][series_dims['footnote']]
+                                           
+        frequency = self.get_frequency(series_dims['periodicity'])
+        self.dataset.add_frequency(self.frequency)
+        start_ts = self.get_start_ts(series_dims['begin_year'], series_dims['begin_period'], frequency)
+        end_ts = self.get_end_ts(series_dims['end_year'],series_dims['end_period'],frequency)
+        start_date = get_date(series_dims['begin_year'], series_dims['begin_period'], frequency)[0]
+        end_date = get_date(series_dims['end_year'], series_dims['end_period'], frequency)[0]
+        start_period = get_ordinal_from_period(start_date,freq=frequency)
+        end_period = get_ordinal_from_period(end_date,freq=frequency)
         
-        while True:
-            if self.current_row is not None:
-                row = self.current_row
-                self.current_row = None
-            else:
-                row = next(self.data_iter)
-            row = [r.strip() for r in row]
-            if len(row) == 0:
-                break
-            if row[2] == 'M13':
-                row = next(self.data_iter)
-                continue
-            last_period = row[1:3]
-            series_id = row[0]
-            dims = self.series[series_id]
-            frequency = self.get_frequency(dims['periodicity_code'])
-            self.dataset.add_frequency(frequency)
-            start_date = self.form_date(dims['begin_year'], dims['begin_period'], frequency)
-            start_ts = self.get_start_ts(dims['begin_year'], dims['begin_period'], frequency)
-            effective_start_date = self.form_date(row[1], row[2], frequency)[0]
-            period = get_ordinal_from_period(effective_start_date,freq=frequency)
-            start_period = period
-            values = []
-            if frequency == 'S':
-                values_s03 = []
-                effective_start_date_s03 = self.form_date(row[1], None, 'A')[0]
-                start_ts_s03 = self.get_start_ts(dims['begin_year'], None, 'A')
-                period_s03 = get_ordinal_from_period(effective_start_date_s03,freq='A')
-
-            while (len(row) > 0) and (row[0] == dims['series_id']):
-                if row[2] == 'M13':
-                    row = next(self.data_iter)
-                    continue
-                if row[2] == 'S03':
-                    if len(row[4]) > 0:
-                        attribute = {'footnote': row[4].strip()}
-                    else:
-                        attribute = None
-                    value = {
-                        'attributes': attribute,
-                        'period': str(period_s03),
-                        'value': row[3],
-                    }
-                    period_s03 += 1
-                    values_s03.append(value)
-                    last_period_s03 = row[1:3]
-                else:
-                    period1 = get_ordinal_from_period(self.form_date(row[1], row[2], frequency)[0],freq=frequency)
-                    while period1 < period:
-                        values.append({
-                            'attributes': None,
-                            'period': str(period1),
-                            'value': 'nan',
-                        })
-                        period1 += 1
-                    if len(row[4]) > 0:
-                        attribute = {'footnote': row[4].strip()}
-                    else:
-                        attribute = None
-                    value = {
-                        'attributes': attribute,
-                        'period': str(period),
-                        'value': row[3],
-                    }
-                    period += 1
-                    values.append(value)
-                    last_period = row[1:3]
-
-                row = next(self.data_iter)
-            self.current_row = row
-
-            if dims['end_period'] == 'M13':
-                end_date = self.form_date(dims['end_year'],'M12',frequency)[0]
-                end_ts = self.get_end_ts(dims['end_year'],'M12','M')
-            elif dims['end_period'] == 'S03':
-                end_date = self.form_date(dims['end_year'],'S02',frequency)[0]
-                end_ts = self.get_end_ts(dims['end_year'],'S02','S')
-                end_ts_s03 = self.get_end_ts(dims['end_year'],None,'A')
-            else:
-                end_date = self.form_date(dims['end_year'],dims['end_period'],frequency)[0]
-                end_date_ts = self.get_end_ts(dims['end_year'],dims['end_period'],frequency)
-            end_period = get_ordinal_from_period(end_date,freq=frequency)
-            effective_end_date = self.form_date(last_period[0], last_period[1], frequency)
-            if start_date == effective_start_date and end_date == effective_end_date:
-                break
-        dimension_names = [
-            f
-            for f in self.series_fields
-            if f not in ['series_id','footnote_codes','begin_year', 'end_year', 'begin_period', 'end_period']]
-
-        base_period = dims['base_period']
-        if base_period not in self.code_list['base_period']:
-            self.code_list['base_period'][base_period] = base_period 
+        s = self.get_series(series_dims['series_id'],start_period,end_period)
+        # update attribute codes
+        for f in s['footnote_list']:
+            self.attribute_list['footnote'][f] = self.code_list['footnote'][f]                                                                            
+        
         if 'series_title' in self.series_fields:
-            name = dims['series_title']
+            name = series_dims['series_title']
         else:
             name = '-'.join(
-                self.code_list[f.replace('_code','')][dims[f]]
-                for f in dimension_names)
-        if frequency == 'S':
-            if 'series_title' in self.series_fields:
-                name_03 = dims['series_title']
-            else:
-                dims['periodicity_code'] = 'A'
-                name_03 = '-'.join(
-                    self.code_list[f.replace('_code','')][dims[f]]
-                    for f in dimension_names)
-
-            bson_s03 = {} 
-        
-            bson_s03['values'] = values_s03                
-            bson_s03['provider_name'] = self.provider_name       
-            bson_s03['dataset_code'] = self.dataset_code
-            bson_s03['name'] = name
-            # fix frequency in series ID
-            bson_s03['key'] = dims['series_id'] + '-YEAR'
-            bson_s03['start_date'] = get_ordinal_from_period(effective_start_date_s03,freq='A')
-            bson_s03['end_date'] = get_ordinal_from_period(last_period_s03[0],freq='A')
-            bson_s03['start_ts'] = start_ts_s03
-            bson_s03['end_ts'] = end_ts_s03
-            bson_s03['last_update'] = self.release_date
-            bson_s03['dimensions'] = {d:dims[d] for d in dimension_names} 
-            bson_s03['frequency'] = 'A'
-            bson_s03['attributes'] = None
-            self.bson_s03 = bson_s03
+                self.dimension_list[f][series_dims[f]]
+                for f in self.dimension_keys)
         bson = {} 
-        bson['values'] = values                
+        bson['values'] = s['values']                
         bson['provider_name'] = self.provider_name       
         bson['dataset_code'] = self.dataset_code
         bson['name'] = name
-        bson['key'] = dims['series_id']
-        bson['start_date'] = start_period
-        bson['end_date'] = end_period
+        bson['key'] = series_dims['series_id']
+        bson['start_date'] = s['start_period']
+        bson['end_date'] = s['end_period']
         bson['start_ts'] = start_ts
         bson['end_ts'] = end_ts
         bson['last_update'] = self.release_date
-        bson['dimensions'] = {d:dims[d] for d in dimension_names} 
-        bson['frequency'] = frequency
+        bson['dimensions'] = {d:series_dims[d] for d in self.dimension_keys} 
+        bson['frequency'] = s['frequency']
         bson['attributes'] = None
 
+        if len(s['values_annual']) > 0:
+            self.dataset.add_frequency('A')
+            start_ts_annual = self.get_start_ts(series_dims['begin_year'],None, 'A')
+            end_ts_annual = self.get_end_ts(series_dims['end_year'],None,'A')
+            
+            bson_annual = copy.copy(bson)
+            bson_annual['values'] = s['values_annual']                
+            bson_annual['name'] = bson['name'] + ' - annual avg.'
+            bson_annual['key'] = bson['key'] + 'annual'
+            bson_annual['start_date'] = s['start_period_annual']
+            bson_annual['end_date'] = s['end_period_annual']
+            bson_annual['start_ts'] = start_ts_annual
+            bson_annual['end_ts'] = end_ts_annual
+            bson_annual['frequency'] = 'A'
+            self.annual_series = bson_annual
+                    
         if start_period < self.start_date:
             self.start_date = start_period
         if end_period > self.end_date:
