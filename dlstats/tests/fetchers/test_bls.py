@@ -3,17 +3,16 @@
 from datetime import datetime
 import os
 
+from dlstats import constants
 from dlstats.fetchers.bls import Bls as Fetcher
-from dlstats.fetchers.bls import SeriesIterator, BlsData, get_date, get_ordinal_from_period
-from dlstats.fetchers._commons import Datasets
+from dlstats.fetchers.bls import SeriesIterator, BlsData, get_date, get_ordinal_from_year_subperiod
+from dlstats.fetchers._commons2 import Datasets
 
 import httpretty
 import unittest
 
 from dlstats.tests.base import RESOURCES_DIR as BASE_RESOURCES_DIR
-from dlstats.tests.fetchers.base import BaseFetcherTestCase
-
-
+from dlstats.tests.fetchers.base2 import BaseFetcherTestCase
 
 RESOURCES_DIR = os.path.abspath(os.path.join(BASE_RESOURCES_DIR, "bls"))
 
@@ -23,6 +22,74 @@ def get_filepath(name):
 BLS_HTML_PAGES = [
     ("https://www.bls.gov/data/", "Databases, Tables & Calculators by Subject.html")
 ]
+
+DATA_AP = {
+    "filepath": get_filepath("ap/ap.html"),
+    "dirname": get_filepath("ap"),
+    "code_list_files": ['area', 'base', 'footnote', 'item', 'period', 'periodicity'],
+    "series_file" : "series",
+    "DSD": {
+        "filepath": None,
+        "dataset_code": "ap",
+        "dsd_id": "ap",
+        "is_completed": True,
+        "categories_key": "1.1",
+        "categories_parents": ["1"],
+        "categories_root": ['1', '10','11', '12', '13', '14', '15', '2', '3', '4', '5', '6', '7', '8', '9'],
+        "concept_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
+        "codelist_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
+        "codelist_count": {
+            'area': 3,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
+            'footnote': 0,
+        },                
+        "dimension_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period'],
+        "dimension_count": {
+            'area': 3,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
+        },
+        "attribute_keys": ['footnote'],
+        "attribute_count": {
+            'footnote': 0,
+        },
+    },
+    "series_accept": 22,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 462,
+    "series_key_first": "0",
+    "series_key_last": "21",
+    "series_sample": {
+        'provider_name': 'BLS',
+        'dataset_code': 'cu',
+        'key': '0',
+        'name': 'Consumption of Households',
+        'frequency': 'A',
+        'last_update': None,
+        'first_value': {
+            'value': '105.7',
+            'period': '1994',
+            'attributes': None,
+        },
+        'last_value': {
+            'value': '95.2',
+            'period': '2014',
+            'attributes': None
+        },
+        'dimensions': {
+            "concept" : "0"
+        },
+        'attributes': None
+    }
+}
 
 DATA_CU = {
     "filepath": get_filepath("cu/cu.html"),
@@ -37,29 +104,102 @@ DATA_CU = {
         "categories_key": "cu",
         "categories_parents": ["BLS", "Inflation"],
         "categories_root": ['BLS'],
+        "concept_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period', 'footnote'],
+        "codelist_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period', 'footnote'],
+        "codelist_count": {
+            'area': 3,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
+            'footnote': 0,
+        },                
+        "dimension_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base_period'],
+        "dimension_count": {
+            'area': 3,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
+        },
+        "attribute_keys": ['footnote'],
+        "attribute_count": {
+            'footnote': 0,
+        },
+    },
+    "series_accept": 7,
+    "series_reject_frequency": 0,
+    "series_reject_empty": 0,
+    "series_all_values": 3112,
+    "series_key_first": "CUSR0000SA0",
+    "series_key_last": "CUUSX400SS47016annual",
+    "series_sample": {
+        'provider_name': 'BLS',
+        'dataset_code': 'cu',
+        'key': 'CUSR0000SA0',
+        'name': 'U.S. city average-All items-Seasonaly adjusted-Monthly-Current-1982-84=100',
+        'frequency': 'M',
+        'last_update': None,
+        'first_value': {
+            'value': '21.48',
+            'period': '-276',
+            'attributes': None,
+        },
+        'last_value': {
+            'value': '244.158',
+            'period': '564',
+            'attributes': None
+        },
+        'dimensions': {
+            'area': '0000',
+            'base': 'S',
+            'base_period': '1982-84=100',
+            'item': 'SA0',
+            'periodicity': 'R',
+            'seasonal': 'S'
+        },
+        'attributes': None
+    }
+}
+
+DATA_WS = {
+    "filepath": get_filepath("ws/ws.html"),
+    "dirname": get_filepath("ws"),
+    "code_list_files": ['area', 'base', 'footnote', 'item', 'period', 'periodicity'],
+    "series_file" : "series",
+    "DSD": {
+        "filepath": None,
+        "dataset_code": "ws",
+        "dsd_id": "ws",
+        "is_completed": True,
+        "categories_key": "ws",
+        "categories_parents": ["BLS", "Inflation"],
+        "categories_root": ['BLS'],
         "concept_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
         "codelist_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period', 'footnote'],
         "codelist_count": {
             'area': 3,
-            'item':None,
-            'seasonal': None,
-            'periodicity': None,
-            'base': None,
-            'base_period': None,
-            'footnote': None,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
+            'footnote': 0,
         },                
         "dimension_keys": ['area', 'item', 'seasonal', 'periodicity', 'base', 'base-period'],
         "dimension_count": {
-            'area': None,
-            'item':None,
-            'seasonal': None,
-            'periodicity': None,
-            'base': None,
-            'base_period': None,
+            'area': 3,
+            'item': 5,
+            'seasonal': 2,
+            'periodicity': 2,
+            'base': 2,
+            'base_period': 3,
         },
         "attribute_keys": ['footnote'],
         "attribute_count": {
-            'footnotes': None,
+            'footnote': 0,
         },
     },
     "series_accept": 22,
@@ -99,10 +239,12 @@ class FetcherTestCase(BaseFetcherTestCase):
     
     FETCHER_KLASS = Fetcher    
     DATASETS = {
+        'ap': DATA_AP,
         'cu': DATA_CU,
+        'ws': DATA_WS,
     }    
-    DATASET_FIRST = "cu"
-    DATASET_LAST = "cu"
+    DATASET_FIRST = "ap"
+    DATASET_LAST = "ws"
     #DEBUG_MODE = False
     
     def _load_files(self, dataset_code=None):
@@ -138,21 +280,16 @@ class FetcherTestCase(BaseFetcherTestCase):
             
 
     @httpretty.activate     
-    def test_get_date(self):
-        date1 = get_date('1971','M01','M')[0]
-        period1 = get_ordinal_from_period(date1,freq='M')
+    def test_get_ordinal(self):
+        period1 = get_ordinal_from_year_subperiod("1971","01",freq='M')
         self.assertEqual(period1,12)
-        date1 = get_date('1971','M12','M')[0]
-        period1 = get_ordinal_from_period(date1,freq='M')
+        period1 = get_ordinal_from_year_subperiod("1971","12",freq='M')
         self.assertEqual(period1,23)
-        date1 = get_date('1971','M13','M')[0]
-        period1 = get_ordinal_from_period(date1,freq='A')
+        period1 = get_ordinal_from_year_subperiod("1971",freq='A')
         self.assertEqual(period1,1)
-        date1 = get_date('1971','S1','S')[0]
-        period1 = get_ordinal_from_period(date1,freq='S')
+        period1 = get_ordinal_from_year_subperiod("1971","1",freq='S')
         self.assertEqual(period1,2)
-        date1 = get_date('1971','S2','S')[0]
-        period1 = get_ordinal_from_period(date1,freq='S')
+        period1 = get_ordinal_from_year_subperiod("1971","2",freq='S')
         self.assertEqual(period1,3)
 
     @httpretty.activate     
@@ -285,10 +422,9 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertLoadDatasetsUpdate([dataset_code])
 
     @httpretty.activate
-    @unittest.skipUnless(False, 'not yet implemented')
     def test_build_data_tree(self):
 
-        dataset_code = "cu"
+        dataset_code = "ap"
         self._load_files(dataset_code)
         self.assertDataTree(dataset_code)
         
@@ -324,11 +460,22 @@ class FetcherTestCase(BaseFetcherTestCase):
         self._load_files_dataset_cu()
     
         self.assertProvider()
-        dataset = self.assertDataset(dataset_code)        
+        dataset = self.assertDataset(dataset_code)
         series_list = self.assertSeries(dataset_code)
         
-        dataset["last_update"] = datetime(2017, 2 , 13)
+        dataset["last_update"] = datetime(2017, 2 , 13, 8, 30)
 
         for series in series_list:
             self.assertEquals(series["last_update_ds"], dataset["last_update"])
 
+    @unittest.skipUnless('FULL_DATA_TEST' in os.environ, "Skip - no full test")
+    def test_upsert_dataset_cu_full(self):
+        
+        # nosetests -s -v dlstats.tests.fetchers.test_bls:FetcherTestCase.test_upsert_dataset_cu_full
+        
+        dataset_code = "cu"
+        fetcher = Fetcher(db=self.db,
+                          store_path="/home/michel/project/Widukind/tmp/download.bls.gov/pub/time.series/",
+                          use_existing_file=True,
+        )
+        fetcher.upsert_dataset('cu')
