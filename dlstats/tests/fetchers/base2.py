@@ -8,7 +8,7 @@ import httpretty
 from slugify import slugify
 
 from dlstats import constants
-from dlstats.fetchers._commons import Categories
+from dlstats.fetchers._commons2 import Categories
 from dlstats.tests.base import BaseDBTestCase
 
 #TODO: use tests.utils
@@ -244,7 +244,6 @@ class BaseFetcherTestCase(BaseDBTestCase):
             self.assertEqual(dataset["dimension_keys"], dsd["dimension_keys"])
             
             for key in dataset["dimension_keys"]:
-                print(dataset["codelists"][key])
                 self.assertEqual(len(dataset["codelists"][key]), dsd["dimension_count"][key])
                 self.assertTrue(key in dataset["concepts"])
 
@@ -300,9 +299,9 @@ class BaseFetcherTestCase(BaseDBTestCase):
         
         self.assertTrue(series_db["end_date"] >= series_db["start_date"])
         
-        self.assertEqual(series_db["dimensions"], slugify_dict_keys(**series_sample["dimensions"]))
+        self.assertEqual(series_db["dimensions"], series_sample["dimensions"])
         if series_db.get("attributes") and series_sample.get("attributes"):
-            self.assertEqual(series_db["attributes"], slugify_dict_keys(**series_sample["attributes"]))
+            self.assertEqual(series_db["attributes"], series_sample["attributes"])
 
         dsd = settings["DSD"]
 
