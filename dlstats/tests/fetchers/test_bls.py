@@ -285,7 +285,7 @@ class FetcherTestCase(BaseFetcherTestCase):
         self.assertEqual(period1,12)
         period1 = get_ordinal_from_year_subperiod("1971","12",freq='M')
         self.assertEqual(period1,23)
-        period1 = get_ordinal_from_year_subperiod("1971",freq='A')
+        period1 = get_ordinal_from_year_subperiod("1971",None,freq='A')
         self.assertEqual(period1,1)
         period1 = get_ordinal_from_year_subperiod("1971","1",freq='S')
         self.assertEqual(period1,2)
@@ -440,7 +440,7 @@ class FetcherTestCase(BaseFetcherTestCase):
                            last_update='2017-02-07', 
                            fetcher=fetcher)
         bls_data = BlsData(dataset,url)
-        self.assertEqual(len(bls_data.data_iterators),2)
+        self.assertEqual(len(bls_data.data_iterators),3)
         count = 0
         while True:
             try:

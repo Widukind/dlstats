@@ -50,18 +50,6 @@ def retry(tries=1, sleep_time=2):
         return f
     return try_it
 
-# TO BE FIXED
-selected_datasets = {
-    'cu': {
-        'name': 'All Urban Consumers (Current Series)',
-        'metadata': {
-            'doc_href': '',
-            'url': "https://download.bls.gov/pub/time.series/cu/",
-        },
-        'last_update': datetime(2017,2,13),
-    }
-}    
-
 # replaces dlstats.fetchers.utils.get_ordinal_from_period until it is fixed for freq='S'
 def get_ordinal_from_year_subperiod(year, subperiod, freq=None):
     
@@ -253,15 +241,15 @@ class Bls(Fetcher):
         """Updates data in Database for selected datasets
         :dset: dataset_code
         :returns: None"""
-#        self.get_selected_datasets()
+        self.get_selected_datasets()
         
-        self.dataset_settings = selected_datasets[dataset_code]        
+        self.dataset_settings = self.selected_datasets[dataset_code]        
         
         dataset = Datasets(provider_name=self.provider_name, 
                            dataset_code=dataset_code, 
                            name=self.dataset_settings['name'], 
                            doc_href=self.dataset_settings['metadata']['doc_href'], 
-                           last_update=self.dataset_settings['last_update'], 
+#                           last_update=self.dataset_settings['last_update'], 
                            fetcher=self)
 
         url = self.dataset_settings['metadata']['url']
@@ -481,7 +469,7 @@ class BlsData:
         self.annual_series = None
         self.current_row = None
         self.release_date = self.get_release_date()
-        self.last_update = self.release_date
+        self.dataset.last_update = self.release_date
 
         self.frequency = None
         self.start_date = float('inf')
@@ -509,7 +497,7 @@ class BlsData:
         """
         dirname = self.dataset_code
         download = Downloader(url=self.dataset_url, 
-                                filename=self.dataset_code + ".html",
+                                filename="index.html",
                                 store_filepath=self.store_path,
                                 use_existing_file=self.fetcher.use_existing_file)
         with open(download.get_filepath()) as f:
@@ -522,10 +510,15 @@ class BlsData:
             entry = text.strip().split()
             filename = br.getnext().text
             splitdate = entry[0].split('/')
-            directory[filename] = { 'year': splitdate[2],
-                                    'month': splitdate[0],
-                                    'day': splitdate[1],
-                                    'hour': entry[1] + entry[2],
+            (hour,minute) = entry[1].split(':')
+            if entry[2] == 'PM':
+                hour = str(int(hour)+12)
+            directory[filename] = {
+                'year': int(splitdate[2]),
+                'month': int(splitdate[0]),
+                'day': int(splitdate[1]),
+                'hour': int(hour),
+                'minute': int(minute),
             }
         return directory
         
@@ -629,12 +622,11 @@ class BlsData:
         """Sets the release date from the date of the datafile
         Return a datetime
         """
-        dd = self.data_directory[self.dataset_code + '.data.0.Current']
-        time = dd['hour'][:-2].split(':')
-        if dd['hour'][-2:] == 'PM':
-            time[0] = int(time[0])+12
-        return datetime(int(dd['year']), int(dd['month']), int(dd['day']), int(time[0]), int(time[1]))
-
+        for k,dd in self.data_directory.items():
+            if re.match(self.dataset_code + '\.data\.0\.',k):
+                break
+        return datetime(dd['year'],dd['month'],dd['day'],dd['hour'],dd['minute'])
+    
     def available_series_init(self):
         available_series = []
         for i in self.data_iterators:
