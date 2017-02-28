@@ -184,7 +184,6 @@ class Bls(Fetcher):
             
         self.categories_filter = []
 
-    # TO BE DONE
     def build_data_tree(self):
         """Build data_tree from BLS site parsing
         """
@@ -533,8 +532,12 @@ class BlsData:
         """Gets all code lists in a dataset directory
         Returns a dict of dict of dict
         """
+        filenames = self.dataset.dimension_keys + ['footnote']
+        if self.dataset_code == 'ce' and 'data_type' in filenames:
+            idx = filenames.index('data_type')
+            filenames[idx] = 'datatype'
         code_list = {k: self.get_dimension_data(self.dataset_code + '.' + k)
-                     for k in self.dataset.dimension_keys + ['footnote']
+                     for k in filenames
                      if k != 'seasonal' and k != 'base_period'}
         # dimensions that often don't have a code file
         if 'seasonal' not in code_list:
