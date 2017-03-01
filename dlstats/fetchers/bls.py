@@ -58,10 +58,12 @@ def get_ordinal_from_year_subperiod(year, subperiod, freq=None):
         period_ordinal = int(year) - 1970
     elif freq == "S":
         period_ordinal = 2*(int(year) - 1970) + int(subperiod) - 1
+    elif freq == "Q":
+        period_ordinal = 4*(int(year) - 1970) + int(subperiod) - 1
     elif freq == "M":
         period_ordinal = 12*(int(year) - 1970) + int(subperiod) - 1
     else:
-        raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
+        raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, year+subperiod))
 
     return period_ordinal
 
@@ -333,8 +335,19 @@ class SeriesIterator:
             if subperiod == 'S01':
                 ts = datetime(year,1,1)
             elif subperiod == 'S02':
-                ts = datetime(year,6,1)
+                ts = datetime(year,7,1)
             elif subperiod == 'S03':
+                ts = datetime(year,1,1)
+        elif frequency == 'Q':
+            if subperiod == 'Q01':
+                ts = datetime(year,1,1)
+            elif subperiod == 'Q02':
+                ts = datetime(year,4,1)
+            elif subperiod == 'Q03':
+                ts = datetime(year,7,1)
+            elif subperiod == 'Q04':
+                ts = datetime(year,10,1)
+            elif subperiod == 'Q05':
                 ts = datetime(year,1,1)
         elif frequency == 'M':
             if subperiod == 'M13':
@@ -351,10 +364,21 @@ class SeriesIterator:
             ts = datetime(year,12,31,23,59)
         elif frequency == 'S':
             if subperiod == 'S01':
-                ts = datetime(year,12,31,23,59)
-            elif subperiod == 'S02':
                 ts = datetime(year,6,30,23,59)
+            elif subperiod == 'S02':
+                ts = datetime(year,12,31,23,59)
             elif subperiod == 'S03':
+                ts = datetime(year,12,31,23,59)
+        elif frequency == 'Q':
+            if subperiod == 'Q01':
+                ts = datetime(year,3,31,23,59)
+            elif subperiod == 'Q02':
+                ts = datetime(year,6,30,23,59)
+            elif subperiod == 'Q03':
+                ts = datetime(year,9,30,23,59)
+            elif subperiod == 'Q04':
+                ts = datetime(year,12,31,23,59)
+            elif subperiod == 'Q05':
                 ts = datetime(year,12,31,23,59)
         elif frequency == 'M':
             if subperiod == 'M13':
@@ -525,28 +549,36 @@ class BlsData:
         return  [
             f
             for f in self.series_fields
-            if f not in ['series_id','footnote','begin_year', 'end_year', 'begin_period', 'end_period']]
+            if f not in ['series_id','series_title', 'footnote','begin_year', 'end_year', 'begin_period', 'end_period']]
 
 
     def get_code_list(self):
         """Gets all code lists in a dataset directory
         Returns a dict of dict of dict
         """
-        filenames = self.dataset.dimension_keys + ['footnote']
-        if self.dataset_code == 'ce' and 'data_type' in filenames:
-            idx = filenames.index('data_type')
-            filenames[idx] = 'datatype'
-        code_list = {k: self.get_dimension_data(self.dataset_code + '.' + k)
-                     for k in filenames
-                     if k != 'seasonal' and k != 'base_period'}
+        code_list = {}
+        for k in self.dataset.dimension_keys + ['footnote']:
+            if k != 'seasonal' and k != 'base_period' and k != 'base_date':
+                if self.dataset_code == 'wp' and k == 'item':
+                    #skip first column
+                    format = 2
+                else:
+                    format = 1
+                if self.dataset_code == 'ce' and k == 'data_type':
+                    filename = 'datatype'
+                else:
+                    filename = k
+                code_list[k] = self.get_dimension_data(self.dataset_code + '.' + filename,format)
         # dimensions that often don't have a code file
         if 'seasonal' not in code_list:
             code_list['seasonal'] = {'S': 'Seasonaly adjusted', 'U': 'Unadjusted'}
-        if 'base_period' not in code_list:
+        if 'base_period' in self.dataset.dimension_keys and 'base_period' not in code_list:
             code_list['base_period'] = {}
+        if 'base_date' in self.dataset.dimension_keys and 'base_date' not in code_list:
+            code_list['base_date'] = {}
         return code_list
         
-    def get_dimension_data(self,filename):
+    def get_dimension_data(self,filename,format):
         """Parses code file for one dimension
         Returns a dict
         """
@@ -559,8 +591,12 @@ class BlsData:
             data = csv.reader(source_file,delimiter='\t')
             fields = next(data)
             entries = {}
-            for row in data:
-                entries[row[0]] = row[1]
+            if format == 1:
+                for row in data:
+                    entries[row[0]] = row[1]
+            else:
+                for row in data:
+                    entries[row[1]] = row[2]
         if filename == 'periodicity':
             entries['A'] = 'Annual'
         return entries
@@ -569,11 +605,11 @@ class BlsData:
         """Determines the list of data files
         Returns a list
         """
-        included_files = self.dataset_code + '.data'
-        excluded_files_0 = self.dataset_code + '.data\.(1|2)\.'
+        included_files = self.dataset_code + '\.data\.'
+#        excluded_files_0 = self.dataset_code + '\.data\.(1|2)\.'
         files =  [d
                   for d in self.data_directory
-                  if re.match(included_files,d) and (not re.match(excluded_files_0,d))]
+                  if re.match(included_files,d)] #and (not re.match(excluded_files_0,d))]
         return files
 
     def get_series_filepath(self):
@@ -633,7 +669,10 @@ class BlsData:
     def available_series_init(self):
         available_series = []
         for i in self.data_iterators:
-            available_series.append(next(i))
+            try:
+                available_series.append(next(i))
+            except StopIteration:
+                available_series.append(None)
         return available_series
     
     def get_series(self,id,start_period,end_period,case):
@@ -671,6 +710,11 @@ class BlsData:
                     self.dataset.dimension_list['base_period'][dims[f]] = dims[f]
                     self.dataset.codelists['base_period'][dims[f]] = dims[f]
                     self.dataset.concepts['base_period'][dims[f]] = dims[f]
+            elif f == 'base_date':
+                if dims['base_date'] not in self.dataset.dimension_list['base_date']:
+                    self.dataset.dimension_list['base_date'][dims[f]] = dims[f]
+                    self.dataset.codelists['base_date'][dims[f]] = dims[f]
+                    self.dataset.concepts['base_date'][dims[f]] = dims[f]
             else:
                 if dims[f] not in self.dataset.dimension_list:
                     self.dataset.dimension_list[f][dims[f]] = self.code_list[f][dims[f]]
@@ -689,12 +733,12 @@ class BlsData:
 
         series_dims = next(self.series_iter)
         self.update_dimensions(series_dims)
-        # put series footnote in bson['notes'] if any
-        if len(series_dims['footnote']) > 0:
-            bson['notes'] = self.code_list['footnote'][series_dims['footnote']]
-                                           
-        frequency = self.get_frequency(series_dims['periodicity'])
-        self.dataset.add_frequency(self.frequency)
+
+        if 'periodicity' in series_dims:
+            frequency = self.get_frequency(series_dims['periodicity'])
+        else:
+            frequency = series_dims['begin_period'][0]
+        self.dataset.add_frequency(frequency)
         start_date = get_date(series_dims['begin_year'], series_dims['begin_period'], frequency)[0]
         end_date = get_date(series_dims['end_year'], series_dims['end_period'], frequency)[0]
         case = 0
@@ -711,9 +755,9 @@ class BlsData:
         s = self.get_series(series_dims['series_id'],start_period,end_period,case)
         # update attribute codes
         for f in s['footnote_list']:
-            self.dataset.attribute_list['footnote'][f] = self.code_list['footnote'][f]                                                                            
-            self.dataset.codelists['footnote'][f] = self.code_list['footnote'][f]
-            self.dataset.concepts['footnote'][f] = self.code_list['footnote'][f]
+            self.dataset.attribute_list['footnote'][f.upper()] = self.code_list['footnote'][f.upper()]                                                                            
+            self.dataset.codelists['footnote'][f.upper()] = self.code_list['footnote'][f.upper()]
+            self.dataset.concepts['footnote'][f.upper()] = self.code_list['footnote'][f.upper()]
             
         if 'series_title' in self.series_fields:
             name = series_dims['series_title']
@@ -735,6 +779,9 @@ class BlsData:
         bson['dimensions'] = {d:series_dims[d] for d in self.dataset.dimension_keys} 
         bson['frequency'] = s['frequency']
         bson['attributes'] = None
+        # put series footnote in bson['notes'] if any
+        if len(series_dims['footnote']) > 0:
+            bson['notes'] = self.code_list['footnote'][series_dims['footnote'].upper()]
 
         if len(s['values_annual']) > 0:
             if s['start_period_annual'] is None:
