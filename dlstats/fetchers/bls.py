@@ -290,22 +290,16 @@ class SeriesIterator:
     def __iter__(self):
         return self
 
-    def get_frequency(self,code):
-        """Standardize frequency code
-        Returns character code
-        """
-        if code == 'R':
-            code = 'M'
-        return code
-
     def get_value(self,row,period):
         """Forms one value dictionary
         Returns a dict
         """
         if len(row[4]) > 0:
             attribute = {'footnote': row[4]}
-            if row[4] not in self.footnote_list:
-                self.footnote_list.append(row[4])
+            # several footnotes comma separated
+            for f in row[4].split(','):
+                if f not in self.footnote_list:
+                    self.footnote_list.append(f)
         else:
             attribute = None
         return { 
@@ -534,7 +528,7 @@ class BlsData:
             filename = br.getnext().text
             splitdate = entry[0].split('/')
             (hour,minute) = entry[1].split(':')
-            if entry[2] == 'PM':
+            if entry[2] == 'PM' and int(hour) < 12:
                 hour = str(int(hour)+12)
             directory[filename] = {
                 'year': int(splitdate[2]),
@@ -558,27 +552,54 @@ class BlsData:
         """
         code_list = {}
         for k in self.dataset.dimension_keys + ['footnote']:
-            if k != 'seasonal' and k != 'base_period' and k != 'base_date':
+            if k != 'seasonal' and k != 'base_period' and k != 'base_date' and k != 'base_year' and k != 'benchmark_year':
                 if self.dataset_code == 'wp' and k == 'item':
-                    #skip first column
-                    format = 2
+                    fmt = 2
+                elif self.dataset_code == 'cx' and (k == 'item' or k == 'subcategory' or k == 'demographics'):
+                    fmt = 2
+                elif self.dataset_code == 'cs' and k == 'category':
+                    fmt = 2
+                elif self.dataset_code == 'is' and k == 'industry':
+                    fmt = 2
+                elif self.dataset_code == 'or' and k == 'occupation':
+                    fmt = 3
+                elif self.dataset_code == 'oe' and k == 'area':
+                    fmt = 3
                 else:
-                    format = 1
+                    fmt = 1
                 if self.dataset_code == 'ce' and k == 'data_type':
                     filename = 'datatype'
+                elif self.dataset_code == 'la' and k == 'srd':
+                    filename = 'state_region_division'
                 else:
                     filename = k
-                code_list[k] = self.get_dimension_data(self.dataset_code + '.' + filename,format)
-        # dimensions that often don't have a code file
+                if self.dataset_code == 'or' and k == 'occupation':
+                    # two codes in one file
+                    codes = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)
+                    code_list[k] = codes[0]
+                    code_list['soc'] = codes[1]
+                elif self.dataset_code == 'oe' and k == 'area':
+                    # two codes in one file
+                    codes = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)
+                    code_list['state'] = codes[0]
+                    code_list[k] = codes[1]
+                else:
+                    code_list[k] = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)[0]
+                
+        # dimensions that don't have a code file
         if 'seasonal' not in code_list:
             code_list['seasonal'] = {'S': 'Seasonaly adjusted', 'U': 'Unadjusted'}
         if 'base_period' in self.dataset.dimension_keys and 'base_period' not in code_list:
             code_list['base_period'] = {}
         if 'base_date' in self.dataset.dimension_keys and 'base_date' not in code_list:
             code_list['base_date'] = {}
+        if 'base_year' in self.dataset.dimension_keys and 'base_year' not in code_list:
+            code_list['base_year'] = {}
+        if 'benchmark_year' in self.dataset.dimension_keys and 'benchmark_year' not in code_list:
+            code_list['benchmark_year'] = {}
         return code_list
         
-    def get_dimension_data(self,filename,format):
+    def get_dimension_data(self,filename,fmt):
         """Parses code file for one dimension
         Returns a dict
         """
@@ -587,19 +608,24 @@ class BlsData:
                               store_filepath = self.store_path,
                               use_existing_file = self.fetcher.use_existing_file)
         filepath = download.get_filepath()
+        entries1 = {}
+        entries2 = {}
         with open(filepath) as source_file:
             data = csv.reader(source_file,delimiter='\t')
             fields = next(data)
-            entries = {}
-            if format == 1:
+            if fmt == 1:
                 for row in data:
-                    entries[row[0]] = row[1]
+                    entries1[row[0]] = row[1]
+            elif fmt == 2:
+                for row in data:
+                    entries1[row[1]] = row[2]
+            elif fmt == 3:
+                for row in data:
+                    entries1[row[0]] = row[2]
+                    entries2[row[1]] = row[1]
             else:
-                for row in data:
-                    entries[row[1]] = row[2]
-        if filename == 'periodicity':
-            entries['A'] = 'Annual'
-        return entries
+                raise Exception("fmt {} doesn't exist".format(fmt))
+        return (entries1, entries2)
     
     def get_data_filenames(self,directory):
         """Determines the list of data files
@@ -648,14 +674,6 @@ class BlsData:
                                             self.store_path,
                                             self.fetcher.use_existing_file))
         return iterators
-
-    def get_frequency(self,code):
-        """Standardize frequency code
-        Returns character code
-        """
-        if code == 'R':
-            code = 'M'
-        return code
 
     def get_release_date(self):
         """Sets the release date from the date of the datafile
@@ -715,11 +733,31 @@ class BlsData:
                     self.dataset.dimension_list['base_date'][dims[f]] = dims[f]
                     self.dataset.codelists['base_date'][dims[f]] = dims[f]
                     self.dataset.concepts['base_date'][dims[f]] = dims[f]
+            elif f == 'base_year':
+                if dims['base_year'] not in self.dataset.dimension_list['base_year']:
+                    self.dataset.dimension_list['base_year'][dims[f]] = dims[f]
+                    self.dataset.codelists['base_year'][dims[f]] = dims[f]
+                    self.dataset.concepts['base_year'][dims[f]] = dims[f]
+            elif f == 'benchmark_year':
+                if dims['benchmark_year'] not in self.dataset.dimension_list['benchmark_year']:
+                    self.dataset.dimension_list['benchmark_year'][dims[f]] = dims[f]
+                    self.dataset.codelists['benchmark_year'][dims[f]] = dims[f]
+                    self.dataset.concepts['benchmark_year'][dims[f]] = dims[f]
             else:
                 if dims[f] not in self.dataset.dimension_list:
-                    self.dataset.dimension_list[f][dims[f]] = self.code_list[f][dims[f]]
-                    self.dataset.codelists[f][dims[f]] = self.code_list[f][dims[f]]
-                    self.dataset.concepts[f][dims[f]] = self.code_list[f][dims[f]]
+#                    print(f)
+#                    print(dims[f])
+#                    print([self.code_list.keys()])
+#                    print(self.code_list[f])
+                    if dims[f] == '':
+                        self.code_list[f][''] = 'None'                                          
+                        self.dataset.dimension_list[f][''] = 'None'
+                        self.dataset.codelists[f][''] = 'None'
+                        self.dataset.concepts[f][''] = 'None'
+                    else:
+                        self.dataset.dimension_list[f][dims[f]] = self.code_list[f][dims[f]]
+                        self.dataset.codelists[f][dims[f]] = self.code_list[f][dims[f]]
+                        self.dataset.concepts[f][dims[f]] = self.code_list[f][dims[f]]
         
     def __next__(self):
         """Sets next series bson
@@ -727,6 +765,7 @@ class BlsData:
         """
         # an annual series is waiting to be sent
         if self.annual_series:
+            self.dataset.add_frequency('A')
             bson = self.annual_series
             self.annual_series = None
             return bson
@@ -734,10 +773,7 @@ class BlsData:
         series_dims = next(self.series_iter)
         self.update_dimensions(series_dims)
 
-        if 'periodicity' in series_dims:
-            frequency = self.get_frequency(series_dims['periodicity'])
-        else:
-            frequency = series_dims['begin_period'][0]
+        frequency = series_dims['begin_period'][0]
         self.dataset.add_frequency(frequency)
         start_date = get_date(series_dims['begin_year'], series_dims['begin_period'], frequency)[0]
         end_date = get_date(series_dims['end_year'], series_dims['end_period'], frequency)[0]
@@ -780,8 +816,8 @@ class BlsData:
         bson['frequency'] = s['frequency']
         bson['attributes'] = None
         # put series footnote in bson['notes'] if any
-        if len(series_dims['footnote']) > 0:
-            bson['notes'] = self.code_list['footnote'][series_dims['footnote'].upper()]
+        if len(s['footnote_list']) > 0:
+            bson['notes'] = '\n'.join(s['footnote_list'])
 
         if len(s['values_annual']) > 0:
             if s['start_period_annual'] is None:
