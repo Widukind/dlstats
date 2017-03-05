@@ -391,6 +391,7 @@ class SeriesIterator:
         """
         if self.end_of_file:
             raise StopIteration
+        frequency = None
         values = []
         values_annual = []
         period = None
@@ -399,9 +400,11 @@ class SeriesIterator:
         previous_period_annual = None
         start_period = None
         start_period_annual = None
-        start_ts = None
-        start_ts_annual = None
         end_period_annual = None
+        start_ts = None
+        end_ts = None
+        start_ts_annual = None
+        end_ts_annual = None
         dates = None
         dates_annual = None
         # fetch first row if it is waiting
@@ -412,7 +415,7 @@ class SeriesIterator:
             row = [elem.strip() for elem in next(self.row_iter)]
         series_id = row[0]
         while len(row) > 0 and row[0] == series_id:    
-            if row[2] == 'M13' or row[2] == 'S03':
+            if row[2] == 'M13' or row[2] == 'Q05' or row[2] == 'S03':
                 period_annual = get_ordinal_from_year_subperiod(row[1],None,freq='A')
                 if start_period_annual is None:
                     start_period_annual = period_annual
@@ -439,7 +442,8 @@ class SeriesIterator:
                 self.end_of_file = True
                 break
         self.current_row = row
-        end_ts = self.get_end_ts(dates[0],dates[1],frequency)
+        if dates is not None:
+            end_ts = self.get_end_ts(dates[0],dates[1],frequency)
         if dates_annual is not None:
             end_ts_annual = self.get_end_ts(dates_annual,None,'A')
         return({
@@ -453,8 +457,8 @@ class SeriesIterator:
             'end_ts': end_ts,
             'start_period_annual': start_period_annual,
             'end_period_annual': period_annual,
-            'start_ts_annual': start_ts,
-            'end_ts_annual': end_ts,
+            'start_ts_annual': start_ts_annual,
+            'end_ts_annual': end_ts_annual,
             'footnote_list': self.footnote_list,
         })
     
@@ -543,7 +547,7 @@ class BlsData:
         return  [
             f
             for f in self.series_fields
-            if f not in ['series_id','series_title', 'footnote','begin_year', 'end_year', 'begin_period', 'end_period']]
+            if f not in ['series_id','series_title', 'series_name', 'footnote','begin_year', 'end_year', 'begin_period', 'end_period']]
 
 
     def get_code_list(self):
@@ -555,16 +559,18 @@ class BlsData:
             if k != 'seasonal' and k != 'base_period' and k != 'base_date' and k != 'base_year' and k != 'benchmark_year':
                 if self.dataset_code == 'wp' and k == 'item':
                     fmt = 2
-                elif self.dataset_code == 'cx' and (k == 'item' or k == 'subcategory' or k == 'demographics'):
+                elif self.dataset_code == 'cx' and (k == 'item' or k == 'subcategory' or k == 'characteristics'):
                     fmt = 2
-                elif self.dataset_code == 'cs' and k == 'category':
+                elif (self.dataset_code == 'cs' or self.dataset_code == 'fw' or self.dataset_code == 'ln') and k == 'category':
                     fmt = 2
                 elif self.dataset_code == 'is' and k == 'industry':
+                    fmt = 2
+                elif self.dataset_code == 'la' and k == 'area':
                     fmt = 2
                 elif self.dataset_code == 'or' and k == 'occupation':
                     fmt = 3
                 elif self.dataset_code == 'oe' and k == 'area':
-                    fmt = 3
+                    fmt = 4
                 else:
                     fmt = 1
                 if self.dataset_code == 'ce' and k == 'data_type':
@@ -578,11 +584,15 @@ class BlsData:
                     codes = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)
                     code_list[k] = codes[0]
                     code_list['soc'] = codes[1]
+                elif self.dataset_code == 'or' and k == 'soc':
+                    continue
                 elif self.dataset_code == 'oe' and k == 'area':
                     # two codes in one file
                     codes = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)
                     code_list['state'] = codes[0]
                     code_list[k] = codes[1]
+                elif self.dataset_code == 'oe' and k == 'state':
+                    continue
                 else:
                     code_list[k] = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)[0]
                 
@@ -623,6 +633,10 @@ class BlsData:
                 for row in data:
                     entries1[row[0]] = row[2]
                     entries2[row[1]] = row[1]
+            elif fmt == 4:
+                for row in data:
+                    entries1[row[0]] = row[0]
+                    entries2[row[1]] = row[3]
             else:
                 raise Exception("fmt {} doesn't exist".format(fmt))
         return (entries1, entries2)
@@ -652,7 +666,8 @@ class BlsData:
     def get_series_fields(self,filepath):
         with open(filepath) as source_file:
             row_iterator = csv.reader(source_file,delimiter='\t')
-            return [f.replace('_codes','').replace('_code','') for f in next(row_iterator)]        
+            # ip.series has type_code, (comma at the end!)
+            return [f.replace('_codes','').replace('_code','').replace(',','') for f in next(row_iterator)]        
             
     def get_series_iterator(self,filepath):
         """Parse series file for a dataset
@@ -745,10 +760,6 @@ class BlsData:
                     self.dataset.concepts['benchmark_year'][dims[f]] = dims[f]
             else:
                 if dims[f] not in self.dataset.dimension_list:
-#                    print(f)
-#                    print(dims[f])
-#                    print([self.code_list.keys()])
-#                    print(self.code_list[f])
                     if dims[f] == '':
                         self.code_list[f][''] = 'None'                                          
                         self.dataset.dimension_list[f][''] = 'None'
@@ -797,6 +808,8 @@ class BlsData:
             
         if 'series_title' in self.series_fields:
             name = series_dims['series_title']
+        elif 'series_name' in self.series_fields:
+            name = series_dims['series_name']
         else:
             name = '-'.join(
                 self.dataset.dimension_list[f][series_dims[f]]
@@ -832,12 +845,15 @@ class BlsData:
             bson_annual['start_ts'] = s['start_ts_annual']
             bson_annual['end_ts'] = s['end_ts_annual']
             bson_annual['frequency'] = 'A'
-            self.annual_series = bson_annual
-                    
-        if start_period < self.start_date:
-            self.start_date = start_period
-        if end_period > self.end_date:
-            self.end_date = end_period
 
-        return bson
+        if len(bson['values']) > 0: 
+            if start_period < self.start_date:
+                self.start_date = start_period
+            if end_period > self.end_date:
+                self.end_date = end_period
+            if len(s['values_annual']) > 0:
+                self.annual_series = bson_annual
+            return bson
+        else:
+            return bson_annual
 
