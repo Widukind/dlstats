@@ -15,6 +15,7 @@ import pandas
 import calendar
 import copy
 import collections
+import os.path
 
 from lxml import etree
 import requests
@@ -162,7 +163,7 @@ def parse_row(tds):
     else:
         doc_href = None
     href = tds[7][0].get("href")
-    dataset_code = href.split('/')[-2]
+    dataset_code = os.path.basename(os.path.normpath(href))
     dataset = {
         'name': name,
         'dataset_code': dataset_code,
@@ -613,7 +614,7 @@ class BlsData:
         """Parses code file for one dimension
         Returns a dict
         """
-        download = Downloader(url=self.dataset_url + filename,
+        download = Downloader(url=os.path.join(self.dataset_url,filename),
                               filename = filename,
                               store_filepath = self.store_path,
                               use_existing_file = self.fetcher.use_existing_file)
@@ -657,7 +658,7 @@ class BlsData:
         Returns a dict of dict
         """
         filename = self.dataset_code + '.series'
-        download = Downloader(url=self.dataset_url + filename,
+        download = Downloader(url=os.path.join(self.dataset_url,filename),
                               filename = filename,
                               store_filepath = self.store_path,
                               use_existing_file = self.fetcher.use_existing_file)
@@ -684,7 +685,7 @@ class BlsData:
     def get_data_iterators(self):
         iterators = []
         for filename in self.get_data_filenames(self.data_directory):
-            iterators.append(SeriesIterator(self.dataset_url + filename,
+            iterators.append(SeriesIterator(os.path.join(self.dataset_url,filename),
                                             filename,
                                             self.store_path,
                                             self.fetcher.use_existing_file))
