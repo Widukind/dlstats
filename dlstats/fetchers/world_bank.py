@@ -37,10 +37,10 @@ ONLY_WORLD_COUNTRY = [
 
 #http://databank.worldbank.org/data/download/WDI_excel.zip
 DATASETS = {
-    'GEM': { 
+    'GEM': {
         'name': 'Global Economic Monitor',
         'doc_href': 'http://data.worldbank.org/data-catalog/global-economic-monitor',
-        'url': 'http://siteresources.worldbank.org/INTPROSPECTS/Resources/GemDataEXTR.zip',
+        'url': 'http://databank.worldbank.org/data/download/GemDataEXTR.zip',
         'filename': 'GemDataEXTR.zip',
     },
 }
