@@ -283,6 +283,10 @@ class SeriesIterator:
         with  open(filepath) as source_file:
             data = csv.reader(source_file,delimiter='\t')
             fields = [f.strip() for f in next(data)]
+            # for pc dataset
+            if 'footnotes' in fields:
+                i = fields.index('footnotes')
+                fields[i] = 'footnote_codes'
             #check that data are in the right order
             assert(fields == ['series_id', 'year', 'period', 'value', 'footnote_codes'])
             for row in data:
@@ -567,6 +571,8 @@ class BlsData:
                 elif self.dataset_code == 'is' and k == 'industry':
                     fmt = 2
                 elif self.dataset_code == 'la' and k == 'area':
+                    fmt = 2
+                elif self.dataset_code == 'pc' and k == 'product':
                     fmt = 2
                 elif self.dataset_code == 'or' and k == 'occupation':
                     fmt = 3
