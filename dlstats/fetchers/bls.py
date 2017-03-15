@@ -574,12 +574,14 @@ class BlsData:
                     fmt = 4
                 else:
                     fmt = 1
+
                 if self.dataset_code == 'ce' and k == 'data_type':
                     filename = 'datatype'
                 elif self.dataset_code == 'la' and k == 'srd':
                     filename = 'state_region_division'
                 else:
                     filename = k
+
                 if self.dataset_code == 'or' and k == 'occupation':
                     # two codes in one file
                     codes = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)
@@ -596,6 +598,9 @@ class BlsData:
                     continue
                 else:
                     code_list[k] = self.get_dimension_data(self.dataset_code + '.' + filename,fmt)[0]
+
+                if self.dataset_code == 'ln' and k == 'rjnw':
+                    code_list[k]['00'] = 'N/A'
                 
         # dimensions that don't have a code file
         if 'seasonal' not in code_list:
