@@ -810,7 +810,6 @@ class BlsData:
             start_period = get_ordinal_from_year_subperiod(series_dims['begin_year'], None, freq='A')
             case += 1
         else:
-            print(frequency,series_dims)
             start_period = get_ordinal_from_year_subperiod(series_dims['begin_year'], series_dims['begin_period'][1:], freq=frequency)
         if series_dims['end_period'] == 'M13' or series_dims['end_period'] == 'Q05' or series_dims['end_period'] == 'S03':
             end_period = get_ordinal_from_year_subperiod(series_dims['end_year'], None, freq='A')
