@@ -489,7 +489,7 @@ class BlsData:
         self.dataset.attribute_list = collections.OrderedDict((k,{}) for k in self.dataset.attribute_keys)
         self.dataset.codelists = collections.OrderedDict((k,{}) for k in self.dataset.dimension_keys + self.dataset.attribute_keys)
         self.dataset.concepts = collections.OrderedDict((k,{}) for k in self.dataset.dimension_keys + self.dataset.attribute_keys)
-        self.series_iter = self.get_series_iterator(series_filepath)
+        self.series_iter = self.get_series_iterator(series_filepath,self.dataset_code)
         self.code_list = self.get_code_list()
         self.available_series = self.available_series_init()
         self.annual_series = None
@@ -635,22 +635,21 @@ class BlsData:
         with open(filepath) as source_file:
             data = csv.reader(source_file,delimiter='\t')
             fields = next(data)
-            if fmt == 1:
-                for row in data:
+            for row in data:
+                if len(row) == 0:
+                    continue
+                if fmt == 1:
                     entries1[row[0]] = row[1]
-            elif fmt == 2:
-                for row in data:
+                elif fmt == 2:
                     entries1[row[1]] = row[2]
-            elif fmt == 3:
-                for row in data:
+                elif fmt == 3:
                     entries1[row[0]] = row[2]
                     entries2[row[1]] = row[1]
-            elif fmt == 4:
-                for row in data:
+                elif fmt == 4:
                     entries1[row[0]] = row[0]
                     entries2[row[1]] = row[3]
-            else:
-                raise Exception("fmt {} doesn't exist".format(fmt))
+                else:
+                    raise Exception("fmt {} doesn't exist".format(fmt))
         return (entries1, entries2)
     
     def get_data_filenames(self,directory):
@@ -681,7 +680,7 @@ class BlsData:
             # ip.series has type_code, (comma at the end!)
             return [f.replace('_codes','').replace('_code','').replace(',','') for f in next(row_iterator)]        
             
-    def get_series_iterator(self,filepath):
+    def get_series_iterator(self,filepath,fmt):
         """Parse series file for a dataset
         Iterates a dict
         """
@@ -689,9 +688,15 @@ class BlsData:
             row_iterator = csv.reader(source_file,delimiter='\t')
             #skip header row
             next(row_iterator)
-            for row in row_iterator:
-                series = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
-                yield series
+            if fmt == 'eb':
+                for row in row_iterator:
+                    del row[3]
+                    series = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
+                    yield series
+            else:
+                for row in row_iterator:
+                    series = {k.strip(): v.strip() for k,v in zip(self.series_fields,row)}
+                    yield series
     
     def get_data_iterators(self):
         iterators = []
@@ -805,6 +810,7 @@ class BlsData:
             start_period = get_ordinal_from_year_subperiod(series_dims['begin_year'], None, freq='A')
             case += 1
         else:
+            print(frequency,series_dims)
             start_period = get_ordinal_from_year_subperiod(series_dims['begin_year'], series_dims['begin_period'][1:], freq=frequency)
         if series_dims['end_period'] == 'M13' or series_dims['end_period'] == 'Q05' or series_dims['end_period'] == 'S03':
             end_period = get_ordinal_from_year_subperiod(series_dims['end_year'], None, freq='A')
