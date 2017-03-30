@@ -14,7 +14,7 @@ from widukind_common import errors
 from dlstats.utils import Downloader, get_ordinal_from_period, clean_datetime, clean_key, clean_dict
 from dlstats.fetchers._commons import Fetcher, Datasets, Providers, SeriesIterator
 from dlstats import constants
-from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure, 
+from dlstats.xml_utils import (XMLStructure_2_0 as XMLStructure,
                                XMLCompactData_2_0_IMF as XMLData,
                                dataset_converter,
                                select_dimension,
@@ -28,15 +28,15 @@ FREQUENCIES_SUPPORTED = ["A", "Q", "M"]
 FREQUENCIES_REJECTED = []
 
 DATASETS = {
-    'WEO': { 
+    'WEO': {
         'name': 'World Economic Outlook',
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
     },
-    'WEO-GROUPS': { 
+    'WEO-GROUPS': {
         'name': 'World Economic Outlook (groups)',
         'doc_href': 'http://www.imf.org/external/ns/cs.aspx?id=28',
     },
-    'BOP': { 
+    'BOP': {
         'name': 'Balance of Payments',
         'doc_href': 'http://data.imf.org/BOP',
     },
@@ -44,67 +44,67 @@ DATASETS = {
         'name': 'Balance of Payments, World and Regional Aggregates',
         'doc_href': 'http://data.imf.org/BOP',
     },
-    'DOT': { 
+    'DOT': {
         'name': 'Direction of Trade Statistics',
         'doc_href': 'http://data.imf.org/DOT',
-    },                         
-    'IFS': { 
+    },
+    'IFS': {
         'name': 'International Financial Statistics',
         'doc_href': 'http://data.imf.org/IFS',
     },
-    'COMMP': { 
+    'COMMP': {
         'name': 'Primary Commodity Prices',
         'doc_href': 'http://data.imf.org',
     },
-    'COMMPP': { 
+    'COMMPP': {
         'name': 'Primary Commodity Prices Projections',
         'doc_href': 'http://data.imf.org',
     },
-    'GFSR': { 
+    'GFSR': {
         'name': 'Government Finance Statistics, Revenue',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSSSUC': { 
+    'GFSSSUC': {
         'name': 'Government Finance Statistics, Statement of Sources and Uses of Cash',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSCOFOG': { 
+    'GFSCOFOG': {
         'name': 'Government Finance Statistics, Expenditure by Function of Government',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSFALCS': { 
+    'GFSFALCS': {
         'name': 'Government Finance Statistics, Financial Assets and Liabilities by Counterpart Sector',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSIBS': { 
+    'GFSIBS': {
         'name': 'Government Finance Statistics, Integrated Balance Sheet (Stock Positions and Flows in Assets and Liabilities)',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSMAB': { 
+    'GFSMAB': {
         'name': 'Government Finance Statistics, Main Aggregates and Balances',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'GFSE': { 
+    'GFSE': {
         'name': 'Government Finance Statistics, Expense',
         'doc_href': 'http://data.imf.org/COFR',
     },
-    'FSI': { 
+    'FSI': {
         'name': 'Financial Soundness Indicators',
         'doc_href': 'http://data.imf.org/FSI',
     },
-    'RT': { 
+    'RT': {
         'name': 'International Reserves Template',
         'doc_href': 'http://data.imf.org/RT',
     },
-    'FAS': { 
+    'FAS': {
         'name': 'Financial Access Survey',
         'doc_href': 'http://data.imf.org/FAS',
     },
-    'COFER': { 
+    'COFER': {
         'name': 'Currency Composition of Official Foreign Exchange Reserves',
         'doc_href': 'http://data.imf.org/COFER',
     },
-    'CDIS': { 
+    'CDIS': {
         'name': 'Coordinated Direct Investment Survey',
         'doc_href': 'http://data.imf.org/CDIS',
     },
@@ -112,19 +112,19 @@ DATASETS = {
         'name': 'Coordinated Portfolio Investment Survey',
         'doc_href': 'http://data.imf.org/CPIS',
     },
-    'WoRLD': { 
+    'WoRLD': {
         'name': 'World Revenue Longitudinal Data',
         'doc_href': 'http://data.imf.org',
     },
-    'MCDREO': { 
+    'MCDREO': {
         'name': 'Middle East and Central Asia Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/MCDREO',
     },
-    'APDREO': { 
+    'APDREO': {
         'name': 'Asia and Pacific Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/APDREO',
     },
-    'AFRREO': { 
+    'AFRREO': {
         'name': 'Sub-Saharan Africa Regional Economic Outlook',
         'doc_href': 'http://data.imf.org/AFRREO',
     },
@@ -152,7 +152,7 @@ DATASETS = {
         'name': 'Historical Public Debt',
         'doc_href': 'http://data.imf.org/HPDD',
     },
-    'PGI': { 
+    'PGI': {
         'name': 'Principal Global Indicators',
         'doc_href': 'http://data.imf.org/PGI',
     },
@@ -204,7 +204,7 @@ CATEGORIES = [
                 "metadata": {
                     "doc_href": DATASETS["COMMP"]["doc_href"]
                 }
-            },                     
+            },
             {
                 "dataset_code": "COMMPP",
                 "name": DATASETS["COMMPP"]["name"],
@@ -212,7 +212,7 @@ CATEGORIES = [
                 "metadata": {
                     "doc_href": DATASETS["COMMPP"]["doc_href"]
                 }
-            },                     
+            },
         ],
         "metadata": {}
     },
@@ -235,52 +235,52 @@ CATEGORIES = [
             },
             {
                 "dataset_code": "GFSE",
-                "name": DATASETS["GFSE"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSE"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSE"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "GFSFALCS",
-                "name": DATASETS["GFSFALCS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSFALCS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSFALCS"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "GFSIBS",
-                "name": DATASETS["GFSIBS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSIBS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSIBS"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "GFSMAB",
-                "name": DATASETS["GFSMAB"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSMAB"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSMAB"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "GFSR",
-                "name": DATASETS["GFSR"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSR"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSR"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "GFSSSUC",
-                "name": DATASETS["GFSSSUC"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["GFSSSUC"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["GFSSSUC"]["doc_href"]
                 }
-            },            
+            },
         ],
         "metadata": {}
     },
@@ -295,8 +295,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "CDIS",
-                "name": DATASETS["CDIS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["CDIS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["CDIS"]["doc_href"]
                 }
@@ -315,8 +315,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "CPIS",
-                "name": DATASETS["CPIS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["CPIS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["CPIS"]["doc_href"]
                 }
@@ -335,8 +335,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "COFER",
-                "name": DATASETS["COFER"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["COFER"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["COFER"]["doc_href"]
                 }
@@ -355,8 +355,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "DOT",
-                "name": DATASETS["DOT"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["DOT"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["DOT"]["doc_href"]
                 }
@@ -375,8 +375,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "FAS",
-                "name": DATASETS["FAS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["FAS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["FAS"]["doc_href"]
                 }
@@ -395,8 +395,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "FSI",
-                "name": DATASETS["FSI"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["FSI"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["FSI"]["doc_href"]
                 }
@@ -415,36 +415,36 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "AFRREO",
-                "name": DATASETS["AFRREO"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["AFRREO"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["AFRREO"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "MCDREO",
-                "name": DATASETS["MCDREO"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["MCDREO"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["MCDREO"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "APDREO",
-                "name": DATASETS["APDREO"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["APDREO"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["APDREO"]["doc_href"]
                 }
             },
             {
                 "dataset_code": "WHDREO",
-                "name": DATASETS["WHDREO"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["WHDREO"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["WHDREO"]["doc_href"]
                 }
-            },                    
+            },
         ],
         "metadata": {}
     },
@@ -459,8 +459,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "IFS",
-                "name": DATASETS["IFS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["IFS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["IFS"]["doc_href"]
                 }
@@ -479,8 +479,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "RT",
-                "name": DATASETS["RT"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["RT"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["RT"]["doc_href"]
                 }
@@ -499,8 +499,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "WoRLD",
-                "name": DATASETS["WoRLD"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["WoRLD"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["WoRLD"]["doc_href"]
                 }
@@ -519,8 +519,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "WEO",
-                "name": DATASETS["WEO"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["WEO"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["WEO"]["doc_href"]
                 }
@@ -539,8 +539,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "WEO-GROUPS",
-                "name": DATASETS["WEO-GROUPS"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["WEO-GROUPS"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["WEO-GROUPS"]["doc_href"]
                 }
@@ -559,8 +559,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "PGI",
-                "name": DATASETS["PGI"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["PGI"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["PGI"]["doc_href"]
                 }
@@ -579,8 +579,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "WCED",
-                "name": DATASETS["WCED"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["WCED"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["WCED"]["doc_href"]
                 }
@@ -599,8 +599,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "CPI",
-                "name": DATASETS["CPI"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["CPI"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["CPI"]["doc_href"]
                 }
@@ -619,8 +619,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "COFR",
-                "name": DATASETS["COFR"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["COFR"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["COFR"]["doc_href"]
                 }
@@ -639,8 +639,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "ICSD",
-                "name": DATASETS["ICSD"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["ICSD"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["ICSD"]["doc_href"]
                 }
@@ -659,8 +659,8 @@ CATEGORIES = [
         "datasets": [
             {
                 "dataset_code": "HPDD",
-                "name": DATASETS["HPDD"]["name"], 
-                "last_update": None,                 
+                "name": DATASETS["HPDD"]["name"],
+                "last_update": None,
                 "metadata": {
                     "doc_href": DATASETS["HPDD"]["doc_href"]
                 }
@@ -672,30 +672,30 @@ CATEGORIES = [
 
 class IMF(Fetcher):
 
-    def __init__(self, **kwargs):        
+    def __init__(self, **kwargs):
         super().__init__(provider_name='IMF', version=VERSION, **kwargs)
 
-        self.provider = Providers(name=self.provider_name, 
+        self.provider = Providers(name=self.provider_name,
                                   long_name="International Monetary Fund",
-                                  version=VERSION, 
-                                  region='World', 
+                                  version=VERSION,
+                                  region='World',
                                   website='http://www.imf.org/',
                                   terms_of_use='http://www.imf.org/external/terms.htm',
                                   fetcher=self)
-        
+
         self.requests_client = requests.Session()
 
     def build_data_tree(self):
-        
+
         return CATEGORIES
-        
+
     def upsert_dataset(self, dataset_code):
-        
+
         settings = DATASETS[dataset_code]
-        
-        dataset = Datasets(provider_name=self.provider_name, 
-                           dataset_code=dataset_code, 
-                           name=settings['name'], 
+
+        dataset = Datasets(provider_name=self.provider_name,
+                           dataset_code=dataset_code,
+                           name=settings['name'],
                            doc_href=settings['doc_href'],
                            fetcher=self)
 
@@ -706,81 +706,81 @@ class IMF(Fetcher):
             klass = DATASETS_KLASS["XML"]
 
         dataset.series.data_iterator = klass(dataset)
-        
+
         return dataset.update_database()
-        
-        
+
+
 class IMF_XML_Data(SeriesIterator):
-    
+
     def __init__(self, dataset=None):
         super().__init__(dataset)
 
         self.store_path = self.get_store_path()
         self.xml_dsd = XMLStructure(provider_name=self.provider_name)
-        
+
         self._load_dsd()
 
         if self.dataset.last_update and self.xml_dsd.last_update:
-            
+
             if self.dataset.last_update > self.xml_dsd.last_update:
                 comments = "update-date[%s]" % self.xml_dsd.last_update
                 raise errors.RejectUpdatedDataset(provider_name=self.provider_name,
                                                   dataset_code=self.dataset.dataset_code,
                                                   comments=comments)
-        
-        self.dataset.last_update = clean_datetime(self.xml_dsd.last_update)        
+
+        self.dataset.last_update = clean_datetime(self.xml_dsd.last_update)
 
         self.xml_data = XMLData(provider_name=self.provider_name,
                                 dataset_code=self.dataset_code,
                                 xml_dsd=self.xml_dsd,
                                 dsd_id=self.dataset_code,
                                 frequencies_supported=FREQUENCIES_SUPPORTED)
-        
+
         self.rows = self._get_data_by_dimension()
 
     def _get_url_dsd(self):
-        return "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/%s" % self.dataset_code 
+        return "http://dataservices.imf.org/REST/SDMX_XML.svc/DataStructure/%s" % self.dataset_code
 
     def _get_url_data(self):
-        return "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/%s" % self.dataset_code 
-        
+        return "http://dataservices.imf.org/REST/SDMX_XML.svc/CompactData/%s" % self.dataset_code
+
     def _load_dsd(self):
         url = self._get_url_dsd()
         download = Downloader(store_filepath=self.store_path,
-                              url=url, 
+                              url=url,
                               filename="dsd-%s.xml" % self.dataset_code,
                               use_existing_file=self.fetcher.use_existing_file,
                               client=self.fetcher.requests_client)
         filepath = download.get_filepath()
         self.fetcher.for_delete.append(filepath)
-        
+
         self.xml_dsd.process(filepath)
         self._set_dataset()
 
     def _set_dataset(self):
 
         dataset = dataset_converter(self.xml_dsd, self.dataset_code)
-        self.dataset.dimension_keys = dataset["dimension_keys"] 
-        self.dataset.attribute_keys = dataset["attribute_keys"] 
-        self.dataset.concepts = dataset["concepts"] 
+        self.dataset.dimension_keys = dataset["dimension_keys"]
+        self.dataset.attribute_keys = dataset["attribute_keys"]
+        self.dataset.concepts = dataset["concepts"]
         self.dataset.codelists = dataset["codelists"]
-        
+
     def _get_dimensions_from_dsd(self):
         return get_dimensions_from_dsd(self.xml_dsd, self.provider_name, self.dataset_code)
 
     def _get_data_by_dimension(self):
-        
+
         dimension_keys, dimensions = self._get_dimensions_from_dsd()
-        
+
         position, _key, dimension_values = select_dimension(dimension_keys, dimensions, choice="max")
-        
+
         count_dimensions = len(dimension_keys)
-        
+
         for dimension_value in dimension_values:
             '''Pour chaque valeur de la dimension, generer une key d'url'''
-            
+
             local_count = 0
-                        
+
             sdmx_key = []
             for i in range(count_dimensions):
                 if i == position:
@@ -791,44 +791,44 @@ class IMF_XML_Data(SeriesIterator):
 
             url = "%s/%s" % (self._get_url_data(), key)
             filename = "data-%s-%s.xml" % (self.dataset_code, key.replace(".", "_"))
-            download = Downloader(url=url, 
+            download = Downloader(url=url,
                                   filename=filename,
                                   store_filepath=self.store_path,
-                                  client=self.fetcher.requests_client)            
+                                  client=self.fetcher.requests_client)
             filepath, response = download.get_filepath_and_response()
 
             if filepath:
                 self.fetcher.for_delete.append(filepath)
-            
+
             if response.status_code >= 400 and response.status_code < 500:
                 continue
             elif response.status_code >= 500:
                 raise response.raise_for_status()
-            
+
             for row, err in self.xml_data.process(filepath):
                 yield row, err
                 local_count += 1
-                
+
             if local_count >= 2999:
                 logger.warning("TODO: VRFY - series > 2999 for provider[IMF] - dataset[%s] - key[%s]" % (self.dataset_code, key))
 
             #self.dataset.update_database(save_only=True)
-        
+
         yield None, None
-        
+
     def build_series(self, bson):
         bson["last_update"] = self.dataset.last_update
         self.dataset.add_frequency(bson["frequency"])
         return bson
-        
+
 class WeoData(SeriesIterator):
-    
+
     def __init__(self, dataset):
         super().__init__(dataset)
-        
+
         self.store_path = self.get_store_path()
         self.urls = self.weo_urls()
-        
+
         self.release_date = None
 
         self.frequency = 'A'
@@ -847,25 +847,25 @@ class WeoData(SeriesIterator):
         self.dataset.codelists['Units'] = {}
         self.dataset.codelists['WEO Country Code'] = {}
         self.dataset.codelists['Scale'] = {}
-        
+
         self.rows = self._process()
 
     def weo_urls(self):
         download = Downloader(url='http://www.imf.org/external/ns/cs.aspx?id=28',
                               filename="weo.html",
                               store_filepath=self.store_path)
-        
+
         filepath = download.get_filepath()
         with open(filepath, 'rb') as fp:
             webpage = fp.read()
-        
+
         self.fetcher.for_delete.append(filepath)
-            
+
         #TODO: replace by beautifoulsoup ?
         html = etree.HTML(webpage)
         hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
         links = [href.values() for href in hrefs]
-        
+
         #The last links of the WEO webpage lead to data we dont want to pull.
         links = links[:-16]
         #These are other links we don't want.
@@ -874,109 +874,109 @@ class WeoData(SeriesIterator):
         links = [link[0][:-10]+'download.aspx' for link in links]
 
         output = []
-    
+
         for link in links:
             webpage = requests.get(link)
             html = etree.HTML(webpage.text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
             output.append(link[:-13]+final_link[0].values()[0])
-            
+
         # we need to handle the issue in chronological order
         return sorted(output)
-            
-    def _process(self):        
+
+    def _process(self):
         for url in self.urls:
-            
+
             #ex: http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls]
             date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
             self.release_date = datetime.strptime(date_str, "%b%Y") #2006-09-01 00:00:00
-            
+
             if not self._is_updated():
                 msg = "upsert dataset[%s] bypass because is updated from release_date[%s]"
                 logger.info(msg % (self.dataset_code, self.release_date))
                 continue
 
-            self.dataset.last_update = self.release_date        
-                
+            self.dataset.last_update = self.release_date
+
             logger.info("load url[%s]" % url)
-            
+
             download = Downloader(url=url,
-                                  store_filepath=self.store_path, 
+                                  store_filepath=self.store_path,
                                   filename=os.path.basename(url),
-                                  use_existing_file=self.fetcher.use_existing_file)        
-            
+                                  use_existing_file=self.fetcher.use_existing_file)
+
             data_filepath = download.get_filepath()
             self.fetcher.for_delete.append(data_filepath)
-            
+
             with open(data_filepath, encoding='latin-1') as fp:
-                
+
                 self.sheet = csv.DictReader(fp, dialect=csv.excel_tab)
                 self.years = self.sheet.fieldnames[9:-1]
-                self.start_date = get_ordinal_from_period(self.years[0], 
+                self.start_date = get_ordinal_from_period(self.years[0],
                                                           freq=self.frequency)
-                self.end_date = get_ordinal_from_period(self.years[-1], 
+                self.end_date = get_ordinal_from_period(self.years[-1],
                                                         freq=self.frequency)
-                
+
                 for row in self.sheet:
                     if not row or not row.get('Country'):
                         break
                     yield row, None
 
         yield None, None
-        
+
     def _is_updated(self):
 
         if not self.dataset.last_update:
             return True
-        
-        if self.release_date > self.dataset.last_update:            
+
+        if self.release_date > self.dataset.last_update:
             return True
 
         return False
-        
+
     def build_series(self, row):
-        
+
         dimensions = {}
         attributes = {}
-        
+
         #'WEO Subject Code': (BCA, Current account balance)
         weo_subject_code = row['WEO Subject Code']
 
         dimensions['WEO Subject Code'] = weo_subject_code
         if not weo_subject_code in self.dataset.codelists['WEO Subject Code']:
-            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'], 
+            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'],
                                                                                         row['Units'])
-                                                                          
+
         #'ISO': (DEU, Germany)
-        dimensions['ISO'] = self.dimension_list.update_entry('ISO', 
-                                                             row['ISO'], 
+        dimensions['ISO'] = self.dimension_list.update_entry('ISO',
+                                                             row['ISO'],
                                                              row['Country'])
 
         if not dimensions['ISO'] in self.dataset.codelists['ISO']:
             self.dataset.codelists['ISO'][dimensions['ISO']] = row['Country']
 
         #'Units': (2, U.S. dollars)
-        dimensions['Units'] = self.dimension_list.update_entry('Units', 
-                                                               '', 
+        dimensions['Units'] = self.dimension_list.update_entry('Units',
+                                                               '',
                                                                row['Units'])
 
         if not dimensions['Units'] in self.dataset.codelists['Units']:
             self.dataset.codelists['Units'][dimensions['Units']] = row['Units']
 
-        #'WEO Country Code': (134, Germany)    
-        attributes['WEO Country Code'] = self.attribute_list.update_entry('WEO Country Code', 
-                                                             row['WEO Country Code'], 
+        #'WEO Country Code': (134, Germany)
+        attributes['WEO Country Code'] = self.attribute_list.update_entry('WEO Country Code',
+                                                             row['WEO Country Code'],
                                                              row['Country'])
 
         if not attributes['WEO Country Code'] in self.dataset.codelists['WEO Country Code']:
             self.dataset.codelists['WEO Country Code'][attributes['WEO Country Code']] = row['Country']
 
-        
+
         if row['Scale']:
-            attributes['Scale'] = self.attribute_list.update_entry('Scale', 
-                                                                   '', #row['Scale'], 
+            attributes['Scale'] = self.attribute_list.update_entry('Scale',
+                                                                   '', #row['Scale'],
                                                                    row['Scale'])
-    
+
             if not attributes['Scale'] in self.dataset.codelists['Scale']:
                 self.dataset.codelists['Scale'][attributes['Scale']] = row['Scale']
 
@@ -985,9 +985,9 @@ class WeoData(SeriesIterator):
         series_key = "%s.%s.%s" % (weo_subject_code,
                                    dimensions['ISO'],
                                    dimensions['Units'])
-        
+
         #'Current account balance - Germany - U.S. dollars',
-        series_name = "%s - %s - %s" % (row['Subject Descriptor'], 
+        series_name = "%s - %s - %s" % (row['Subject Descriptor'],
                                         row['Country'],
                                         row['Units'])
 
@@ -997,7 +997,7 @@ class WeoData(SeriesIterator):
 
         if row['Estimates Start After']:
             estimation_start = int(row['Estimates Start After'])
-            
+
         for period in self.years:
             value = {
                 'attributes': None,
@@ -1007,9 +1007,9 @@ class WeoData(SeriesIterator):
             if estimation_start:
                 if int(period) >= estimation_start:
                     value["attributes"] = {'flag': 'e'}
-            
+
             values.append(value)
-    
+
         bson = {
             'provider_name': self.dataset.provider_name,
             'dataset_code': self.dataset.dataset_code,
@@ -1023,15 +1023,15 @@ class WeoData(SeriesIterator):
             'end_date': self.end_date,
             'frequency': self.frequency
         }
-            
+
         notes = []
-        
+
         if row['Subject Notes']:
             notes.append(row['Subject Notes'])
-        
+
         if row['Country/Series-specific Notes']:
             notes.append(row['Country/Series-specific Notes'])
-            
+
         if notes:
             bson["notes"] = "\n".join(notes)
 
@@ -1039,13 +1039,13 @@ class WeoData(SeriesIterator):
 
 
 class WeoGroupsData(SeriesIterator):
-    
+
     def __init__(self, dataset):
         super().__init__(dataset)
-        
+
         self.store_path = self.get_store_path()
         self.urls = self.weo_urls()
-        
+
         self.release_date = None
 
         self.frequency = 'A'
@@ -1061,25 +1061,25 @@ class WeoGroupsData(SeriesIterator):
         self.dataset.codelists['Units'] = {}
         self.dataset.codelists['WEO Country Group Code'] = {}
         self.dataset.codelists['Scale'] = {}
-        
+
         self.rows = self._process()
 
     def weo_urls(self):
         download = Downloader(url='http://www.imf.org/external/ns/cs.aspx?id=28',
                               filename="weo.html",
                               store_filepath=self.store_path)
-        
+
         filepath = download.get_filepath()
         with open(filepath, 'rb') as fp:
             webpage = fp.read()
-        
+
         self.fetcher.for_delete.append(filepath)
-            
+
         #TODO: replace by beautifoulsoup ?
         html = etree.HTML(webpage)
         hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
         links = [href.values() for href in hrefs]
-        
+
         #The last links of the WEO webpage lead to data we dont want to pull.
         links = links[:-16]
         #These are other links we don't want.
@@ -1088,82 +1088,82 @@ class WeoGroupsData(SeriesIterator):
         links = [link[0][:-10]+'download.aspx' for link in links]
 
         output = []
-    
+
         for link in links:
             webpage = requests.get(link)
             html = etree.HTML(webpage.text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
             output.append(link[:-13]+final_link[1].values()[0])
-    
+
         # we need to handle the issue in chronological order
         return sorted(output)
-            
-    def _process(self):        
+
+    def _process(self):
         for url in self.urls:
-            
+
             #TODO: if not url.endswith("alla.xls"):
-            
+
             #ex: http://www.imf.org/external/pubs/ft/weo/2006/02/data/WEOSep2006all.xls]
             date_str = match(".*WEO(\w{7})", url).groups()[0] #Sep2006
             self.release_date = datetime.strptime(date_str, "%b%Y") #2006-09-01 00:00:00
-            
+
             if not self._is_updated():
                 msg = "upsert dataset[%s] bypass because is updated from release_date[%s]"
                 logger.info(msg % (self.dataset_code, self.release_date))
                 continue
 
-            self.dataset.last_update = self.release_date        
-                
+            self.dataset.last_update = self.release_date
+
             logger.info("load url[%s]" % url)
-            
+
             download = Downloader(url=url,
-                                  store_filepath=self.store_path, 
+                                  store_filepath=self.store_path,
                                   filename=os.path.basename(url),
-                                  use_existing_file=self.fetcher.use_existing_file)        
-            
+                                  use_existing_file=self.fetcher.use_existing_file)
+
             data_filepath = download.get_filepath()
             self.fetcher.for_delete.append(data_filepath)
-            
+
             with open(data_filepath, encoding='latin-1') as fp:
-                
+
                 self.sheet = csv.DictReader(fp, dialect=csv.excel_tab)
                 self.years = self.sheet.fieldnames[8:-1]
-                self.start_date = get_ordinal_from_period(self.years[0], 
+                self.start_date = get_ordinal_from_period(self.years[0],
                                                           freq=self.frequency)
-                self.end_date = get_ordinal_from_period(self.years[-1], 
+                self.end_date = get_ordinal_from_period(self.years[-1],
                                                         freq=self.frequency)
-                
+
                 for row in self.sheet:
                     if not row or not row.get('Country Group Name'):
                         break
                     yield row, None
 
         yield None, None
-        
+
     def _is_updated(self):
 
         if not self.dataset.last_update:
             return True
-        
-        if self.release_date > self.dataset.last_update:            
+
+        if self.release_date > self.dataset.last_update:
             return True
 
         return False
-        
+
     def build_series(self, row):
 
         dimensions = {}
         attributes = {}
-        
+
         #'WEO Subject Code': (BCA, Current account balance)
         weo_subject_code = row['WEO Subject Code']
         country = row['Country Group Name']
 
         dimensions['WEO Subject Code'] = weo_subject_code
         if not weo_subject_code in self.dataset.codelists['WEO Subject Code']:
-            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'], 
+            self.dataset.codelists['WEO Subject Code'][weo_subject_code] = "%s (%s)" % (row['Subject Descriptor'],
                                                                                         row['Units'])
-                                                                          
+
         #'ISO': (DEU, Germany)
         dimensions['WEO Country Group Code'] = row['WEO Country Group Code']
 
@@ -1171,26 +1171,26 @@ class WeoGroupsData(SeriesIterator):
             self.dataset.codelists['WEO Country Group Code'][dimensions['WEO Country Group Code']] = country
 
         #'Units': (2, U.S. dollars)
-        dimensions['Units'] = self.dimension_list.update_entry('Units', 
-                                                               '', 
+        dimensions['Units'] = self.dimension_list.update_entry('Units',
+                                                               '',
                                                                row['Units'])
 
         if not dimensions['Units'] in self.dataset.codelists['Units']:
             self.dataset.codelists['Units'][dimensions['Units']] = row['Units']
 
         if row['Scale']:
-            attributes['Scale'] = self.attribute_list.update_entry('Scale', 
-                                                                   '', 
+            attributes['Scale'] = self.attribute_list.update_entry('Scale',
+                                                                   '',
                                                                    row['Scale'])
-    
+
             if not attributes['Scale'] in self.dataset.codelists['Scale']:
                 self.dataset.codelists['Scale'][attributes['Scale']] = row['Scale']
 
         series_key = "%s.%s.%s" % (weo_subject_code,
                                    dimensions['WEO Country Group Code'],
                                    dimensions['Units'])
-        
-        series_name = "%s - %s - %s" % (row['Subject Descriptor'], 
+
+        series_name = "%s - %s - %s" % (row['Subject Descriptor'],
                                         country,
                                         row['Units'])
 
@@ -1200,7 +1200,7 @@ class WeoGroupsData(SeriesIterator):
 
         if row['Estimates Start After']:
             estimation_start = int(row['Estimates Start After'])
-            
+
         for period in self.years:
             value = {
                 'attributes': None,
@@ -1210,9 +1210,9 @@ class WeoGroupsData(SeriesIterator):
             if estimation_start:
                 if int(period) >= estimation_start:
                     value["attributes"] = {'flag': 'e'}
-            
+
             values.append(value)
-    
+
         bson = {
             'provider_name': self.dataset.provider_name,
             'dataset_code': self.dataset.dataset_code,
@@ -1226,15 +1226,15 @@ class WeoGroupsData(SeriesIterator):
             'end_date': self.end_date,
             'frequency': self.frequency
         }
-            
+
         notes = []
-        
+
         if row['Subject Notes']:
             notes.append(row['Subject Notes'])
-        
+
         if row['Series-specific Notes']:
             notes.append(row['Series-specific Notes'])
-            
+
         if notes:
             bson["notes"] = "\n".join(notes)
 
@@ -1246,4 +1246,3 @@ DATASETS_KLASS = {
     "WEO-GROUPS": WeoGroupsData,
     "XML": IMF_XML_Data
 }
-        
