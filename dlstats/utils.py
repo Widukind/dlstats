@@ -21,44 +21,44 @@ logger = logging.getLogger(__name__)
 MONGO_DENIED_KEY_CHARS = [".", "$"]
 
 def last_error():
-    f = StringIO() 
+    f = StringIO()
     traceback.print_exc(file=f)
     return f.getvalue()
 
 def make_store_path(base_path=None, provider_name=None, dataset_code=None):
     store_filepath = None
-    
+
     if not base_path:
         store_filepath = tempfile.mkdtemp()
     else:
         store_filepath = base_path
-    
+
     if provider_name:
         store_filepath = os.path.abspath(os.path.join(store_filepath, provider_name))
         if not os.path.exists(store_filepath):
             os.makedirs(store_filepath)
-    
+
     if dataset_code:
         store_filepath = os.path.abspath(os.path.join(store_filepath, dataset_code))
         if not os.path.exists(store_filepath):
             os.makedirs(store_filepath)
-    
+
     return store_filepath
 
 def get_url_hash(url):
-    return hashlib.sha224(url.encode("utf-8")).hexdigest()    
+    return hashlib.sha224(url.encode("utf-8")).hexdigest()
 
 class Downloader:
-    
+
     DEFAULT_HEADERS = {
-        'user-agent': 'dlstats - https://github.com/Widukind/dlstats'
+        'user-agent': 'dlstats - https://git.nomics.world/dbnomics/dlstats'
     }
-    
-    def __init__(self, url=None, filename=None, store_filepath=None, 
-                 timeout=None, max_retries=0, 
+
+    def __init__(self, url=None, filename=None, store_filepath=None,
+                 timeout=None, max_retries=0,
                  replace=True, force_replace=True, use_existing_file=False,
                  headers={}, client=None):
-        
+
         self.url = url
         self.filename = filename
         self.store_filepath = store_filepath
@@ -71,43 +71,43 @@ class Downloader:
 
         if not self.url:
             raise ValueError("url is required")
-        
+
         if not self.filename:
             raise ValueError("filename is required")
-        
+
         for item in self.DEFAULT_HEADERS.items():
             self.headers.setdefault(*item)
-        
+
         if not self.store_filepath:
             self.store_filepath = tempfile.mkdtemp()
         else:
             if not os.path.exists(self.store_filepath):
                 os.makedirs(self.store_filepath, exist_ok=True)
-        
+
         self.filepath = os.path.abspath(os.path.join(self.store_filepath, self.filename))
-        
+
         if os.path.exists(self.filepath) and not self.use_existing_file and not replace:
             raise Exception("filepath is already exist : %s" % self.filepath)
 
     def _download(self, raise_errors=True):
-        
+
         #TODO: max_retries (self.max_retries)
         #TODO: analyse rate limit dans headers
-        
+
         start = time.time()
         try:
-            response = self.client.get(self.url, 
-                                    timeout=self.timeout, 
+            response = self.client.get(self.url,
+                                    timeout=self.timeout,
                                     stream=True,
                                     allow_redirects=True,
                                     verify=True,
                                     headers=self.headers)
 
             code = int(response.status_code)
-            
+
             if code == 304 or code >= 400:
-                msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url, 
-                                                                           code, 
+                msg = "download url[%s] - status_code[%s] - reason[%s]" % (self.url,
+                                                                           code,
                                                                            response.reason)
                 if raise_errors:
                     logger.error(msg)
@@ -121,81 +121,81 @@ class Downloader:
                     f.write(chunk)
 
             return response
-        
+
         except Exception as err:
             logger.critical("Not captured exception : %s" % str(err))
             raise
 
         end = time.time() - start
         logger.info("download file[%s] - END - time[%.3f seconds]" % (self.url, end))
-    
+
     def get_filepath(self):
-        
+
         if os.path.exists(self.filepath) and not self.use_existing_file and self.force_replace:
             os.remove(self.filepath)
-        
+
         if not os.path.exists(self.filepath):
             logger.warning("not found file[%s] - download dataset url[%s]" % (self.filepath, self.url))
             self._download()
         else:
             logger.warning("use local dataset file [%s]" % self.filepath)
-        
+
         return self.filepath
 
     def get_filepath_and_response(self):
-        
+
         response = None
-        
+
         if os.path.exists(self.filepath) and not self.use_existing_file and self.force_replace:
             os.remove(self.filepath)
-        
+
         if not os.path.exists(self.filepath):
             logger.warning("not found file[%s] - download dataset url[%s]" % (self.filepath, self.url))
             response = self._download(raise_errors=False)
         else:
             logger.warning("use local dataset file [%s]" % self.filepath)
-        
+
         return self.filepath, response
 
 
 def clean_datetime(dt=None,
-                   rm_hour=False, 
-                   rm_minute=False, 
-                   rm_second=False, 
-                   rm_microsecond=True, 
+                   rm_hour=False,
+                   rm_minute=False,
+                   rm_second=False,
+                   rm_microsecond=True,
                    rm_tzinfo=True):
-    
+
     now = dt or datetime.now()
-    year = now.year 
-    month = now.month 
+    year = now.year
+    month = now.month
     day = now.day
     hour = now.hour
     minute = now.minute
-    second = now.second    
+    second = now.second
     microsecond = now.microsecond
     tzinfo = now.tzinfo
-    
+
     if rm_hour:
         hour = 0
     if rm_minute:
         minute = 0
     if rm_second:
-        second = 0    
+        second = 0
     if rm_microsecond:
         microsecond = 0
     if rm_tzinfo:
         tzinfo = None
     return datetime(year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
-    
+
 def remove_file_and_dir(filepath, let_root=False):
     if not os.path.exists(filepath):
         #logger.warning("file not found [%s]" % filepath)
         return
-    
+
     if not os.path.isfile(filepath):
         logger.warning("file is not file [%s]" % filepath)
         return
-    
+
     dirname = os.path.dirname(filepath)
 
     if not os.path.isdir(dirname) or not os.path.exists(dirname):
@@ -206,9 +206,9 @@ def remove_file_and_dir(filepath, let_root=False):
         return
 
     #if logger.isEnabledFor(logging.DEBUG):
-    #    logger.debug("remove file[%s]" % filepath)    
+    #    logger.debug("remove file[%s]" % filepath)
     #os.remove(filepath)
-    
+
     #if logger.isEnabledFor(logging.DEBUG):
     #    logger.debug("remove dir[%s]" % dirname)
 
@@ -223,7 +223,7 @@ def remove_file_and_dir(filepath, let_root=False):
         for name in dirs:
             _filepath = os.path.join(root, name)
             try:
-                os.rmdir(_filepath)            
+                os.rmdir(_filepath)
                 logger.debug("remove dir[%s]" % _filepath)
             except Exception as err:
                 logger.error("not remove dir[%s] - error[%s]" % (_filepath, str(err)))
@@ -257,13 +257,13 @@ def get_day(date_str):
 
 @timeit("utils.get_datetime_from_period", stats_only=True)
 def get_datetime_from_period(date_str, freq=None):
-    
+
     #TODO: cache
-    
+
     year = None
     month = None
     day = None
-    
+
     if freq == "A":
         year = int(get_year(date_str))
         month = 1
@@ -291,7 +291,7 @@ def get_datetime_from_period(date_str, freq=None):
                 raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
         #else:
         #    month = int(month_str)
-            
+
     elif freq == "W":
         year = int(get_year(date_str))
         """
@@ -303,16 +303,16 @@ def get_datetime_from_period(date_str, freq=None):
         2010-06-16
         >>> datetime(2016,12,31).strftime("%Y-%m-%d %W")
         '2016-12-31 52'
-        
+
         >>> pd.Period("2016-01-27", freq="W-WED").to_timestamp()
         Timestamp('2016-01-21 00:00:00')
         >>> pd.Period("2016-01-27", freq="W-WED").ordinal
         2404
-        
+
         >>> pd.Period("2016-01-27", freq="W-MON").to_timestamp()
         Timestamp('2016-01-26 00:00:00')
         >>> pd.Period("2016-01-27", freq="W-MON").ordinal
-        2405                        
+        2405
         """
         raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
     elif freq == "S":
@@ -335,8 +335,8 @@ def get_datetime_from_period(date_str, freq=None):
         raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
     else:
         raise NotImplementedError("freq not implemented freq[%s] date[%s]" % (freq, date_str))
-        
-    
+
+
     dt = datetime(year, month or 1, day or 1)
     return clean_datetime(dt, rm_hour=True, rm_minute=True, rm_second=True, rm_microsecond=True, rm_tzinfo=True)
 
@@ -351,20 +351,20 @@ x    { "_id" : "M", "count" : 507243 }
     { "_id" : "D", "count" : 845 }
     { "_id" : "W-MON", "count" : 77 }
     { "_id" : "W-FRI", "count" : 60 }
-    { "_id" : "W-THU", "count" : 2 }    
+    { "_id" : "W-THU", "count" : 2 }
     """
-    
+
     from dlstats.cache import cache
     from dlstats import constants
     from pandas import Period
-        
+
     key = "ordinal.%s.%s" % (date_str, freq)
 
     if cache and freq in constants.CACHE_FREQUENCY:
         period_from_cache = cache.get(key)
         if not period_from_cache is None:
             return period_from_cache
-    
+
     period_ordinal = None
     if freq == "A":
         year = int(get_year(date_str))
@@ -397,20 +397,20 @@ x    { "_id" : "M", "count" : 507243 }
      ("1970-07", "M", 6),
      ("1971-07", "M", 18),
      ("1969-07", "M", -6),
-     
+
     """
 
     if not period_ordinal:
         period_ordinal = Period(date_str, freq=freq).ordinal
-    
+
     if cache and freq in constants.CACHE_FREQUENCY:
         cache.set(key, period_ordinal)
-    
+
     return period_ordinal
 
 @timeit("commons.slugify", stats_only=True)
 def slugify(text, **kwargs):
-    
+
     from dlstats.cache import cache
 
     key = "slugify.%s" % text
@@ -419,17 +419,17 @@ def slugify(text, **kwargs):
         slug_from_cache = cache.get(key)
         if slug_from_cache:
             return slug_from_cache
-    
+
     slug = original_slugify(text, **kwargs)
 
     if cache:
         cache.set(key, slug)
-        
+
     return slug
 
 def clean_key(key):
     if not key:
-        return key    
+        return key
     for k in MONGO_DENIED_KEY_CHARS:
         key = key.replace(k, "_")
     return key
@@ -445,12 +445,12 @@ def clean_dict(dct):
     return new_dct
 
 def json_dump_convert(obj):
-    
+
     if isinstance(obj, ObjectId):
         return str(obj)
-    
+
     elif isinstance(obj, datetime):
         return arrow.get(obj).for_json()
-    
+
     return obj
 
