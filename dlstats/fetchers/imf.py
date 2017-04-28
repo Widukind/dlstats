@@ -1080,11 +1080,11 @@ class WeoGroupsData(SeriesIterator):
         hrefs = html.xpath("//div[@id = 'content-main']/h4/a['href']")
         links = [href.values() for href in hrefs]
 
-        #The last links of the WEO webpage lead to data we dont want to pull.
-        links = links[:-16]
-        #These are other links we don't want.
-        links.pop(-8)
-        links.pop(-10)
+        # #The last links of the WEO webpage lead to data we dont want to pull.
+        # links = links[:-16]
+        # #These are other links we don't want.
+        # links.pop(-8)
+        # links.pop(-10)
         links = [link[0][:-10]+'download.aspx' for link in links]
 
         output = []
