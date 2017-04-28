@@ -1,4 +1,4 @@
-git+git://git.nomics.world/dbnomics/widukind-common@master#egg=widukind-common
+git+https://git.nomics.world/dbnomics/widukind-common@master#egg=widukind-common
 python-slugify
 click>=5.1
 colorama>=0.3.3
