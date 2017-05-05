@@ -92,7 +92,7 @@ class Eurostat(Fetcher):
                                   fetcher=self)
 
         self.categories_filter = [
-            'nama_10',
+            'nama10',
             'namq_10',
             'nasa_10',
             'nasq_10',
