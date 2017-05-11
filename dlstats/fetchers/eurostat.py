@@ -107,7 +107,7 @@ class Eurostat(Fetcher):
             'prc',
             'bop',
             'bop_6',
-            'demo_pjanbroad',
+            'demo',  # We harvest demo because we need demo_pjanbroad.
             'lfsi_act_q',
             'euroind',
             'pop',
