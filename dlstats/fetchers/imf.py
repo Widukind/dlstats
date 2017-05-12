@@ -5,6 +5,7 @@ import csv
 from datetime import datetime
 from re import match
 import logging
+from urllib.parse import urljoin
 
 import requests
 from lxml import etree
@@ -871,7 +872,7 @@ class WeoData(SeriesIterator):
         # #These are other links we don't want.
         # links.pop(-8)
         # links.pop(-10)
-        links = [link[0][:-10]+'download.aspx' for link in links]
+        links = [urljoin(link[0], 'download.aspx') for link in links]
 
         output = []
 
@@ -879,7 +880,7 @@ class WeoData(SeriesIterator):
             webpage = requests.get(link)
             html = etree.HTML(webpage.text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
-            output.append(link[:-13]+final_link[0].values()[0])
+            output.append(urljoin(link, final_link[0].values()[0]))
 
         # we need to handle the issue in chronological order
         return sorted(output)
@@ -1085,7 +1086,7 @@ class WeoGroupsData(SeriesIterator):
         # #These are other links we don't want.
         # links.pop(-8)
         # links.pop(-10)
-        links = [link[0][:-10]+'download.aspx' for link in links]
+        links = [urljoin(link[0], 'download.aspx') for link in links]
 
         output = []
 
@@ -1093,7 +1094,7 @@ class WeoGroupsData(SeriesIterator):
             webpage = requests.get(link)
             html = etree.HTML(webpage.text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
-            output.append(link[:-13]+final_link[1].values()[0])
+            output.append(urljoin(link, final_link[0].values()[0]))
 
         # we need to handle the issue in chronological order
         return sorted(output)
