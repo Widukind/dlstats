@@ -878,7 +878,10 @@ class WeoData(SeriesIterator):
 
         for link in links:
             webpage = requests.get(link)
-            html = etree.HTML(webpage.text)
+            webpage_text = webpage.text:
+            if 'Page Not Found' in webpage_text:
+                continue
+            html = etree.HTML(webpage_text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
             output.append(urljoin(link, final_link[0].values()[0]))
 
@@ -1092,7 +1095,10 @@ class WeoGroupsData(SeriesIterator):
 
         for link in links:
             webpage = requests.get(link)
-            html = etree.HTML(webpage.text)
+            webpage_text = webpage.text:
+            if 'Page Not Found' in webpage_text:
+                continue
+            html = etree.HTML(webpage_text)
             final_link = html.xpath("//div[@id = 'content']//table//a['href']")
             output.append(urljoin(link, final_link[0].values()[0]))
 
