@@ -878,7 +878,7 @@ class WeoData(SeriesIterator):
 
         for link in links:
             webpage = requests.get(link)
-            webpage_text = webpage.text:
+            webpage_text = webpage.text
             if 'Page Not Found' in webpage_text:
                 continue
             html = etree.HTML(webpage_text)
@@ -1095,7 +1095,7 @@ class WeoGroupsData(SeriesIterator):
 
         for link in links:
             webpage = requests.get(link)
-            webpage_text = webpage.text:
+            webpage_text = webpage.text
             if 'Page Not Found' in webpage_text:
                 continue
             html = etree.HTML(webpage_text)
