@@ -117,7 +117,7 @@ class Downloader:
                     return response
 
             with open(self.filepath, mode='wb') as f:
-                for chunk in response.iter_content():
+                for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
 
             return response

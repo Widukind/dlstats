@@ -125,7 +125,7 @@ class WorldBankAPI(Fetcher):
         response.raise_for_status()
 
         with open(filepath, mode='wb') as f:
-            for chunk in response.iter_content():
+            for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
         self.for_delete.append(filepath)
