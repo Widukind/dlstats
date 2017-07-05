@@ -71,161 +71,161 @@ CATEGORIES = {
         "name": "NIPA - Underlying - Section 0",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section0All_xls.zip&Section=1",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section0All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section2": {
         "name": "NIPA - Underlying - Section 2",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section2All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section3": {
         "name": "NIPA - Underlying - Section 3",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section3All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section4": {
         "name": "NIPA - Underlying - Section 4",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section4All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section5": {
         "name": "NIPA - Underlying - Section 5",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section5All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section7": {
         "name": "NIPA - Underlying - Section 7",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section7All_xls.zip",
         "doc_href": None
     },
     "nipa-underlying-section9": {
         "name": "NIPA - Underlying - Section 9",
         "parent": "nipa-underlying",
         "all_parents": ["national", "nipa-underlying"],
-        "url": "http://www.bea.gov/national/nipaweb/nipa_underlying/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
+        "url": "https://www.bea.gov/national/nipaweb/nipa_underlying/SS_Data/Section9All_xls.zip",
         "doc_href": None
     },
     "fa2004-section1": {
         "name": "SECTION 1 - FIXED ASSETS AND CONSUMER DURABLE GOODS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section1All_xls.zip",
         "doc_href": None
     },
     "fa2004-section2": {
         "name": "SECTION 2 - PRIVATE FIXED ASSETS BY TYPE",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section2All_xls.zip",
         "doc_href": None
     },
     "fa2004-section3": {
         "name": "SECTION 3 - PRIVATE FIXED ASSETS BY INDUSTRY",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section3All_xls.zip",
         "doc_href": None
     },
     "fa2004-section4": {
         "name": "SECTION 4 - NONRESIDENTIAL FIXED ASSETS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section4All_xls.zip",
         "doc_href": None
     },
     "fa2004-section5": {
         "name": "SECTION 5 - RESIDENTIAL FIXED ASSETS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section5All_xls.zip",
         "doc_href": None
     },
     "fa2004-section6": {
         "name": "SECTION 6 - PRIVATE FIXED ASSETS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.zip&Section=7",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section6All_xls.zip",
         "doc_href": None
     },
     "fa2004-section7": {
         "name": "SECTION 7 - GOVERNMENT FIXED ASSETS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section7All_xls.zip",
         "doc_href": None
     },
     "fa2004-section8": {
         "name": "SECTION 8 - CONSUMER DURABLE GOODS",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section8All_xls.zip&Section=9",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section8All_xls.zip",
         "doc_href": None
     },
     "fa2004-section9": {
         "name": "SECTION 9 - CHAINED DOLLAR TABLES",
         "parent": "fa2004",
         "all_parents": ["national", "fa2004"],
-        "url": "http://www.bea.gov/national/FA2004/GetCSV.asp?GetWhat=SS_Data/Section9All_xls.zip&Section=10",
+        "url": "https://www.bea.gov/national/FA2004/SS_Data/Section9All_xls.zip",
         "doc_href": None
     },
     "nipa-section1": {
         "name": "NIPA - Section 1 - Domestic Product and Income",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section1All_xls.zip&Section=2",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section1All_xls.zip",
         "doc_href": None
     },
     "nipa-section2": {
         "name": "NIPA - Section 2 - Personal Income and Outlays",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section2All_xls.zip&Section=3",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section2All_xls.zip",
         "doc_href": None
     },
     "nipa-section3": {
         "name": "NIPA - Section 3 - Government Current Receipts and Expenditures",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section3All_xls.zip&Section=4",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section3All_xls.zip",
         "doc_href": None
     },
     "nipa-section4": {
         "name": "NIPA - Section 4 - Foreign Transactions",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section4All_xls.zip&Section=5",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section4All_xls.zip",
         "doc_href": None
     },
     "nipa-section5": {
         "name": "NIPA - Section 5 - Saving and Investment",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section5All_xls.zip&Section=6",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section5All_xls.zip",
         "doc_href": None
     },
     "nipa-section6": {
         "name": "NIPA - Section 6 - Income and Employment by Industry",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section6All_xls.zip&Section=7",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section6All_xls.zip",
         "doc_href": None
     },
     "nipa-section7": {
         "name": "NIPA - Section 7 - Supplemental Tables",
         "parent": "nipa",
         "all_parents": ["national", "nipa"],
-        "url": "http://www.bea.gov/national/nipaweb/GetCSV.asp?GetWhat=SS_Data/Section7All_xls.zip&Section=8",
+        "url": "https://www.bea.gov/national/nipaweb/SS_Data/Section7All_xls.zip",
         "doc_href": None
     },
 }
