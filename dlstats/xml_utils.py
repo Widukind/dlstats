@@ -70,11 +70,10 @@ def get_key_for_dimension(count_dimensions, position, dimension_value):
     return "".join(sdmx_key)
 
 def select_dimension(dimension_keys, dimensions, choice="avg"):
-    """Renvoi le nom de la dimension qui contiens le nombre de valeures demandés
+    """Renvoie le nom de la dimension qui contient le nombre de valeurs demandées
     pour servir ensuite de filtre dans le chargement des données (..A.)
-    en tenant compte du nombre de dimension et de la position
+    en tenant compte du nombre de dimensions et de la position
     """
-    _dimensions = {}
     _min = None
     _max = None
     _avg = None
@@ -84,29 +83,31 @@ def select_dimension(dimension_keys, dimensions, choice="avg"):
     if not dimension_keys or not dimensions:
         return 0, None, []
 
-    counts = [len(values) for values in dimensions.values()]
-    average = int(statistics.mean(counts))
+    average = statistics.mean(
+        len(values)
+        for values in dimensions.values()
+        )
 
-    #for key, values in dimensions.items():
     for key in dimension_keys:
         values = dimensions[key]
         count = len(values)
         if count == 0:
             continue
 
+        average_distance = abs(count - average)
+
         if not _min:
             _min = (key, count)
             _max = (key, count)
-            _avg = (key, count)
+            _avg = (key, average_distance)
             continue
 
         if count < _min[1]:
             _min = (key, count)
         if count > _max[1]:
             _max = (key, count)
-
-        if count >= average and count <= average:
-            _avg = (key, count)
+        if average_distance < _avg[1]:
+            _avg = (key, average_distance)
 
     if choice == "max":
         _key = _max[0]
