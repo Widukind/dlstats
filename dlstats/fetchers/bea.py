@@ -331,7 +331,7 @@ class BEA(Fetcher):
 
         categories = []
 
-        for category_code, values in CATEGORIES.items():
+        for category_code, values in sorted(CATEGORIES.items()):
             if "url" in values:
                 continue
 
@@ -345,8 +345,7 @@ class BEA(Fetcher):
             }
             categories.append(cat)
 
-        for category_code, category in CATEGORIES.items():
-
+        for category_code, category in sorted(CATEGORIES.items()):
             if not "url" in category:
                 continue
 
